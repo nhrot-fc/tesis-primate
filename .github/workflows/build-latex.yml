@@ -21,7 +21,7 @@ jobs:
       uses: xu-cheng/latex-action@v3
       with:
         root_file: main.tex
-        args: -pdf -interaction=nonstopmode -halt-on-error -nopvc
+        args: -pdf
         
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4
