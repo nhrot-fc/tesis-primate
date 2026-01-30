@@ -21,11 +21,11 @@ jobs:
       uses: xu-cheng/latex-action@v3
       with:
         root_file: main.tex
-        args: -pdf -interaction=nonstopmode -halt-on-error
+        args: -pdf -interaction=nonstopmode -halt-on-error -nopvc
         
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4
       with:
         name: academic-paper-pdf
-        path: main.pdf
+        path: build/main.pdf
         if-no-files-found: error
