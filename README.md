@@ -10,29 +10,57 @@ You need to have TeXLive installed on your system:
 ```bash
 sudo apt-get update
 sudo apt-get install texlive-full
+# Optional: install latexmk for automated compilation
+sudo apt-get install latexmk
 ```
 
 ### macOS
 ```bash
 brew install --cask mactex
+# latexmk is included with MacTeX
 ```
 
 ### Windows
 Download and install TeXLive from: https://www.tug.org/texlive/
+(latexmk is included with TeXLive)
 
 ## Project Structure
 
 ```
 .
-├── main.tex           # Main LaTeX document
-├── references.bib     # Bibliography file (BibTeX format)
-├── Makefile          # Build automation
-└── README.md         # This file
+├── .github/
+│   └── workflows/
+│       └── build-latex.yml  # CI/CD workflow
+├── figures/              # Directory for images and figures
+│   └── README.md
+├── main.tex             # Main LaTeX document
+├── references.bib       # Bibliography file (BibTeX format)
+├── Makefile            # Build automation
+├── .latexmkrc          # Configuration for latexmk
+└── README.md           # This file
 ```
 
 ## Building the Document
 
-### Using Make (Recommended)
+### Using latexmk (Recommended for automatic compilation)
+
+If you have `latexmk` installed, you can use it for automated compilation:
+
+```bash
+# Compile with automatic dependency resolution
+latexmk -pdf main.tex
+
+# Continuous compilation (recompiles on file changes)
+latexmk -pdf -pvc main.tex
+
+# Clean auxiliary files
+latexmk -c
+
+# Clean all files including PDF
+latexmk -C
+```
+
+### Using Make
 
 The project includes a Makefile for easy compilation:
 
