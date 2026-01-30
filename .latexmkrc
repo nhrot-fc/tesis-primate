@@ -10,8 +10,5 @@ $bibtex_use = 2;
 # Enable continuous preview mode
 $preview_continuous_mode = 1;
 
-# PDF previewer
-$pdf_previewer = 'start';
-
 # Clean up auxiliary files
 $clean_ext = "aux bbl blg log out toc synctex.gz fls fdb_latexmk";

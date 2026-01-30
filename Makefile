@@ -10,7 +10,7 @@ BIBTEX = bibtex
 # Compilation flags
 LATEX_FLAGS = -interaction=nonstopmode -halt-on-error
 
-.PHONY: all clean cleanall view help
+.PHONY: all clean cleanall view help quick
 
 # Default target: compile the document
 all: $(MAIN).pdf

@@ -37,6 +37,7 @@ Download and install TeXLive from: https://www.tug.org/texlive/
 ├── references.bib       # Bibliography file (BibTeX format)
 ├── Makefile            # Build automation
 ├── .latexmkrc          # Configuration for latexmk
+├── CONTRIBUTING.md     # Contribution guidelines
 └── README.md           # This file
 ```
 
