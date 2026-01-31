@@ -6,7 +6,7 @@ BUILD_DIR = build
 
 # LaTeX compiler
 LATEX = pdflatex
-BIBTEX = bibtex
+BIBTEX = biber
 
 # Compilation flags
 LATEX_FLAGS = -interaction=nonstopmode -halt-on-error -output-directory=$(BUILD_DIR)
