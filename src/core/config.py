@@ -7,8 +7,7 @@ class Settings(BaseSettings):
     HF_TOKEN: SecretStr | None = None
 
     # Google Drive / Data
-    GOOGLE_APPLICATION_CREDENTIALS: str
-    GDRIVE_ROOT_PATH: str
+    GDRIVE_ROOT_PATH: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
