@@ -29,7 +29,19 @@ HEADER_RENAMES = {
 }
 
 
+def get_annotation_file(annotations_dir: Path, record_file: Path) -> Path | None:
+    allowed_extensions = [".csv", ".txt", ".tsv"]
+    for ext in allowed_extensions:
+        candidate = annotations_dir / (record_file.stem + ext)
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
+
+
 def load_annotation_file(annotation_file: Path | str, sep: str = "\t") -> pd.DataFrame:
+    if Path(annotation_file).suffix.lower() == ".csv":
+        sep = ","
+
     path = Path(annotation_file)
     log_info("annotation.load.start", path=str(path), sep=sep)
 
