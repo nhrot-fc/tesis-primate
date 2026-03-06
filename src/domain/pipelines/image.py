@@ -1,4 +1,7 @@
 from collections.abc import Callable
+from importlib import import_module
+from types import ModuleType
+from typing import Any
 
 import cv2
 import librosa
@@ -7,6 +10,95 @@ import numpy as np
 from src.domain.pipelines.audio import AnnotationBox, AudioArray, YoloCoord
 
 type PixelBBox = tuple[int, float, float, float, float]
+
+
+def _get_albumentations_module() -> ModuleType:
+    try:
+        return import_module("albumentations")
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "Albumentations no está instalado. Ejecuta la sincronización de dependencias del proyecto."
+        ) from exc
+
+
+def audio_to_db_spectrogram(
+    waveform: AudioArray,
+    sample_rate: int,
+    n_fft: int = 2048,
+    hop_length: int = 512,
+    fmax: float | None = None,
+    ref_power: float = 1.0,
+    db_min: float = -80.0,
+    db_max: float = 0.0,
+) -> np.ndarray:
+    if db_max <= db_min:
+        raise ValueError("db_max must be greater than db_min")
+
+    power_spectrogram = (
+        np.abs(
+            librosa.stft(
+                waveform.astype(np.float32), n_fft=n_fft, hop_length=hop_length
+            )
+        )
+        ** 2
+    )
+
+    if fmax is not None:
+        frequencies = librosa.fft_frequencies(sr=sample_rate, n_fft=n_fft)
+        frequency_mask = frequencies <= fmax
+        if np.any(frequency_mask):
+            power_spectrogram = power_spectrogram[frequency_mask, :]
+
+    db_spectrogram = librosa.power_to_db(power_spectrogram, ref=ref_power)
+    return np.clip(db_spectrogram, db_min, db_max).astype(np.float32)
+
+
+def apply_specaugment(
+    db_spectrogram: np.ndarray,
+    num_time_masks: int = 2,
+    max_time_mask_width: int = 32,
+    num_freq_masks: int = 2,
+    max_freq_mask_height: int = 32,
+    background_db: float | None = None,
+    random_seed: int | None = None,
+) -> np.ndarray:
+    if db_spectrogram.ndim != 2:
+        raise ValueError("db_spectrogram must be a 2D array")
+
+    augmented = db_spectrogram.copy()
+    height, width = augmented.shape
+    rng = np.random.default_rng(random_seed)
+
+    if background_db is None:
+        background_db = float(np.percentile(augmented, 20))
+
+    max_time_width = max(1, min(max_time_mask_width, width))
+    for _ in range(max(0, num_time_masks)):
+        mask_width = int(rng.integers(1, max_time_width + 1))
+        start_x = int(rng.integers(0, max(1, width - mask_width + 1)))
+        augmented[:, start_x : start_x + mask_width] = background_db
+
+    max_freq_height = max(1, min(max_freq_mask_height, height))
+    for _ in range(max(0, num_freq_masks)):
+        mask_height = int(rng.integers(1, max_freq_height + 1))
+        start_y = int(rng.integers(0, max(1, height - mask_height + 1)))
+        augmented[start_y : start_y + mask_height, :] = background_db
+
+    return augmented
+
+
+def db_spectrogram_to_rgb(
+    db_spectrogram: np.ndarray,
+    db_min: float = -80.0,
+    db_max: float = 0.0,
+) -> np.ndarray:
+    if db_max <= db_min:
+        raise ValueError("db_max must be greater than db_min")
+
+    normalized = (db_spectrogram - db_min) * (255.0 / (db_max - db_min))
+    spectrogram_uint8 = np.clip(normalized, 0, 255).astype(np.uint8)
+    spectrogram_uint8 = cv2.flip(spectrogram_uint8, 0)
+    return cv2.applyColorMap(spectrogram_uint8, cv2.COLORMAP_VIRIDIS)
 
 
 def get_expected_spectrogram_shape(
@@ -51,11 +143,22 @@ def translate_boxes_to_yolo(
     x_start: int,
     y_start: int,
     crop_size: int = 640,
+    retained_area_threshold: float = 0.3,
+    min_box_side_px: float = 5.0,
 ) -> list[YoloCoord]:
     """Traslada las coordenadas absolutas al marco local del Crop y las formatea para YOLO."""
+    if not 0.0 <= retained_area_threshold <= 1.0:
+        raise ValueError("retained_area_threshold must be in [0, 1]")
+
     valid_labels: list[YoloCoord] = []
 
     for class_id, x1, y1, x2, y2 in global_bboxes_px:
+        orig_width = max(0.0, x2 - x1)
+        orig_height = max(0.0, y2 - y1)
+        orig_area = orig_width * orig_height
+        if orig_area <= 0.0:
+            continue
+
         new_x1 = max(0.0, min(x1 - x_start, float(crop_size)))
         new_y1 = max(0.0, min(y1 - y_start, float(crop_size)))
         new_x2 = max(0.0, min(x2 - x_start, float(crop_size)))
@@ -63,8 +166,14 @@ def translate_boxes_to_yolo(
 
         width_pixels = new_x2 - new_x1
         height_pixels = new_y2 - new_y1
+        clipped_area = max(0.0, width_pixels) * max(0.0, height_pixels)
+        retained_fraction = clipped_area / orig_area
 
-        if width_pixels > 5 and height_pixels > 5:
+        if (
+            width_pixels > min_box_side_px
+            and height_pixels > min_box_side_px
+            and retained_fraction >= retained_area_threshold
+        ):
             valid_labels.append(
                 YoloCoord(
                     class_id=int(class_id),
@@ -84,35 +193,102 @@ def audio_to_rgb_spectrogram(
     n_fft: int = 2048,
     hop_length: int = 512,
     fmax: float | None = None,
+    db_min: float = -80.0,
+    db_max: float = 0.0,
+    apply_specaugment_masks: bool = False,
+    num_time_masks: int = 2,
+    max_time_mask_width: int = 32,
+    num_freq_masks: int = 2,
+    max_freq_mask_height: int = 32,
+    random_seed: int | None = None,
 ) -> np.ndarray:
-    power_spectrogram = (
-        np.abs(
-            librosa.stft(
-                waveform.astype(np.float32), n_fft=n_fft, hop_length=hop_length
-            )
-        )
-        ** 2
+    db_spectrogram = audio_to_db_spectrogram(
+        waveform=waveform,
+        sample_rate=sample_rate,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        fmax=fmax,
+        ref_power=1.0,
+        db_min=db_min,
+        db_max=db_max,
     )
 
-    if fmax is not None:
-        frequencies = librosa.fft_frequencies(sr=sample_rate, n_fft=n_fft)
-        frequency_mask = frequencies <= fmax
-        if np.any(frequency_mask):
-            power_spectrogram = power_spectrogram[frequency_mask, :]
+    if apply_specaugment_masks:
+        db_spectrogram = apply_specaugment(
+            db_spectrogram=db_spectrogram,
+            num_time_masks=num_time_masks,
+            max_time_mask_width=max_time_mask_width,
+            num_freq_masks=num_freq_masks,
+            max_freq_mask_height=max_freq_mask_height,
+            random_seed=random_seed,
+        )
 
-    db_spectrogram = librosa.power_to_db(power_spectrogram, ref=1.0)
+    return db_spectrogram_to_rgb(
+        db_spectrogram=db_spectrogram,
+        db_min=db_min,
+        db_max=db_max,
+    )
 
-    min_value = float(np.min(db_spectrogram))
-    max_value = float(np.max(db_spectrogram))
-    if max_value > min_value:
-        normalized = (db_spectrogram - min_value) * (255.0 / (max_value - min_value))
-    else:
-        normalized = np.zeros_like(db_spectrogram, dtype=np.float32)
 
-    spectrogram_uint8 = np.clip(normalized, 0, 255).astype(np.uint8)
-    spectrogram_uint8 = cv2.flip(spectrogram_uint8, 0)
+def build_visual_augmentation_pipeline(
+    blur_probability: float = 0.3,
+    brightness_contrast_probability: float = 0.3,
+) -> Any:
+    albumentations = _get_albumentations_module()
+    return albumentations.Compose(
+        [
+            albumentations.OneOf(
+                [
+                    albumentations.GaussianBlur(blur_limit=(3, 7), p=1.0),
+                    albumentations.MotionBlur(blur_limit=(3, 7), p=1.0),
+                ],
+                p=blur_probability,
+            ),
+            albumentations.RandomBrightnessContrast(
+                brightness_limit=0.2,
+                contrast_limit=0.2,
+                p=brightness_contrast_probability,
+            ),
+        ],
+        bbox_params=albumentations.BboxParams(
+            format="yolo",
+            label_fields=["class_ids"],
+            min_visibility=0.3,
+        ),
+    )
 
-    return cv2.applyColorMap(spectrogram_uint8, cv2.COLORMAP_VIRIDIS)
+
+def apply_visual_augmentations(
+    image_rgb: np.ndarray,
+    yolo_labels: list[YoloCoord],
+    augmenter: Any | None = None,
+) -> tuple[np.ndarray, list[YoloCoord]]:
+    if augmenter is None:
+        augmenter = build_visual_augmentation_pipeline()
+    if augmenter is None:
+        raise ValueError("augmenter no puede ser None")
+
+    bboxes = [
+        [label["xc_rel"], label["yc_rel"], label["w_rel"], label["h_rel"]]
+        for label in yolo_labels
+    ]
+    class_ids = [label["class_id"] for label in yolo_labels]
+
+    transformed = augmenter(image=image_rgb, bboxes=bboxes, class_ids=class_ids)
+
+    transformed_labels: list[YoloCoord] = []
+    for bbox, class_id in zip(transformed["bboxes"], transformed["class_ids"]):
+        transformed_labels.append(
+            YoloCoord(
+                class_id=int(class_id),
+                xc_rel=float(bbox[0]),
+                yc_rel=float(bbox[1]),
+                w_rel=float(bbox[2]),
+                h_rel=float(bbox[3]),
+            )
+        )
+
+    return transformed["image"], transformed_labels
 
 
 def annotations_to_pixel_coords(
@@ -154,7 +330,7 @@ def annotations_to_pixel_coords(
 
 
 def pad_to_min_size(image: np.ndarray, min_size: int = 640) -> np.ndarray:
-    """Aplica padding en la parte inferior y derecha para no alterar el origen (0,0)."""
+    """Compatibilidad retroactiva: el padding preferente ahora se realiza en audio."""
     height, width = image.shape[:2]
     target_height = max(height, min_size)
     target_width = max(width, min_size)
@@ -170,6 +346,5 @@ def pad_to_min_size(image: np.ndarray, min_size: int = 640) -> np.ndarray:
         bottom=bottom,
         left=0,
         right=right,
-        borderType=cv2.BORDER_CONSTANT,
-        value=(0, 0, 0),
+        borderType=cv2.BORDER_REPLICATE,
     )

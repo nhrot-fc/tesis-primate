@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "albumentations>=2.0.8",
     "google-api-python-client>=2.188.0",
     "google-auth>=2.48.0",
     "google-auth-httplib2>=0.3.0",

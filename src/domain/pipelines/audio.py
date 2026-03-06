@@ -4,6 +4,7 @@ import random
 from typing import TypedDict
 from collections.abc import Sequence
 import pandas as pd
+import librosa
 
 type AudioArray = npt.NDArray[np.float32]
 
@@ -23,6 +24,14 @@ class YoloCoord(TypedDict):
     yc_rel: float
     w_rel: float
     h_rel: float
+
+
+def min_samples_for_spectrogram_width(min_width: int, hop_length: int = 512) -> int:
+    if min_width <= 0:
+        raise ValueError("min_width must be greater than zero")
+    if hop_length <= 0:
+        raise ValueError("hop_length must be greater than zero")
+    return (min_width - 1) * hop_length
 
 
 def annotations_to_boxes(annotations: pd.DataFrame) -> list[AnnotationBox]:
@@ -110,8 +119,26 @@ def extract_clip(
     sample_rate: int | float,
     offset_sec: float,
     duration_sec: float = 5.0,
+    min_spectrogram_width: int | None = 640,
+    hop_length: int = 512,
+    pad_mode: str = "noise",
+    noise_scale: float = 1.0,
+    random_seed: int | None = None,
 ) -> AudioArray:
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be greater than zero")
+    if duration_sec <= 0:
+        raise ValueError("duration_sec must be greater than zero")
+
     target_samples = int(duration_sec * sample_rate)
+    if min_spectrogram_width is not None:
+        target_samples = max(
+            target_samples,
+            min_samples_for_spectrogram_width(
+                min_width=min_spectrogram_width, hop_length=hop_length
+            ),
+        )
+
     start_sample = int(offset_sec * sample_rate)
     end_sample = start_sample + target_samples
 
@@ -124,9 +151,101 @@ def extract_clip(
 
     if len(clip) < target_samples:
         pad_width = target_samples - len(clip)
-        clip = np.pad(clip, (0, pad_width), mode="constant", constant_values=0.0)
 
-    return clip
+        if pad_mode == "zero":
+            padding = np.zeros(pad_width, dtype=np.float32)
+        elif pad_mode == "noise":
+            rng = np.random.default_rng(random_seed)
+            reference = clip if len(clip) > 0 else waveform.astype(np.float32)
+            ref_std = float(np.std(reference)) if len(reference) > 0 else 0.0
+            noise_std = max(ref_std * noise_scale, 1e-6)
+            padding = rng.normal(0.0, noise_std, size=pad_width).astype(np.float32)
+        else:
+            raise ValueError("pad_mode must be either 'zero' or 'noise'")
+
+        clip = np.concatenate([clip.astype(np.float32), padding], axis=0)
+
+    return clip.astype(np.float32)
+
+
+def apply_time_stretch(
+    audio: AudioArray,
+    annotations: Sequence[AnnotationBox],
+    stretch_factor: float,
+    target_length: int | None = None,
+) -> tuple[AudioArray, list[AnnotationBox]]:
+    if stretch_factor <= 0:
+        raise ValueError("stretch_factor must be greater than zero")
+
+    stretched_audio = librosa.effects.time_stretch(
+        audio.astype(np.float32), rate=stretch_factor
+    ).astype(np.float32)
+
+    transformed_annotations: list[AnnotationBox] = []
+    for ann in annotations:
+        begin_time = float(ann["begin_time"] / stretch_factor)
+        end_time = float(ann["end_time"] / stretch_factor)
+
+        if end_time <= begin_time:
+            continue
+
+        transformed_annotations.append(
+            AnnotationBox(
+                specie=ann["specie"],
+                call_type=ann["call_type"],
+                begin_time=begin_time,
+                end_time=end_time,
+                low_freq=float(ann["low_freq"]),
+                high_freq=float(ann["high_freq"]),
+            )
+        )
+
+    if target_length is not None:
+        stretched_audio = fit_audio_length(stretched_audio, target_length=target_length)
+
+    return stretched_audio.astype(np.float32), transformed_annotations
+
+
+def apply_pitch_shift(
+    audio: AudioArray,
+    annotations: Sequence[AnnotationBox],
+    sample_rate: int,
+    semitones: float,
+    min_frequency_hz: float = 0.0,
+    max_frequency_hz: float | None = None,
+) -> tuple[AudioArray, list[AnnotationBox]]:
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be greater than zero")
+
+    shifted_audio = librosa.effects.pitch_shift(
+        audio.astype(np.float32), sr=sample_rate, n_steps=semitones
+    ).astype(np.float32)
+
+    if max_frequency_hz is None:
+        max_frequency_hz = sample_rate / 2.0
+
+    frequency_factor = float(2 ** (semitones / 12.0))
+    transformed_annotations: list[AnnotationBox] = []
+
+    for ann in annotations:
+        low_freq = max(min_frequency_hz, float(ann["low_freq"]) * frequency_factor)
+        high_freq = min(max_frequency_hz, float(ann["high_freq"]) * frequency_factor)
+
+        if high_freq <= low_freq:
+            continue
+
+        transformed_annotations.append(
+            AnnotationBox(
+                specie=ann["specie"],
+                call_type=ann["call_type"],
+                begin_time=float(ann["begin_time"]),
+                end_time=float(ann["end_time"]),
+                low_freq=float(low_freq),
+                high_freq=float(high_freq),
+            )
+        )
+
+    return shifted_audio, transformed_annotations
 
 
 def apply_acoustic_mixup(
