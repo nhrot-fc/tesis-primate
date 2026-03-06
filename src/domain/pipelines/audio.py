@@ -3,11 +3,12 @@ import numpy.typing as npt
 import random
 from typing import TypedDict
 from collections.abc import Sequence
+import pandas as pd
 
 type AudioArray = npt.NDArray[np.float32]
 
 
-class BBoxAnnotation(TypedDict):
+class AnnotationBox(TypedDict):
     specie: str
     call_type: str
     begin_time: float
@@ -16,13 +17,71 @@ class BBoxAnnotation(TypedDict):
     high_freq: float
 
 
+class YoloCoord(TypedDict):
+    class_id: int
+    xc_rel: float
+    yc_rel: float
+    w_rel: float
+    h_rel: float
+
+
+def annotations_to_boxes(annotations: pd.DataFrame) -> list[AnnotationBox]:
+    boxes: list[AnnotationBox] = []
+    for _, row in annotations.iterrows():
+        boxes.append(
+            AnnotationBox(
+                specie=str(row["specie"]),
+                call_type=str(row["call_type"]),
+                begin_time=float(row["begin_time"]),
+                end_time=float(row["end_time"]),
+                low_freq=float(row["low_freq"]),
+                high_freq=float(row["high_freq"]),
+            )
+        )
+    boxes.sort(key=lambda box: box["begin_time"])
+    return boxes
+
+
+def get_logical_windows(
+    total_duration_sec: float, clip_duration_sec: float = 10.0, overlap: float = 0.1
+) -> list[float]:
+    """Retorna una lista de offsets (en segundos) calculados matemáticamente."""
+    if not 0 <= overlap < 1:
+        raise ValueError("overlap must be in [0, 1)")
+
+    if total_duration_sec <= clip_duration_sec:
+        return [0.0]
+
+    step = clip_duration_sec * (1.0 - overlap)
+    offsets = np.arange(
+        0, max(0.1, total_duration_sec - clip_duration_sec + step), step
+    )
+    return [float(o) for o in offsets]
+
+
+def fit_audio_length(audio: AudioArray, target_length: int) -> AudioArray:
+    if target_length <= 0:
+        raise ValueError("target_length must be greater than zero")
+
+    if len(audio) == target_length:
+        return audio.astype(np.float32)
+
+    if len(audio) > target_length:
+        return audio[:target_length].astype(np.float32)
+
+    pad_width = target_length - len(audio)
+    return np.pad(audio, (0, pad_width), mode="constant", constant_values=0.0).astype(
+        np.float32
+    )
+
+
 def recalculate_annotations(
-    annotations: Sequence[BBoxAnnotation],
+    annotations: Sequence[AnnotationBox],
     offset_sec: float,
     clip_duration: float,
     iou_threshold: float = 0.3,
-) -> list[BBoxAnnotation]:
-    valid_annotations: list[BBoxAnnotation] = []
+) -> list[AnnotationBox]:
+    valid_annotations: list[AnnotationBox] = []
 
     for ann in annotations:
         t_start = ann["begin_time"]
@@ -50,9 +109,9 @@ def extract_clip(
     waveform: AudioArray,
     sample_rate: int | float,
     offset_sec: float,
-    clip_duration: float = 5.0,
+    duration_sec: float = 5.0,
 ) -> AudioArray:
-    target_samples = int(clip_duration * sample_rate)
+    target_samples = int(duration_sec * sample_rate)
     start_sample = int(offset_sec * sample_rate)
     end_sample = start_sample + target_samples
 
@@ -70,44 +129,13 @@ def extract_clip(
     return clip
 
 
-def extract_anchored_clip(
-    waveform: AudioArray,
-    annotations: Sequence[BBoxAnnotation],
-    target_event: BBoxAnnotation,
-    sample_rate: int | float,
-    clip_duration: float = 5.0,
-    iou_threshold: float = 0.3,
-) -> tuple[AudioArray, list[BBoxAnnotation]]:
-    t_start = target_event["begin_time"]
-    t_end = target_event["end_time"]
-
-    min_offset = t_end - clip_duration
-    max_offset = t_start
-
-    if min_offset > max_offset:
-        min_offset, max_offset = max_offset, min_offset
-
-    min_offset = max(0.0, min_offset)
-    max_offset = max(0.0, max_offset)
-
-    offset_sec = random.uniform(min_offset, max_offset)
-
-    clip_audio = extract_clip(waveform, sample_rate, offset_sec, clip_duration)
-
-    clip_annotations = recalculate_annotations(
-        annotations, offset_sec, clip_duration, iou_threshold
-    )
-
-    return clip_audio, clip_annotations
-
-
 def apply_acoustic_mixup(
     audio_a: AudioArray,
-    ann_a: list[BBoxAnnotation],
+    ann_a: list[AnnotationBox],
     audio_b: AudioArray,
-    ann_b: list[BBoxAnnotation],
+    ann_b: list[AnnotationBox],
     alpha: float | None = None,
-) -> tuple[AudioArray, list[BBoxAnnotation]]:
+) -> tuple[AudioArray, list[AnnotationBox]]:
     if len(audio_a) != len(audio_b):
         raise ValueError(
             "Los tensores de audio deben tener la misma longitud exacta para MixUp."
@@ -125,10 +153,10 @@ def apply_acoustic_mixup(
 
 def add_background_noise(
     signal_audio: AudioArray,
-    signal_anns: list[BBoxAnnotation],
+    signal_anns: list[AnnotationBox],
     noise_audio: AudioArray,
     snr_db: float = 10.0,
-) -> tuple[AudioArray, list[BBoxAnnotation]]:
+) -> tuple[AudioArray, list[AnnotationBox]]:
     if len(signal_audio) != len(noise_audio):
         raise ValueError("La señal y el ruido deben tener la misma longitud.")
 
