@@ -1,6 +1,5 @@
 from collections.abc import Callable
-from importlib import import_module
-from types import ModuleType
+import albumentations
 from typing import Any
 
 import cv2
@@ -10,15 +9,6 @@ import numpy as np
 from src.domain.pipelines.audio import AnnotationBox, AudioArray, YoloCoord
 
 type PixelBBox = tuple[int, float, float, float, float]
-
-
-def _get_albumentations_module() -> ModuleType:
-    try:
-        return import_module("albumentations")
-    except ModuleNotFoundError as exc:
-        raise ImportError(
-            "Albumentations no está instalado. Ejecuta la sincronización de dependencias del proyecto."
-        ) from exc
 
 
 def audio_to_db_spectrogram(
@@ -234,7 +224,6 @@ def build_visual_augmentation_pipeline(
     blur_probability: float = 0.3,
     brightness_contrast_probability: float = 0.3,
 ) -> Any:
-    albumentations = _get_albumentations_module()
     return albumentations.Compose(
         [
             albumentations.OneOf(
