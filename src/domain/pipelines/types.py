@@ -1,10 +1,5 @@
 from dataclasses import dataclass
 
-import numpy as np
-import numpy.typing as npt
-
-type AudioArray = npt.NDArray[np.float32]
-
 
 @dataclass
 class AnnotationBox:
@@ -17,7 +12,7 @@ class AnnotationBox:
 
 
 @dataclass
-class BoundingBox:
+class PixelBBox:
     class_id: int
     x_min: int
     y_min: int

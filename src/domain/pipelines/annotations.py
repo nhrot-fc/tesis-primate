@@ -1,3 +1,5 @@
+from dataclasses import replace
+from collections.abc import Sequence
 from pathlib import Path
 import pandas as pd
 
@@ -118,3 +120,29 @@ def df_to_annotations(df: pd.DataFrame) -> list[AnnotationBox]:
         )
         boxes.append(box)
     return boxes
+
+
+def clip_annotations_to_window(
+    annotations: Sequence[AnnotationBox],
+    start_sec: float,
+    duration_sec: float,
+) -> list[AnnotationBox]:
+    window_end_sec = start_sec + duration_sec
+    clipped_annotations: list[AnnotationBox] = []
+
+    for box in annotations:
+        overlap_start = max(box.begin_time, start_sec)
+        overlap_end = min(box.end_time, window_end_sec)
+
+        if overlap_end <= overlap_start:
+            continue
+
+        clipped_annotations.append(
+            replace(
+                box,
+                begin_time=overlap_start - start_sec,
+                end_time=overlap_end - start_sec,
+            )
+        )
+
+    return clipped_annotations
