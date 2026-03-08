@@ -3,6 +3,7 @@ import pandas as pd
 
 from src.core.logging import log_info, log_error
 from src.domain.utils.text_normalization import normalize_headers, normalize_value
+from src.domain.pipelines.types import AnnotationBox
 
 REQUIRED_COLUMNS = [
     "specie",
@@ -102,3 +103,18 @@ def clean_annotation_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return df[REQUIRED_COLUMNS + ["duration_s", "bandwidth_hz"]]
+
+
+def df_to_annotations(df: pd.DataFrame) -> list[AnnotationBox]:
+    boxes = []
+    for _, row in df.iterrows():
+        box = AnnotationBox(
+            specie=row["specie"],
+            call_type=row["call_type"],
+            begin_time=float(row["begin_time"]),
+            end_time=float(row["end_time"]),
+            low_freq=float(row["low_freq"]),
+            high_freq=float(row["high_freq"]),
+        )
+        boxes.append(box)
+    return boxes
