@@ -127,19 +127,23 @@ def clip_annotations_to_window(
     start_sec: float,
     duration_sec: float,
 ) -> list[AnnotationBox]:
-    window_end_sec = start_sec + duration_sec
+    end_sec = start_sec + duration_sec
     clipped_annotations: list[AnnotationBox] = []
 
-    for box in annotations:
-        overlap_start = max(box.begin_time, start_sec)
-        overlap_end = min(box.end_time, window_end_sec)
+    for ann in annotations:
+        if ann.begin_time < start_sec:
+            continue
+        if ann.end_time > end_sec:
+            continue
 
+        overlap_start = max(ann.begin_time, start_sec)
+        overlap_end = min(ann.end_time, end_sec)
         if overlap_end <= overlap_start:
             continue
 
         clipped_annotations.append(
             replace(
-                box,
+                ann,
                 begin_time=overlap_start - start_sec,
                 end_time=overlap_end - start_sec,
             )

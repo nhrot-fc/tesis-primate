@@ -21,7 +21,7 @@ def calc_spec_shape(
 
 
 def wav_to_spec(
-    waveform: torch.Tensor, sample_rate: int, n_fft: int, hop_length: int
+    waveform: torch.Tensor, n_fft: int, hop_length: int
 ) -> torch.Tensor:
     mono_waveform = waveform.detach().to(torch.float32).cpu()
     if mono_waveform.ndim == 2:
@@ -35,7 +35,6 @@ def wav_to_spec(
         power=2.0,
         center=False,
     )(mono_waveform)
-    spectrogram = torchaudio.transforms.AmplitudeToDB(top_db=80)(spectrogram)
 
     spec_min = torch.min(spectrogram)
     spec_max = torch.max(spectrogram)
