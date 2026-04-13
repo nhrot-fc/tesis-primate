@@ -4,7 +4,7 @@
     {
       "label": "Ruff: Check",
       "type": "shell",
-      "command": "ruff",
+      "command": "${workspaceFolder}/.venv/bin/ruff",
       "args": ["check", "."],
       "group": "test",
       "problemMatcher": []
@@ -12,7 +12,7 @@
     {
       "label": "Ruff: Format",
       "type": "shell",
-      "command": "ruff",
+      "command": "${workspaceFolder}/.venv/bin/ruff",
       "args": ["format", "."],
       "group": "build",
       "problemMatcher": []
@@ -20,8 +20,16 @@
     {
       "label": "Ty: Check",
       "type": "shell",
-      "command": "ty",
+      "command": "${workspaceFolder}/.venv/bin/ty",
       "args": ["check"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Pytest: Run All",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/pytest",
+      "args": ["-v"],
       "group": "test",
       "problemMatcher": []
     }

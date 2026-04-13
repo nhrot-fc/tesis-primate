@@ -19,12 +19,10 @@ class GoogleDriveService:
         self.creds = None
 
         if not credentials_path:
-            raise ValueError(
-                "Se debe proporcionar la ruta a las credenciales de Google Drive."
-            )
+            raise ValueError("Se debe proporcionar la ruta a las credenciales de Google Drive.")
 
         # Detectar el tipo de credencial (Service Account vs OAuth Client ID)
-        with open(credentials_path, "r") as f:
+        with open(credentials_path) as f:
             cred_data = json.load(f)
 
         if "installed" in cred_data:
@@ -49,9 +47,7 @@ class GoogleDriveService:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    client_secrets_file, SCOPES
-                )
+                flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file, SCOPES)
                 creds = flow.run_local_server(port=0)
 
             # Guardar las credenciales para la próxima ejecución

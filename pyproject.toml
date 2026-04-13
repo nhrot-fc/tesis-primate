@@ -12,17 +12,21 @@ dependencies = [
     "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
     "numpy>=2.4.1",
+    "opencv-python-headless>=4.11.0",
     "pandas>=3.0.0",
     "pillow>=12.1.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "scikit-learn>=1.8.0",
     "torch>=2.10.0",
+    "torchvision>=0.21.0",
+    "tqdm>=4.67.1",
     "transformers>=5.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.4",
     "ruff>=0.14.14",
     "ty>=0.0.29",
 ]
@@ -30,9 +34,10 @@ dev = [
 [tool.ruff]
 line-length = 100
 src = ["src"]
+exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache"]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "N", "SIM"]
 ignore = ["E501"]
 
 [tool.ruff.format]
@@ -47,7 +52,7 @@ include = ["src", "main.py"]
 exclude = ["notebooks/**", "figures/**"]
 
 [tool.ty.analysis]
-allowed-unresolved-imports = ["torch.**", "transformers.**"]
+allowed-unresolved-imports = ["torch.**", "torchvision.**", "transformers.**", "cv2.**"]
 
 [tool.ty.terminal]
 output-format = "concise"
