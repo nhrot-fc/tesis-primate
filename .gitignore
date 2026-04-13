@@ -368,3 +368,7 @@ models/
 env/
 venv/
 secrets/
+
+# vscode settings
+.vscode/**
+!.vscode/*.example
