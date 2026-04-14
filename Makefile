@@ -1,39 +1,31 @@
-# Makefile for LaTeX document compilation
-
-# Main document name (without .tex extension)
+# Makefile for LaTeX compilation
 MAIN = main
-BUILD_DIR = build
+RESEARCH_DIR = research
+BUILD_DIR = $(RESEARCH_DIR)/build
 
-# LaTeX compiler
 LATEX = pdflatex
 BIBTEX = biber
-
-# Compilation flags
-LATEX_FLAGS = -interaction=nonstopmode -halt-on-error -output-directory=$(BUILD_DIR)
+LATEX_FLAGS = -interaction=nonstopmode -halt-on-error -output-directory=build
 
 .PHONY: all clean help
 
-# Default target: compile the document
 all: $(BUILD_DIR)/$(MAIN).pdf
 
-# Compile the PDF (with bibliography)
-$(BUILD_DIR)/$(MAIN).pdf: $(MAIN).tex references.bib
+$(BUILD_DIR)/$(MAIN).pdf: $(RESEARCH_DIR)/$(MAIN).tex $(RESEARCH_DIR)/references.bib $(RESEARCH_DIR)/LTJournalArticle.cls
 	@mkdir -p $(BUILD_DIR)
 	@echo "Compiling LaTeX document..."
-	$(LATEX) $(LATEX_FLAGS) $(MAIN).tex
+	cd $(RESEARCH_DIR) && $(LATEX) $(LATEX_FLAGS) $(MAIN).tex
 	@echo "Running BibTeX..."
-	$(BIBTEX) $(BUILD_DIR)/$(MAIN)
+	cd $(RESEARCH_DIR) && $(BIBTEX) build/$(MAIN)
 	@echo "Recompiling to resolve references..."
-	$(LATEX) $(LATEX_FLAGS) $(MAIN).tex
-	$(LATEX) $(LATEX_FLAGS) $(MAIN).tex
+	cd $(RESEARCH_DIR) && $(LATEX) $(LATEX_FLAGS) $(MAIN).tex
+	cd $(RESEARCH_DIR) && $(LATEX) $(LATEX_FLAGS) $(MAIN).tex
 	@echo "Compilation complete: $(BUILD_DIR)/$(MAIN).pdf"
 
-# Clean auxiliary files
 clean:
 	@echo "Cleaning auxiliary files..."
 	@rm -rf $(BUILD_DIR)
 
-# Display help
 help:
 	@echo "LaTeX Makefile Usage:"
 	@echo "  make          - Compile the document with bibliography"
