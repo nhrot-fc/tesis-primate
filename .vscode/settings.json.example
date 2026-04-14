@@ -3,13 +3,13 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
+      "source.fixAll.ruff": "never",
       "source.organizeImports.ruff": "explicit"
     }
   },
   "notebook.formatOnSave.enabled": true,
   "notebook.codeActionsOnSave": {
-    "notebook.source.fixAll": "explicit",
+    "notebook.source.fixAll": "never",
     "notebook.source.organizeImports": "explicit"
   },
   "python.terminal.activateEnvironment": false,
