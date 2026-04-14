@@ -16,11 +16,9 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 def build_drive_service(credentials_path: Path):
     if not credentials_path:
-        raise ValueError(
-            "Se debe proporcionar la ruta a las credenciales de Google Drive."
-        )
+        raise ValueError("Se debe proporcionar la ruta a las credenciales de Google Drive.")
 
-    with open(credentials_path, "r") as file:
+    with open(credentials_path) as file:
         cred_data = json.load(file)
 
     if "installed" in cred_data:
@@ -79,9 +77,7 @@ def _authenticate_installed_app(client_secrets_file: Path):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                client_secrets_file, SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file, SCOPES)
             creds = flow.run_local_server(port=0)
 
         with open(token_path, "w") as token:

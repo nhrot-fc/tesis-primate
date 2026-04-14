@@ -11,4 +11,4 @@ SPECIES_MAP: dict[str, int] = {
 
 
 def get_species_id(specie: str) -> int:
-    return SPECIES_MAP[specie] if specie in SPECIES_MAP else -1
+    return SPECIES_MAP.get(specie, -1)
