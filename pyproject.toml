@@ -24,10 +24,40 @@ dependencies = [
     "torch>=2.10.0",
     "torchaudio>=2.10.0",
     "torchcodec>=0.10.0",
+    "torchvision>=0.21.0",
+    "tqdm>=4.67.1",
     "transformers>=5.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.4",
     "ruff>=0.14.14",
+    "ty>=0.0.29",
 ]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "N", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ty.environment]
+python-version = "3.12"
+root = ["./src"]
+
+[tool.ty.src]
+include = ["src", "main.py"]
+exclude = ["notebooks/**", "figures/**"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["torch.**", "torchvision.**", "transformers.**", "cv2.**"]
+
+[tool.ty.terminal]
+output-format = "concise"

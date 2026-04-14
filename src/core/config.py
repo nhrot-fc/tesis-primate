@@ -29,9 +29,6 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
-
-
 def update_path_settings(project_dir: Path) -> None:
     settings.PROJECT_DIR = project_dir
     settings.SECRETS_DIR = project_dir / "secrets"
@@ -39,3 +36,6 @@ def update_path_settings(project_dir: Path) -> None:
     settings.DATA_ZIP_DIR = settings.DATA_DIR / "zip"
     settings.DATA_RAW_DIR = settings.DATA_DIR / "raw"
     settings.DATA_PREPROCESSED_DIR = settings.DATA_DIR / "preprocessed"
+
+
+settings = Settings()  # type: ignore
