@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-from src.core.config import settings
+from core.config import settings
 
 LOGGER_NAME = "tesis_primate"
 DEFAULT_LOG_PATH = Path("logs") / "app.log"

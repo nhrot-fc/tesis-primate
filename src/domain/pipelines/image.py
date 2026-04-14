@@ -1,10 +1,12 @@
+from collections.abc import Callable, Sequence
+from typing import Literal
+
+import albumentations
+import numpy as np
 import torch
 import torchaudio
-import numpy as np
-import albumentations as A
-from collections.abc import Callable
-from typing import Sequence, Literal
-from src.domain.pipelines.types import AnnotationBox, YoloLabel
+
+from domain.pipelines.types import AnnotationBox, YoloLabel
 
 
 def wav_to_spec(
@@ -12,14 +14,10 @@ def wav_to_spec(
     n_fft: int,
     hop_length: int,
     filter_static_noise: bool = False,
-    scale_method: (
-        Literal["min_max", "z_score", "z_score_per_band", "percentile"] | None
-    ) = None,
+    scale_method: (Literal["min_max", "z_score", "z_score_per_band", "percentile"] | None) = None,
 ) -> torch.Tensor:
 
-    spec_transform = torchaudio.transforms.Spectrogram(
-        n_fft=n_fft, hop_length=hop_length
-    )
+    spec_transform = torchaudio.transforms.Spectrogram(n_fft=n_fft, hop_length=hop_length)
     db_transform = torchaudio.transforms.AmplitudeToDB()
     spec = db_transform(spec_transform(waveform))
 
@@ -48,10 +46,7 @@ def wav_to_spec(
     elif scale_method == "percentile":
         p95 = torch.quantile(spec, 0.95)
         spec = torch.clamp(spec, min=torch.tensor(0.0), max=p95)
-        if p95 > 1e-6:
-            spec = spec / p95
-        else:
-            spec = torch.zeros_like(spec)
+        spec = spec / p95 if p95 > 1e-06 else torch.zeros_like(spec)
     spec = torch.flip(spec, dims=[-2])
     if spec.dim() == 2:
         spec = spec.unsqueeze(0)
@@ -102,14 +97,11 @@ def annotations_to_yolo(
 
 
 def apply_visual_augmentations(
-    spec_tensor: torch.Tensor, yolo_labels: list[YoloLabel], transform: A.Compose
+    spec_tensor: torch.Tensor, yolo_labels: list[YoloLabel], transform: albumentations.Compose
 ) -> tuple[torch.Tensor, list[YoloLabel]]:
     image_np = spec_tensor.permute(1, 2, 0).numpy()
 
-    bboxes = [
-        [lbl.xc_rel, lbl.yc_rel, lbl.w_rel, lbl.h_rel, lbl.class_id]
-        for lbl in yolo_labels
-    ]
+    bboxes = [[lbl.xc_rel, lbl.yc_rel, lbl.w_rel, lbl.h_rel, lbl.class_id] for lbl in yolo_labels]
 
     augmented = transform(image=image_np, bboxes=bboxes)
 

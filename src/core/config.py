@@ -38,4 +38,4 @@ def update_path_settings(project_dir: Path) -> None:
     settings.DATA_PREPROCESSED_DIR = settings.DATA_DIR / "preprocessed"
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

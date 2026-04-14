@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from dataclasses import replace
-from typing import Literal, Sequence, overload
 from pathlib import Path
+from typing import Literal, overload
 
 import librosa
 import numpy as np
@@ -8,7 +9,7 @@ import numpy.typing as npt
 import torch
 import torchaudio
 
-from src.domain.pipelines.types import AnnotationBox
+from domain.pipelines.types import AnnotationBox
 
 
 @overload
@@ -16,15 +17,11 @@ def convert_audio(audio: torch.Tensor, target: Literal["tensor"]) -> torch.Tenso
 
 
 @overload
-def convert_audio(
-    audio: torch.Tensor, target: Literal["array"]
-) -> npt.NDArray[np.float32]: ...
+def convert_audio(audio: torch.Tensor, target: Literal["array"]) -> npt.NDArray[np.float32]: ...
 
 
 @overload
-def convert_audio(
-    audio: npt.NDArray[np.float32], target: Literal["tensor"]
-) -> torch.Tensor: ...
+def convert_audio(audio: npt.NDArray[np.float32], target: Literal["tensor"]) -> torch.Tensor: ...
 
 
 @overload

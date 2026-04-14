@@ -1,11 +1,12 @@
-from dataclasses import replace
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
+
 import pandas as pd
 
-from src.core.logging import log_info, log_error
-from src.domain.utils.text_normalization import normalize_headers, normalize_value
-from src.domain.pipelines.types import AnnotationBox
+from core.logging import log_error, log_info
+from domain.pipelines.types import AnnotationBox
+from domain.utils.text_normalization import normalize_headers, normalize_value
 
 REQUIRED_COLUMNS = [
     "specie",
@@ -68,9 +69,7 @@ def load_annotation_file(annotation_file: Path | str, sep: str = "\t") -> pd.Dat
         log_error("annotation.load.error", path=str(path), error=str(exc))
         raise RuntimeError(f"Could not load annotation file: {path}") from exc
 
-    log_info(
-        "annotation.load.success", path=str(path), rows=len(df), columns=len(df.columns)
-    )
+    log_info("annotation.load.success", path=str(path), rows=len(df), columns=len(df.columns))
     return df
 
 
@@ -83,18 +82,14 @@ def clean_annotation_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"Missing required columns: {missing_text}")
 
     df["specie"] = df["specie"].map(normalize_value)
-    df["call_type"] = (
-        df["call_type"].map(normalize_value).replace(CALL_TYPE_CORRECTIONS)
-    )
+    df["call_type"] = df["call_type"].map(normalize_value).replace(CALL_TYPE_CORRECTIONS)
 
-    df[NUMERIC_COLUMNS] = (
-        df[NUMERIC_COLUMNS].apply(pd.to_numeric, errors="coerce").round(3)
-    )
+    df[NUMERIC_COLUMNS] = df[NUMERIC_COLUMNS].apply(pd.to_numeric, errors="coerce").round(3)
 
     has_labels = df["specie"].ne("") & df["call_type"].ne("")
-    has_noise = df["specie"].str.contains("noise", na=False) | df[
-        "call_type"
-    ].str.contains("noise", na=False)
+    has_noise = df["specie"].str.contains("noise", na=False) | df["call_type"].str.contains(
+        "noise", na=False
+    )
 
     df = df[has_labels & ~has_noise]
     df = df.dropna(subset=NUMERIC_COLUMNS).reset_index(drop=True)
