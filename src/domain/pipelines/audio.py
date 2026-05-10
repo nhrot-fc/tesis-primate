@@ -1,161 +1,115 @@
-from collections.abc import Sequence
-from dataclasses import replace
 from pathlib import Path
-from typing import Literal, overload
 
 import librosa
 import numpy as np
 import numpy.typing as npt
 import torch
 import torchaudio
+from torch.nn.functional import pad
 
-from domain.pipelines.types import AnnotationBox
-
-
-@overload
-def convert_audio(audio: torch.Tensor, target: Literal["tensor"]) -> torch.Tensor: ...
-
-
-@overload
-def convert_audio(audio: torch.Tensor, target: Literal["array"]) -> npt.NDArray[np.float32]: ...
+# ---------------------------------------------------------------------------
+# Type conversions
+# ---------------------------------------------------------------------------
 
 
-@overload
-def convert_audio(audio: npt.NDArray[np.float32], target: Literal["tensor"]) -> torch.Tensor: ...
+def wav_np_to_tensor(wav: npt.NDArray[np.float32]) -> torch.Tensor:
+    assert wav.ndim == 1, "Expected 1D audio array"
+    return torch.from_numpy(wav).float()
 
 
-@overload
-def convert_audio(
-    audio: npt.NDArray[np.float32], target: Literal["array"]
-) -> npt.NDArray[np.float32]: ...
+def wav_tensor_to_np(wav: torch.Tensor) -> npt.NDArray[np.float32]:
+    assert wav.dim() == 1, "Expected 1D audio tensor"
+    return wav.detach().cpu().numpy()
 
 
-def convert_audio(
-    audio: torch.Tensor | npt.NDArray[np.float32], target: Literal["tensor", "array"]
-) -> torch.Tensor | npt.NDArray[np.float32]:
-    if target == "tensor":
-        if isinstance(audio, torch.Tensor):
-            return audio.detach().to(torch.float32).cpu()
-        return torch.from_numpy(np.asarray(audio, dtype=np.float32)).to(torch.float32)
-
-    if isinstance(audio, torch.Tensor):
-        return audio.detach().to(torch.float32).cpu().numpy()
-    return np.asarray(audio, dtype=np.float32)
+# ---------------------------------------------------------------------------
+# Loading
+# ---------------------------------------------------------------------------
 
 
-def librosa_load_audio_file(file_path: Path, sample_rate: int) -> torch.Tensor:
-    audio_array, _ = librosa.load(file_path, sr=sample_rate, mono=True)
-    return convert_audio(audio_array, target="tensor")
+def load_audio_librosa(file_path: Path, sample_rate: int) -> torch.Tensor:
+    audio, _ = librosa.load(file_path, sr=sample_rate, mono=True)
+    return wav_np_to_tensor(audio)
 
 
-def torchaudio_load_audio_file(file_path: Path, sample_rate: int) -> torch.Tensor:
+def load_audio_torchaudio(file_path: Path, sample_rate: int) -> torch.Tensor:
     waveform, sr = torchaudio.load(file_path)
     if sr != sample_rate:
-        resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=sample_rate)
-        waveform = resampler(waveform)
-    return convert_audio(waveform.squeeze(0), target="tensor")
+        waveform = torchaudio.transforms.Resample(orig_freq=sr, new_freq=sample_rate)(waveform)
+    return waveform.squeeze(dim=0)
 
 
-def slice_audio_window(
-    audio: torch.Tensor,
-    annotations: Sequence[AnnotationBox],
+# ---------------------------------------------------------------------------
+# Windowing
+# ---------------------------------------------------------------------------
+
+
+def slice_audio(
+    wav: torch.Tensor,
     sample_rate: int,
-    start_time_sec: float,
-    window_duration_sec: float,
-) -> tuple[torch.Tensor, list[AnnotationBox]]:
-    audio_1d = convert_audio(audio, target="tensor")
-    if audio_1d.ndim != 1:
-        raise ValueError("audio must be a 1D mono signal")
+    start_sec: float,
+    duration_sec: float,
+) -> torch.Tensor:
+    assert wav.dim() == 1, "Expected 1D audio tensor"
 
-    total_samples = int(audio_1d.shape[0])
-    window_start_sec = max(0.0, start_time_sec)
-    window_end_sec = window_start_sec + window_duration_sec
+    total: int = wav.shape[0]
+    start_sec = max(0.0, start_sec)
+    start: int = min(max(int(round(start_sec * sample_rate)), 0), total)
+    end: int = min(max(int(round((start_sec + duration_sec) * sample_rate)), start), total)
 
-    start_sample = int(round(window_start_sec * sample_rate))
-    end_sample = int(round(window_end_sec * sample_rate))
-    start_sample = min(max(start_sample, 0), total_samples)
-    end_sample = min(max(end_sample, start_sample), total_samples)
-
-    sliced_audio = audio_1d[start_sample:end_sample].clone()
-
-    adjusted_annotations: list[AnnotationBox] = []
-    for box in annotations:
-        overlap_start = max(box.begin_time, window_start_sec)
-        overlap_end = min(box.end_time, window_end_sec)
-
-        if overlap_end <= overlap_start:
-            continue
-
-        adjusted_annotations.append(
-            replace(
-                box,
-                begin_time=overlap_start - window_start_sec,
-                end_time=overlap_end - window_start_sec,
-            )
-        )
-
-    return sliced_audio, adjusted_annotations
+    return wav[start:end].clone()
 
 
-def apply_time_stretch(
-    audio: torch.Tensor, annotations: Sequence[AnnotationBox], stretch_factor: float
-) -> tuple[torch.Tensor, list[AnnotationBox]]:
-    if stretch_factor <= 0:
-        raise ValueError("stretch_factor must be greater than zero")
+# ---------------------------------------------------------------------------
+# Audio augmentations
+# ---------------------------------------------------------------------------
 
-    audio_1d = convert_audio(audio, target="tensor")
-    if audio_1d.ndim != 1:
-        raise ValueError("audio must be a 1D mono signal")
 
-    stretched_audio = librosa.effects.time_stretch(
-        y=convert_audio(audio_1d, target="array"), rate=stretch_factor
+def stretch_time(wav: torch.Tensor, stretch_factor: float) -> torch.Tensor:
+    assert stretch_factor > 0, "stretch_factor must be positive"
+    assert wav.dim() == 1, "Expected 1D audio tensor"
+
+    stretched = librosa.effects.time_stretch(y=wav_tensor_to_np(wav), rate=stretch_factor)
+    return wav_np_to_tensor(stretched.astype(np.float32, copy=False))
+
+
+def speed_change(audio: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:
+    assert speed_factor > 0, "speed_factor must be positive"
+    assert audio.dim() == 1, "Expected 1D audio tensor"
+
+    resampled = torchaudio.transforms.Resample(
+        orig_freq=int(sample_rate * speed_factor), new_freq=sample_rate
+    )(audio.unsqueeze(0))
+    return resampled.squeeze(0)
+
+
+def pitch_shift(audio: torch.Tensor, sample_rate: int, semitones: float) -> torch.Tensor:
+    assert sample_rate > 0, "sample_rate must be positive"
+    assert audio.dim() == 1, "Expected 1D audio tensor"
+
+    shifted = librosa.effects.pitch_shift(
+        y=wav_tensor_to_np(audio), sr=sample_rate, n_steps=semitones
     )
-
-    transformed_annotations = [
-        replace(
-            box,
-            begin_time=box.begin_time / stretch_factor,
-            end_time=box.end_time / stretch_factor,
-        )
-        for box in annotations
-    ]
-
-    return (
-        convert_audio(stretched_audio.astype(np.float32, copy=False), target="tensor"),
-        transformed_annotations,
-    )
+    return wav_np_to_tensor(shifted.astype(np.float32, copy=False))
 
 
-def apply_pitch_shift(
-    audio: torch.Tensor,
-    annotations: Sequence[AnnotationBox],
-    sample_rate: int,
-    semitones: float,
-) -> tuple[torch.Tensor, list[AnnotationBox]]:
-    if sample_rate <= 0:
-        raise ValueError("sample_rate must be greater than zero")
+def mix_audio(base: torch.Tensor, mix: torch.Tensor, snr_db: float = 10.0) -> torch.Tensor:
+    assert base.dim() == 1, "Expected 1D audio tensor"
+    assert mix.dim() == 1, "Expected 1D audio tensor"
 
-    audio_1d = convert_audio(audio, target="tensor")
-    if audio_1d.ndim != 1:
-        raise ValueError("audio must be a 1D mono signal")
+    if mix.shape[0] > base.shape[0]:
+        mix = mix[: base.shape[0]]
+    elif mix.shape[0] < base.shape[0]:
+        mix = pad(mix, (0, base.shape[0] - mix.shape[0]))
+    signal_power = base.pow(2).mean().clamp(min=1e-10)
+    noise_power = mix.pow(2).mean().clamp(min=1e-10)
+    scale = (signal_power / (noise_power * 10 ** (snr_db / 10))).sqrt()
+    return base + scale * mix
 
-    shifted_audio = librosa.effects.pitch_shift(
-        y=convert_audio(audio_1d, target="array"),
-        sr=sample_rate,
-        n_steps=semitones,
-    )
 
-    pitch_ratio = 2.0 ** (semitones / 12.0)
-    transformed_annotations = [
-        replace(
-            box,
-            low_freq=max(0.0, box.low_freq * pitch_ratio),
-            high_freq=max(0.0, box.high_freq * pitch_ratio),
-        )
-        for box in annotations
-    ]
+def add_gaussian_noise(audio: torch.Tensor, snr_db: float = 20.0) -> torch.Tensor:
+    assert audio.dim() == 1, "Expected 1D audio tensor"
 
-    return (
-        convert_audio(shifted_audio.astype(np.float32, copy=False), target="tensor"),
-        transformed_annotations,
-    )
+    signal_power = audio.pow(2).mean().clamp(min=1e-10)
+    noise_power = signal_power / 10 ** (snr_db / 10)
+    return audio + torch.randn_like(audio) * noise_power.sqrt()

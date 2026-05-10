@@ -4,144 +4,178 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.logging import log_error, log_info
-from domain.pipelines.types import AnnotationBox
+from domain.pipelines.types import Annotation
 from domain.utils.text_normalization import normalize_headers, normalize_value
 
-REQUIRED_COLUMNS = [
-    "specie",
-    "call_type",
-    "begin_time",
-    "end_time",
-    "low_freq",
-    "high_freq",
-]
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+REQUIRED_COLUMNS = ["species", "call_type", "begin_time", "end_time", "low_freq", "high_freq"]
 NUMERIC_COLUMNS = ["begin_time", "end_time", "low_freq", "high_freq"]
 
-CALL_TYPE_CORRECTIONS = {
-    "csa": "cs",
-    "contactcall": "cc",
-    "contactsyllable": "cs",
-}
+CALL_TYPE_CORRECTIONS = {"csa": "cs", "contactcall": "cc", "contactsyllable": "cs"}
 HEADER_RENAMES = {
     "begin_time_s": "begin_time",
     "end_time_s": "end_time",
     "low_freq_hz": "low_freq",
     "high_freq_hz": "high_freq",
     "inband_power_db_fs": "inband_power",
-    "species": "specie",
+    "species": "species",
 }
+ANNOTATION_EXTENSIONS = (".csv", ".txt", ".tsv")
+
+# ---------------------------------------------------------------------------
+# IO & Error Handling
+# ---------------------------------------------------------------------------
 
 
 def get_annotation_file(annotations_dir: Path, record_file: Path) -> Path | None:
-    allowed_extensions = [".csv", ".txt", ".tsv"]
-    for ext in allowed_extensions:
-        candidate = annotations_dir / (record_file.stem + ext)
-        if candidate.exists() and candidate.is_file():
-            return candidate
-    return None
+    return next(
+        (
+            candidate
+            for ext in ANNOTATION_EXTENSIONS
+            if (candidate := annotations_dir / (record_file.stem + ext)).is_file()
+        ),
+        None,
+    )
 
 
 def load_annotation_file(annotation_file: Path | str, sep: str = "\t") -> pd.DataFrame:
-    if Path(annotation_file).suffix.lower() == ".csv":
+    path = Path(annotation_file)
+    if path.suffix.lower() == ".csv":
         sep = ","
 
-    path = Path(annotation_file)
-    log_info("annotation.load.start", path=str(path), sep=sep)
-
-    if not path.exists():
-        log_error("annotation.load.error", path=str(path), error="file_not_found")
-        raise FileNotFoundError(f"Annotation file not found: {path}")
-
     if not path.is_file():
-        log_error("annotation.load.error", path=str(path), error="not_a_file")
-        raise FileNotFoundError(f"Annotation path is not a file: {path}")
+        raise FileNotFoundError(f"Annotation file not found or is not a file: {path}")
 
     try:
-        df = pd.read_csv(path, sep=sep)
+        return pd.read_csv(path, sep=sep)
     except pd.errors.EmptyDataError as exc:
-        log_error("annotation.load.error", path=str(path), error="empty_file")
         raise ValueError(f"Annotation file is empty: {path}") from exc
     except pd.errors.ParserError as exc:
-        log_error("annotation.load.error", path=str(path), error="parser_error")
         raise ValueError(f"Invalid annotation file format: {path}") from exc
     except Exception as exc:
-        log_error("annotation.load.error", path=str(path), error=str(exc))
         raise RuntimeError(f"Could not load annotation file: {path}") from exc
 
-    log_info("annotation.load.success", path=str(path), rows=len(df), columns=len(df.columns))
+
+# ---------------------------------------------------------------------------
+# DataFrame Utils
+# ---------------------------------------------------------------------------
+
+
+def normalize_header(df: pd.DataFrame) -> pd.DataFrame:
+    df = normalize_headers(df.copy(deep=True), rename_mapping=HEADER_RENAMES)
+    missing_columns = set(REQUIRED_COLUMNS) - set(df.columns)
+    if missing_columns:
+        raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
     return df
 
 
-def clean_annotation_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy(deep=True)
-    df = normalize_headers(df, rename_mapping=HEADER_RENAMES)
-    missing_columns = set(REQUIRED_COLUMNS) - set(df.columns)
-    if missing_columns:
-        missing_text = ", ".join(missing_columns)
-        raise ValueError(f"Missing required columns: {missing_text}")
-
-    df["specie"] = df["specie"].map(normalize_value)
+def normalize_species_and_calls(df: pd.DataFrame) -> pd.DataFrame:
+    df["species"] = df["species"].map(normalize_value)
     df["call_type"] = df["call_type"].map(normalize_value).replace(CALL_TYPE_CORRECTIONS)
+    return df
 
+
+def parse_numerics(df: pd.DataFrame) -> pd.DataFrame:
     df[NUMERIC_COLUMNS] = df[NUMERIC_COLUMNS].apply(pd.to_numeric, errors="coerce").round(3)
+    return df.dropna(subset=NUMERIC_COLUMNS).reset_index(drop=True)
 
-    has_labels = df["specie"].ne("") & df["call_type"].ne("")
-    has_noise = df["specie"].str.contains("noise", na=False) | df["call_type"].str.contains(
-        "noise", na=False
-    )
 
-    df = df[has_labels & ~has_noise]
-    df = df.dropna(subset=NUMERIC_COLUMNS).reset_index(drop=True)
-
-    df = df.assign(
+def append_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
         duration_s=(df["end_time"] - df["begin_time"]).round(3),
         bandwidth_hz=(df["high_freq"] - df["low_freq"]).round(3),
     )
 
-    return df[REQUIRED_COLUMNS + ["duration_s", "bandwidth_hz"]]
+
+def filter_noise(df: pd.DataFrame) -> pd.DataFrame:
+    return df[
+        ~((df["species"].str.contains("noise")) | (df["call_type"].str.contains("noise")))
+    ].reset_index(drop=True)
 
 
-def df_to_annotations(df: pd.DataFrame) -> list[AnnotationBox]:
-    boxes = []
-    for _, row in df.iterrows():
-        box = AnnotationBox(
-            specie=row["specie"],
+def df_to_annotations(df: pd.DataFrame) -> list[Annotation]:
+    return [
+        Annotation(
+            species=row["species"],
             call_type=row["call_type"],
             begin_time=float(row["begin_time"]),
             end_time=float(row["end_time"]),
             low_freq=float(row["low_freq"]),
             high_freq=float(row["high_freq"]),
         )
-        boxes.append(box)
-    return boxes
+        for _, row in df.iterrows()
+    ]
 
 
-def clip_annotations_to_window(
-    annotations: Sequence[AnnotationBox],
-    start_sec: float,
-    duration_sec: float,
-) -> list[AnnotationBox]:
-    end_sec = start_sec + duration_sec
-    clipped_annotations: list[AnnotationBox] = []
+def annotations_to_df(annotations: Sequence[Annotation]) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "species": [ann.species for ann in annotations],
+            "call_type": [ann.call_type for ann in annotations],
+            "begin_time": [ann.begin_time for ann in annotations],
+            "end_time": [ann.end_time for ann in annotations],
+            "low_freq": [ann.low_freq for ann in annotations],
+            "high_freq": [ann.high_freq for ann in annotations],
+        }
+    )
 
+
+# ---------------------------------------------------------------------------
+# Filters & Transforms
+# ---------------------------------------------------------------------------
+
+
+def stretch_annotations(
+    annotations: Sequence[Annotation], stretch_factor: float
+) -> list[Annotation]:
+    assert stretch_factor > 0, "stretch_factor must be positive"
+    return [
+        replace(
+            ann, begin_time=ann.begin_time / stretch_factor, end_time=ann.end_time / stretch_factor
+        )
+        for ann in annotations
+    ]
+
+
+def pitch_shift_annotations(
+    annotations: Sequence[Annotation], semitones: float
+) -> list[Annotation]:
+    if semitones == 0:
+        return list(annotations)
+    ratio: float = 2.0 ** (semitones / 12.0)
+    return [
+        replace(
+            ann, low_freq=max(0.0, ann.low_freq * ratio), high_freq=max(0.0, ann.high_freq * ratio)
+        )
+        for ann in annotations
+    ]
+
+
+def filter_annotations_by_window(
+    annotations: Sequence[Annotation], start_sec: float, duration_sec: float
+) -> list[Annotation]:
+    end_sec: float = start_sec + duration_sec
+    return [
+        replace(ann, begin_time=ann.begin_time - start_sec, end_time=ann.end_time - start_sec)
+        for ann in annotations
+        if start_sec <= ann.begin_time and ann.end_time <= end_sec
+    ]
+
+
+def crop_overlap_to_window(
+    annotations: Sequence[Annotation], start_sec: float, duration_sec: float
+) -> list[Annotation]:
+    end_sec: float = start_sec + duration_sec
+    result: list[Annotation] = []
     for ann in annotations:
-        if ann.begin_time < start_sec:
-            continue
-        if ann.end_time > end_sec:
-            continue
-
         overlap_start = max(ann.begin_time, start_sec)
         overlap_end = min(ann.end_time, end_sec)
         if overlap_end <= overlap_start:
             continue
-
-        clipped_annotations.append(
-            replace(
-                ann,
-                begin_time=overlap_start - start_sec,
-                end_time=overlap_end - start_sec,
-            )
+        result.append(
+            replace(ann, begin_time=overlap_start - start_sec, end_time=overlap_end - start_sec)
         )
-
-    return clipped_annotations
+    return result

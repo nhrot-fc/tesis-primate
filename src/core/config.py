@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     HF_TOKEN: SecretStr | None = None
 
     # Data
-    GDRIVE_ROOT_PATH: str = ""
+    GOOGLE_DRIVE_FOLDER_ID: SecretStr | None = None
     PROJECT_DIR: Path | None = None
     SECRETS_DIR: Path | None = None
     DATA_DIR: Path | None = None
@@ -28,6 +29,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    data_loaded: bool = False
+
 
 def update_path_settings(project_dir: Path) -> None:
     settings.PROJECT_DIR = project_dir
@@ -36,6 +39,11 @@ def update_path_settings(project_dir: Path) -> None:
     settings.DATA_ZIP_DIR = settings.DATA_DIR / "zip"
     settings.DATA_RAW_DIR = settings.DATA_DIR / "raw"
     settings.DATA_PREPROCESSED_DIR = settings.DATA_DIR / "preprocessed"
+    os.makedirs(settings.SECRETS_DIR, exist_ok=True)
+    os.makedirs(settings.DATA_DIR, exist_ok=True)
+    os.makedirs(settings.DATA_ZIP_DIR, exist_ok=True)
+    os.makedirs(settings.DATA_RAW_DIR, exist_ok=True)
+    os.makedirs(settings.DATA_PREPROCESSED_DIR, exist_ok=True)
 
 
 settings = Settings()

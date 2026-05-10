@@ -27,6 +27,7 @@ dependencies = [
     "torchvision>=0.21.0",
     "tqdm>=4.67.1",
     "transformers>=5.0.0",
+    "ultralytics>=8.4.48",
 ]
 
 [dependency-groups]
@@ -43,7 +44,7 @@ exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B", "UP", "N", "SIM"]
-ignore = ["E501"]
+ignore = ["E501", "N812"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -61,3 +62,6 @@ allowed-unresolved-imports = ["torch.**", "torchvision.**", "transformers.**", "
 
 [tool.ty.terminal]
 output-format = "concise"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
