@@ -1,6 +1,5 @@
 import random
 from collections.abc import Callable
-from typing import Literal
 
 import albumentations
 import numpy as np
@@ -8,9 +7,7 @@ import torch
 import torchaudio
 from torch.nn.functional import conv2d
 
-from domain.pipelines.types import YoloBox
-
-ScaleMethod = Literal["min_max", "z_score", "z_score_per_band", "percentile"]
+from domain.pipelines.types import ScaleMethod, YoloBox
 
 # ---------------------------------------------------------------------------
 # Spectrogram computation
@@ -59,11 +56,17 @@ def scale_percentile(spec: torch.Tensor, q: float = 0.95) -> torch.Tensor:
     return torch.clamp(spec, min=0.0, max=p) / p
 
 
+def scale_noise_filtered(spec: torch.Tensor) -> torch.Tensor:
+    """Subtract per-frequency median (static noise floor), then min-max scale."""
+    return scale_min_max(filter_static_noise(spec))
+
+
 _SCALE_FNS: dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
     "min_max": scale_min_max,
     "z_score": scale_z_score,
     "z_score_per_band": scale_z_score_per_band,
     "percentile": scale_percentile,
+    "noise_filtered": scale_noise_filtered,
 }
 
 

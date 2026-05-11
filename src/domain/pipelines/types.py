@@ -1,8 +1,11 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 import torch
+
+ScaleMethod = Literal["min_max", "z_score", "z_score_per_band", "percentile", "noise_filtered"]
 
 
 @dataclass(frozen=True, slots=True)
