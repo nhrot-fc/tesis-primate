@@ -1,13 +1,14 @@
 from pathlib import Path
 
-import pandas as pd
 import torch
 import torch.nn.functional as F
 from ultralytics import YOLO
 
+from domain.pipelines.annotations import annotations_to_df
 from domain.pipelines.audio import load_audio_torchaudio
 from domain.pipelines.image import compute_spectrogram, normalize_spectrogram, scale_min_max
 from domain.pipelines.pipeline import WindowConfig
+from domain.pipelines.types import YoloBox, yolo_to_annotation
 
 
 class BioacousticInference:
@@ -43,21 +44,24 @@ class BioacousticInference:
             if results[0].boxes:
                 for box in results[0].boxes:
                     xc, yc, w, h = box.xywhn[0].tolist()
-
-                    detections.append(
-                        {
-                            "Selection": len(detections) + 1,
-                            "View": "Spectrogram 1",
-                            "Channel": 1,
-                            "Begin Time (s)": start_sec + (xc - w / 2) * self.cfg.duration_sec,
-                            "End Time (s)": start_sec + (xc + w / 2) * self.cfg.duration_sec,
-                            "Low Freq (Hz)": (1.0 - (yc + h / 2)) * max_freq,
-                            "High Freq (Hz)": (1.0 - (yc - h / 2)) * max_freq,
-                            "Species": results[0].names[int(box.cls[0].item())],
-                            "Rating": round(float(box.conf[0].item()), 2),
-                        }
+                    yolo_box = YoloBox(
+                        class_id=int(box.cls[0].item()),
+                        xc_rel=xc,
+                        yc_rel=yc,
+                        w_rel=w,
+                        h_rel=h,
                     )
+
+                    class_name = results[0].names[yolo_box.class_id]
+                    ann = yolo_to_annotation(
+                        yolo_box=yolo_box,
+                        window_start_sec=start_sec,
+                        window_duration_sec=self.cfg.duration_sec,
+                        sample_rate=self.cfg.sample_rate,
+                        class_name=class_name,
+                    )
+                    detections.append(ann)
 
             start_sec += self.cfg.hop_sec
 
-        return pd.DataFrame(detections)
+        return annotations_to_df(detections)

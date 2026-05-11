@@ -103,3 +103,22 @@ def annotations_to_yolo(
         )
         for ann in annotations
     ]
+
+
+def yolo_to_annotation(
+    yolo_box: YoloBox,
+    window_start_sec: float,
+    window_duration_sec: float,
+    sample_rate: int,
+    class_name: str,
+) -> Annotation:
+    max_freq = sample_rate / 2.0
+    return Annotation(
+        species=class_name,
+        call_type="unknown",
+        begin_time=window_start_sec
+        + (yolo_box.xc_rel - yolo_box.w_rel / 2.0) * window_duration_sec,
+        end_time=window_start_sec + (yolo_box.xc_rel + yolo_box.w_rel / 2.0) * window_duration_sec,
+        low_freq=(1.0 - (yolo_box.yc_rel + yolo_box.h_rel / 2.0)) * max_freq,
+        high_freq=(1.0 - (yolo_box.yc_rel - yolo_box.h_rel / 2.0)) * max_freq,
+    )
