@@ -49,3 +49,4 @@ venv/
 data/
 secrets/
 .vscode/
+*.zip

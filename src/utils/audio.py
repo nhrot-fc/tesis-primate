@@ -1,3 +1,5 @@
+import numpy as np
+import numpy.typing as npt
 import soundfile
 import torch
 import torch.nn.functional as F
@@ -5,6 +7,8 @@ import torchaudio
 from torch import Tensor, nn
 
 from core.config import P, Parameters
+
+FloatArray = npt.NDArray[np.float64]
 
 
 def load_clip(audio_path: str, clip_start_s: float, params: Parameters = P) -> Tensor:
@@ -23,6 +27,32 @@ def load_clip(audio_path: str, clip_start_s: float, params: Parameters = P) -> T
     if waveform.numel() < num_samples:
         return F.pad(waveform, (0, num_samples - waveform.numel()))
     return waveform[:num_samples]
+
+
+def window_starts(duration_s: float, params: Parameters) -> FloatArray:
+    last_start = max(duration_s - params.clip_len_s, 0.0)
+    if last_start == 0.0:
+        return np.zeros(1)
+    return np.arange(0.0, last_start + params.clip_hop_s / 2, params.clip_hop_s)
+
+
+def _mel(hz: FloatArray | float, params: Parameters) -> FloatArray:
+    return params.mel_scale_q * np.log10(
+        1.0 + np.asarray(hz, dtype=np.float64) / params.mel_break_hz
+    )
+
+
+def hz_to_y(freq_hz: FloatArray, params: Parameters) -> FloatArray:
+    """Hz -> posición vertical normalizada en el eje mel HTK (y=0 = graves)."""
+    mel_lo, mel_hi = _mel(params.f_min, params), _mel(params.f_max, params)
+    return (_mel(freq_hz, params) - mel_lo) / (mel_hi - mel_lo)
+
+
+def y_to_hz(y: FloatArray, params: Parameters) -> FloatArray:
+    """Inversa de `hz_to_y`: posición normalizada [0,1] -> Hz."""
+    mel_lo, mel_hi = _mel(params.f_min, params), _mel(params.f_max, params)
+    mel_value = mel_lo + np.clip(y, 0.0, 1.0) * (mel_hi - mel_lo)
+    return params.mel_break_hz * (10.0 ** (mel_value / params.mel_scale_q) - 1.0)
 
 
 class LogMelSpectrogram(nn.Module):

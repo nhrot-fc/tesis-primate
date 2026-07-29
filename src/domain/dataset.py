@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 from core.config import P, Parameters
 from domain.species import LabelSet
-from utils.audio import LogMelSpectrogram, load_clip
+from utils.audio import LogMelSpectrogram, hz_to_y, load_clip, window_starts
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -23,25 +23,6 @@ class ClipWindow(NamedTuple):
     clip_start_s: float
     duration_s: float  # longitud de la ventana; `clip_start_s + duration_s` la cierra
     boxes: FloatArray  # (N, 5): cxcywh normalizado + id de clase
-
-
-def _hz_to_y(freq_hz: FloatArray, params: Parameters) -> FloatArray:
-    """Hz -> posición vertical normalizada en el eje mel HTK (y=0 = graves)."""
-
-    def mel(hz):
-        return params.mel_scale_q * np.log10(
-            1.0 + np.asarray(hz, dtype=np.float64) / params.mel_break_hz
-        )
-
-    mel_lo, mel_hi = mel(params.f_min), mel(params.f_max)
-    return (mel(freq_hz) - mel_lo) / (mel_hi - mel_lo)
-
-
-def _window_starts(duration_s: float, params: Parameters) -> FloatArray:
-    last_start = max(duration_s - params.clip_len_s, 0.0)
-    if last_start == 0.0:
-        return np.zeros(1)
-    return np.arange(0.0, last_start + params.clip_hop_s / 2, params.clip_hop_s)
 
 
 def _boxes_in_window(
@@ -58,8 +39,8 @@ def _boxes_in_window(
 
     x0 = np.clip((begin[keep] - clip_start_s) / params.clip_len_s, 0.0, 1.0)
     x1 = np.clip((end[keep] - clip_start_s) / params.clip_len_s, 0.0, 1.0)
-    y0 = np.clip(_hz_to_y(group["low_freq_hz"].to_numpy()[keep], params), 0.0, 1.0)
-    y1 = np.clip(_hz_to_y(group["high_freq_hz"].to_numpy()[keep], params), 0.0, 1.0)
+    y0 = np.clip(hz_to_y(group["low_freq_hz"].to_numpy()[keep], params), 0.0, 1.0)
+    y1 = np.clip(hz_to_y(group["high_freq_hz"].to_numpy()[keep], params), 0.0, 1.0)
 
     return np.stack([(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, class_ids[keep]], axis=-1)
 
@@ -82,7 +63,7 @@ def build_manifest(
             continue
 
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.float64)
-        for clip_start_s in _window_starts(duration_s, params):
+        for clip_start_s in window_starts(duration_s, params):
             boxes = _boxes_in_window(group, class_ids, float(clip_start_s), params)
             if len(boxes) or keep_empty:
                 windows.append(
