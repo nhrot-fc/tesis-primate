@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 from collections import Counter
 from pathlib import Path
@@ -41,7 +42,7 @@ CLIP_PARAMS = {
 }
 
 SEED = 42
-EXPERIMENT_PAIRS = [("ac", "bc"), ("lw", "cs"), ("sm", "cc"), ("as", "bc"), ("sb", "ppc")]
+MIN_PAIR_COUNT = 500
 LABEL_BY = "species/call_type"
 LABEL_COLUMN = {
     "call": lambda df: "call",
@@ -50,12 +51,25 @@ LABEL_COLUMN = {
 }
 
 # --- Entrenamiento ------------------------------------------------------------
-MODEL_DIM, N_QUERIES, IOU_TYPE = 128, 64, "eiou"
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 200, 256, 2e-4, 1e-4, 0
+MODEL_DIM, N_QUERIES = 512, 64
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 100, 32, 2e-4, 1e-4, 0
 EVAL_EVERY = 10
-AP_IOU_TYPE, IOU_THR = "iomin", 0.5
 
-CHECKPOINT_PATH = PROJECT_DIR / "best_model_state.pth"
+# IoU usado por el HungarianMatcher (coste de asignación) y por el término
+# `loss_iou` del SetCriterion durante el entrenamiento.
+MATCHER_IOU_TYPE = "eiou"
+# IoU usado solo al calcular AP/mAP en `evaluate`: decide qué detección cuenta
+# como TP contra qué ground truth. No afecta al entrenamiento.
+METRIC_IOU_TYPE = "eiou"
+METRIC_IOU_THRESHOLD = 0.5
+
+CHECKPOINT_DIR = PROJECT_DIR / "checkpoints"
+
+
+def save_labels_json(labels: LabelSet, path: Path) -> None:
+    """class_id -> label, para inspección rápida y para que `infer.py` los lea
+    sin tener que cargar el checkpoint completo."""
+    path.write_text(json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False))
 
 
 def make_loader(dataset: CallBoxDataset, shuffle: bool) -> DataLoader:
@@ -81,10 +95,23 @@ def preprocess() -> tuple[LabelSet, DataLoader, DataLoader]:
     )
 
     annotations = load_annotations(settings.data_dir / "cleaned")
+    annotations = annotations[
+        ~((annotations["species"] == "lw") & (annotations["call_type"] == "cc"))
+    ]
     logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
 
     pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
-    experiment_df = annotations[pairs.isin(EXPERIMENT_PAIRS)].copy()
+    pair_counts = pairs.value_counts()
+    valid_pairs = pair_counts[pair_counts >= MIN_PAIR_COUNT].index
+    logger.info(
+        "%d/%d pares species/call_type con >= %d anotaciones: %s",
+        len(valid_pairs),
+        len(pair_counts),
+        MIN_PAIR_COUNT,
+        ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
+    )
+
+    experiment_df = annotations[pairs.isin(valid_pairs)].copy()
     experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
 
     labels = LabelSet(experiment_df["label"])
@@ -130,8 +157,10 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
     n_classes = len(labels)
 
     model = ASTDeformableDETR(dim=MODEL_DIM, n_queries=N_QUERIES, n_classes=n_classes).to(device)
-    matcher = HungarianMatcher(iou_type=IOU_TYPE)
-    criterion = SetCriterion(n_classes=n_classes, matcher=matcher, iou_type=IOU_TYPE).to(device)
+    matcher = HungarianMatcher(iou_type=MATCHER_IOU_TYPE)
+    criterion = SetCriterion(n_classes=n_classes, matcher=matcher, iou_type=MATCHER_IOU_TYPE).to(
+        device
+    )
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = OneCycleLR(
         optimizer,
@@ -146,7 +175,18 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
         n_classes,
     )
 
-    best_val, best_state = float("inf"), None
+    CHECKPOINT_DIR.mkdir(exist_ok=True)
+    name = f"{MODEL_DIM}d_{N_QUERIES}q_{MATCHER_IOU_TYPE}iou_{n_classes}cls"
+    checkpoint_path = CHECKPOINT_DIR / f"{name}_best.pth"
+    labels_path = CHECKPOINT_DIR / f"{name}_labels.json"
+
+    save_labels_json(labels, labels_path)
+    logger.info(
+        "class_id -> label -> %s",
+        {class_id: label for class_id, label in enumerate(labels.names)},
+    )
+
+    best_map, best_state = -1.0, None
 
     for epoch in range(EPOCHS):
         train_metrics = train_one_epoch(
@@ -170,8 +210,8 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
             matcher,
             device,
             n_classes=n_classes,
-            iou_threshold=IOU_THR,
-            iou_type=AP_IOU_TYPE,
+            iou_threshold=METRIC_IOU_THRESHOLD,
+            ap_iou_type=METRIC_IOU_TYPE,
             epoch=epoch,
             epochs=EPOCHS,
         )
@@ -183,7 +223,7 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
             val_metrics.total,
             val_metrics.cls_acc,
             val_metrics.mean_iomin,
-            val_metrics.iou_type,
+            val_metrics.ap_iou_type,
             val_metrics.map,
         )
         logger.info("AP por clase -> %s", format_ap(val_metrics.ap_per_class, labels.names))
@@ -192,21 +232,23 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
             format_confusion(val_metrics.confusion, labels.names),
         )
 
-        if val_metrics.total < best_val:
-            best_val, best_state = val_metrics.total, copy.deepcopy(model.state_dict())
+        if val_metrics.map > best_map:
+            best_map, best_state = val_metrics.map, copy.deepcopy(model.state_dict())
             torch.save(
                 {
                     "state_dict": best_state,
                     "labels": labels.names,
                     "dim": MODEL_DIM,
                     "n_queries": N_QUERIES,
+                    "epoch": epoch,
+                    "map": best_map,
                 },
-                CHECKPOINT_PATH,
+                checkpoint_path,
             )
 
     if best_state is None:
         raise RuntimeError("No se completó ninguna época.")
-    logger.info("mejor pérdida de validación: %.3f -> %s", best_val, CHECKPOINT_PATH)
+    logger.info("mejor mAP de validación: %.3f -> %s", best_map, checkpoint_path)
 
 
 if __name__ == "__main__":

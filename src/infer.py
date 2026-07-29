@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 from pathlib import Path
 
@@ -50,13 +51,26 @@ def main() -> None:
         help="Clases separadas por coma (solo para checkpoints sin metadatos), "
         "ej. ac/bc,as/bc,lw/cs,sb/ppc,sm/cc",
     )
+    parser.add_argument(
+        "--labels-file",
+        type=Path,
+        default=None,
+        help="JSON {class_id: label} guardado por main.py junto al checkpoint "
+        "(solo para checkpoints sin metadatos); tiene prioridad sobre --labels.",
+    )
     parser.add_argument("--dim", type=int, default=128)
     parser.add_argument("--n-queries", type=int, default=64)
     args = parser.parse_args()
 
     setup_logging()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    labels = args.labels.split(",") if args.labels else None
+    if args.labels_file:
+        mapping = json.loads(args.labels_file.read_text())
+        labels = [mapping[str(class_id)] for class_id in range(len(mapping))]
+    elif args.labels:
+        labels = args.labels.split(",")
+    else:
+        labels = None
     model, labels = load_model(args.checkpoint, device, labels, args.dim, args.n_queries)
 
     table = predict(

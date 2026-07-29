@@ -27,9 +27,9 @@ class EvalMetrics(NamedTuple):
     bbox: float
     iou: float
     cls_acc: float  # sobre queries emparejadas por el HungarianMatcher
-    mean_iomin: float  # IoMin promedio, mismas queries emparejadas (fijo, no depende de `iou_type`)
-    map: float  # mean AP sobre todos los umbrales de score, bajo `iou_type`
-    iou_type: str  # tipo de IoU usado para `map`/`ap_per_class` (p.ej. "iomin", "eiou")
+    mean_iomin: float  # IoMin promedio, mismas queries emparejadas (fijo, no depende de `ap_iou_type`)
+    map: float  # mean AP sobre todos los umbrales de score, bajo `ap_iou_type`
+    ap_iou_type: str  # tipo de IoU usado para `map`/`ap_per_class` (p.ej. "iomin", "eiou")
     ap_per_class: dict[int, float | None]
     confusion: Tensor  # (n_classes, n_classes), filas=real, cols=predicho
 
@@ -128,7 +128,7 @@ def evaluate(
     device: torch.device | str = "cpu",
     n_classes: int = 1,
     iou_threshold: float = 0.5,
-    iou_type: str = "iomin",
+    ap_iou_type: str = "iomin",
     epoch: int | None = None,
     epochs: int | None = None,
 ) -> EvalMetrics:
@@ -138,9 +138,13 @@ def evaluate(
     `HungarianMatcher` empareja con un ground truth, sin depender de ningún
     umbral de score. `ap_per_class`/`map` sí rankean por score, pero integran
     sobre todos los umbrales en vez de fijar uno.
+
+    `ap_iou_type` es independiente del `iou_type` del `criterion`/`matcher`:
+    ese controla el coste de asignación y la pérdida de entrenamiento, este
+    solo decide qué overlap cuenta como TP al calcular AP/mAP.
     """
     model.eval()
-    ap_iou_fn = get_iou_fn(iou_type)
+    ap_iou_fn = get_iou_fn(ap_iou_type)
     iomin_fn = get_iou_fn("iomin")
     totals: Metrics = dict.fromkeys(LOSS_KEYS, 0.0)
 
@@ -212,7 +216,7 @@ def evaluate(
         cls_acc=matched_correct / max(matched_total, 1),
         mean_iomin=iomin_sum / max(iomin_count, 1),
         map=sum(valid_ap) / max(len(valid_ap), 1),
-        iou_type=iou_type,
+        ap_iou_type=ap_iou_type,
         ap_per_class=ap_per_class,
         confusion=confusion,
     )
