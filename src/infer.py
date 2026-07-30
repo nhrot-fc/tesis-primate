@@ -42,19 +42,11 @@ def main() -> None:
     parser.add_argument("audio_path", type=Path)
     parser.add_argument("--checkpoint", type=Path, default=Path("best_model_state.pth"))
     parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--score-threshold", type=float, default=0.5)
+    parser.add_argument("--score-threshold", type=float, default=0.1)
     parser.add_argument("--nms-iou", type=float, default=0.3)
-    parser.add_argument(
-        "--labels",
-        type=str,
-        default=None,
-        help="Clases separadas por coma (solo para checkpoints sin metadatos), "
-        "ej. ac/bc,as/bc,lw/cs,sb/ppc,sm/cc",
-    )
     parser.add_argument(
         "--labels-file",
         type=Path,
-        default=None,
         help="JSON {class_id: label} guardado por main.py junto al checkpoint "
         "(solo para checkpoints sin metadatos); tiene prioridad sobre --labels.",
     )
@@ -64,13 +56,8 @@ def main() -> None:
 
     setup_logging()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    if args.labels_file:
-        mapping = json.loads(args.labels_file.read_text())
-        labels = [mapping[str(class_id)] for class_id in range(len(mapping))]
-    elif args.labels:
-        labels = args.labels.split(",")
-    else:
-        labels = None
+    mapping = json.loads(args.labels_file.read_text())
+    labels = [mapping[str(class_id)] for class_id in range(len(mapping))]
     model, labels = load_model(args.checkpoint, device, labels, args.dim, args.n_queries)
 
     table = predict(

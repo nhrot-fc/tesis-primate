@@ -74,7 +74,7 @@ class SetCriterion(nn.Module):
         self,
         n_classes: int = 1,
         matcher: nn.Module | None = None,
-        eos_coef: float = 0.1,
+        eos_coef: float = 0.05,
         weight_class: float = 1.0,
         weight_bbox: float = 5.0,
         weight_iou: float = 2.0,
@@ -102,7 +102,7 @@ class SetCriterion(nn.Module):
         query_index = torch.cat([query_index for query_index, _ in indices])
         return batch_index, query_index
 
-    def forward(self, outputs: dict[str, Tensor], targets: list[Target]) -> dict[str, Tensor]:
+    def _compute(self, outputs: dict[str, Tensor], targets: list[Target]) -> dict[str, Tensor]:
         indices = self.matcher(outputs, targets)
         index = self._permutation_index(indices)
         num_boxes = max(sum(len(target["labels"]) for target in targets), 1)
@@ -143,3 +143,16 @@ class SetCriterion(nn.Module):
                 + self.weight_iou * loss_iou
             ),
         }
+
+    def forward(self, outputs: dict[str, Tensor], targets: list[Target]) -> dict[str, Tensor]:
+        """Pérdida en la salida final + en cada salida intermedia (`aux_outputs`), sumadas.
+
+        Cada capa del decoder se empareja por separado con el `HungarianMatcher`: la
+        asignación óptima puede cambiar de capa a capa, así que no se reutilizan los
+        `indices` de la salida final para las intermedias.
+        """
+        losses = self._compute(outputs, targets)
+        for aux_outputs in outputs.get("aux_outputs", []):
+            for key, value in self._compute(aux_outputs, targets).items():
+                losses[key] = losses[key] + value
+        return losses

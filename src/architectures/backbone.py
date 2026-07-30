@@ -1,57 +1,87 @@
-"""Backbone AST (Gong et al., 2021) y pirámide multiescala al estilo ViTDet (Li et al., 2022)."""
+"""Backbone AST (Gong et al., 2021) y pirámide multiescala al estilo ViTDet (Li et al., 2022).
+
+`ASTBackbone` envuelve el AST real preentrenado en AudioSet (HuggingFace
+`transformers`: 12 capas, 768-dim, patches 16x16 con stride 10) en vez de
+reimplementarlo. Cargar los pesos preentrenados es lo que aporta valor frente
+a un transformer entrenado desde cero con ~8k ventanas.
+"""
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor, nn
+from transformers import ASTModel
 
+from core.config import P
 
-class PatchEmbed(nn.Module):
-    def __init__(self, in_channels: int = 1, embed_dim: int = 256, patch_size: int = 16) -> None:
-        super().__init__()
-        self.patch_size = patch_size
-        self.projection = nn.Conv2d(
-            in_channels, embed_dim, kernel_size=patch_size, stride=patch_size
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.projection(x).flatten(2).transpose(1, 2)
+AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 
 class ASTBackbone(nn.Module):
+    """AST preentrenado + proyección lineal a `embed_dim`.
+
+    El checkpoint fue preentrenado con `num_mel_bins=128` y `max_length=1024`.
+    Aquí `num_mel_bins` ya coincide (evita distorsionar el eje de frecuencia:
+    ver notas de la Etapa 0 sobre por qué mantener 128 mels), pero
+    `max_length` casi nunca coincide con `n_frames` del clip, así que los
+    embeddings de posición se interpolan bilinealmente sobre el eje temporal
+    tras cargar el checkpoint — el mismo truco que usa el AST original al
+    cambiar de duración de entrada.
+    """
+
     def __init__(
         self,
         embed_dim: int = 256,
-        depth: int = 6,
-        num_heads: int = 8,
-        patch_size: int = 16,
-        max_tokens: int = 4096,
+        n_frames: int | None = None,
+        checkpoint: str = AST_CHECKPOINT,
+        freeze: bool = True,
     ) -> None:
         super().__init__()
-        self.embed_dim = embed_dim
-        self.patch_size = patch_size
-        self.patch_embed = PatchEmbed(1, embed_dim, patch_size)
+        self.model = ASTModel.from_pretrained(checkpoint)
+        self._interpolate_time_pos_embed(n_frames if n_frames is not None else P.n_frames)
 
-        self.pos_embed = nn.Parameter(torch.zeros(1, max_tokens, embed_dim))
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        self.freeze = freeze
+        if freeze:
+            for param in self.model.parameters():
+                param.requires_grad_(False)
 
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embed_dim,
-            nhead=num_heads,
-            dim_feedforward=embed_dim * 4,
-            batch_first=True,
-            norm_first=True,
+        self.proj = nn.Linear(self.model.config.hidden_size, embed_dim)
+
+    def _interpolate_time_pos_embed(self, n_frames: int) -> None:
+        config = self.model.config
+        patch_size = (
+            config.patch_size if isinstance(config.patch_size, int) else config.patch_size[0]
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=depth)
-        self.norm = nn.LayerNorm(embed_dim)
+        freq_out = (config.num_mel_bins - patch_size) // config.frequency_stride + 1
+        time_out_old = (config.max_length - patch_size) // config.time_stride + 1
+        self.freq_out = freq_out
+        self.time_out = (n_frames - patch_size) // config.time_stride + 1
+
+        pos_embed = self.model.embeddings.position_embeddings  # (1, 2+freq_out*time_out_old, C)
+        special, patches = pos_embed[:, :2], pos_embed[:, 2:]
+        patches = patches.reshape(1, freq_out, time_out_old, -1).permute(0, 3, 1, 2)
+        patches = F.interpolate(
+            patches, size=(freq_out, self.time_out), mode="bilinear", align_corners=False
+        )
+        patches = patches.permute(0, 2, 3, 1).reshape(1, freq_out * self.time_out, -1)
+        self.model.embeddings.position_embeddings = nn.Parameter(
+            torch.cat([special, patches], dim=1)
+        )
+        config.max_length = n_frames
+
+    def train(self, mode: bool = True) -> "ASTBackbone":
+        super().train(mode)
+        if self.freeze:
+            self.model.eval()
+        return self
 
     def forward(self, x: Tensor) -> Tensor:
-        height = x.shape[-2] // self.patch_size
-        width = x.shape[-1] // self.patch_size
-
-        tokens = self.patch_embed(x)
-        tokens = tokens + self.pos_embed[:, : tokens.shape[1]]
-        tokens = self.norm(self.encoder(tokens))
-
-        return tokens.transpose(1, 2).unflatten(-1, (height, width))
+        # x: (B, 1, n_mels, n_frames) -> AST espera (B, n_frames, n_mels)
+        input_values = x.squeeze(1).transpose(1, 2)
+        context = torch.no_grad() if self.freeze else torch.enable_grad()
+        with context:
+            tokens = self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
+        tokens = self.proj(tokens)
+        return tokens.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
 
 
 class MultiScalePyramid(nn.Module):

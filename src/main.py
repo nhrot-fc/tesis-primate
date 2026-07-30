@@ -33,12 +33,12 @@ CLIP_PARAMS = {
     "clip_hop_s": 1.5,
     "min_overlap": 0.5,
     "target_sr": 44_100,
-    "n_fft": 4096,
-    "win_length": 4000,
+    "n_fft": 1024,
+    "win_length": 1024,
     "hop_length": 400,
-    "n_mels": 256,
+    "n_mels": 128,
     "f_min": 0.0,
-    "f_max": 16_000.0,
+    "f_max": 22050.0,
 }
 
 SEED = 42
@@ -51,17 +51,13 @@ LABEL_COLUMN = {
 }
 
 # --- Entrenamiento ------------------------------------------------------------
-MODEL_DIM, N_QUERIES = 512, 64
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 100, 32, 2e-4, 1e-4, 0
+MODEL_DIM, N_QUERIES = 128, 64
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 128, 2e-4, 1e-4, 0
 EVAL_EVERY = 10
-
-# IoU usado por el HungarianMatcher (coste de asignación) y por el término
-# `loss_iou` del SetCriterion durante el entrenamiento.
-MATCHER_IOU_TYPE = "eiou"
-# IoU usado solo al calcular AP/mAP en `evaluate`: decide qué detección cuenta
-# como TP contra qué ground truth. No afecta al entrenamiento.
-METRIC_IOU_TYPE = "eiou"
-METRIC_IOU_THRESHOLD = 0.5
+MATCHER_IOU_TYPE = "iou"
+METRIC_IOU_TYPE = "iou"
+METRIC_IOU_THRESHOLD = 0.25
+OPERATING_SCORE_THRESHOLD = 0.5
 
 CHECKPOINT_DIR = PROJECT_DIR / "checkpoints"
 
@@ -96,8 +92,12 @@ def preprocess() -> tuple[LabelSet, DataLoader, DataLoader]:
 
     annotations = load_annotations(settings.data_dir / "cleaned")
     annotations = annotations[
-        ~((annotations["species"] == "lw") & (annotations["call_type"] == "cc"))
+        ~(
+            ((annotations["species"] == "lw") & (annotations["call_type"] == "cc"))
+            | ((annotations["species"] == "sm") & (annotations["call_type"] == "fc"))
+        )
     ]
+    annotations.loc[annotations["low_freq_hz"] <= 50.0, "low_freq_hz"] = 50.0
     logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
 
     pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
@@ -186,7 +186,8 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
         {class_id: label for class_id, label in enumerate(labels.names)},
     )
 
-    best_map, best_state = -1.0, None
+    # (recall_agn, -fp_per_tp): compara por recall primero, FP/TP como desempate.
+    best_score, best_state = (-1.0, float("-inf")), None
 
     for epoch in range(EPOCHS):
         train_metrics = train_one_epoch(
@@ -200,9 +201,6 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
             epochs=EPOCHS,
         )
 
-        if epoch and (epoch + 1) % EVAL_EVERY:
-            continue
-
         val_metrics = evaluate(
             model,
             val_loader,
@@ -212,28 +210,28 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
             n_classes=n_classes,
             iou_threshold=METRIC_IOU_THRESHOLD,
             ap_iou_type=METRIC_IOU_TYPE,
+            score_threshold=OPERATING_SCORE_THRESHOLD,
             epoch=epoch,
             epochs=EPOCHS,
         )
         logger.info(
-            "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoMin=%.3f %s-mAP=%.3f",
+            "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%.3f FP/TP=%.2f",
             epoch + 1,
             EPOCHS,
             train_metrics["total"],
             val_metrics.total,
             val_metrics.cls_acc,
-            val_metrics.mean_iomin,
-            val_metrics.ap_iou_type,
-            val_metrics.map,
-        )
-        logger.info("AP por clase -> %s", format_ap(val_metrics.ap_per_class, labels.names))
-        logger.info(
-            "matriz de confusión (queries emparejadas)\n%s",
-            format_confusion(val_metrics.confusion, labels.names),
+            val_metrics.mean_iou,
+            METRIC_IOU_THRESHOLD,
+            val_metrics.recall_agn,
+            val_metrics.fp_per_tp,
         )
 
-        if val_metrics.map > best_map:
-            best_map, best_state = val_metrics.map, copy.deepcopy(model.state_dict())
+        # recall_agn es la métrica objetivo (más alto mejor); fp_per_tp desempata
+        # (más bajo mejor) -- ver "Objetivo" arriba y el docstring de `evaluate`.
+        score = (val_metrics.recall_agn, -val_metrics.fp_per_tp)
+        if score > best_score:
+            best_score, best_state = score, copy.deepcopy(model.state_dict())
             torch.save(
                 {
                     "state_dict": best_state,
@@ -241,14 +239,39 @@ def train(labels: LabelSet, train_loader: DataLoader, val_loader: DataLoader, de
                     "dim": MODEL_DIM,
                     "n_queries": N_QUERIES,
                     "epoch": epoch,
-                    "map": best_map,
+                    "recall_agn": val_metrics.recall_agn,
+                    "fp_per_tp": val_metrics.fp_per_tp,
+                    "map": val_metrics.map,
                 },
                 checkpoint_path,
             )
 
+        if (epoch + 1) % EVAL_EVERY and epoch + 1 != EPOCHS:
+            continue
+
+        logger.info("AP por clase -> %s", format_ap(val_metrics.ap_per_class, labels.names))
+        logger.info(
+            "AP agnóstico de clase -> %s",
+            ", ".join(
+                f"{threshold}={ap:.3f}" if ap is not None else f"{threshold}=n/a"
+                for threshold, ap in sorted(val_metrics.ap_agnostic.items())
+            ),
+        )
+        logger.info(
+            "matriz de confusión (queries emparejadas)\n%s",
+            format_confusion(val_metrics.confusion, labels.names),
+        )
+
     if best_state is None:
         raise RuntimeError("No se completó ninguna época.")
-    logger.info("mejor mAP de validación: %.3f -> %s", best_map, checkpoint_path)
+    best_recall, best_fp_per_tp = best_score[0], -best_score[1]
+    logger.info(
+        "mejor recall_agn@%.2f de validación: %.3f (FP/TP=%.2f) -> %s",
+        METRIC_IOU_THRESHOLD,
+        best_recall,
+        best_fp_per_tp,
+        checkpoint_path,
+    )
 
 
 if __name__ == "__main__":
