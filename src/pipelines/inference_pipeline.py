@@ -1,5 +1,3 @@
-"""Audio completo -> tabla de selección Raven: ventanea, corre el modelo, funde por NMS."""
-
 from pathlib import Path
 
 import pandas as pd

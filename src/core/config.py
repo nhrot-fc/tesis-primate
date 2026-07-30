@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     HF_TOKEN: SecretStr | None = None
     GOOGLE_DRIVE_FOLDER_ID: str | None = None
     GOOGLE_DRIVE_CREDENTIALS_PATH: Path | None = None
-    PROJECT_DIR: Path = Path.cwd().parent
+    PROJECT_DIR: Path = Path.cwd()
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

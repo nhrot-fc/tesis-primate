@@ -1,9 +1,7 @@
 """Backbone AST (Gong et al., 2021) y pirámide multiescala al estilo ViTDet (Li et al., 2022).
 
-`ASTBackbone` envuelve el AST real preentrenado en AudioSet (HuggingFace
-`transformers`: 12 capas, 768-dim, patches 16x16 con stride 10) en vez de
-reimplementarlo. Cargar los pesos preentrenados es lo que aporta valor frente
-a un transformer entrenado desde cero con ~8k ventanas.
+`ASTBackbone` envuelve el AST preentrenado en AudioSet (HuggingFace `transformers`)
+en vez de reimplementarlo, para aprovechar los pesos preentrenados.
 """
 
 import torch
@@ -19,20 +17,11 @@ AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
 class ASTBackbone(nn.Module):
     """AST preentrenado + proyección lineal a `embed_dim`.
 
-    El checkpoint fue preentrenado con `num_mel_bins=128`, `max_length=1024` y
-    patch embedding 16x16 con stride 10 en ambos ejes. Aquí `num_mel_bins` ya
-    coincide (evita distorsionar el eje de frecuencia: ver notas de la Etapa 0
-    sobre por qué mantener 128 mels), pero `max_length` casi nunca coincide con
-    `n_frames` del clip, así que los embeddings de posición se interpolan
-    bilinealmente sobre el eje temporal tras cargar el checkpoint — el mismo
-    truco que usa el AST original al cambiar de duración de entrada.
-
-    `time_stride` además reduce el stride temporal del patch embedding (10 ->
-    5 por defecto): duplica la resolución de tokens en el tiempo (~93ms ->
-    ~47ms por token con el `n_frames` de Etapa 0). Es el techo real de
-    localización de eventos cortos (p.ej. sm/cc, ~81ms) que ninguna
-    augmentation ni ajuste de umbral puede cruzar -- la pirámide sube a más
-    posiciones pero por interpolación, la información sigue viniendo de acá.
+    El checkpoint fue preentrenado con `max_length=1024`, que casi nunca coincide
+    con `n_frames` del clip, así que los embeddings de posición se interpolan
+    bilinealmente sobre el eje temporal tras cargar el checkpoint. `time_stride`
+    además reduce el stride temporal del patch embedding (10 -> 5 por defecto)
+    para duplicar la resolución de tokens en el tiempo.
     """
 
     def __init__(
@@ -62,8 +51,7 @@ class ASTBackbone(nn.Module):
             config.patch_size if isinstance(config.patch_size, int) else config.patch_size[0]
         )
         freq_out = (config.num_mel_bins - patch_size) // config.frequency_stride + 1
-        # con el stride ORIGINAL del checkpoint (10): así fueron preentrenados estos
-        # embeddings de posición, hay que leerlo antes de pisar `config.time_stride`.
+        # stride original del checkpoint (10): hay que leerlo antes de pisar config.time_stride
         time_out_old = (config.max_length - patch_size) // config.time_stride + 1
         self.freq_out = freq_out
         self.time_out = (n_frames - patch_size) // time_stride + 1

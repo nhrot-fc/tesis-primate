@@ -4,6 +4,8 @@ Sigue la implementación de referencia de facebookresearch/detr: el canal
 `n_classes` del head es el "no-objeto" y las cajas se comparan en `xyxy`.
 """
 
+from typing import Any
+
 import torch
 import torch.nn.functional as F
 from scipy.optimize import linear_sum_assignment
@@ -13,6 +15,7 @@ from torchvision.ops import box_convert
 from architectures.iou import get_iou_fn
 
 Target = dict[str, Tensor]
+Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
 Indices = list[tuple[Tensor, Tensor]]
 
 
@@ -28,11 +31,10 @@ class HungarianMatcher(nn.Module):
         self.cost_class = cost_class
         self.cost_bbox = cost_bbox
         self.cost_iou = cost_iou
-        self.iou_type = iou_type
         self.iou_fn = get_iou_fn(iou_type)
 
     @torch.no_grad()
-    def forward(self, outputs: dict[str, Tensor], targets: list[Target]) -> Indices:
+    def forward(self, outputs: Outputs, targets: list[Target]) -> Indices:
         batch_size, num_queries = outputs["pred_logits"].shape[:2]
         device = outputs["pred_logits"].device
 
@@ -87,8 +89,7 @@ class SetCriterion(nn.Module):
         self.weight_class = weight_class
         self.weight_bbox = weight_bbox
         self.weight_iou = weight_iou
-        self.iou_type = iou_type
-        self.iou_fn = get_iou_fn(iou_type)
+        self.iou_fn = get_iou_fn(iou_type, pairwise=True)
 
         empty_weight = torch.ones(n_classes + 1)
         empty_weight[self.background_id] = eos_coef
@@ -102,7 +103,7 @@ class SetCriterion(nn.Module):
         query_index = torch.cat([query_index for query_index, _ in indices])
         return batch_index, query_index
 
-    def _compute(self, outputs: dict[str, Tensor], targets: list[Target]) -> dict[str, Tensor]:
+    def _compute(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
         indices = self.matcher(outputs, targets)
         index = self._permutation_index(indices)
         num_boxes = max(sum(len(target["labels"]) for target in targets), 1)
@@ -131,7 +132,7 @@ class SetCriterion(nn.Module):
             box_convert(predicted_boxes, "cxcywh", "xyxy"),
             box_convert(matched_boxes, "cxcywh", "xyxy"),
         )
-        loss_iou = (1 - torch.diag(iou)).sum() / num_boxes
+        loss_iou = (1 - iou).sum() / num_boxes
 
         return {
             "loss_cls": loss_class,
@@ -144,15 +145,18 @@ class SetCriterion(nn.Module):
             ),
         }
 
-    def forward(self, outputs: dict[str, Tensor], targets: list[Target]) -> dict[str, Tensor]:
-        """Pérdida en la salida final + en cada salida intermedia (`aux_outputs`), sumadas.
+    def forward(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
+        """Pérdida en la salida final + cada salida intermedia (`aux_outputs`), promediadas.
 
-        Cada capa del decoder se empareja por separado con el `HungarianMatcher`: la
-        asignación óptima puede cambiar de capa a capa, así que no se reutilizan los
-        `indices` de la salida final para las intermedias.
+        Cada capa se empareja por separado (la asignación óptima cambia de capa a
+        capa) y se promedia por número de capas en vez de sumar, para que la escala
+        no dependa de `n_decoder_layers`.
         """
+        aux_outputs_list: list[dict[str, Tensor]] = outputs.get("aux_outputs", [])
         losses = self._compute(outputs, targets)
-        for aux_outputs in outputs.get("aux_outputs", []):
+        for aux_outputs in aux_outputs_list:
             for key, value in self._compute(aux_outputs, targets).items():
                 losses[key] = losses[key] + value
-        return losses
+
+        n_terms = 1 + len(aux_outputs_list)
+        return {key: value / n_terms for key, value in losses.items()}
