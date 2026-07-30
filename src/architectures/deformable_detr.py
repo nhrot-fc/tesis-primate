@@ -261,11 +261,14 @@ class ASTDeformableDETR(nn.Module):
         n_classes: int = 1,
         freeze: bool = True,
         n_frames: int | None = None,
+        time_stride: int = 5,
     ):
         super().__init__()
         from architectures.backbone import ASTBackbone, MultiScalePyramid
 
-        self.backbone = ASTBackbone(embed_dim=dim, n_frames=n_frames, freeze=freeze)
+        self.backbone = ASTBackbone(
+            embed_dim=dim, n_frames=n_frames, time_stride=time_stride, freeze=freeze
+        )
         self.pyramid = MultiScalePyramid(dim)
         self.detr = DeformableDETR(dim, n_queries, n_classes)
 

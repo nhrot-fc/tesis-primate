@@ -37,13 +37,13 @@ class Parameters:
 
     # STFT
     target_sr: int = 44100
-    n_fft: int = 1024
+    n_fft: int = 4096
     win_length: int = 1024
     hop_length: int = 400
 
     # Mel spectrogram
     n_mels: int = 128
-    f_min: float = 0.0
+    f_min: float = 25.0
     f_max: float = 22050.0
     mel_scale: str = "htk"
     mel_break_hz: float = 700.0
