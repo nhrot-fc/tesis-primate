@@ -13,7 +13,7 @@ from core.config import P, Parameters
 FloatArray = npt.NDArray[np.float64]
 
 
-def load_clip(audio_path: Path, clip_start_s: float, params: Parameters = P) -> Tensor:
+def load_clip(audio_path: Path | str, clip_start_s: float, params: Parameters = P) -> Tensor:
     with soundfile.SoundFile(audio_path) as audio_file:
         source_sample_rate = audio_file.samplerate
         audio_file.seek(int(clip_start_s * source_sample_rate))
