@@ -28,19 +28,6 @@ logger = logging.getLogger("training")
 PROJECT_DIR = Path.cwd()
 
 # --- Preprocesado -------------------------------------------------------------
-CLIP_PARAMS = {
-    "clip_len_s": 3.0,
-    "clip_hop_s": 1.5,
-    "min_overlap": 0.5,
-    "target_sr": 44_100,
-    "n_fft": 1024,
-    "win_length": 1024,
-    "hop_length": 400,
-    "n_mels": 128,
-    "f_min": 0.0,
-    "f_max": 22050.0,
-}
-
 SEED = 42
 MIN_PAIR_COUNT = 500
 LABEL_BY = "species/call_type"
@@ -80,8 +67,6 @@ def make_loader(dataset: CallBoxDataset, shuffle: bool) -> DataLoader:
 
 
 def preprocess() -> tuple[LabelSet, DataLoader, DataLoader]:
-    for name, value in CLIP_PARAMS.items():
-        setattr(P, name, value)
     logger.info(
         "clip %ss @ %s Hz -> espectrograma %s x %s",
         P.clip_len_s,
