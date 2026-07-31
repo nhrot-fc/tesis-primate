@@ -25,7 +25,12 @@ def load_model(checkpoint_path: Path, device: str) -> tuple[nn.Module, LabelSet]
 
 
 def wav_paths(audio_path: Path) -> list[Path]:
-    return sorted(audio_path.rglob("*.wav")) if audio_path.is_dir() else [audio_path]
+    if audio_path.is_file() and audio_path.suffix.lower() == ".wav":
+        return [audio_path]
+    elif audio_path.is_dir():
+        return sorted(p for p in audio_path.iterdir() if p.is_file() and p.suffix.lower() == ".wav")
+    else:
+        raise ValueError(f"'{audio_path}' no es un archivo .wav ni una carpeta con .wav")
 
 
 def main() -> None:
