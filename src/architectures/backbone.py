@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from transformers import ASTModel
 
-from core.config import P
+from core.config import P, settings
 
 AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
 
@@ -33,7 +33,8 @@ class ASTBackbone(nn.Module):
         freeze: bool = True,
     ) -> None:
         super().__init__()
-        self.model = ASTModel.from_pretrained(checkpoint)
+        token = settings.HF_TOKEN.get_secret_value() if settings.HF_TOKEN else None
+        self.model = ASTModel.from_pretrained(checkpoint, token=token)
         self._interpolate_time_pos_embed(
             n_frames if n_frames is not None else P.n_frames, time_stride
         )

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
@@ -116,6 +117,23 @@ class CallBoxDataset(Dataset):
             "boxes": torch.from_numpy(window.boxes[:, BOX_COORDINATES_SLICE].astype(np.float32)),
             "labels": torch.from_numpy(window.boxes[:, LABEL_INDEX].astype(np.int64)),
         }
+
+
+class CachedCallBoxDataset(Dataset):
+    """Split materializado por `create_dataset.py`: tensores ya listos en `path`,
+    sin I/O de audio ni cómputo de espectrograma en cada `__getitem__`."""
+
+    def __init__(self, path: Path):
+        cache = torch.load(path, weights_only=False)
+        self.images: torch.Tensor = cache["images"]
+        self.boxes: list[torch.Tensor] = cache["boxes"]
+        self.labels: list[torch.Tensor] = cache["labels"]
+
+    def __len__(self) -> int:
+        return len(self.images)
+
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        return self.images[index], {"boxes": self.boxes[index], "labels": self.labels[index]}
 
 
 def collate_fn(

@@ -8,41 +8,29 @@ from typing import NamedTuple
 import torch
 from torch import nn
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from architectures.criterion import HungarianMatcher, SetCriterion
 from architectures.deformable_detr import ASTDeformableDETR
-from core.config import P, settings
+from core.config import settings
 from core.setup import setup_logging, setup_project_path
-from domain.annotations import load_annotations
-from domain.dataset import (
-    LABEL_INDEX,
-    CallBoxDataset,
-    build_manifest,
-    collate_fn,
-    split_manifest,
-)
+from domain.dataset import CachedCallBoxDataset, collate_fn
 from domain.species import LabelSet
 from pipelines.training_pipeline import EvalMetrics, Metrics, evaluate, train_one_epoch
 
 logger = logging.getLogger("training")
 
 PROJECT_DIR = Path.cwd()
+CACHE_DIR = PROJECT_DIR / "data" / "processed"
 
-# --- Preprocesado -------------------------------------------------------------
+# --- Preprocesado ---------------------------------------------------------------
+# El dataset (manifest + log-mel + cajas) se materializa aparte con `create_dataset.py`;
+# acá sólo se carga lo que ya quedó cacheado en `CACHE_DIR`.
 SEED = 42
-MIN_PAIR_COUNT = 500
-LABEL_BY = "species/call_type"
-LABEL_COLUMN = {
-    "call": lambda df: "call",
-    "species": lambda df: df["species"],
-    "species/call_type": lambda df: df["species"] + "/" + df["call_type"],
-}
-EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc")}
 
 # --- Entrenamiento ------------------------------------------------------------
 MODEL_DIM, N_QUERIES = 128, 64
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 20, 4, 2e-4, 1e-4, 0
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 20, 16, 2e-4, 1e-4, 0
 EVAL_EVERY = 4
 MATCHER_IOU_TYPE = "iou"
 METRIC_IOU_THRESHOLD = 0.5
@@ -55,11 +43,10 @@ CHECKPOINT_DIR = PROJECT_DIR / "checkpoints"
 def training_config() -> dict[str, object]:
     """Snapshot de los hiperparámetros de esta corrida, para guardar dentro del
     checkpoint: sin esto un `.pth` no es reproducible más allá de `dim`/`n_queries`."""
+    dataset_meta = json.loads((CACHE_DIR / "meta.json").read_text())
     return {
         "seed": SEED,
-        "min_pair_count": MIN_PAIR_COUNT,
-        "label_by": LABEL_BY,
-        "excluded_pairs": sorted(EXCLUDED_PAIRS),
+        "dataset": dataset_meta,
         "model_dim": MODEL_DIM,
         "n_queries": N_QUERIES,
         "epochs": EPOCHS,
@@ -86,7 +73,7 @@ def save_labels_json(labels: LabelSet, path: Path) -> None:
     path.write_text(json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False))
 
 
-def make_loader(dataset: CallBoxDataset, shuffle: bool) -> DataLoader:
+def make_loader(dataset: Dataset, shuffle: bool) -> DataLoader:
     return DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -98,53 +85,27 @@ def make_loader(dataset: CallBoxDataset, shuffle: bool) -> DataLoader:
 
 
 def preprocess() -> tuple[LabelSet, DataLoader, DataLoader]:
-    logger.info(
-        "clip %ss @ %s Hz -> espectrograma %s x %s",
-        P.clip_len_s,
-        P.target_sr,
-        P.n_mels,
-        P.n_frames,
-    )
+    if not (CACHE_DIR / "meta.json").exists():
+        raise FileNotFoundError(
+            f"no hay dataset cacheado en {CACHE_DIR}. Corré `python src/create_dataset.py` primero."
+        )
 
-    annotations = load_annotations(settings.data_dir / "cleaned")
-    excluded = annotations[["species", "call_type"]].apply(tuple, axis=1).isin(EXCLUDED_PAIRS)
-    annotations = annotations[~excluded]
-    annotations["low_freq_hz"] = annotations["low_freq_hz"].clip(lower=P.f_min)
-    logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
+    label_names = json.loads((CACHE_DIR / "labels.json").read_text())
+    labels = LabelSet(label_names.values())
 
-    pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
-    pair_counts = pairs.value_counts()
-    valid_pairs = pair_counts[pair_counts >= MIN_PAIR_COUNT].index
-    logger.info(
-        "%d/%d pares species/call_type con >= %d anotaciones: %s",
-        len(valid_pairs),
-        len(pair_counts),
-        MIN_PAIR_COUNT,
-        ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
-    )
-
-    experiment_df = annotations[pairs.isin(valid_pairs)].copy()
-    experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
-
-    labels = LabelSet(experiment_df["label"])
-    logger.info(
-        "%d anotaciones del experimento | %d clases: %s",
-        len(experiment_df),
-        len(labels),
-        ", ".join(labels.names),
-    )
-
-    manifest = build_manifest(experiment_df, labels)
-    train_m, val_m, _ = split_manifest(manifest, seed=SEED)
+    train_dataset = CachedCallBoxDataset(CACHE_DIR / "train.pt")
+    val_dataset = CachedCallBoxDataset(CACHE_DIR / "val.pt")
 
     class_counts = Counter(
-        labels.name(class_id) for window in train_m for class_id in window.boxes[:, LABEL_INDEX]
+        labels.name(int(class_id))
+        for window_labels in train_dataset.labels
+        for class_id in window_labels
     )
-    logger.info("ventanas -> train %d | val %d", len(train_m), len(val_m))
+    logger.info("ventanas -> train %d | val %d", len(train_dataset), len(val_dataset))
     logger.info("cajas en train -> %s", dict(class_counts.most_common()))
 
-    train_loader = make_loader(CallBoxDataset(train_m), shuffle=True)
-    val_loader = make_loader(CallBoxDataset(val_m), shuffle=False)
+    train_loader = make_loader(train_dataset, shuffle=True)
+    val_loader = make_loader(val_dataset, shuffle=False)
     return labels, train_loader, val_loader
 
 
