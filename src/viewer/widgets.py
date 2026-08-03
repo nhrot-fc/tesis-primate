@@ -114,6 +114,11 @@ class Choice(QWidget):
     def value(self):
         return self.values[self.slider.value()]
 
+    def set_value(self, value) -> None:
+        """Mueve el slider al valor disponible más cercano."""
+        nearest = min(range(len(self.values)), key=lambda i: abs(self.values[i] - value))
+        self.slider.setValue(nearest)
+
 
 class Dropdown(QWidget):
     changed = pyqtSignal()

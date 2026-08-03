@@ -76,7 +76,7 @@ class SetCriterion(nn.Module):
         self,
         n_classes: int = 1,
         matcher: nn.Module | None = None,
-        eos_coef: float = 0.05,
+        eos_coef: float = 0.1,
         weight_class: float = 1.0,
         weight_bbox: float = 5.0,
         weight_iou: float = 2.0,
@@ -146,17 +146,17 @@ class SetCriterion(nn.Module):
         }
 
     def forward(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
-        """Pérdida en la salida final + cada salida intermedia (`aux_outputs`), promediadas.
+        """Pérdida en la salida final + cada salida intermedia (`aux_outputs`), **sumadas**.
 
-        Cada capa se empareja por separado (la asignación óptima cambia de capa a
-        capa) y se promedia por número de capas en vez de sumar, para que la escala
-        no dependa de `n_decoder_layers`.
+        Cada capa se empareja por separado (la asignación óptima cambia de capa a capa)
+        y aporta con peso 1, como en DETR. Promediar por número de capas dejaba a la
+        capa final —la única que se usa en inferencia— con 1/6 del gradiente, y dejaba
+        el `clip_grad=0.1` (que es el valor de DETR, calibrado para la suma) recortando
+        en una escala 6 veces menor de la que le corresponde.
         """
         aux_outputs_list: list[dict[str, Tensor]] = outputs.get("aux_outputs", [])
         losses = self._compute(outputs, targets)
         for aux_outputs in aux_outputs_list:
             for key, value in self._compute(aux_outputs, targets).items():
                 losses[key] = losses[key] + value
-
-        n_terms = 1 + len(aux_outputs_list)
-        return {key: value / n_terms for key, value in losses.items()}
+        return losses

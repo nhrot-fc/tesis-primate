@@ -40,6 +40,8 @@ class Parameters:
     clip_len_s: float = 3.0
     clip_hop_s: float = 1.5
     min_overlap: float = 0.5
+    pad_mode: str = "noise"  # relleno de la última ventana: "noise" | "zeros"
+    pad_seed: int = 0  # semilla del relleno, para que la inferencia sea reproducible
 
     # STFT
     target_sr: int = 44100

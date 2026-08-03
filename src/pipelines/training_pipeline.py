@@ -7,7 +7,7 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
-from torchvision.ops import box_convert
+from torchvision.ops import batched_nms, box_convert
 from tqdm.auto import tqdm
 
 from architectures.deformable_detr import predict_scores
@@ -15,11 +15,14 @@ from architectures.iou import get_iou_fn
 
 Target = dict[str, Tensor]
 Batch = tuple[Tensor, list[Target]]
-Metrics = dict[str, float]
-DetectionRecord = tuple[float, int, Tensor]  # (score, image_id, box cxcywh), CPU tensors only
 
 LOSS_KEYS: tuple[str, ...] = ("total", "cls", "bbox", "iou")
-_IOU_FN = get_iou_fn("iou")
+IouFn = Callable[[Tensor, Tensor], Tensor]
+
+# Las métricas se reportan siempre en IoU estándar, aunque el matcher y la pérdida usen
+# otro criterio de solape (`iomin`): un número comparable con la literatura no debería
+# depender de cómo se emparejó. Es configurable en `evaluate` por si hace falta lo otro.
+METRIC_IOU_TYPE = "iou"
 
 
 class Losses(NamedTuple):
@@ -29,27 +32,41 @@ class Losses(NamedTuple):
     iou: float
 
 
-class Framing(NamedTuple):
+class EvalMetrics(NamedTuple):
+    losses: Losses
     mean_iou: float
-    ap_agnostic: dict[float, float | None]
-
-
-class Classification(NamedTuple):
     accuracy: float
     confusion: Tensor
+    ap: dict[float, float | None]
+    recall: float
+    fp_per_tp: float
     recall_per_class: dict[int, float | None]
 
 
-class Detection(NamedTuple):
-    recall: float
-    fp_per_tp: float
+class Boxes(NamedTuple):
+    boxes: Tensor  # (N, 4) cxcywh normalizado
+    image_ids: Tensor  # (N,) id del clip, no del batch
+    labels: Tensor  # (N,)
+    scores: Tensor  # (N,)
+
+    def select(self, mask: Tensor) -> "Boxes":
+        return Boxes(*(field[mask] for field in self))
+
+    def to_cpu(self) -> "Boxes":
+        return Boxes(*(field.cpu() for field in self))
+
+    def sorted_by_score(self) -> "Boxes":
+        return self.select(self.scores.argsort(descending=True))
+
+    @property
+    def count(self) -> int:
+        return len(self.boxes)
 
 
-class EvalMetrics(NamedTuple):
-    losses: Losses
-    framing: Framing
-    classification: Classification
-    detection: Detection
+def _concat(chunks: list[Boxes]) -> Boxes:
+    if not chunks:  # loader vacío: mejor métricas en cero que un TypeError
+        return Boxes(torch.zeros(0, 4), *(torch.zeros(0) for _ in range(3)))
+    return Boxes(*(torch.cat(fields) for fields in zip(*chunks, strict=True)))
 
 
 def _to_device(batch: Batch, device: torch.device | str) -> Batch:
@@ -60,10 +77,6 @@ def _to_device(batch: Batch, device: torch.device | str) -> Batch:
     )
 
 
-def _epoch_desc(prefix: str, epoch: int | None, epochs: int | None) -> str:
-    return prefix if epoch is None else f"{prefix} {epoch + 1}/{epochs}"
-
-
 def train_one_epoch(
     model: nn.Module,
     loader: DataLoader[tuple[Tensor, Target]],
@@ -72,13 +85,12 @@ def train_one_epoch(
     scheduler: LRScheduler | None = None,
     device: torch.device | str = "cpu",
     clip_grad: float = 0.1,
-    epoch: int | None = None,
-    epochs: int | None = None,
-) -> Metrics:
+    desc: str = "train",
+) -> Losses:
     model.train()
-    totals: Metrics = dict.fromkeys(LOSS_KEYS, 0.0)
+    totals = dict.fromkeys(LOSS_KEYS, 0.0)
 
-    progress = tqdm(loader, desc=_epoch_desc("train", epoch, epochs), unit="batch", leave=False)
+    progress = tqdm(loader, desc=desc, unit="batch", leave=False)
     for step, batch in enumerate(progress, start=1):
         images, targets = _to_device(batch, device)
         losses: dict[str, Tensor] = criterion(model(images), targets)
@@ -94,45 +106,59 @@ def train_one_epoch(
             totals[key] += losses[f"loss_{key}"].item()
         progress.set_postfix(loss=totals["total"] / step, lr=optimizer.param_groups[0]["lr"])
 
-    return {key: value / max(len(loader), 1) for key, value in totals.items()}
+    return Losses(**{key: value / max(len(loader), 1) for key, value in totals.items()})
 
 
-def _sorted_detections(detections: list[DetectionRecord]) -> list[DetectionRecord]:
-    return sorted(detections, key=lambda d: d[0], reverse=True)
+def _rows_by_image(image_ids: Tensor) -> dict[int, list[int]]:
+    rows: dict[int, list[int]] = defaultdict(list)
+    for row, image_id in enumerate(image_ids.tolist()):
+        rows[image_id].append(row)
+    return rows
 
 
-def _greedy_hits(
-    detections: list[DetectionRecord],
-    gt_by_image: dict[int, Tensor],
-    iou_fn: Callable[[Tensor, Tensor], Tensor],
-    iou_threshold: float,
-) -> Tensor:
-    hits = torch.zeros(len(detections))
-    if not detections:
+class Matching:
+    """Solapes precomputados entre predicciones y GT, agrupados por clip.
+
+    El agrupado y la matriz de IoU no dependen del umbral, así que se calculan una
+    vez y se reusan para todos los umbrales de AP y para el punto de operación.
+    """
+
+    def __init__(self, predictions: Boxes, truth: Boxes, iou_fn: IouFn) -> None:
+        self.n_predictions = predictions.count
+        self.per_image: list[tuple[list[int], Tensor]] = []
+        if predictions.count == 0 or truth.count == 0:
+            return
+
+        predicted_xyxy = box_convert(predictions.boxes, "cxcywh", "xyxy")
+        truth_xyxy = box_convert(truth.boxes, "cxcywh", "xyxy")
+        truth_rows = _rows_by_image(truth.image_ids)
+        for image_id, rows in _rows_by_image(predictions.image_ids).items():
+            columns = truth_rows.get(image_id)
+            if columns is not None:
+                self.per_image.append((rows, iou_fn(predicted_xyxy[rows], truth_xyxy[columns])))
+
+    def hits(self, iou_threshold: float) -> Tensor:
+        """1.0 en cada predicción que captura un GT todavía libre de su mismo clip.
+
+        Greedy por score: cada GT se lo lleva la predicción de mayor score que lo
+        supere. `predictions` tiene que venir ordenado descendente.
+        """
+        hits = torch.zeros(self.n_predictions)
+        for rows, overlaps in self.per_image:
+            # Se itera sobre los GT (uno o dos por clip) y no sobre las predicciones
+            # (64 queries): mismo resultado greedy, ~20x menos vueltas de Python.
+            available = overlaps.masked_fill(overlaps < iou_threshold, -1.0)
+            for _ in range(available.shape[1]):
+                best_per_row = available.max(dim=1)
+                candidates = best_per_row.values >= iou_threshold
+                if not candidates.any():
+                    break
+                row = int(candidates.to(torch.uint8).argmax())  # la de mayor score
+                column = int(best_per_row.indices[row])  # su GT libre de mayor IoU
+                hits[rows[row]] = 1.0
+                available[row] = -1.0  # una predicción cuenta por un solo GT
+                available[:, column] = -1.0  # y un GT se consume una sola vez
         return hits
-
-    ranks_by_image: dict[int, list[int]] = defaultdict(list)
-    for rank, (_, image_id, _) in enumerate(detections):
-        ranks_by_image[image_id].append(rank)
-
-    for image_id, ranks in ranks_by_image.items():
-        gt_boxes = gt_by_image.get(image_id)
-        if gt_boxes is None:
-            continue
-        boxes = torch.stack([detections[rank][2] for rank in ranks])
-        overlaps = iou_fn(
-            box_convert(boxes, "cxcywh", "xyxy"), box_convert(gt_boxes, "cxcywh", "xyxy")
-        )  # (len(ranks), n_gt), filas ya en orden de score porque `ranks` lo está
-
-        unused = torch.ones(len(gt_boxes), dtype=torch.bool)
-        for row, rank in enumerate(ranks):
-            row_overlaps = overlaps[row].masked_fill(~unused, -1.0)
-            best = int(row_overlaps.argmax())
-            if row_overlaps[best] >= iou_threshold:
-                unused[best] = False
-                hits[rank] = 1.0
-
-    return hits
 
 
 def _average_precision(hits: Tensor, n_gt: int) -> float | None:
@@ -148,156 +174,19 @@ def _average_precision(hits: Tensor, n_gt: int) -> float | None:
     return float(((recall - torch.cat([recall.new_zeros(1), recall[:-1]])) * precision).sum())
 
 
-def _class_recall(
-    detections: list[DetectionRecord],
-    gt_by_image: dict[int, Tensor],
-    n_gt: int,
-    iou_fn: Callable[[Tensor, Tensor], Tensor],
-    iou_threshold: float,
-    score_threshold: float,
-) -> float | None:
-    if n_gt == 0:
-        return None
-    sorted_detections = _sorted_detections(detections)
-    hits = _greedy_hits(sorted_detections, gt_by_image, iou_fn, iou_threshold)
-    k = sum(1 for d in sorted_detections if d[0] >= score_threshold)
-    recall, _ = _recall_and_fp(hits, n_gt, k)
-    return recall
-
-
-def _recall_and_fp(hits: Tensor, n_gt: int, k: int) -> tuple[float, float]:
+def _recall_fp(hits: Tensor, n_gt: int, k: int) -> tuple[float, float]:
+    """Recall y falsos positivos por acierto quedándose con las `k` mejores detecciones."""
     if n_gt == 0:
         return 0.0, 0.0
     tp = int(hits[:k].sum())
-    fp = k - tp
-    return tp / n_gt, fp / max(tp, 1)
+    return tp / n_gt, (k - tp) / max(tp, 1)
 
 
-class LossAcumulator:
-    def __init__(self, n_classes: int) -> None:
-        self.n_classes = n_classes
-        self.loss_totals: Metrics = dict.fromkeys(LOSS_KEYS, 0.0)
-        self.n_batches = 0
-
-        self.confusion = torch.zeros(n_classes, n_classes, dtype=torch.int64)
-        self.matched_total = 0
-        self.matched_correct = 0
-        self.iou_sum = 0.0
-        self.matched_box_count = 0
-
-        self.detections_by_class: dict[int, list[DetectionRecord]] = defaultdict(list)
-        self.gt_boxes_by_class: dict[int, dict[int, list[Tensor]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        self.n_gt_by_class: dict[int, int] = defaultdict(int)
-        self._sample_id = 0
-
-    def update(
-        self,
-        outputs: dict[str, Tensor],
-        targets: list[Target],
-        indices: list[tuple[Tensor, Tensor]],
-        losses: dict[str, Tensor],
-    ) -> None:
-        for key in LOSS_KEYS:
-            self.loss_totals[key] += losses[f"loss_{key}"].item()
-        self.n_batches += 1
-
-        pred_boxes = outputs["pred_boxes"]
-        scores, labels = predict_scores(outputs)
-
-        for b, (query_idx, target_idx) in enumerate(indices):
-            image_id = self._sample_id + b  # identifica el clip, no el batch
-            target = targets[b]
-
-            if len(query_idx):
-                pred_classes = labels[b, query_idx]
-                true_classes = target["labels"][target_idx]
-                self.matched_correct += int((pred_classes == true_classes).sum())
-                self.matched_total += len(query_idx)
-                for t, p in zip(true_classes.tolist(), pred_classes.tolist(), strict=True):
-                    self.confusion[t, p] += 1
-
-                matched_pred_xyxy = box_convert(pred_boxes[b, query_idx], "cxcywh", "xyxy")
-                matched_target_xyxy = box_convert(target["boxes"][target_idx], "cxcywh", "xyxy")
-                self.iou_sum += float(
-                    torch.diag(_IOU_FN(matched_pred_xyxy, matched_target_xyxy)).sum()
-                )
-                self.matched_box_count += len(query_idx)
-
-            for class_id, box in zip(target["labels"].tolist(), target["boxes"].cpu(), strict=True):
-                self.n_gt_by_class[class_id] += 1
-                self.gt_boxes_by_class[class_id][image_id].append(box)
-
-            for q, (score, class_id) in enumerate(
-                zip(scores[b].tolist(), labels[b].tolist(), strict=True)
-            ):
-                self.detections_by_class[class_id].append((score, image_id, pred_boxes[b, q].cpu()))
-
-        self._sample_id += len(indices)
-
-    def compute(
-        self,
-        iou_threshold: float,
-        agnostic_thresholds: tuple[float, ...],
-        score_threshold: float,
-    ) -> EvalMetrics:
-        losses = Losses(
-            **{key: value / max(self.n_batches, 1) for key, value in self.loss_totals.items()}
-        )
-
-        recall_per_class = {
-            class_id: _class_recall(
-                self.detections_by_class.get(class_id, []),
-                {
-                    img: torch.stack(boxes)
-                    for img, boxes in self.gt_boxes_by_class.get(class_id, {}).items()
-                },
-                self.n_gt_by_class.get(class_id, 0),
-                _IOU_FN,
-                iou_threshold,
-                score_threshold,
-            )
-            for class_id in range(self.n_classes)
-        }
-
-        # detecciones/GT agnósticos de clase: se derivan al final de los buckets por
-        # clase en vez de duplicarse en memoria durante la acumulación (una detección
-        # por query, no dos).
-        agnostic_detections = _sorted_detections(
-            [d for dets in self.detections_by_class.values() for d in dets]
-        )
-        agnostic_gt_lists: dict[int, list[Tensor]] = defaultdict(list)
-        for per_image in self.gt_boxes_by_class.values():
-            for image_id, boxes in per_image.items():
-                agnostic_gt_lists[image_id].extend(boxes)
-        agnostic_gt = {img: torch.stack(boxes) for img, boxes in agnostic_gt_lists.items()}
-        n_gt_agnostic = sum(self.n_gt_by_class.values())
-
-        ap_agnostic = {
-            threshold: _average_precision(
-                _greedy_hits(agnostic_detections, agnostic_gt, _IOU_FN, threshold), n_gt_agnostic
-            )
-            for threshold in agnostic_thresholds
-        }
-
-        hits = _greedy_hits(agnostic_detections, agnostic_gt, _IOU_FN, iou_threshold)
-        k = sum(1 for d in agnostic_detections if d[0] >= score_threshold)
-        recall, fp_per_tp = _recall_and_fp(hits, n_gt_agnostic, k)
-
-        return EvalMetrics(
-            losses=losses,
-            framing=Framing(
-                mean_iou=self.iou_sum / max(self.matched_box_count, 1),
-                ap_agnostic=ap_agnostic,
-            ),
-            classification=Classification(
-                accuracy=self.matched_correct / max(self.matched_total, 1),
-                confusion=self.confusion,
-                recall_per_class=recall_per_class,
-            ),
-            detection=Detection(recall=recall, fp_per_tp=fp_per_tp),
-        )
+def _keep_after_nms(boxes: Tensor, scores: Tensor, labels: Tensor, nms_iou: float) -> Tensor:
+    """Índices que sobreviven al NMS por clase, en el mismo espacio normalizado que usa
+    `inference_pipeline.predict`: si acá no se suprime nada, `fp_per_tp` cuenta como
+    falsos positivos duplicados que en producción el NMS ya eliminó."""
+    return batched_nms(box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou)
 
 
 @torch.no_grad()
@@ -309,20 +198,123 @@ def evaluate(
     device: torch.device | str = "cpu",
     n_classes: int = 1,
     iou_threshold: float = 0.5,
-    agnostic_thresholds: tuple[float, ...] = (0.25, 0.3, 0.5, 0.75),
+    ap_thresholds: tuple[float, ...] = (0.25, 0.3, 0.5, 0.75),
     score_threshold: float = 0.5,
-    epoch: int | None = None,
-    epochs: int | None = None,
+    nms_iou: float | None = 0.3,
+    metric_iou_type: str = METRIC_IOU_TYPE,
+    desc: str = "val",
 ) -> EvalMetrics:
     model.eval()
-    accumulator = LossAcumulator(n_classes)
 
-    progress = tqdm(loader, desc=_epoch_desc("val", epoch, epochs), unit="batch", leave=False)
-    for batch in progress:
+    iou_fn = get_iou_fn(metric_iou_type)
+    pairwise_iou_fn = get_iou_fn(metric_iou_type, pairwise=True)
+    totals = dict.fromkeys(LOSS_KEYS, 0.0)
+    # columna extra: una query emparejada que en realidad dice "no-objeto"
+    confusion = torch.zeros(n_classes, n_classes + 1, dtype=torch.int64)
+    matched, matched_correct, iou_sum = 0, 0, 0.0
+    predicted_chunks: list[Boxes] = []
+    truth_chunks: list[Boxes] = []
+    next_image_id = 0
+
+    for batch in tqdm(loader, desc=desc, unit="batch", leave=False):
         images, targets = _to_device(batch, device)
         outputs = model(images)
         losses: dict[str, Tensor] = criterion(outputs, targets)
-        indices = matcher(outputs, targets)
-        accumulator.update(outputs, targets, indices, losses)
+        for key in LOSS_KEYS:
+            totals[key] += losses[f"loss_{key}"].item()
 
-    return accumulator.compute(iou_threshold, agnostic_thresholds, score_threshold)
+        pred_boxes = outputs["pred_boxes"]
+        scores, labels = predict_scores(outputs)
+        # clase incluyendo el canal de "no-objeto": es lo que el modelo realmente
+        # afirma, y lo que hace honesta a la matriz de confusión
+        decided = outputs["pred_logits"].argmax(-1)
+
+        for b, (query_idx, target_idx) in enumerate(matcher(outputs, targets)):
+            image_id = next_image_id + b  # identifica el clip, no la posición en el batch
+            target = targets[b]
+
+            if len(query_idx):
+                predicted_classes = decided[b, query_idx]
+                true_classes = target["labels"][target_idx]
+                matched += len(query_idx)
+                matched_correct += int((predicted_classes == true_classes).sum())
+                for t, p in zip(true_classes.tolist(), predicted_classes.tolist(), strict=True):
+                    confusion[t, p] += 1
+                iou_sum += float(
+                    pairwise_iou_fn(  # ya emparejadas: N solapes, no una matriz N x N
+                        box_convert(pred_boxes[b, query_idx], "cxcywh", "xyxy"),
+                        box_convert(target["boxes"][target_idx], "cxcywh", "xyxy"),
+                    ).sum()
+                )
+
+            keep = (
+                _keep_after_nms(pred_boxes[b], scores[b], labels[b], nms_iou)
+                if nms_iou is not None
+                else slice(None)
+            )
+            kept_boxes = pred_boxes[b][keep]
+            predicted_chunks.append(
+                Boxes(
+                    kept_boxes,
+                    torch.full((len(kept_boxes),), image_id, device=kept_boxes.device),
+                    labels[b][keep],
+                    scores[b][keep],
+                )
+            )
+            n_target = len(target["labels"])
+            truth_chunks.append(
+                Boxes(
+                    target["boxes"],
+                    torch.full((n_target,), image_id, device=target["boxes"].device),
+                    target["labels"],
+                    torch.ones(n_target, device=target["boxes"].device),
+                )
+            )
+
+        next_image_id += len(targets)
+
+    predictions = _concat(predicted_chunks).to_cpu().sorted_by_score()
+    truth = _concat(truth_chunks).to_cpu()
+
+    matching = Matching(predictions, truth, iou_fn)
+    hits = matching.hits(iou_threshold)
+    k = int((predictions.scores >= score_threshold).sum())
+    recall, fp_per_tp = _recall_fp(hits, truth.count, k)
+
+    return EvalMetrics(
+        losses=Losses(**{key: value / max(len(loader), 1) for key, value in totals.items()}),
+        mean_iou=iou_sum / max(matched, 1),
+        accuracy=matched_correct / max(matched, 1),
+        confusion=confusion,
+        ap={
+            threshold: _average_precision(matching.hits(threshold), truth.count)
+            for threshold in ap_thresholds
+        },
+        recall=recall,
+        fp_per_tp=fp_per_tp,
+        recall_per_class={
+            class_id: _class_recall(
+                predictions.select(predictions.labels == class_id),
+                truth.select(truth.labels == class_id),
+                iou_fn,
+                iou_threshold,
+                score_threshold,
+            )
+            for class_id in range(n_classes)
+        },
+    )
+
+
+def _class_recall(
+    predictions: Boxes,
+    truth: Boxes,
+    iou_fn: IouFn,
+    iou_threshold: float,
+    score_threshold: float,
+) -> float | None:
+    """`None` cuando la clase no tiene ground truth en el split (recall indefinido)."""
+    if truth.count == 0:
+        return None
+    hits = Matching(predictions, truth, iou_fn).hits(iou_threshold)  # el filtro mantiene el orden
+    k = int((predictions.scores >= score_threshold).sum())
+    return _recall_fp(hits, truth.count, k)[0]

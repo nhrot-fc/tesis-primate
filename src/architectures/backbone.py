@@ -35,9 +35,15 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
 
 
 class ASTBackbone(nn.Module):
+    """AST pre-entrenado -> tokens `(B, freq_out*time_out, hidden_size)`.
+
+    Devuelve los tokens crudos (sin proyectar): cuando está congelado, su salida
+    depende sólo del espectrograma, así que se puede precomputar una vez y reusarla
+    en todas las épocas (ver `DetectionHead`, que es la parte entrenable).
+    """
+
     def __init__(
         self,
-        embed_dim: int = 256,
         n_frames: int | None = None,
         time_stride: int = 5,
         checkpoint: str = AST_CHECKPOINT,
@@ -45,16 +51,18 @@ class ASTBackbone(nn.Module):
     ) -> None:
         super().__init__()
         self.model = load_ast_model(checkpoint)
-        self._interpolate_time_pos_embed(
-            n_frames if n_frames is not None else P.n_frames, time_stride
-        )
+        self.n_frames = n_frames if n_frames is not None else P.n_frames
+        self.time_stride = time_stride
+        self._interpolate_time_pos_embed(self.n_frames, time_stride)
 
         self.freeze = freeze
         if freeze:
             for param in self.model.parameters():
                 param.requires_grad_(False)
 
-        self.proj = nn.Linear(self.model.config.hidden_size, embed_dim)
+    @property
+    def hidden_size(self) -> int:
+        return int(self.model.config.hidden_size)
 
     def _interpolate_time_pos_embed(self, n_frames: int, time_stride: int) -> None:
         config = self.model.config
@@ -96,28 +104,41 @@ class ASTBackbone(nn.Module):
         input_values = x.squeeze(1).transpose(1, 2)
         context = torch.no_grad() if self.freeze else torch.enable_grad()
         with context:
-            tokens = self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
-        tokens = self.proj(tokens)
-        return tokens.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
+            return self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
 
 
 class MultiScalePyramid(nn.Module):
-    def __init__(self, dim: int = 256, num_groups: int = 8) -> None:
+    """Niveles de resolución a partir del único mapa que entrega el AST.
+
+    Con `n_levels=3` son 2x, 1x y 1/2x. El nivel 4x que había antes costaba 12 288
+    posiciones (48x256) que se proyectan enteras en cada capa del decoder para
+    muestrear 4 puntos por cabeza, y no aporta información nueva: sale del mismo
+    mapa por deconvolución. En Deformable-DETR los niveles vienen de etapas distintas
+    del backbone, que no es el caso acá.
+    """
+
+    def __init__(self, dim: int = 256, n_levels: int = 3, num_groups: int = 8) -> None:
         super().__init__()
-        self.upsample_4x = nn.Sequential(
-            nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
-            nn.GroupNorm(num_groups, dim),
-            nn.GELU(),
-            nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
-        )
-        self.upsample_2x = nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2)
-        self.identity = nn.Identity()
-        self.downsample_2x = nn.Conv2d(dim, dim, kernel_size=2, stride=2)
+        if not 2 <= n_levels <= 4:
+            raise ValueError(f"n_levels debe estar entre 2 y 4, no {n_levels}")
+
+        blocks: list[nn.Module] = []
+        if n_levels == 4:
+            blocks.append(
+                nn.Sequential(
+                    nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
+                    nn.GroupNorm(num_groups, dim),
+                    nn.GELU(),
+                    nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
+                )
+            )
+        blocks.append(nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2))
+        blocks.append(nn.Identity())
+        if n_levels >= 3:
+            blocks.append(nn.Conv2d(dim, dim, kernel_size=2, stride=2))
+
+        self.blocks = nn.ModuleList(blocks)
+        self.n_levels = len(blocks)
 
     def forward(self, features: Tensor) -> list[Tensor]:
-        return [
-            self.upsample_4x(features),
-            self.upsample_2x(features),
-            self.identity(features),
-            self.downsample_2x(features),
-        ]
+        return [block(features) for block in self.blocks]

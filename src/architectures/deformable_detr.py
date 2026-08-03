@@ -81,10 +81,10 @@ class DeformableAttention(nn.Module):
         constant_(self.out.bias.data, 0.0)
 
     def forward(
-        self, query: torch.Tensor, ref_points: torch.Tensor, value_maps: list[torch.Tensor]
+        self, query: torch.Tensor, ref_boxes: torch.Tensor, value_maps: list[torch.Tensor]
     ) -> torch.Tensor:
-        # query: (B,Q,C) | ref_points: (B,Q,2) en [0,1] | value_maps: lista de (B,C,H,W),
-        # una por nivel de la pirámide (mismo largo que `self.n_levels`)
+        # query: (B,Q,C) | ref_boxes: (B,Q,4) cxcywh en [0,1] | value_maps: lista de
+        # (B,C,H,W), una por nivel de la pirámide (mismo largo que `self.n_levels`)
         B, Q, C = query.shape
         L = len(value_maps)
         assert self.n_levels == L, f"esperaba {self.n_levels} niveles, llegaron {L}"
@@ -93,14 +93,18 @@ class DeformableAttention(nn.Module):
         attn = self.weights(query).view(B, Q, self.n_heads, L * self.n_points)
         attn = F.softmax(attn, dim=-1).view(B, Q, self.n_heads, L, self.n_points)
 
-        ref = ref_points[:, :, None, None, :]  # (B,Q,1,1,2)
+        # Zhu et al. 2021, ec. de box refinement: los offsets se miden en fracciones de
+        # la caja de referencia, no del mapa de features. Sin esto una query que sigue
+        # una llamada de 2 s muestrea la misma vecindad de 4 píxeles que una de 50 ms.
+        ref_xy = ref_boxes[:, :, None, None, None, :2]  # (B,Q,1,1,1,2), contra offs (B,Q,h,L,P,2)
+        ref_wh = ref_boxes[:, :, None, None, None, 2:]
+        sample = ref_xy + offs / self.n_points * ref_wh * 0.5  # (B,Q,h,L,P,2) en [0,1]
+        sample = 2 * sample - 1  # -> [-1,1], convención align_corners=False
+
         out = query.new_zeros(B, self.n_heads, self.head_dim, Q)
         for level, value_map in enumerate(value_maps):
             _, _, Hf, Wf = value_map.shape
-            wh = torch.tensor([Wf, Hf], device=query.device, dtype=query.dtype)
-
-            sample = ref + offs[:, :, :, level] / wh  # (B,Q,h,P,2) en [0,1]
-            sample = 2 * sample - 1  # -> [-1,1], convención align_corners=False
+            level_sample = sample[:, :, :, level]  # (B,Q,h,P,2)
 
             # value proyectado, separado por cabezas: (B*h, hd, Hf, Wf)
             val = self.value(value_map.flatten(2).transpose(1, 2))  # (B, HW, C)
@@ -108,7 +112,9 @@ class DeformableAttention(nn.Module):
             val = val.reshape(B * self.n_heads, self.head_dim, Hf, Wf)
 
             # grid por cabeza: (B*h, Q, P, 2)
-            grid = sample.permute(0, 2, 1, 3, 4).reshape(B * self.n_heads, Q, self.n_points, 2)
+            grid = level_sample.permute(0, 2, 1, 3, 4).reshape(
+                B * self.n_heads, Q, self.n_points, 2
+            )
 
             sampled = F.grid_sample(
                 val, grid, mode="bilinear", padding_mode="zeros", align_corners=False
@@ -146,10 +152,18 @@ class DeformableDecoderLayer(nn.Module):
         self.n1, self.n2, self.n3 = (nn.LayerNorm(dim) for _ in range(3))
 
     def forward(
-        self, q: torch.Tensor, ref_points: torch.Tensor, value_maps: list[torch.Tensor]
+        self,
+        q: torch.Tensor,
+        query_pos: torch.Tensor,
+        ref_boxes: torch.Tensor,
+        value_maps: list[torch.Tensor],
     ) -> torch.Tensor:
-        q = self.n1(q + self.self_attn(q, q, q)[0])
-        q = self.n2(q + self.cross_attn(q, ref_points, value_maps))
+        # `query_pos` se suma a query y key en cada capa (DETR): sin eso la identidad
+        # de cada query se diluye en los residuales después de la primera capa y todas
+        # tienden a mirar lo mismo.
+        qk = q + query_pos
+        q = self.n1(q + self.self_attn(qk, qk, q)[0])
+        q = self.n2(q + self.cross_attn(q + query_pos, ref_boxes, value_maps))
         q = self.n3(q + self.ffn(q))
         return q
 
@@ -163,12 +177,13 @@ class DeformableDETR(nn.Module):
         n_decoder_layers: int = 6,
         n_heads: int = 8,
         n_points: int = 4,
-        n_levels: int = 4,
+        n_levels: int = 3,
     ):
         super().__init__()
         self.n_queries = n_queries
 
-        self.query_embed = nn.Embedding(n_queries, dim)
+        self.query_embed = nn.Embedding(n_queries, dim)  # contenido inicial de la query
+        self.query_pos = nn.Embedding(n_queries, dim)  # identidad, se resuma en cada capa
         self.ref_point_head = nn.Linear(dim, 2)
 
         self.layers = nn.ModuleList(
@@ -184,7 +199,8 @@ class DeformableDETR(nn.Module):
     def forward(self, features: list[torch.Tensor]) -> Outputs:
         B = features[0].shape[0]
         q = self.query_embed.weight[None].expand(B, -1, -1)  # (B,Q,C)
-        ref = self.ref_point_head(q).sigmoid()  # (B,Q,2) en [0,1]
+        query_pos = self.query_pos.weight[None].expand(B, -1, -1)
+        ref = self.ref_point_head(query_pos).sigmoid()  # (B,Q,2) en [0,1]
 
         # w,h arrancan en un tamaño moderado; cada capa predice un delta sobre la
         # caja de la anterior (Deformable-DETR box refinement) en vez de recalcularla.
@@ -192,7 +208,7 @@ class DeformableDETR(nn.Module):
 
         aux: list[dict[str, torch.Tensor]] = []
         for i, layer in enumerate(self.layers):
-            q = layer(q, ref_box[..., :2], features)
+            q = layer(q, query_pos, ref_box, features)
             delta = self.bbox_heads[i](q)  # (B,Q,4) offsets crudos en espacio logit
             ref_box = (delta + _inv_sigmoid(ref_box)).sigmoid()
             aux.append({"pred_logits": self.class_heads[i](q), "pred_boxes": ref_box})
@@ -205,8 +221,43 @@ class DeformableDETR(nn.Module):
         return out
 
 
+class DetectionHead(nn.Module):
+    """Parte entrenable: proyección de los tokens del AST -> pirámide -> Deformable DETR.
+
+    Vive separada del backbone para poder entrenarla contra features precomputadas
+    cuando el AST está congelado (ver `ASTDeformableDETR.encode`).
+    """
+
+    def __init__(
+        self,
+        token_dim: int,
+        freq_out: int,
+        time_out: int,
+        dim: int = 256,
+        n_queries: int = 50,
+        n_classes: int = 1,
+        n_levels: int = 3,
+    ):
+        super().__init__()
+        from architectures.backbone import MultiScalePyramid
+
+        self.freq_out, self.time_out = freq_out, time_out
+        self.proj = nn.Linear(token_dim, dim)
+        self.pyramid = MultiScalePyramid(dim, n_levels=n_levels)
+        self.detr = DeformableDETR(dim, n_queries, n_classes, n_levels=self.pyramid.n_levels)
+
+    def forward(self, tokens: torch.Tensor) -> Outputs:
+        # tokens: (B, freq_out*time_out, token_dim); las cacheadas llegan en fp16
+        features = self.proj(tokens.to(self.proj.weight.dtype))
+        features = features.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
+        return self.detr(self.pyramid(features))
+
+
 class ASTDeformableDETR(nn.Module):
-    """Modelo completo: backbone AST -> pirámide -> Deformable DETR."""
+    """Modelo completo: normalización -> backbone AST -> pirámide -> Deformable DETR."""
+
+    mel_mean: torch.Tensor
+    mel_std: torch.Tensor
 
     def __init__(
         self,
@@ -216,19 +267,43 @@ class ASTDeformableDETR(nn.Module):
         freeze: bool = True,
         n_frames: int | None = None,
         time_stride: int = 5,
+        n_levels: int = 3,
+        mel_mean: float = 0.0,
+        mel_std: float = 1.0,
     ):
         super().__init__()
-        from architectures.backbone import ASTBackbone, MultiScalePyramid
+        from architectures.backbone import ASTBackbone
 
-        self.backbone = ASTBackbone(
-            embed_dim=dim, n_frames=n_frames, time_stride=time_stride, freeze=freeze
+        self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
+        self.head = DetectionHead(
+            token_dim=self.backbone.hidden_size,
+            freq_out=self.backbone.freq_out,
+            time_out=self.backbone.time_out,
+            dim=dim,
+            n_queries=n_queries,
+            n_classes=n_classes,
+            n_levels=n_levels,
         )
-        self.pyramid = MultiScalePyramid(dim)
-        self.detr = DeformableDETR(dim, n_queries, n_classes)
+        # Estadísticas del log-mel del split de train. Van como buffers para que viajen
+        # dentro del checkpoint: así inferencia no puede normalizar distinto que train.
+        self.register_buffer("mel_mean", torch.tensor(float(mel_mean)))
+        self.register_buffer("mel_std", torch.tensor(float(mel_std)))
+
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
+        """Log-mel crudo -> escala del pre-entrenamiento del AST.
+
+        El `ASTFeatureExtractor` de HuggingFace normaliza con `(x - mean) / (2*std)`,
+        o sea deja std ~= 0.5. Estandarizar a std=1 le mete al backbone congelado el
+        doble de escala de la que vio en AudioSet.
+        """
+        return (x - self.mel_mean) / (2 * self.mel_std)
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Espectrograma -> tokens del AST. Determinista si el backbone está congelado."""
+        return self.backbone(self.normalize(x))
 
     def forward(self, x: torch.Tensor) -> Outputs:
-        features = self.backbone(x)
-        return self.detr(self.pyramid(features))
+        return self.head(self.encode(x))
 
 
 class Detections(NamedTuple):
@@ -255,7 +330,7 @@ def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detectio
     scores, labels = predict_scores(outputs)
     detections = []
     for index in range(scores.shape[0]):
-        keep = scores[index] > score_threshold
+        keep = scores[index] >= score_threshold  # `>=`, igual que en `evaluate`
         kept_scores = scores[index][keep]
         order = kept_scores.argsort(descending=True)
         detections.append(

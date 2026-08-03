@@ -48,6 +48,7 @@ venv/
 # Project files
 data/
 checkpoints/hf/
+logs/
 secrets/
 .vscode/
 *.zip

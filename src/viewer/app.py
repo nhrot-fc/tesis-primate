@@ -279,6 +279,11 @@ class Viewer(QMainWindow):
 
     def detections_ready(self, table: pd.DataFrame) -> None:
         self.detections = table
+        # El slider arranca en el punto de operación con el que se eligió el checkpoint:
+        # es el umbral en el que su recall y su FP/TP fueron medidos.
+        operating = table.attrs.get("operating_score_threshold")
+        if operating is not None:
+            self.score.set_value(operating)
         self.draw_boxes()
         self.status.setText(f"{len(table)} detecciones del modelo.")
 

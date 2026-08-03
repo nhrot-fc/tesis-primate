@@ -1,13 +1,8 @@
-"""Materializa train/val/test a disco: log-mel + cajas ya calculados, listos para que
-`main.py` los cargue con `CachedCallBoxDataset` sin volver a tocar audio ni STFT.
-
-Se corre pocas veces (cuando cambian las anotaciones o los `Parameters` de preprocesado).
-"""
-
 import json
 import logging
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import torch
@@ -66,7 +61,23 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
     return experiment_df, labels
 
 
-def materialize(manifest: list[ClipWindow], params=P) -> dict[str, object]:
+def log_mel_stats(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
+    """Media y desvío globales del log-mel, acumulados en float64 y por trozos para no
+    duplicar en memoria un tensor de varios GB."""
+    total = torch.zeros((), dtype=torch.float64)
+    total_sq = torch.zeros((), dtype=torch.float64)
+    for start in range(0, len(images), chunk):
+        block = images[start : start + chunk].double()
+        total += block.sum()
+        total_sq += block.pow(2).sum()
+
+    n = images.numel()
+    mean = float(total / n)
+    variance = max(float(total_sq / n) - mean**2, 0.0)
+    return {"mean": mean, "std": variance**0.5}
+
+
+def materialize(manifest: list[ClipWindow], params=P) -> dict[str, Any]:
     """Corre `CallBoxDataset.__getitem__` una vez por ventana y junta todo en tensores."""
     dataset = CallBoxDataset(manifest, params)
     images = torch.empty(len(dataset), 1, params.n_mels, params.n_frames, dtype=torch.float32)
@@ -89,9 +100,28 @@ def main() -> None:
     train_m, val_m, test_m = split_manifest(manifest, seed=SEED)
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    # `meta.json` se escribe al final (necesita las estadísticas de train). Borrarlo
+    # ahora evita que, si esto se corta a mitad, queden `.pt` nuevos con un meta viejo:
+    # `train.py` normalizaría con estadísticas de otra corrida sin poder darse cuenta.
+    (CACHE_DIR / "meta.json").unlink(missing_ok=True)
     (CACHE_DIR / "labels.json").write_text(
         json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False)
     )
+
+    normalization: dict[str, float] = {}
+    for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
+        logger.info("%s: materializando %d ventanas...", name, len(split))
+        cache = materialize(split)
+        images: torch.Tensor = cache["images"]
+        if name == "train":
+            # Estadísticas del log-mel crudo sobre train (nunca sobre val/test: serían
+            # una fuga). El modelo las usa para normalizar, y viajan en el checkpoint.
+            normalization = log_mel_stats(images)
+            logger.info("normalización (log-mel de train) -> %s", normalization)
+        path = CACHE_DIR / f"{name}.pt"
+        torch.save(cache, path)
+        logger.info("%s -> %s (%.2f GB)", name, path, path.stat().st_size / 1024**3)
+
     (CACHE_DIR / "meta.json").write_text(
         json.dumps(
             {
@@ -99,19 +129,13 @@ def main() -> None:
                 "min_pair_count": MIN_PAIR_COUNT,
                 "label_by": LABEL_BY,
                 "excluded_pairs": sorted(EXCLUDED_PAIRS),
+                "normalization": normalization,
                 "params": asdict(P),
             },
             indent=2,
             ensure_ascii=False,
         )
     )
-
-    for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
-        logger.info("%s: materializando %d ventanas...", name, len(split))
-        cache = materialize(split)
-        path = CACHE_DIR / f"{name}.pt"
-        torch.save(cache, path)
-        logger.info("%s -> %s (%.2f GB)", name, path, path.stat().st_size / 1024**3)
 
 
 if __name__ == "__main__":
