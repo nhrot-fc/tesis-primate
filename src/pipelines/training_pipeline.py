@@ -36,11 +36,13 @@ class EvalMetrics(NamedTuple):
     losses: Losses
     mean_iou: float
     accuracy: float
-    confusion: Tensor
     ap: dict[float, float | None]
     recall: float
+    precision: float
     fp_per_tp: float
     recall_per_class: dict[int, float | None]
+    precision_per_class: dict[int, float | None]
+    confusion: Tensor  # (n_classes, n_classes + 1): filas=clase real, columnas=predicha (+ "no-objeto")
 
 
 class Boxes(NamedTuple):
@@ -174,12 +176,19 @@ def _average_precision(hits: Tensor, n_gt: int) -> float | None:
     return float(((recall - torch.cat([recall.new_zeros(1), recall[:-1]])) * precision).sum())
 
 
-def _recall_fp(hits: Tensor, n_gt: int, k: int) -> tuple[float, float]:
-    """Recall y falsos positivos por acierto quedándose con las `k` mejores detecciones."""
+class PointMetrics(NamedTuple):
+    recall: float
+    precision: float
+    fp_per_tp: float
+
+
+def _point_metrics(hits: Tensor, n_gt: int, k: int) -> PointMetrics:
+    """Recall, precisión y falsos positivos por acierto en el punto de operación fijado
+    por `score_threshold`, quedándose con las `k` mejores detecciones."""
     if n_gt == 0:
-        return 0.0, 0.0
+        return PointMetrics(0.0, 0.0, 0.0)
     tp = int(hits[:k].sum())
-    return tp / n_gt, (k - tp) / max(tp, 1)
+    return PointMetrics(tp / n_gt, tp / k if k else 0.0, (k - tp) / max(tp, 1))
 
 
 def _keep_after_nms(boxes: Tensor, scores: Tensor, labels: Tensor, nms_iou: float) -> Tensor:
@@ -209,9 +218,9 @@ def evaluate(
     iou_fn = get_iou_fn(metric_iou_type)
     pairwise_iou_fn = get_iou_fn(metric_iou_type, pairwise=True)
     totals = dict.fromkeys(LOSS_KEYS, 0.0)
-    # columna extra: una query emparejada que en realidad dice "no-objeto"
-    confusion = torch.zeros(n_classes, n_classes + 1, dtype=torch.int64)
     matched, matched_correct, iou_sum = 0, 0, 0.0
+    # filas=clase real, columnas=clase predicha + "no-objeto" (background_id = n_classes)
+    confusion = torch.zeros(n_classes, n_classes + 1, dtype=torch.int64)
     predicted_chunks: list[Boxes] = []
     truth_chunks: list[Boxes] = []
     next_image_id = 0
@@ -225,8 +234,7 @@ def evaluate(
 
         pred_boxes = outputs["pred_boxes"]
         scores, labels = predict_scores(outputs)
-        # clase incluyendo el canal de "no-objeto": es lo que el modelo realmente
-        # afirma, y lo que hace honesta a la matriz de confusión
+        # clase incluyendo el canal de "no-objeto": es lo que el modelo realmente afirma
         decided = outputs["pred_logits"].argmax(-1)
 
         for b, (query_idx, target_idx) in enumerate(matcher(outputs, targets)):
@@ -238,8 +246,11 @@ def evaluate(
                 true_classes = target["labels"][target_idx]
                 matched += len(query_idx)
                 matched_correct += int((predicted_classes == true_classes).sum())
-                for t, p in zip(true_classes.tolist(), predicted_classes.tolist(), strict=True):
-                    confusion[t, p] += 1
+                confusion.index_put_(
+                    (true_classes.cpu(), predicted_classes.cpu()),
+                    torch.ones(len(query_idx), dtype=torch.int64),
+                    accumulate=True,
+                )
                 iou_sum += float(
                     pairwise_iou_fn(  # ya emparejadas: N solapes, no una matriz N x N
                         box_convert(pred_boxes[b, query_idx], "cxcywh", "xyxy"),
@@ -279,42 +290,52 @@ def evaluate(
     matching = Matching(predictions, truth, iou_fn)
     hits = matching.hits(iou_threshold)
     k = int((predictions.scores >= score_threshold).sum())
-    recall, fp_per_tp = _recall_fp(hits, truth.count, k)
+    point = _point_metrics(hits, truth.count, k)
+
+    class_metrics = {
+        class_id: _class_point_metrics(
+            predictions.select(predictions.labels == class_id),
+            truth.select(truth.labels == class_id),
+            iou_fn,
+            iou_threshold,
+            score_threshold,
+        )
+        for class_id in range(n_classes)
+    }
 
     return EvalMetrics(
         losses=Losses(**{key: value / max(len(loader), 1) for key, value in totals.items()}),
         mean_iou=iou_sum / max(matched, 1),
         accuracy=matched_correct / max(matched, 1),
-        confusion=confusion,
         ap={
             threshold: _average_precision(matching.hits(threshold), truth.count)
             for threshold in ap_thresholds
         },
-        recall=recall,
-        fp_per_tp=fp_per_tp,
+        recall=point.recall,
+        precision=point.precision,
+        fp_per_tp=point.fp_per_tp,
         recall_per_class={
-            class_id: _class_recall(
-                predictions.select(predictions.labels == class_id),
-                truth.select(truth.labels == class_id),
-                iou_fn,
-                iou_threshold,
-                score_threshold,
-            )
-            for class_id in range(n_classes)
+            class_id: metrics.recall if metrics else None
+            for class_id, metrics in class_metrics.items()
         },
+        precision_per_class={
+            class_id: metrics.precision if metrics else None
+            for class_id, metrics in class_metrics.items()
+        },
+        confusion=confusion,
     )
 
 
-def _class_recall(
+def _class_point_metrics(
     predictions: Boxes,
     truth: Boxes,
     iou_fn: IouFn,
     iou_threshold: float,
     score_threshold: float,
-) -> float | None:
-    """`None` cuando la clase no tiene ground truth en el split (recall indefinido)."""
+) -> PointMetrics | None:
+    """`None` cuando la clase no tiene ground truth en el split (métricas indefinidas)."""
     if truth.count == 0:
         return None
     hits = Matching(predictions, truth, iou_fn).hits(iou_threshold)  # el filtro mantiene el orden
     k = int((predictions.scores >= score_threshold).sum())
-    return _recall_fp(hits, truth.count, k)[0]
+    return _point_metrics(hits, truth.count, k)

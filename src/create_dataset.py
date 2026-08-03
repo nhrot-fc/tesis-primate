@@ -20,14 +20,15 @@ PROJECT_DIR = Path.cwd()
 CACHE_DIR = PROJECT_DIR / "data" / "processed"
 
 SEED = 42
-MIN_PAIR_COUNT = 500
+MIN_PAIR_COUNT = 100
 LABEL_BY = "species/call_type"
 LABEL_COLUMN = {
     "call": lambda df: "call",
     "species": lambda df: df["species"],
     "species/call_type": lambda df: df["species"] + "/" + df["call_type"],
 }
-EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc")}
+EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs")}
+OTHER_LABEL = "other"
 
 
 def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
@@ -48,8 +49,14 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
         ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
     )
 
-    experiment_df = annotations[pairs.isin(valid_pairs)].copy()
+    # Los pares que no llegan al umbral no se descartan: entrenar contra una ventana con un
+    # evento real invisible (porque su anotación se tiró) enseña al modelo a no detectarlo.
+    # Se agrupan en `OTHER_LABEL` para seguir dando señal de "hay una llamada acá" sin pedirle
+    # al modelo que la clasifique.
+    experiment_df = annotations.copy()
     experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
+    if LABEL_BY == "species/call_type":
+        experiment_df.loc[~pairs.isin(valid_pairs), "label"] = OTHER_LABEL
 
     labels = LabelSet(experiment_df["label"])
     logger.info(

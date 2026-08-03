@@ -19,6 +19,7 @@ class LoadedModel(NamedTuple):
     labels: LabelSet
     score_threshold: float  # punto de operación con el que se eligió este checkpoint
     nms_iou: float
+    config: dict
 
 
 def load_model(checkpoint_path: Path, device: str) -> LoadedModel:
@@ -52,6 +53,7 @@ def load_model(checkpoint_path: Path, device: str) -> LoadedModel:
         labels=labels,
         score_threshold=float(config.get("operating_score_threshold", 0.5)),
         nms_iou=float(config.get("nms_iou", 0.3)),
+        config=config,
     )
 
 
