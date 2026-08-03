@@ -21,6 +21,7 @@ CACHE_DIR = PROJECT_DIR / "data" / "processed"
 
 SEED = 42
 MIN_PAIR_COUNT = 100
+EMPTY_RATIO = 0.25
 LABEL_BY = "species/call_type"
 LABEL_COLUMN = {
     "call": lambda df: "call",
@@ -28,6 +29,11 @@ LABEL_COLUMN = {
     "species/call_type": lambda df: df["species"] + "/" + df["call_type"],
 }
 EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs")}
+JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
+    (("lw", "tr"), ("lw", "tj"), ("lw", "tt"), ("lw", "tf")): ("lw", "trino"),
+}
+
+
 OTHER_LABEL = "other"
 
 
@@ -49,14 +55,16 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
         ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
     )
 
-    # Los pares que no llegan al umbral no se descartan: entrenar contra una ventana con un
-    # evento real invisible (porque su anotación se tiró) enseña al modelo a no detectarlo.
-    # Se agrupan en `OTHER_LABEL` para seguir dando señal de "hay una llamada acá" sin pedirle
-    # al modelo que la clasifique.
-    experiment_df = annotations.copy()
+    experiment_df = annotations[pairs.isin(valid_pairs)].copy()
     experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
-    if LABEL_BY == "species/call_type":
-        experiment_df.loc[~pairs.isin(valid_pairs), "label"] = OTHER_LABEL
+
+    for old_pairs, new_pair in JOINED_PAIRS.items():
+        for old_pair in old_pairs:
+            experiment_df.loc[
+                (experiment_df["species"] == old_pair[0])
+                & (experiment_df["call_type"] == old_pair[1]),
+                ["species", "call_type", "label"],
+            ] = new_pair + ("/".join(new_pair),)
 
     labels = LabelSet(experiment_df["label"])
     logger.info(
@@ -68,9 +76,7 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
     return experiment_df, labels
 
 
-def log_mel_stats(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
-    """Media y desvío globales del log-mel, acumulados en float64 y por trozos para no
-    duplicar en memoria un tensor de varios GB."""
+def compute_mel_statistics(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
     total = torch.zeros((), dtype=torch.float64)
     total_sq = torch.zeros((), dtype=torch.float64)
     for start in range(0, len(images), chunk):
@@ -84,8 +90,7 @@ def log_mel_stats(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
     return {"mean": mean, "std": variance**0.5}
 
 
-def materialize(manifest: list[ClipWindow], params=P) -> dict[str, Any]:
-    """Corre `CallBoxDataset.__getitem__` una vez por ventana y junta todo en tensores."""
+def build_dataset(manifest: list[ClipWindow], params=P) -> dict[str, Any]:
     dataset = CallBoxDataset(manifest, params)
     images = torch.empty(len(dataset), 1, params.n_mels, params.n_frames, dtype=torch.float32)
     boxes: list[torch.Tensor] = []
@@ -103,13 +108,12 @@ def main() -> None:
     setup_project_path(PROJECT_DIR)
 
     experiment_df, labels = select_experiment()
-    manifest = build_manifest(experiment_df, labels)
-    train_m, val_m, test_m = split_manifest(manifest, seed=SEED)
+    manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
+    train_m, val_m, test_m = split_manifest(
+        manifest, n_classes=len(labels), seed=SEED, ratios=(0.6, 0.225, 0.175)
+    )
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    # `meta.json` se escribe al final (necesita las estadísticas de train). Borrarlo
-    # ahora evita que, si esto se corta a mitad, queden `.pt` nuevos con un meta viejo:
-    # `train.py` normalizaría con estadísticas de otra corrida sin poder darse cuenta.
     (CACHE_DIR / "meta.json").unlink(missing_ok=True)
     (CACHE_DIR / "labels.json").write_text(
         json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False)
@@ -118,13 +122,11 @@ def main() -> None:
     normalization: dict[str, float] = {}
     for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
         logger.info("%s: materializando %d ventanas...", name, len(split))
-        cache = materialize(split)
+        cache = build_dataset(split)
         images: torch.Tensor = cache["images"]
         if name == "train":
-            # Estadísticas del log-mel crudo sobre train (nunca sobre val/test: serían
-            # una fuga). El modelo las usa para normalizar, y viajan en el checkpoint.
-            normalization = log_mel_stats(images)
-            logger.info("normalización (log-mel de train) -> %s", normalization)
+            normalization = compute_mel_statistics(images)
+            logger.info("normalización (mel de train) -> %s", normalization)
         path = CACHE_DIR / f"{name}.pt"
         torch.save(cache, path)
         logger.info("%s -> %s (%.2f GB)", name, path, path.stat().st_size / 1024**3)
@@ -134,6 +136,7 @@ def main() -> None:
             {
                 "seed": SEED,
                 "min_pair_count": MIN_PAIR_COUNT,
+                "empty_ratio": EMPTY_RATIO,
                 "label_by": LABEL_BY,
                 "excluded_pairs": sorted(EXCLUDED_PAIRS),
                 "normalization": normalization,

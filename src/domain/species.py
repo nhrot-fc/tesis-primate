@@ -266,3 +266,6 @@ class LabelSet:
 
     def __repr__(self) -> str:
         return f"LabelSet({len(self)} clases: {', '.join(self.names)})"
+
+    def __iter__(self):
+        return iter(self.names)

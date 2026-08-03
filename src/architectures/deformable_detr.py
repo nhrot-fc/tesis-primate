@@ -270,10 +270,13 @@ class ASTDeformableDETR(nn.Module):
         n_levels: int = 3,
         mel_mean: float = 0.0,
         mel_std: float = 1.0,
+        n_mels: int = 128,
     ):
         super().__init__()
         from architectures.backbone import ASTBackbone
+        from architectures.trainable_pcen import TrainablePCEN
 
+        self.pcen = TrainablePCEN(n_mels=n_mels)
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
         self.head = DetectionHead(
             token_dim=self.backbone.hidden_size,

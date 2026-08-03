@@ -11,7 +11,7 @@ from architectures.deformable_detr import postprocess
 from core.config import P, Parameters
 from domain.raven import RAVEN_COLUMNS
 from domain.species import LabelSet
-from utils.audio import LogMelSpectrogram, load_clips, window_starts, y_to_hz
+from utils.audio import MelSpectrogram, load_clips, window_starts, y_to_hz
 
 
 def species_and_call(name: str) -> tuple[str, str]:
@@ -39,7 +39,7 @@ def predict(
     model.eval()
     duration_s = sf.info(str(audio_path)).duration
     starts = window_starts(duration_s, params)
-    mel = LogMelSpectrogram(params)
+    mel = MelSpectrogram(params)
     if on_progress is not None:
         on_progress(0, len(starts))
 

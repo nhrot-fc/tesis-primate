@@ -27,13 +27,13 @@ CHECKPOINT_DIR = PROJECT_DIR / "checkpoints"
 LOG_DIR = PROJECT_DIR / "logs"
 
 # --- Preprocesado ---------------------------------------------------------------
-# El dataset (manifest + log-mel + cajas) se materializa aparte con `create_dataset.py`;
+# El dataset (manifest + mel + cajas) se materializa aparte con `create_dataset.py`;
 # acá sólo se carga lo que ya quedó cacheado en `CACHE_DIR`.
 SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
 MODEL_DIM, N_QUERIES, N_LEVELS = 128, 64, 3
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 16, 2e-4, 1e-4, 0
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 20, 64, 2e-4, 1e-4, 0
 DETAIL_EVERY = 4
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
 MATCHER_IOU_TYPE = "iou"
@@ -95,7 +95,7 @@ def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBox
     if not meta.get("normalization"):
         raise ValueError(
             f"{CACHE_DIR / 'meta.json'} no tiene las estadísticas de normalización: es un caché "
-            "viejo, con el log-mel ya estandarizado por clip. Regenerálo con "
+            "viejo, con el mel ya estandarizado por clip. Regenerálo con "
             "`python src/create_dataset.py`."
         )
 
@@ -113,7 +113,7 @@ def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBox
     logger.info("ventanas -> train %d | val %d", len(train_dataset), len(val_dataset))
     logger.info("cajas en train -> %s", dict(class_counts.most_common()))
     logger.info("jitter de cajas en train -> %s", BOX_JITTER)
-    logger.info("normalización del log-mel -> %s", meta["normalization"])
+    logger.info("normalización del mel -> %s", meta["normalization"])
     return labels, meta, train_dataset, val_dataset
 
 

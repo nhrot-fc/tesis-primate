@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
@@ -11,7 +12,7 @@ from torch.utils.data import Dataset
 
 from core.config import P, Parameters
 from domain.species import LabelSet
-from utils.audio import LogMelSpectrogram, hz_to_y, load_clip, window_starts
+from utils.audio import MelSpectrogram, hz_to_y, load_clip, window_starts
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -57,13 +58,22 @@ def build_manifest(
     df: pd.DataFrame,
     labels: LabelSet,
     params: Parameters = P,
-    keep_empty: bool = False,
+    empty_ratio: float = 0.0,
+    seed: int = 42,
 ) -> list[ClipWindow]:
+    """`empty_ratio` es la proporción objetivo de ventanas sin cajas en el manifiesto
+    final (ej. 0.4 -> ~40% vacías). Se muestrean al azar del pool de vacías disponibles;
+    si no alcanzan para llegar al objetivo, se devuelven todas las que haya. En 0.0
+    (default) no se agrega ninguna ventana vacía, como antes."""
+    if not 0.0 <= empty_ratio < 1.0:
+        raise ValueError(f"empty_ratio debe estar en [0, 1): {empty_ratio}")
+
     unknown = {name for name in df["label"].unique() if name not in labels}
     if unknown:
         raise ValueError(f"etiquetas fuera del LabelSet: {sorted(unknown)}")
 
-    windows: list[ClipWindow] = []
+    positive: list[ClipWindow] = []
+    empty: list[ClipWindow] = []
     for audio_path, group in df.groupby("audio_path"):
         try:
             duration_s = sf.info(str(audio_path)).duration
@@ -73,43 +83,80 @@ def build_manifest(
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.float64)
         for clip_start_s in window_starts(duration_s, params):
             boxes = _boxes_in_window(group, class_ids, float(clip_start_s), params)
-            if len(boxes) or keep_empty:
-                windows.append(
-                    ClipWindow(str(audio_path), float(clip_start_s), params.clip_len_s, boxes)
-                )
+            window = ClipWindow(str(audio_path), float(clip_start_s), params.clip_len_s, boxes)
+            (positive if len(boxes) else empty).append(window)
 
-    return windows
+    if empty_ratio <= 0.0 or not empty:
+        return positive
+
+    # empty / (positive + empty) = empty_ratio  =>  empty = positive * ratio / (1 - ratio)
+    n_empty = min(len(empty), round(len(positive) * empty_ratio / (1 - empty_ratio)))
+    keep_idx = np.random.default_rng(seed).choice(len(empty), size=n_empty, replace=False)
+    return positive + [empty[i] for i in keep_idx]
 
 
 def split_manifest(
     manifest: list[ClipWindow],
-    ratios: tuple[float, float, float] = (0.7, 0.1, 0.2),
+    n_classes: int,
+    ratios: tuple[float, float, float] = (0.7, 0.15, 0.15),
     seed: int = 42,
 ) -> tuple[list[ClipWindow], list[ClipWindow], list[ClipWindow]]:
-    """Reparto **por grabación**, para que ventanas solapadas no crucen de split."""
-    paths = sorted({w.audio_path for w in manifest})
-    np.random.default_rng(seed).shuffle(paths)
+    if not np.isclose(sum(ratios), 1.0):
+        raise ValueError(f"los ratios deben sumar 1.0: {ratios} suma {sum(ratios)}")
 
-    n_train = int(ratios[0] * len(paths))
-    n_val = int(ratios[1] * len(paths))
+    # conteos[archivo] = vector (n_classes,) de cajas por clase
+    counts: dict[str, np.ndarray] = defaultdict(lambda: np.zeros(n_classes))
+    windows_by_file: dict[str, list[ClipWindow]] = defaultdict(list)
+    for window in manifest:
+        windows_by_file[window.audio_path].append(window)
+        for class_id in window.boxes[:, LABEL_INDEX].astype(int):
+            counts[window.audio_path][class_id] += 1
 
-    def subset(keep: list[str]) -> list[ClipWindow]:
-        return [w for w in manifest if w.audio_path in set(keep)]
+    files = sorted(windows_by_file)
+    np.random.default_rng(seed).shuffle(files)
 
-    return (
-        subset(paths[:n_train]),
-        subset(paths[n_train : n_train + n_val]),
-        subset(paths[n_train + n_val :]),
-    )
+    total = np.sum([counts[f] for f in files], axis=0)  # (n_classes,)
+    target = np.outer(ratios, total)  # (3, n_classes)
+    current = np.zeros((3, n_classes))
+    n_windows = np.zeros(3)
+    target_windows = np.array(ratios) * len(manifest)
+
+    assigned: dict[str, int] = {}
+
+    # clases de la más rara a la más común
+    for class_id in np.argsort(total):
+        pending = [f for f in files if f not in assigned and counts[f][class_id] > 0]
+        # los archivos con más cajas de esta clase se colocan primero: son los que
+        # más mueven la aguja y conviene decidirlos con el máximo de libertad
+        pending.sort(key=lambda f: -counts[f][class_id])
+
+        for file in pending:
+            deficit = target[:, class_id] - current[:, class_id]
+            best = np.flatnonzero(deficit == deficit.max())
+            best = best[np.argmax((target_windows - n_windows)[best])] if len(best) > 1 else best[0]
+
+            assigned[file] = int(best)
+            current[best] += counts[file]
+            n_windows[best] += len(windows_by_file[file])
+
+    # archivos sin ninguna caja (ventanas vacías): equilibrar solo por tamaño
+    for file in files:
+        if file not in assigned:
+            best = int(np.argmax(target_windows - n_windows))
+            assigned[file] = best
+            n_windows[best] += len(windows_by_file[file])
+
+    splits: list[list[ClipWindow]] = [[], [], []]
+    for file, split_index in assigned.items():
+        splits[split_index].extend(windows_by_file[file])
+    return splits[0], splits[1], splits[2]
 
 
 class CallBoxDataset(Dataset):
-    """Ventana del manifiesto -> (log-mel, {boxes, labels})."""
-
     def __init__(self, manifest: list[ClipWindow], params: Parameters = P):
         self.manifest = manifest
         self.params = params
-        self.log_mel_spectrogram = LogMelSpectrogram(params)
+        self.mel_spectrogram = MelSpectrogram(params)
 
     def __len__(self) -> int:
         return len(self.manifest)
@@ -118,13 +165,12 @@ class CallBoxDataset(Dataset):
         window = self.manifest[index]
 
         waveform = load_clip(window.audio_path, window.clip_start_s, self.params)
-        log_mel = self.log_mel_spectrogram(waveform).unsqueeze(0)
+        mel = self.mel_spectrogram(waveform).unsqueeze(0)
 
-        return log_mel, {
+        return mel, {
             "boxes": torch.from_numpy(window.boxes[:, BOX_COORDINATES_SLICE].astype(np.float32)),
             "labels": torch.from_numpy(window.boxes[:, LABEL_INDEX].astype(np.int64)),
         }
-
 
 @dataclass(frozen=True)
 class BoxJitter:

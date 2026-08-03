@@ -338,9 +338,6 @@ addresses. Their cumulative effect is measured in Table 10.
 | Iterative box refinement + auxiliary losses | Six decoder layers were sharing one fixed reference point |
 | True multi-scale sampling | Feature map 12×64 → pyramid 48×256, 24×128, 12×64, 6×32; each level is sampled separately |
 | `n_queries` = 64 | At most 11 boxes land in one clip (median 2, Figure 6); 100 queries produced prediction noise |
-| `eos_coef` 0.1 → 0.05 | Recall bias: lowers the cost of predicting an event where there is none |
-| Decoder dropout 0.1 | No regularization existed |
-
 
 ![Histogram of the number of annotation boxes falling in a single 3 s window](research/figures/boxes_per_window.png)
 

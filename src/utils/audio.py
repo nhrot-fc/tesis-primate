@@ -99,10 +99,9 @@ def y_to_hz(y: FloatArray, params: Parameters) -> FloatArray:
     return params.mel_break_hz * (10.0 ** (mel_value / params.mel_scale_q) - 1.0)
 
 
-class LogMelSpectrogram(nn.Module):
+class MelSpectrogram(nn.Module):
     def __init__(self, params: Parameters = P) -> None:
         super().__init__()
-        self.eps = params.eps
         self.mel_spectrogram = torchaudio.transforms.MelSpectrogram(
             sample_rate=params.target_sr,
             n_fft=params.n_fft,
@@ -116,12 +115,4 @@ class LogMelSpectrogram(nn.Module):
         )
 
     def forward(self, waveform: Tensor) -> Tensor:
-        """Log-mel **crudo**, sin estandarizar.
-
-        La normalización vive en el modelo (`ASTDeformableDETR`, buffers `mel_mean`/
-        `mel_std`) y usa estadísticas globales del split de train, no del clip: si cada
-        clip se estandariza por su cuenta, una ventana de puro fondo se amplifica hasta
-        std=1 y el ruido termina pareciendo estructura. Además así entrenamiento e
-        inferencia no pueden divergir: las constantes viajan dentro del checkpoint.
-        """
-        return torch.log(self.mel_spectrogram(waveform) + self.eps)
+        return self.mel_spectrogram(waveform)
