@@ -53,7 +53,12 @@ class HungarianMatcher(nn.Module):
         cost_matrix = (
             self.cost_class * cost_class + self.cost_bbox * cost_bbox + self.cost_iou * cost_iou
         )
-        cost_matrix = cost_matrix.view(batch_size, num_queries, -1).cpu()
+        # Dimensión explícita, no `-1`: en un batch entero sin anotaciones (habitual en
+        # bioacústica, donde el clip negativo es la norma) `cost_matrix` tiene 0 elementos
+        # y `view(B, Q, -1)` no puede inferir el tamaño. Con el 0 explícito el resto del
+        # camino aguanta: `split([0, 0, ...])` devuelve matrices (Q, 0) y
+        # `linear_sum_assignment` sobre ellas devuelve asignaciones vacías.
+        cost_matrix = cost_matrix.view(batch_size, num_queries, target_boxes.shape[0]).cpu()
 
         sizes = [len(target["boxes"]) for target in targets]
         assignments = [

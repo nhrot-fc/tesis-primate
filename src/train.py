@@ -17,7 +17,13 @@ from core.config import settings
 from core.setup import setup_logging, setup_project_path
 from domain.dataset import BoxJitter, CachedCallBoxDataset, collate_fn
 from domain.species import LabelSet
-from pipelines.training_pipeline import EvalMetrics, Losses, evaluate, train_one_epoch
+from pipelines.training_pipeline import (
+    EvalMetrics,
+    Losses,
+    evaluate,
+    format_metric,
+    train_one_epoch,
+)
 
 logger = logging.getLogger("training")
 
@@ -32,7 +38,7 @@ LOG_DIR = PROJECT_DIR / "logs"
 SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
-MODEL_DIM, N_QUERIES, N_LEVELS = 128, 64, 3
+MODEL_DIM, N_QUERIES, N_LEVELS = 128, 16, 3
 EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 20, 64, 2e-4, 1e-4, 0
 DETAIL_EVERY = 4
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
@@ -65,8 +71,12 @@ def training_config() -> dict[str, object]:
 
 
 def operating_score(
-    recall: float, fp_per_tp: float, beta: float = CHECKPOINT_SELECTION_BETA
+    recall: float | None, fp_per_tp: float | None, beta: float = CHECKPOINT_SELECTION_BETA
 ) -> float:
+    # `None` = métrica indefinida (split sin GT, o ni un TP en el punto de operación).
+    # Un checkpoint así no puede ganar la selección, así que vale 0.
+    if recall is None or fp_per_tp is None:
+        return 0.0
     precision = 1.0 / (1.0 + fp_per_tp)
     return (1 + beta**2) * precision * recall / (beta**2 * precision + recall + 1e-9)
 
@@ -92,6 +102,9 @@ def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBox
             f"no hay dataset cacheado en {CACHE_DIR}. Corré `python src/create_dataset.py` primero."
         )
     meta = json.loads((CACHE_DIR / "meta.json").read_text())
+    # El modelo ya no usa estas estadísticas (normaliza la salida del PCEN, ver
+    # `ASTDeformableDETR.pcen_norm`), pero su ausencia sigue delatando un caché viejo:
+    # esos guardaban el mel ya estandarizado por clip, o sea otra entrada.
     if not meta.get("normalization"):
         raise ValueError(
             f"{CACHE_DIR / 'meta.json'} no tiene las estadísticas de normalización: es un caché "
@@ -113,7 +126,7 @@ def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBox
     logger.info("ventanas -> train %d | val %d", len(train_dataset), len(val_dataset))
     logger.info("cajas en train -> %s", dict(class_counts.most_common()))
     logger.info("jitter de cajas en train -> %s", BOX_JITTER)
-    logger.info("normalización del mel -> %s", meta["normalization"])
+    logger.info("estadísticas del mel de potencia (informativas) -> %s", meta["normalization"])
     return labels, meta, train_dataset, val_dataset
 
 
@@ -129,7 +142,7 @@ def format_confusion(confusion: Tensor, names: list[str]) -> str:
 
 def format_recall_per_class(recall_per_class: dict[int, float | None], names: list[str]) -> str:
     return ", ".join(
-        f"{names[class_id]}={recall:.3f}" if recall is not None else f"{names[class_id]}=n/a"
+        f"{names[class_id]}={format_metric(recall)}"
         for class_id, recall in sorted(recall_per_class.items())
     )
 
@@ -142,16 +155,15 @@ class TrainingComponents(NamedTuple):
     scheduler: OneCycleLR
 
 
-def build_model(
-    n_classes: int, steps_per_epoch: int, normalization: dict[str, float], device: str
-) -> TrainingComponents:
+def build_model(n_classes: int, steps_per_epoch: int, device: str) -> TrainingComponents:
+    # Sin estadísticas de normalización acá: las del caché son del mel de potencia, y lo
+    # que hay que normalizar es la salida del PCEN, que se mueve mientras entrena. El
+    # modelo las estima solo (`ASTDeformableDETR.pcen_norm`).
     model = ASTDeformableDETR(
         dim=MODEL_DIM,
         n_queries=N_QUERIES,
         n_classes=n_classes,
         n_levels=N_LEVELS,
-        mel_mean=normalization["mean"],
-        mel_std=normalization["std"],
     ).to(device)
     matcher = HungarianMatcher(iou_type=MATCHER_IOU_TYPE)
     criterion = SetCriterion(n_classes=n_classes, matcher=matcher, iou_type=MATCHER_IOU_TYPE).to(
@@ -177,7 +189,7 @@ def build_model(
 
 def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics) -> None:
     logger.info(
-        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%.3f FP/TP=%.2f",
+        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s FP/TP=%s",
         epoch + 1,
         EPOCHS,
         train_losses.total,
@@ -185,8 +197,8 @@ def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics) -> Non
         val_metrics.accuracy,
         val_metrics.mean_iou,
         METRIC_IOU_THRESHOLD,
-        val_metrics.recall,
-        val_metrics.fp_per_tp,
+        format_metric(val_metrics.recall_agnostic),
+        format_metric(val_metrics.fp_per_tp_agnostic, digits=2),
     )
 
 
@@ -202,8 +214,8 @@ def log_detail(val_metrics: EvalMetrics, labels: LabelSet) -> None:
     logger.info(
         "AP agnóstico de clase -> %s",
         ", ".join(
-            f"{threshold}={ap:.3f}" if ap is not None else f"{threshold}=n/a"
-            for threshold, ap in sorted(val_metrics.ap.items())
+            f"{threshold}={format_metric(ap)}"
+            for threshold, ap in sorted(val_metrics.ap_agnostic.items())
         ),
     )
     logger.info(
@@ -228,11 +240,15 @@ def append_metrics(
             "losses": val_metrics.losses._asdict(),
             "accuracy": val_metrics.accuracy,
             "mean_iou": val_metrics.mean_iou,
-            "recall": val_metrics.recall,
-            "precision": val_metrics.precision,
-            "fp_per_tp": val_metrics.fp_per_tp,
+            # `*_agnostic`: agnósticas de clase, ver `EvalMetrics`. El nombre viaja al
+            # jsonl para que nadie las lea después como si fueran recall/AP por especie.
+            "recall_agnostic": val_metrics.recall_agnostic,
+            "precision_agnostic": val_metrics.precision_agnostic,
+            "fp_per_tp_agnostic": val_metrics.fp_per_tp_agnostic,
             "operating_score": score,
-            "ap": {str(threshold): ap for threshold, ap in sorted(val_metrics.ap.items())},
+            "ap_agnostic": {
+                str(threshold): ap for threshold, ap in sorted(val_metrics.ap_agnostic.items())
+            },
             "recall_per_class": val_metrics.recall_per_class,
             "precision_per_class": val_metrics.precision_per_class,
         },
@@ -273,8 +289,8 @@ class BestTracker:
                 "time_stride": model.backbone.time_stride,
                 "config": self.config,
                 "epoch": epoch,
-                "recall_agn": val_metrics.recall,
-                "fp_per_tp": val_metrics.fp_per_tp,
+                "recall_agn": val_metrics.recall_agnostic,
+                "fp_per_tp": val_metrics.fp_per_tp_agnostic,
             },
             self.checkpoint_path,
         )
@@ -283,7 +299,6 @@ class BestTracker:
 
 def train(
     labels: LabelSet,
-    meta: dict,
     train_dataset: CachedCallBoxDataset,
     val_dataset: CachedCallBoxDataset,
     device: str,
@@ -296,7 +311,7 @@ def train(
     val_loader = make_loader(val_dataset, shuffle=False)
 
     model, matcher, criterion, optimizer, scheduler = build_model(
-        n_classes, len(train_loader), meta["normalization"], device
+        n_classes, len(train_loader), device
     )
 
     CHECKPOINT_DIR.mkdir(exist_ok=True)
@@ -337,7 +352,7 @@ def train(
             nms_iou=NMS_IOU,
             desc=f"val {progress}",
         )
-        score = operating_score(val_metrics.recall, val_metrics.fp_per_tp)
+        score = operating_score(val_metrics.recall_agnostic, val_metrics.fp_per_tp_agnostic)
 
         log_epoch(epoch, train_losses, val_metrics)
         append_metrics(metrics_path, epoch, train_losses, val_metrics, learning_rate, score)
@@ -350,10 +365,10 @@ def train(
     if tracker.best_metrics is None:
         raise RuntimeError("No se completó ninguna época.")
     logger.info(
-        "mejor recall_agn@%.2f de validación: %.3f (FP/TP=%.2f, score=%.3f) -> %s",
+        "mejor recall_agn@%.2f de validación: %s (FP/TP=%s, score=%.3f) -> %s",
         METRIC_IOU_THRESHOLD,
-        tracker.best_metrics.recall,
-        tracker.best_metrics.fp_per_tp,
+        format_metric(tracker.best_metrics.recall_agnostic),
+        format_metric(tracker.best_metrics.fp_per_tp_agnostic, digits=2),
         tracker.best_score,
         checkpoint_path,
     )
@@ -368,8 +383,8 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("device: %s", device)
 
-    labels, meta, train_dataset, val_dataset = load_datasets()
+    labels, _meta, train_dataset, val_dataset = load_datasets()
     (run_dir / "config.json").write_text(
         json.dumps(training_config(), indent=2, ensure_ascii=False, default=str)
     )
-    train(labels, meta, train_dataset, val_dataset, device, run_dir / "metrics.jsonl")
+    train(labels, train_dataset, val_dataset, device, run_dir / "metrics.jsonl")

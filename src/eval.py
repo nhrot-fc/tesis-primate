@@ -9,7 +9,7 @@ from architectures.criterion import HungarianMatcher, SetCriterion
 from core.setup import setup_logging, setup_project_path
 from domain.dataset import CachedCallBoxDataset, collate_fn
 from infer import load_model
-from pipelines.training_pipeline import EvalMetrics, evaluate
+from pipelines.training_pipeline import EvalMetrics, evaluate, format_metric
 from train import CACHE_DIR, format_confusion, operating_score
 
 logger = logging.getLogger("eval")
@@ -32,10 +32,8 @@ def format_class_table(metrics: EvalMetrics, labels_names: list[str]) -> str:
         precision = metrics.precision_per_class.get(class_id)
         f1 = _f1(precision, recall)
         rows.append(
-            f"{name:<20}"
-            + (f"{recall:>10.3f}" if recall is not None else f"{'n/a':>10}")
-            + (f"{precision:>12.3f}" if precision is not None else f"{'n/a':>12}")
-            + (f"{f1:>10.3f}" if f1 is not None else f"{'n/a':>10}")
+            f"{name:<20}{format_metric(recall):>10}"
+            f"{format_metric(precision):>12}{format_metric(f1):>10}"
         )
     return "\n".join(rows)
 
@@ -43,9 +41,11 @@ def format_class_table(metrics: EvalMetrics, labels_names: list[str]) -> str:
 def format_report(
     checkpoint: Path, split: str, n_windows: int, labels_names: list[str], metrics: EvalMetrics
 ) -> str:
-    score = operating_score(metrics.recall, metrics.fp_per_tp)
-    f1_agn = _f1(metrics.precision, metrics.recall)
-    ap_values = [ap for ap in metrics.ap.values() if ap is not None]
+    score = operating_score(metrics.recall_agnostic, metrics.fp_per_tp_agnostic)
+    f1_agn = _f1(metrics.precision_agnostic, metrics.recall_agnostic)
+    ap_values = [ap for ap in metrics.ap_agnostic.values() if ap is not None]
+    # Promedio sobre umbrales de IoU (estilo COCO AP@[.5:.95]), no sobre clases: sigue
+    # siendo agnóstico de clase, así que no es un mAP.
     mean_ap = sum(ap_values) / len(ap_values) if ap_values else None
     lines = [
         f"checkpoint: {checkpoint}",
@@ -55,14 +55,17 @@ def format_report(
         f"bbox={metrics.losses.bbox:.3f} iou={metrics.losses.iou:.3f}",
         f"accuracy (clase, queries emparejadas)={metrics.accuracy:.3f}",
         f"IoU medio (queries emparejadas)={metrics.mean_iou:.3f}",
-        f"recall_agn={metrics.recall:.3f} precision_agn={metrics.precision:.3f} "
-        f"F1_agn={f1_agn:.3f} FP/TP={metrics.fp_per_tp:.2f} operating_score={score:.3f}",
+        f"recall_agn={format_metric(metrics.recall_agnostic)} "
+        f"precision_agn={format_metric(metrics.precision_agnostic)} "
+        f"F1_agn={format_metric(f1_agn)} "
+        f"FP/TP={format_metric(metrics.fp_per_tp_agnostic, digits=2)} "
+        f"operating_score={score:.3f}",
         "AP agnóstico de clase -> "
         + ", ".join(
-            f"{threshold}={ap:.3f}" if ap is not None else f"{threshold}=n/a"
-            for threshold, ap in sorted(metrics.ap.items())
+            f"{threshold}={format_metric(ap)}"
+            for threshold, ap in sorted(metrics.ap_agnostic.items())
         )
-        + (f" | mAP={mean_ap:.3f}" if mean_ap is not None else " | mAP=n/a"),
+        + f" | AP_agn medio sobre umbrales={format_metric(mean_ap)}",
         "",
         "Métricas por clase (punto de operación):",
         format_class_table(metrics, labels_names),

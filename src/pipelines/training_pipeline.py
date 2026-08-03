@@ -36,13 +36,14 @@ class EvalMetrics(NamedTuple):
     losses: Losses
     mean_iou: float
     accuracy: float
-    ap: dict[float, float | None]
-    recall: float
-    precision: float
-    fp_per_tp: float
+    ap_agnostic: dict[float, float | None]
+    recall_agnostic: float | None
+    precision_agnostic: float | None
+    fp_per_tp_agnostic: float | None
     recall_per_class: dict[int, float | None]
     precision_per_class: dict[int, float | None]
-    confusion: Tensor  # (n_classes, n_classes + 1): filas=clase real, columnas=predicha (+ "no-objeto")
+    # (n_classes, n_classes + 1): filas=clase real, columnas=predicha (+ "no-objeto")
+    confusion: Tensor
 
 
 class Boxes(NamedTuple):
@@ -58,7 +59,10 @@ class Boxes(NamedTuple):
         return Boxes(*(field.cpu() for field in self))
 
     def sorted_by_score(self) -> "Boxes":
-        return self.select(self.scores.argsort(descending=True))
+        # `stable=True`: con el softmax casi uniforme de las primeras épocas hay empates
+        # de score a montones, y `Matching.hits` es greedy por posición. Sin orden estable
+        # las métricas cambian entre corridas con los mismos pesos.
+        return self.select(self.scores.argsort(descending=True, stable=True))
 
     @property
     def count(self) -> int:
@@ -119,12 +123,6 @@ def _rows_by_image(image_ids: Tensor) -> dict[int, list[int]]:
 
 
 class Matching:
-    """Solapes precomputados entre predicciones y GT, agrupados por clip.
-
-    El agrupado y la matriz de IoU no dependen del umbral, así que se calculan una
-    vez y se reusan para todos los umbrales de AP y para el punto de operación.
-    """
-
     def __init__(self, predictions: Boxes, truth: Boxes, iou_fn: IouFn) -> None:
         self.n_predictions = predictions.count
         self.per_image: list[tuple[list[int], Tensor]] = []
@@ -148,7 +146,7 @@ class Matching:
         hits = torch.zeros(self.n_predictions)
         for rows, overlaps in self.per_image:
             # Se itera sobre los GT (uno o dos por clip) y no sobre las predicciones
-            # (64 queries): mismo resultado greedy, ~20x menos vueltas de Python.
+            # (una por query): mismo resultado greedy, muchas menos vueltas de Python.
             available = overlaps.masked_fill(overlaps < iou_threshold, -1.0)
             for _ in range(available.shape[1]):
                 best_per_row = available.max(dim=1)
@@ -177,24 +175,38 @@ def _average_precision(hits: Tensor, n_gt: int) -> float | None:
 
 
 class PointMetrics(NamedTuple):
-    recall: float
-    precision: float
-    fp_per_tp: float
+    """`None` = indefinida, no cero. Un split sin GT no tiene recall, un umbral que no
+    deja pasar nada no tiene precisión, y sin ningún TP los FP por acierto son infinitos.
+    Devolver 0.0 en esos casos hacía pasar por buenas métricas que no existen."""
+
+    recall: float | None
+    precision: float | None
+    fp_per_tp: float | None
 
 
 def _point_metrics(hits: Tensor, n_gt: int, k: int) -> PointMetrics:
     """Recall, precisión y falsos positivos por acierto en el punto de operación fijado
     por `score_threshold`, quedándose con las `k` mejores detecciones."""
-    if n_gt == 0:
-        return PointMetrics(0.0, 0.0, 0.0)
     tp = int(hits[:k].sum())
-    return PointMetrics(tp / n_gt, tp / k if k else 0.0, (k - tp) / max(tp, 1))
+    return PointMetrics(
+        recall=tp / n_gt if n_gt else None,
+        precision=tp / k if k else None,
+        fp_per_tp=(k - tp) / tp if tp else None,
+    )
+
+
+def format_metric(value: float | None, digits: int = 3) -> str:
+    return f"{value:.{digits}f}" if value is not None else "n/a"
 
 
 def _keep_after_nms(boxes: Tensor, scores: Tensor, labels: Tensor, nms_iou: float) -> Tensor:
     """Índices que sobreviven al NMS por clase, en el mismo espacio normalizado que usa
     `inference_pipeline.predict`: si acá no se suprime nada, `fp_per_tp` cuenta como
-    falsos positivos duplicados que en producción el NMS ya eliminó."""
+    falsos positivos duplicados que en producción el NMS ya eliminó.
+
+    La diferencia que queda con producción es de alcance: acá el NMS es por clip, y en
+    `predict` es sobre el archivo entero, donde además suprime la misma vocalización
+    detectada en dos ventanas solapadas. Eso no se puede medir por ventana."""
     return batched_nms(box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou)
 
 
@@ -214,6 +226,16 @@ def evaluate(
     desc: str = "val",
 ) -> EvalMetrics:
     model.eval()
+
+    # `criterion` empareja por su cuenta (una vez por capa del decoder). Si su matcher no
+    # es este, la matriz de confusión y el IoU medio describirían un emparejamiento que no
+    # es el que produjo la pérdida que se reporta al lado.
+    criterion_matcher = getattr(criterion, "matcher", None)
+    if criterion_matcher is not None and criterion_matcher is not matcher:
+        raise ValueError(
+            "`matcher` tiene que ser el mismo objeto que `criterion.matcher`: si no, las "
+            "métricas de emparejamiento y la pérdida hablan de asignaciones distintas."
+        )
 
     iou_fn = get_iou_fn(metric_iou_type)
     pairwise_iou_fn = get_iou_fn(metric_iou_type, pairwise=True)
@@ -307,13 +329,13 @@ def evaluate(
         losses=Losses(**{key: value / max(len(loader), 1) for key, value in totals.items()}),
         mean_iou=iou_sum / max(matched, 1),
         accuracy=matched_correct / max(matched, 1),
-        ap={
+        ap_agnostic={
             threshold: _average_precision(matching.hits(threshold), truth.count)
             for threshold in ap_thresholds
         },
-        recall=point.recall,
-        precision=point.precision,
-        fp_per_tp=point.fp_per_tp,
+        recall_agnostic=point.recall,
+        precision_agnostic=point.precision,
+        fp_per_tp_agnostic=point.fp_per_tp,
         recall_per_class={
             class_id: metrics.recall if metrics else None
             for class_id, metrics in class_metrics.items()

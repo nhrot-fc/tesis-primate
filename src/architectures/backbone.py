@@ -37,9 +37,11 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
 class ASTBackbone(nn.Module):
     """AST pre-entrenado -> tokens `(B, freq_out*time_out, hidden_size)`.
 
-    Devuelve los tokens crudos (sin proyectar): cuando está congelado, su salida
-    depende sólo del espectrograma, así que se puede precomputar una vez y reusarla
-    en todas las épocas (ver `DetectionHead`, que es la parte entrenable).
+    Devuelve los tokens crudos (sin proyectar). Con `freeze=True` sus pesos no se
+    actualizan, pero eso **no** alcanza para precomputarlos: la salida sólo es constante
+    entre épocas si todo lo que va antes también lo es. Hoy no lo es —el PCEN de
+    `ASTDeformableDETR` entrena—, así que cachear estos tokens daría features viejas.
+    El gradiente sí atraviesa el backbone congelado para llegar a ese PCEN.
     """
 
     def __init__(
@@ -63,6 +65,12 @@ class ASTBackbone(nn.Module):
     @property
     def hidden_size(self) -> int:
         return int(self.model.config.hidden_size)
+
+    @property
+    def n_mels(self) -> int:
+        """Bandas mel que espera el checkpoint. Fijo: el pos-embed sólo se re-interpola
+        en el eje temporal, así que el eje de frecuencia queda atado a AudioSet."""
+        return int(self.model.config.num_mel_bins)
 
     def _interpolate_time_pos_embed(self, n_frames: int, time_stride: int) -> None:
         config = self.model.config
@@ -101,10 +109,12 @@ class ASTBackbone(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # x: (B, 1, n_mels, n_frames) -> AST espera (B, n_frames, n_mels)
+        # Sin `no_grad` aunque esté congelado: `requires_grad_(False)` sobre los pesos ya
+        # evita que se acumulen gradientes en ellos, y si nada aguas arriba requiere
+        # gradiente autograd no construye grafo igual. Un `no_grad` acá cortaría la cadena
+        # hacia lo que sí es entrenable antes del backbone (el PCEN de `ASTDeformableDETR`).
         input_values = x.squeeze(1).transpose(1, 2)
-        context = torch.no_grad() if self.freeze else torch.enable_grad()
-        with context:
-            return self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
+        return self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
 
 
 class MultiScalePyramid(nn.Module):
@@ -139,6 +149,18 @@ class MultiScalePyramid(nn.Module):
 
         self.blocks = nn.ModuleList(blocks)
         self.n_levels = len(blocks)
+        self.downsamples = n_levels >= 3
+
+    def check_input_size(self, height: int, width: int) -> None:
+        """El nivel 1/2x es `Conv2d(kernel=2, stride=2)`: con una dimensión impar tira la
+        última fila/columna, así que ese nivel cubre menos extensión física que los otros.
+        `grid_sample` mapea [-1,1] al mapa entero, sin enterarse, y los niveles quedan
+        desalineados entre sí sin dar error."""
+        if self.downsamples and (height % 2 or width % 2):
+            raise ValueError(
+                f"la pirámide con downsampling necesita dimensiones pares, no ({height}, {width}); "
+                "ajustá `time_stride` (o `n_levels=2`) para que `time_out` y `freq_out` lo sean."
+            )
 
     def forward(self, features: Tensor) -> list[Tensor]:
         return [block(features) for block in self.blocks]

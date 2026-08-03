@@ -222,12 +222,6 @@ class DeformableDETR(nn.Module):
 
 
 class DetectionHead(nn.Module):
-    """Parte entrenable: proyección de los tokens del AST -> pirámide -> Deformable DETR.
-
-    Vive separada del backbone para poder entrenarla contra features precomputadas
-    cuando el AST está congelado (ver `ASTDeformableDETR.encode`).
-    """
-
     def __init__(
         self,
         token_dim: int,
@@ -244,6 +238,7 @@ class DetectionHead(nn.Module):
         self.freq_out, self.time_out = freq_out, time_out
         self.proj = nn.Linear(token_dim, dim)
         self.pyramid = MultiScalePyramid(dim, n_levels=n_levels)
+        self.pyramid.check_input_size(freq_out, time_out)
         self.detr = DeformableDETR(dim, n_queries, n_classes, n_levels=self.pyramid.n_levels)
 
     def forward(self, tokens: torch.Tensor) -> Outputs:
@@ -254,11 +249,6 @@ class DetectionHead(nn.Module):
 
 
 class ASTDeformableDETR(nn.Module):
-    """Modelo completo: normalización -> backbone AST -> pirámide -> Deformable DETR."""
-
-    mel_mean: torch.Tensor
-    mel_std: torch.Tensor
-
     def __init__(
         self,
         dim: int = 256,
@@ -268,16 +258,22 @@ class ASTDeformableDETR(nn.Module):
         n_frames: int | None = None,
         time_stride: int = 5,
         n_levels: int = 3,
-        mel_mean: float = 0.0,
-        mel_std: float = 1.0,
         n_mels: int = 128,
     ):
         super().__init__()
         from architectures.backbone import ASTBackbone
         from architectures.trainable_pcen import TrainablePCEN
 
-        self.pcen = TrainablePCEN(n_mels=n_mels)
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
+        if n_mels != self.backbone.n_mels:
+            raise ValueError(
+                f"n_mels={n_mels} no coincide con las {self.backbone.n_mels} bandas del "
+                "checkpoint del AST; el pos-embed sólo se re-interpola en el eje temporal."
+            )
+
+        self.pcen = TrainablePCEN(n_mels=n_mels)
+        self.pcen_norm = nn.BatchNorm2d(1, affine=False)
+
         self.head = DetectionHead(
             token_dim=self.backbone.hidden_size,
             freq_out=self.backbone.freq_out,
@@ -287,26 +283,12 @@ class ASTDeformableDETR(nn.Module):
             n_classes=n_classes,
             n_levels=n_levels,
         )
-        # Estadísticas del log-mel del split de train. Van como buffers para que viajen
-        # dentro del checkpoint: así inferencia no puede normalizar distinto que train.
-        self.register_buffer("mel_mean", torch.tensor(float(mel_mean)))
-        self.register_buffer("mel_std", torch.tensor(float(mel_std)))
-
-    def normalize(self, x: torch.Tensor) -> torch.Tensor:
-        """Log-mel crudo -> escala del pre-entrenamiento del AST.
-
-        El `ASTFeatureExtractor` de HuggingFace normaliza con `(x - mean) / (2*std)`,
-        o sea deja std ~= 0.5. Estandarizar a std=1 le mete al backbone congelado el
-        doble de escala de la que vio en AudioSet.
-        """
-        return (x - self.mel_mean) / (2 * self.mel_std)
-
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """Espectrograma -> tokens del AST. Determinista si el backbone está congelado."""
-        return self.backbone(self.normalize(x))
 
     def forward(self, x: torch.Tensor) -> Outputs:
-        return self.head(self.encode(x))
+        x = self.pcen(x)
+        x = self.pcen_norm(x) / 2
+        x = self.backbone(x)
+        return self.head(x)
 
 
 class Detections(NamedTuple):

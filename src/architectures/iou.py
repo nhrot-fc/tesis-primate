@@ -8,6 +8,15 @@ EPS = 1e-6
 
 
 def min_area_box_iou(boxes1: Tensor, boxes2: Tensor) -> Tensor:
+    """Intersección sobre el área de la caja más chica: una predicción contenida en el GT
+    da 1.0 aunque sea diminuta.
+
+    Ojo al usarlo como `iou_type` de `SetCriterion`: `1 - iomin` tiene un mínimo trivial en
+    "predecí una caja minúscula adentro del GT", y el `cost_iou` del matcher premia lo
+    mismo, así que sólo el término L1 evita el colapso. Si se entrena con `iomin` hay que
+    vigilar la distribución de w/h predichos. Como criterio de *métrica* no tiene ese
+    problema, porque nada optimiza contra él.
+    """
     area1 = box_area(boxes1)
     area2 = box_area(boxes2)
 
