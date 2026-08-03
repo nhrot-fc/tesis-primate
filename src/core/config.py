@@ -12,8 +12,14 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_FOLDER_ID: str | None = None
     GOOGLE_DRIVE_CREDENTIALS_PATH: Path | None = None
     PROJECT_DIR: Path = Path.cwd()
+    CHECKPOINTS_DIR: Path | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @property
+    def checkpoints_dir(self) -> Path:
+        """Pesos propios y copia local del backbone AST (`architectures.backbone`)."""
+        return self.CHECKPOINTS_DIR or self.PROJECT_DIR / "checkpoints"
 
     @property
     def data_dir(self) -> Path:

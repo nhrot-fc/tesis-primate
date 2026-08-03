@@ -5,6 +5,7 @@ from typing import override
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -135,11 +136,15 @@ class Dropdown(QWidget):
         return self.combo.currentText()
 
 
-class Legend(QWidget):
-    """Muestras de color para identificar el origen de cada caja."""
+class Layers(QWidget):
+    """Leyenda con interruptor: identifica el origen de cada caja y lo oculta."""
+
+    changed = pyqtSignal()
 
     def __init__(self, entries: list[tuple[str, str]]) -> None:
         super().__init__()
+        self.boxes: dict[str, QCheckBox] = {}
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -147,9 +152,17 @@ class Legend(QWidget):
             swatch = QLabel()
             swatch.setFixedWidth(SWATCH_WIDTH)
             swatch.setStyleSheet(f"background-color: {color}; border-radius: 2px;")
+            box = QCheckBox(text)
+            box.setChecked(True)
+            # Lambda: `toggled` emite el estado y `changed` no lleva argumentos.
+            box.toggled.connect(lambda _: self.changed.emit())
+            self.boxes[text] = box
             layout.addWidget(swatch)
-            layout.addWidget(QLabel(text))
+            layout.addWidget(box)
             layout.addSpacing(6)
+
+    def enabled(self, text: str) -> bool:
+        return self.boxes[text].isChecked()
 
 
 class AudioPlayer(QWidget):
