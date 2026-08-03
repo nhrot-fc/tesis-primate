@@ -1,47 +1,47 @@
 from pathlib import Path
 
 import numpy as np
-import torch
-import torch.nn.functional as F
-import torchaudio
-from torch import Tensor
+import numpy.typing as npt
+import soundfile
+import soxr
 
 EPS = 1e-10
 
+Waveform = npt.NDArray[np.float32]
 
-def load_audio(path: Path, target_sr: int) -> Tensor:
-    waveform, source_sr = torchaudio.load(str(path))
-    waveform = waveform.mean(dim=0)
+
+def load_audio(path: Path, target_sr: int) -> Waveform:
+    frames, source_sr = soundfile.read(str(path), dtype="float32", always_2d=True)
+    waveform = frames.mean(axis=1)
     if source_sr != target_sr:
-        waveform = torchaudio.functional.resample(waveform, source_sr, target_sr)
-    return waveform
+        waveform = soxr.resample(waveform, source_sr, target_sr)
+    return np.ascontiguousarray(waveform, dtype=np.float32)
 
 
-def pcm16(waveform: Tensor) -> bytes:
-    """Serializa la forma de onda mono como PCM entero de 16 bits."""
-    return (waveform.clamp(-1.0, 1.0) * 32767.0).to(torch.int16).numpy().tobytes()
+def pcm16(waveform: Waveform) -> bytes:
+    return (np.clip(waveform, -1.0, 1.0) * 32767.0).astype(np.int16).tobytes()
 
 
-def stft_db(waveform: Tensor, n_fft: int, hop_length: int) -> np.ndarray:
-    if waveform.numel() < n_fft:
-        waveform = F.pad(waveform, (0, n_fft - waveform.numel()))
-    spec = (
-        torch.stft(
-            waveform,
-            n_fft=n_fft,
-            hop_length=hop_length,
-            win_length=n_fft,
-            window=torch.hann_window(n_fft),
-            return_complex=True,
-        )
-        .abs()
-        .square()
+def _frames(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.float32]:
+    padded = np.pad(waveform, n_fft // 2, mode="reflect")
+    count = (padded.size - n_fft) // hop_length + 1
+    stride = padded.strides[0]
+    return np.lib.stride_tricks.as_strided(
+        padded, shape=(count, n_fft), strides=(stride * hop_length, stride)
     )
-    return (10 * torch.log10(spec + EPS)).numpy()
 
 
-def db_baseline(waveform: Tensor, sr: int, n_fft: int) -> tuple[float, float]:
-    spec = stft_db(waveform, n_fft, max(sr // 10, waveform.numel() // 3000, 1))
+def stft_db(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.float32]:
+    if waveform.size < n_fft:
+        waveform = np.pad(waveform, (0, n_fft - waveform.size))
+    window = np.hanning(n_fft + 1)[:-1]  # periodica, como torch.hann_window
+    spectrum = np.fft.rfft(_frames(waveform, n_fft, hop_length) * window, axis=-1)
+    power = spectrum.real**2 + spectrum.imag**2
+    return (10.0 * np.log10(power.T + EPS)).astype(np.float32)
+
+
+def db_baseline(waveform: Waveform, sr: int, n_fft: int) -> tuple[float, float]:
+    spec = stft_db(waveform, n_fft, max(sr // 10, waveform.size // 3000, 1))
     lo, hi = np.percentile(spec, (5.0, 99.5))
     return float(lo), float(hi)
 

@@ -1,0 +1,12 @@
+RAVEN_COLUMNS = [
+    "Selection",
+    "View",
+    "Channel",
+    "Begin Time (s)",
+    "End Time (s)",
+    "Low Freq (Hz)",
+    "High Freq (Hz)",
+    "Species",
+    "Call type",
+    "Score",
+]

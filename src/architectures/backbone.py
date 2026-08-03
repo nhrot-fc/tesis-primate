@@ -1,8 +1,5 @@
-"""Backbone AST (Gong et al., 2021) y pirámide multiescala al estilo ViTDet (Li et al., 2022).
-
-`ASTBackbone` envuelve el AST preentrenado en AudioSet (HuggingFace `transformers`)
-en vez de reimplementarlo, para aprovechar los pesos preentrenados.
-"""
+import logging
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -11,19 +8,33 @@ from transformers import ASTModel
 
 from core.config import P, settings
 
+logger = logging.getLogger(__name__)
+
 AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 
+def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
+    return settings.checkpoints_dir / "hf" / checkpoint.replace("/", "__")
+
+
+def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
+    local_dir = local_ast_dir(checkpoint)
+    if local_dir.is_dir():
+        try:
+            return ASTModel.from_pretrained(local_dir, local_files_only=True)
+        except Exception:
+            logger.warning("Copia local inutilizable en %s; se redescarga.", local_dir)
+
+    logger.info("Descargando backbone AST '%s' desde HuggingFace...", checkpoint)
+    token = settings.HF_TOKEN.get_secret_value() if settings.HF_TOKEN else None
+    model = ASTModel.from_pretrained(checkpoint, token=token)
+    local_dir.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(local_dir)
+    logger.info("Backbone AST guardado en %s", local_dir)
+    return model
+
+
 class ASTBackbone(nn.Module):
-    """AST preentrenado + proyección lineal a `embed_dim`.
-
-    El checkpoint fue preentrenado con `max_length=1024`, que casi nunca coincide
-    con `n_frames` del clip, así que los embeddings de posición se interpolan
-    bilinealmente sobre el eje temporal tras cargar el checkpoint. `time_stride`
-    además reduce el stride temporal del patch embedding (10 -> 5 por defecto)
-    para duplicar la resolución de tokens en el tiempo.
-    """
-
     def __init__(
         self,
         embed_dim: int = 256,
@@ -33,8 +44,7 @@ class ASTBackbone(nn.Module):
         freeze: bool = True,
     ) -> None:
         super().__init__()
-        token = settings.HF_TOKEN.get_secret_value() if settings.HF_TOKEN else None
-        self.model = ASTModel.from_pretrained(checkpoint, token=token)
+        self.model = load_ast_model(checkpoint)
         self._interpolate_time_pos_embed(
             n_frames if n_frames is not None else P.n_frames, time_stride
         )

@@ -29,22 +29,22 @@ report; classes are labelled `code/call_type`.
 Data comes from AudioMoths deployed across the forest: non-intrusive and continuously
 recording. The result is thousands of hours of audio that must be reviewed manually.
 
-A researcher opens each file in Raven, draws a time–frequency box around every
+A researcher opens each file in Raven, draws a time-frequency box around every
 vocalization, and labels it with a species and a call type. Recording speed exceeds
 review speed by a wide margin, so most of the audio is late or never analyzed.
 
-**Operating requirement.** The deliverable is a triage tool: the model proposes regions,
+The deliverable is a triage tool: the model proposes regions,
 an expert confirms. Missing a vocalization costs more than reviewing a false positive, so
 every design choice is biased toward **recall over precision**.
 
 The team currently uses **Arbimon** for pattern-recognition-based event retrieval, with
 decent results but the syllables have variations and the tool only receives a single reference.
-Additionally, the tool does not produce time–frequency box annotations with species and call type, readable back into Raven. That is the gap this work targets.
+Additionally, the tool does not produce time-frequency box annotations with species and call type, readable back into Raven. That is the gap this work targets.
 
 ## 2. State of the Art
 
-Detecting **time–frequency** boxes is repeatedly called
-underexplored — Zhu & Sato (DCASE 2025) state that "the detection of time-frequency
+Detecting **time-frequency** boxes is repeatedly called
+underexplored - Zhu & Sato (DCASE 2025) state that "the detection of time-frequency
 bounding boxes remains largely unexplored." The mainstream bioacoustic tools support
 this: BirdNET (Kahl et al., 2021) scores fixed 3 s segments and Perch 2.0
 (van Merriënboer et al., 2025) is a clip-level classifier over ~14,600 species; neither
@@ -52,7 +52,7 @@ localizes calls in frequency.
 
 Three loosely connected lines of work exist:
 
-- **2D boxes, transformer detectors (DETR family)**: Zhu & Sato (DCASE 2025 Workshop)
+- **2D boxes, transformer detectors**: Zhu & Sato (DCASE 2025 Workshop)
   pair a self-supervised AST backbone (EAT) with DINO ("DETR with Improved DeNoising
   Anchor Boxes", Zhang et al., ICLR 2023), evaluated not on bioacoustics but on
   whistle sounds from defective wind-turbine blades (AP50 0.494 vs. 0.365 for a
@@ -67,20 +67,17 @@ Three loosely connected lines of work exist:
   2018; BatDetect2, 2022, which predicts time, duration, frequency range and species
   per call). Most recently Hexeberg et al. (2026, arXiv:2606.10407) apply YOLO11 to
   dense tropical soundscapes (Singapore, with out-of-distribution testing on Hawaii;
-  81.8% vs. 42.1% IoMin@50 F1 in-distribution) and adopt **Intersection-over-Minimum
-  (IoMin)** as a matching metric tolerant of ambiguous acoustic boundaries — presented
-  as their contribution, but mathematically the Szymkiewicz–Simpson overlap coefficient,
+  81.8% vs. 42.1% IoMin@50 F1 in-distribution) and adopt **IoMin** as a matching metric 
+  tolerant of ambiguous acoustic boundaries - presented as their contribution, 
+  but mathematically the Szymkiewicz-Simpson overlap coefficient,
   already used in vision as "IoM" (ReMOTS, 2020; Vogel et al., 2023). A conceptual
-  precursor is Kong et al. (2019, IEEE/ACM TASLP): weakly-supervised time–frequency
+  precursor is Kong et al. (2019, IEEE/ACM TASLP): weakly-supervised time-frequency
   segmentation masks rather than boxes.
 - **1D boxes (time only)**: YOHO (Venkatesh et al., 2022), Sound Event Bounding Boxes
   (Ebbers, Germain, Wichern & Le Roux, Interspeech 2024) and Voxaboxen (Mahon et al.,
   DCASE/NeurIPS 2025) regress onsets/offsets on the time axis; despite the "box"
   terminology they carry no frequency extent.
 
-These lines cite each other only sparsely — Zhu & Sato are the main bridge, connecting
-the region-CNN bioacoustics work to the 1D DETR lineage — leaving cross-domain,
-frequency-aware detection open. That is where this work sits.
 
 ## 3. Old Method
 
@@ -88,8 +85,8 @@ The code for this stage is not in the repository, so the numbers below are
 reported as recorded at the time and are not reproducible here.
 
 Scope: **one species/call type (LW/CS).** 103
-recordings, 682 annotations, fixed 0.5 s windows. Two binary classifiers - a small custom
-CNN and ResNet50V2 with ImageNet weights - both reached about **99% test accuracy**.
+recordings, 682 annotations, fixed 0.5 s windows. Two binary classifiers: a small custom
+CNN and ResNet50V2 with ImageNet weights. Both reached about **99% test accuracy**.
 
 **Why it was abandoned.** The output is presence per window, not an event: no box, no
 frequency extent, no event count, no species or call-type distinction. The accuracy is
@@ -165,8 +162,8 @@ Call types labeled with "Unnoficial" are call types not found on the reference P
 
 Two properties of Table 2 drive the rest of this section. First, the vocabulary is
 uneven per species: LW carries 11 distinct call types over 4,103 annotations, while CC
-contributes a single call type with 29. Second, the distribution within a species is as
-long-tailed as the distribution across species - `sm/acc` has 8 annotations against
+contributes a single call type with only 29 annotations. Second, the distribution within a species is as
+long-tailed as the distribution across species; `sm/acc` has 8 annotations against
 `sm/cc`'s 2,040, a 255× spread inside one species. Figure 1 shows the same distribution
 pooled across all pairs.
 
@@ -209,7 +206,7 @@ before training (`EXCLUDED_PAIRS` in `create_dataset.py`); they appear in Table 
 
 ### Geometric separability
 
-**Species** separate largely by frequency band: AS sits inside ~25–1,410 Hz (1st–99th
+**Species** separate largely by frequency band: AS sits inside ~25-1,410 Hz (1st-99th
 percentile), while `lw/cs` is never annotated below 3,687 Hz. **Call types within a
 species** do not separate: in LW, the `t` family plus `vc` and `cs` share band and
 duration almost exactly. Figure 2 makes both effects visible at once. This is why
@@ -400,18 +397,18 @@ review burden the expert experiences directly.
 | Framing | class-agnostic AP @ 0.75 | 0.133 |
 | Classification | accuracy over matched pairs | 0.982 |
 
-In plain terms: out of every 10 vocalizations, the model proposes about **8**; the expert
+Out of every 10 vocalizations, the model proposes about **8**; the expert
 discards roughly **one wrong proposal per correct one**; and when a proposal is correct,
 its species and call type are right **98%** of the time. What it does not yet do well is
-draw the box *tightly* - that is the AP@0.75 = 0.133 figure.
+draw the box tightly. That is the AP@0.75 = 0.133 figure.
 
 ### On real recordings
 
-Figures 8–14 use the same audio files for both models, so they can be read side by side:
+Figures 8-14 use the same audio files for both models, so they can be read side by side:
 Figure 9 and Figure 11 are the same recording, and Figure 10 and Figure 12 are the same
 recording.
 
-**Old model** - a probability curve per window (Figures 8–10):
+**Old model** - a probability curve per window (Figures 8-10):
 
 ![Spectrogram of file 20240214_102327 with a red per-window call-probability curve overlaid](image.png)
 
@@ -433,7 +430,7 @@ call type. Probability barely exceeds 0.55 and peaks once, between two syllables
 visible LW/CS calls are effectively missed. Figure 12 shows the same file under the new
 model.
 
-**New model** - a set of labelled boxes (Figures 11–14):
+**New model** - a set of labelled boxes (Figures 11-14):
 
 ![Spectrogram of file 20240214_102444 with ten green boxes, each labelled LW/CS with confidence near 1.00](Figure%201.png)
 
@@ -456,9 +453,9 @@ time.
 
 ![Dense five-second spectrogram with overlapping SB/PPC, LW/CS and AC/BC boxes at varied confidences](Figure%206.png)
 
-**Figure 14.** New model on `20240217_090423.wav`, seconds 45–50: three species (SB/PPC,
+**Figure 14.** New model on `20240217_090423.wav`, seconds 45-50: three species (SB/PPC,
 LW/CS, AC/BC) overlapping, some events cut at the segment edge. Confidences spread
-(0.23–0.97) and box edges are loose - in this dense regime framing, not detection, is the
+(0.23-0.97) and box edges are loose - in this dense regime framing, not detection, is the
 bottleneck, consistent with the AP@0.75 of Table 9.
 
 ### Progression
@@ -492,7 +489,7 @@ unreachable long events (Table 5), geometric heterogeneity (Figure 3), or nestin
 | sb/ppc | 0.689 | geometrically heterogeneous (bandwidth CV 0.47, Figure 3) |
 | pt/dc | 0.649 | only 270 of 637 annotations are reachable (Table 5) |
 | sm/fs | 0.622 | nested inside `sm/fc`, which is excluded (Table 2) |
-| sb/spc | 0.556 | its band spans 249–15,931 Hz and swallows several other classes |
+| sb/spc | 0.556 | its band spans 249-15,931 Hz and swallows several other classes |
 | **ac/bc** | **0.473** | **heterogeneous (bandwidth CV 0.60, Figure 3), worst despite 3,001 training boxes** |
 
 ## 7. Comparison with the proof of concept

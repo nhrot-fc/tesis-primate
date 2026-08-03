@@ -5,6 +5,7 @@ from typing import override
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -16,20 +17,24 @@ from PyQt6.QtWidgets import (
 
 LABEL_WIDTH = 100
 TICK_MS = 30
+SWATCH_WIDTH = 14
 
 
 class Worker(QThread):
     ok = pyqtSignal(object)
     error = pyqtSignal(str)
+    progress = pyqtSignal(int, int)
 
-    def __init__(self, task) -> None:
+    def __init__(self, task, reports: bool = False) -> None:
+        """Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso."""
         super().__init__()
         self.task = task
+        self.reports = reports
 
     @override
     def run(self) -> None:
         try:
-            self.ok.emit(self.task())
+            self.ok.emit(self.task(self.progress.emit) if self.reports else self.task())
         except Exception as exc:
             self.error.emit(f"{type(exc).__name__}: {exc}")
 
@@ -45,6 +50,7 @@ class FileField(QWidget):
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("sin seleccionar")
         self.edit.setReadOnly(True)
+        self.edit.setAcceptDrops(False)  # deja pasar el drop a la ventana principal
         button = QPushButton("Examinar")
 
         layout = QHBoxLayout(self)
@@ -65,6 +71,15 @@ class FileField(QWidget):
     def path(self) -> Path | None:
         text = self.edit.text().strip()
         return Path(text) if text else None
+
+    def set_path(self, path: Path) -> None:
+        self.edit.setText(str(path))
+        self.changed.emit()
+
+    def suffixes(self) -> set[str]:
+        """Extensiones aceptadas por el filtro, en minusculas y con punto."""
+        inside = self.file_filter[self.file_filter.find("(") + 1 : self.file_filter.rfind(")")]
+        return {pattern.removeprefix("*").lower() for pattern in inside.split()}
 
 
 class Choice(QWidget):
@@ -97,6 +112,44 @@ class Choice(QWidget):
 
     def value(self):
         return self.values[self.slider.value()]
+
+
+class Dropdown(QWidget):
+    changed = pyqtSignal()
+
+    def __init__(self, text: str, options: list[str], index: int = 0) -> None:
+        super().__init__()
+        name = QLabel(text)
+        name.setFixedWidth(LABEL_WIDTH)
+        self.combo = QComboBox()
+        self.combo.addItems(options)
+        self.combo.setCurrentIndex(index)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(name)
+        layout.addWidget(self.combo, 1)
+        self.combo.currentIndexChanged.connect(self.changed.emit)
+
+    def value(self) -> str:
+        return self.combo.currentText()
+
+
+class Legend(QWidget):
+    """Muestras de color para identificar el origen de cada caja."""
+
+    def __init__(self, entries: list[tuple[str, str]]) -> None:
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        for text, color in entries:
+            swatch = QLabel()
+            swatch.setFixedWidth(SWATCH_WIDTH)
+            swatch.setStyleSheet(f"background-color: {color}; border-radius: 2px;")
+            layout.addWidget(swatch)
+            layout.addWidget(QLabel(text))
+            layout.addSpacing(6)
 
 
 class AudioPlayer(QWidget):

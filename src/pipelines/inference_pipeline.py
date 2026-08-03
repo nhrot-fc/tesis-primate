@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -8,21 +9,9 @@ from torchvision.ops import batched_nms
 
 from architectures.deformable_detr import postprocess
 from core.config import P, Parameters
+from domain.raven import RAVEN_COLUMNS
 from domain.species import LabelSet
 from utils.audio import LogMelSpectrogram, load_clip, window_starts, y_to_hz
-
-RAVEN_COLUMNS = [
-    "Selection",
-    "View",
-    "Channel",
-    "Begin Time (s)",
-    "End Time (s)",
-    "Low Freq (Hz)",
-    "High Freq (Hz)",
-    "Species",
-    "Call type",
-    "Score",
-]
 
 
 @torch.no_grad()
@@ -34,14 +23,14 @@ def predict(
     score_threshold: float = 0.5,
     nms_iou: float = 0.3,
     batch_size: int = 16,
+    on_progress: Callable[[int, int], None] | None = None,
     params: Parameters = P,
 ) -> pd.DataFrame:
-    """Desliza ventanas de `params.clip_len_s` sobre el audio, corre el modelo en cada
-    una y funde las detecciones superpuestas con NMS por clase (en tiempo/frecuencia
-    absolutos, donde IoU es igual de válido que en coordenadas normalizadas)."""
     model.eval()
     starts = window_starts(sf.info(str(audio_path)).duration, params)
     mel = LogMelSpectrogram(params)
+    if on_progress is not None:
+        on_progress(0, len(starts))
 
     begin, end, low, high, score, label = [], [], [], [], [], []
     for i in range(0, len(starts), batch_size):
@@ -59,6 +48,9 @@ def predict(
             high.append(torch.from_numpy(y_to_hz((cy + h / 2).numpy(), params)).float())
             score.append(det.scores.cpu())
             label.append(det.labels.cpu())
+
+        if on_progress is not None:
+            on_progress(min(i + batch_size, len(starts)), len(starts))
 
     begin, end, low, high = (torch.cat(t) for t in (begin, end, low, high))
     score, label = torch.cat(score), torch.cat(label)

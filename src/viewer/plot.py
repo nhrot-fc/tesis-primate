@@ -3,12 +3,12 @@ from typing import override
 
 import pandas as pd
 import pyqtgraph as pg
+import pyqtgraph.exporters  # noqa: F401
 from PyQt6.QtCore import QRectF, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtWidgets import QGraphicsRectItem
-from torch import Tensor
 
-from viewer.spectrogram import db_baseline, db_levels, stft_db
+from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
 
 BOX_COLUMNS = ["Begin Time (s)", "End Time (s)", "Low Freq (Hz)", "High Freq (Hz)"]
 ANNOTATION_COLOR = "#00d8ff"
@@ -16,6 +16,9 @@ DETECTION_COLOR = "#8cff3d"
 PLAYHEAD_COLOR = "#c8ffd0"
 AXIS_PAD = 12
 AXIS_SAMPLE = "00000"
+EXPORT_WIDTH = 2400
+
+COLORMAPS = ["magma", "inferno", "viridis", "cividis", "gray", "gray_r"]
 
 
 def read_boxes(path: Path) -> pd.DataFrame:
@@ -60,9 +63,7 @@ class SpectrogramView(pg.PlotWidget):
         self.vb.setMouseEnabled(x=False, y=False)
         self.vb.setDefaultPadding(0.0)
         self.image = pg.ImageItem()
-        plot_colormap = pg.colormap.getFromMatplotlib("magma")
-        if plot_colormap is not None:
-            self.image.setColorMap(plot_colormap)
+        self.set_colormap(COLORMAPS[0])
         self.vb.addItem(self.image)
         self.playhead = pg.InfiniteLine(angle=90, movable=False)
         self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=2))
@@ -72,13 +73,18 @@ class SpectrogramView(pg.PlotWidget):
         if self.sceneObj is not None:
             self.sceneObj.sigMouseMoved.connect(self._on_move)
 
-        self.waveform: Tensor | None = None
+        self.waveform: Waveform | None = None
         self.sr = 1
         self.baseline = (-100.0, 0.0)
         self.baseline_n_fft = 0
         self.boxes: list = []
 
-    def set_waveform(self, waveform: Tensor, sr: int) -> None:
+    def set_colormap(self, name: str) -> None:
+        colormap = pg.colormap.getFromMatplotlib(name)
+        if colormap is not None:
+            self.image.setColorMap(colormap)
+
+    def set_waveform(self, waveform: Waveform, sr: int) -> None:
         self.waveform = waveform
         self.sr = sr
         self.baseline_n_fft = 0
@@ -96,19 +102,22 @@ class SpectrogramView(pg.PlotWidget):
         first = int(start * self.sr)
         chunk = self.waveform[first : first + int(span * self.sr)]
         self.image.setImage(stft_db(chunk, n_fft, min(hop, n_fft)), autoLevels=False)
-        self.image.setRect(QRectF(start, 0.0, chunk.numel() / self.sr, self.sr / 2))
+        self.image.setRect(QRectF(start, 0.0, chunk.size / self.sr, self.sr / 2))
         self.image.setLevels(db_levels(self.baseline, brightness, contrast))
         self.vb.setXRange(start, start + span, padding=0)
 
-    def draw_boxes(self, tables: list, start: float, stop: float, score: float) -> None:
+    def draw_boxes(self, tables: list, start: float, stop: float, score: float) -> list[int]:
         while self.boxes:
             self.vb.removeItem(self.boxes.pop())
+        counts = []
         for table, color in tables:
             if table is None or table.empty:
+                counts.append(0)
                 continue
             visible = table[(table["End Time (s)"] > start) & (table["Begin Time (s)"] < stop)]
             if "Score" in visible.columns:
                 visible = visible[visible["Score"] >= score]
+            counts.append(len(visible))
             for _, row in visible.iterrows():
                 x0, y0 = row["Begin Time (s)"], row["Low Freq (Hz)"]
                 width = row["End Time (s)"] - x0
@@ -120,6 +129,12 @@ class SpectrogramView(pg.PlotWidget):
                 self.vb.addItem(rect)
                 self.vb.addItem(text)
                 self.boxes += [rect, text]
+        return counts
+
+    def export_png(self, path: Path) -> None:
+        exporter = pg.exporters.ImageExporter(self.getPlotItem())
+        exporter.parameters()["width"] = EXPORT_WIDTH
+        exporter.export(str(path))
 
     def set_playhead(self, seconds: float | None) -> None:
         if seconds is None:
