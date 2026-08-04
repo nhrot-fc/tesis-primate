@@ -39,7 +39,7 @@ SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
 MODEL_DIM, N_QUERIES, N_LEVELS = 128, 16, 3
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 20, 64, 2e-4, 1e-4, 0
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 64, 2e-4, 1e-4, 0
 DETAIL_EVERY = 4
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
 MATCHER_IOU_TYPE = "iou"

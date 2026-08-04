@@ -35,15 +35,6 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
 
 
 class ASTBackbone(nn.Module):
-    """AST pre-entrenado -> tokens `(B, freq_out*time_out, hidden_size)`.
-
-    Devuelve los tokens crudos (sin proyectar). Con `freeze=True` sus pesos no se
-    actualizan, pero eso **no** alcanza para precomputarlos: la salida sólo es constante
-    entre épocas si todo lo que va antes también lo es. Hoy no lo es —el PCEN de
-    `ASTDeformableDETR` entrena—, así que cachear estos tokens daría features viejas.
-    El gradiente sí atraviesa el backbone congelado para llegar a ese PCEN.
-    """
-
     def __init__(
         self,
         n_frames: int | None = None,
@@ -59,8 +50,8 @@ class ASTBackbone(nn.Module):
 
         self.freeze = freeze
         if freeze:
-            for param in self.model.parameters():
-                param.requires_grad_(False)
+            for name, param in self.model.named_parameters():
+                param.requires_grad_(name.startswith("embeddings.patch_embeddings.projection"))
 
     @property
     def hidden_size(self) -> int:
@@ -68,8 +59,6 @@ class ASTBackbone(nn.Module):
 
     @property
     def n_mels(self) -> int:
-        """Bandas mel que espera el checkpoint. Fijo: el pos-embed sólo se re-interpola
-        en el eje temporal, así que el eje de frecuencia queda atado a AudioSet."""
         return int(self.model.config.num_mel_bins)
 
     def _interpolate_time_pos_embed(self, n_frames: int, time_stride: int) -> None:
@@ -118,15 +107,6 @@ class ASTBackbone(nn.Module):
 
 
 class MultiScalePyramid(nn.Module):
-    """Niveles de resolución a partir del único mapa que entrega el AST.
-
-    Con `n_levels=3` son 2x, 1x y 1/2x. El nivel 4x que había antes costaba 12 288
-    posiciones (48x256) que se proyectan enteras en cada capa del decoder para
-    muestrear 4 puntos por cabeza, y no aporta información nueva: sale del mismo
-    mapa por deconvolución. En Deformable-DETR los niveles vienen de etapas distintas
-    del backbone, que no es el caso acá.
-    """
-
     def __init__(self, dim: int = 256, n_levels: int = 3, num_groups: int = 8) -> None:
         super().__init__()
         if not 2 <= n_levels <= 4:
