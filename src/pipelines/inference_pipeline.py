@@ -55,7 +55,7 @@ def predict(
             cx, cy, w, h = det.boxes.T.cpu()
             # Tiempo en unidades de clip (no en segundos) y frecuencia en el eje mel
             # normalizado: es el mismo espacio en el que el modelo predice y en el que
-            # `training_pipeline` mide IoU, así que el NMS de acá suprime exactamente
+            # `evaluation_pipeline` mide IoU, así que el NMS de acá suprime exactamente
             # lo mismo que la evaluación da por suprimido.
             offset = float(clip_start) / params.clip_len_s
             x0.append(offset + cx - w / 2)

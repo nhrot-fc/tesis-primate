@@ -17,13 +17,9 @@ from core.config import settings
 from core.setup import setup_logging, setup_project_path
 from domain.dataset import BoxJitter, CachedCallBoxDataset, collate_fn
 from domain.species import LabelSet
-from pipelines.training_pipeline import (
-    EvalMetrics,
-    Losses,
-    evaluate,
-    format_metric,
-    train_one_epoch,
-)
+from pipelines.common import Losses, format_metric
+from pipelines.evaluation_pipeline import EvalMetrics, evaluate
+from pipelines.training_pipeline import train_one_epoch
 
 logger = logging.getLogger("training")
 
@@ -175,9 +171,9 @@ def build_model(n_classes: int, steps_per_epoch: int, device: str) -> TrainingCo
     return TrainingComponents(model, matcher, criterion, optimizer, scheduler)
 
 
-def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics) -> None:
+def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics, score: float) -> None:
     logger.info(
-        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s FP/TP=%s",
+        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s FP/TP=%s score=%.3f",
         epoch + 1,
         EPOCHS,
         train_losses.total,
@@ -187,6 +183,7 @@ def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics) -> Non
         METRIC_IOU_THRESHOLD,
         format_metric(val_metrics.recall_agnostic),
         format_metric(val_metrics.fp_per_tp_agnostic, digits=2),
+        score,
     )
 
 
@@ -326,6 +323,8 @@ def train(
             desc=f"train {progress}",
         )
 
+        is_last = epoch + 1 == EPOCHS
+        detailed = (epoch + 1) % DETAIL_EVERY == 0 or is_last
         val_metrics = evaluate(
             model,
             val_loader,
@@ -336,16 +335,16 @@ def train(
             iou_threshold=METRIC_IOU_THRESHOLD,
             score_threshold=OPERATING_SCORE_THRESHOLD,
             nms_iou=NMS_IOU,
+            detailed=detailed,
             desc=f"val {progress}",
         )
         score = operating_score(val_metrics.recall_agnostic, val_metrics.fp_per_tp_agnostic)
 
-        log_epoch(epoch, train_losses, val_metrics)
+        log_epoch(epoch, train_losses, val_metrics, score)
         append_metrics(metrics_path, epoch, train_losses, val_metrics, learning_rate, score)
         tracker.consider(epoch, model, val_metrics, score)
 
-        is_last = epoch + 1 == EPOCHS
-        if (epoch + 1) % DETAIL_EVERY == 0 or is_last:
+        if detailed:
             log_detail(val_metrics, labels)
 
     if tracker.best_metrics is None:

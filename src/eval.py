@@ -9,7 +9,8 @@ from architectures.criterion import HungarianMatcher, SetCriterion
 from core.setup import setup_logging, setup_project_path
 from domain.dataset import CachedCallBoxDataset, collate_fn
 from infer import load_model
-from pipelines.training_pipeline import EvalMetrics, evaluate, format_metric
+from pipelines.common import format_metric
+from pipelines.evaluation_pipeline import EvalMetrics, evaluate
 from train import CACHE_DIR, format_confusion, operating_score
 
 logger = logging.getLogger("eval")
