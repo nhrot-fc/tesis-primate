@@ -31,14 +31,16 @@ class ClipWindow(NamedTuple):
 
 def _boxes_in_window(
     group: pd.DataFrame, class_ids: FloatArray, clip_start_s: float, params: Parameters
-) -> FloatArray:
+) -> tuple[FloatArray, bool]:
     begin = group["begin_time_s"].to_numpy()
     end = group["end_time_s"].to_numpy()
 
     overlap = np.minimum(end, clip_start_s + params.clip_len_s) - np.maximum(begin, clip_start_s)
-    keep = (overlap > 0) & (overlap >= params.min_overlap * (end - begin))
+    visible = np.minimum(end - begin, params.clip_len_s)
+    present = overlap > 0
+    keep = present & (overlap >= params.min_overlap * visible)
     if not keep.any():
-        return np.empty((0, N_BOX_COLS))
+        return np.empty((0, N_BOX_COLS)), bool(present.any())
 
     x0 = np.clip((begin[keep] - clip_start_s) / params.clip_len_s, 0.0, 1.0)
     x1 = np.clip((end[keep] - clip_start_s) / params.clip_len_s, 0.0, 1.0)
@@ -47,7 +49,8 @@ def _boxes_in_window(
 
     boxes = np.stack([(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, class_ids[keep]], axis=-1)
     usable = (boxes[:, 2] >= MIN_BOX_SIZE) & (boxes[:, 3] >= MIN_BOX_SIZE)
-    return boxes[usable]
+    boxes = boxes[usable]
+    return boxes, len(boxes) < int(present.sum())
 
 
 def build_manifest(
@@ -74,9 +77,12 @@ def build_manifest(
 
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.float64)
         for clip_start_s in window_starts(duration_s, params):
-            boxes = _boxes_in_window(group, class_ids, float(clip_start_s), params)
+            boxes, incomplete = _boxes_in_window(group, class_ids, float(clip_start_s), params)
             window = ClipWindow(str(audio_path), float(clip_start_s), params.clip_len_s, boxes)
-            (positive if len(boxes) else empty).append(window)
+            if len(boxes):
+                positive.append(window)
+            elif not incomplete:
+                empty.append(window)
 
     if empty_ratio <= 0.0 or not empty:
         return positive
@@ -186,6 +192,10 @@ def jitter_boxes(boxes: torch.Tensor, jitter: BoxJitter) -> torch.Tensor:
 
     low = (centers - sizes / 2).clamp(0.0, 1.0)
     high = (centers + sizes / 2).clamp(0.0, 1.0)
+
+    edges = boxes[:, :2] - boxes[:, 2:] / 2, boxes[:, :2] + boxes[:, 2:] / 2
+    low = torch.where(edges[0] <= 0.0, torch.zeros_like(low), low)
+    high = torch.where(edges[1] >= 1.0, torch.ones_like(high), high)
     return torch.cat([(low + high) / 2, high - low], dim=1)
 
 

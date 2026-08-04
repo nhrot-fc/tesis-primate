@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from scipy.optimize import linear_sum_assignment
 from torch import Tensor, nn
-from torchvision.ops import box_convert, distance_box_iou, distance_box_iou_loss
+from torchvision.ops import box_convert, generalized_box_iou, generalized_box_iou_loss
 
 Target = dict[str, Tensor]
 Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
@@ -35,7 +35,7 @@ class HungarianMatcher(nn.Module):
 
         cost_class = -probabilities[:, target_labels]
         cost_bbox = torch.cdist(predicted_boxes, target_boxes, p=1)
-        cost_iou = -distance_box_iou(
+        cost_iou = -generalized_box_iou(
             box_convert(predicted_boxes, "cxcywh", "xyxy"),
             box_convert(target_boxes, "cxcywh", "xyxy"),
         )
@@ -117,7 +117,7 @@ class SetCriterion(nn.Module):
         )
         loss_bbox = F.l1_loss(predicted_boxes, matched_boxes, reduction="sum") / num_boxes
         loss_iou = (
-            distance_box_iou_loss(
+            generalized_box_iou_loss(
                 box_convert(predicted_boxes, "cxcywh", "xyxy"),
                 box_convert(matched_boxes, "cxcywh", "xyxy"),
                 reduction="sum",

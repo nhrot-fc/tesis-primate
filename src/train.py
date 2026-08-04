@@ -32,7 +32,7 @@ LOG_DIR = PROJECT_DIR / "logs"
 SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
-MODEL_DIM, N_QUERIES, N_LEVELS = 128, 16, 3
+MODEL_DIM, N_QUERIES, N_LEVELS = 128, 64, 3
 EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 16, 2e-4, 1e-4, 0
 DETAIL_EVERY = 10
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
