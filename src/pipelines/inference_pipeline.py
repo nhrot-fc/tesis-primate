@@ -5,9 +5,9 @@ import pandas as pd
 import soundfile as sf
 import torch
 from torch import nn
-from torchvision.ops import batched_nms
 
 from architectures.deformable_detr import postprocess
+from architectures.iou import suppress_nested
 from core.config import P, Parameters
 from domain.raven import RAVEN_COLUMNS
 from domain.species import LabelSet
@@ -71,7 +71,7 @@ def predict(
     x0, x1, y0, y1 = (torch.cat(t) for t in (x0, x1, y0, y1))
     score, label = torch.cat(score), torch.cat(label)
 
-    keep = batched_nms(torch.stack([x0, y0, x1, y1], dim=-1), score, label, nms_iou)
+    keep = suppress_nested(torch.stack([x0, y0, x1, y1], dim=-1), score, label, nms_iou)
     order = keep[x0[keep].argsort()]
 
     # La caja de una query puede salirse del clip (y la última ventana se pasa del final

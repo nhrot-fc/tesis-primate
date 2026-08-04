@@ -26,23 +26,18 @@ def _f1(precision: float | None, recall: float | None) -> float | None:
 
 
 def format_class_table(metrics: EvalMetrics, labels_names: list[str]) -> str:
-    header = f"{'clase':<20}{'recall':>10}{'precisión':>12}{'F1':>10}"
+    header = f"{'clase':<20}{'recall':>10}"
     rows = [header]
     for class_id, name in enumerate(labels_names):
         recall = metrics.recall_per_class.get(class_id)
-        precision = metrics.precision_per_class.get(class_id)
-        f1 = _f1(precision, recall)
-        rows.append(
-            f"{name:<20}{format_metric(recall):>10}"
-            f"{format_metric(precision):>12}{format_metric(f1):>10}"
-        )
+        rows.append(f"{name:<20}{format_metric(recall):>10}")
     return "\n".join(rows)
 
 
 def format_report(
     checkpoint: Path, split: str, n_windows: int, labels_names: list[str], metrics: EvalMetrics
 ) -> str:
-    score = operating_score(metrics.recall_agnostic, metrics.fp_per_tp_agnostic)
+    score = operating_score(metrics.recall_agnostic, metrics.precision_agnostic)
     f1_agn = _f1(metrics.precision_agnostic, metrics.recall_agnostic)
     ap_values = [ap for ap in metrics.ap_agnostic.values() if ap is not None]
     mean_ap = sum(ap_values) / len(ap_values) if ap_values else None
@@ -57,7 +52,6 @@ def format_report(
         f"recall_agn={format_metric(metrics.recall_agnostic)} "
         f"precision_agn={format_metric(metrics.precision_agnostic)} "
         f"F1_agn={format_metric(f1_agn)} "
-        f"FP/TP={format_metric(metrics.fp_per_tp_agnostic, digits=2)} "
         f"operating_score={score:.3f}",
         "AP agnóstico de clase -> "
         + ", ".join(

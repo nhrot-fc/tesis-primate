@@ -33,8 +33,8 @@ SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
 MODEL_DIM, N_QUERIES, N_LEVELS = 128, 16, 3
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 64, 2e-4, 1e-4, 0
-DETAIL_EVERY = 4
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 16, 2e-4, 1e-4, 0
+DETAIL_EVERY = 10
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
 METRIC_IOU_THRESHOLD = 0.5
 OPERATING_SCORE_THRESHOLD = 0.5
@@ -63,13 +63,10 @@ def training_config() -> dict[str, object]:
 
 
 def operating_score(
-    recall: float | None, fp_per_tp: float | None, beta: float = CHECKPOINT_SELECTION_BETA
+    recall: float | None, precision: float | None, beta: float = CHECKPOINT_SELECTION_BETA
 ) -> float:
-    # `None` = métrica indefinida (split sin GT, o ni un TP en el punto de operación).
-    # Un checkpoint así no puede ganar la selección, así que vale 0.
-    if recall is None or fp_per_tp is None:
+    if recall is None or precision is None:
         return 0.0
-    precision = 1.0 / (1.0 + fp_per_tp)
     return (1 + beta**2) * precision * recall / (beta**2 * precision + recall + 1e-9)
 
 
@@ -129,6 +126,22 @@ def format_confusion(confusion: Tensor, names: list[str]) -> str:
     return "\n".join(rows)
 
 
+def format_top_confusions(confusion: Tensor, names: list[str], top_k: int = 5) -> str:
+    off = confusion.clone()
+    off.fill_diagonal_(0)
+    off[:, -1] = 0
+    flat = off.flatten()
+    k = min(top_k, int((flat > 0).sum()))
+    if k == 0:
+        return "  (ninguna)"
+    counts, indices = flat.topk(k)
+    lines = []
+    for count, index in zip(counts.tolist(), indices.tolist(), strict=False):
+        i, j = divmod(index, off.shape[1])
+        lines.append(f"  {names[i]} -> {names[j]}: {int(count)}")
+    return "\n".join(lines)
+
+
 def format_recall_per_class(recall_per_class: dict[int, float | None], names: list[str]) -> str:
     return ", ".join(
         f"{names[class_id]}={format_metric(recall)}"
@@ -173,7 +186,8 @@ def build_model(n_classes: int, steps_per_epoch: int, device: str) -> TrainingCo
 
 def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics, score: float) -> None:
     logger.info(
-        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s FP/TP=%s score=%.3f",
+        "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s "
+        "precision_agn=%s score=%.3f",
         epoch + 1,
         EPOCHS,
         train_losses.total,
@@ -182,7 +196,7 @@ def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics, score:
         val_metrics.mean_iou,
         METRIC_IOU_THRESHOLD,
         format_metric(val_metrics.recall_agnostic),
-        format_metric(val_metrics.fp_per_tp_agnostic, digits=2),
+        format_metric(val_metrics.precision_agnostic),
         score,
     )
 
@@ -193,10 +207,6 @@ def log_detail(val_metrics: EvalMetrics, labels: LabelSet) -> None:
         format_recall_per_class(val_metrics.recall_per_class, labels.names),
     )
     logger.info(
-        "Precisión por clase -> %s",
-        format_recall_per_class(val_metrics.precision_per_class, labels.names),
-    )
-    logger.info(
         "AP agnóstico de clase -> %s",
         ", ".join(
             f"{threshold}={format_metric(ap)}"
@@ -204,8 +214,8 @@ def log_detail(val_metrics: EvalMetrics, labels: LabelSet) -> None:
         ),
     )
     logger.info(
-        "Matriz de confusión (queries emparejadas):\n%s",
-        format_confusion(val_metrics.confusion, labels.names),
+        "Confusiones más frecuentes (queries emparejadas):\n%s",
+        format_top_confusions(val_metrics.confusion, labels.names),
     )
 
 
@@ -227,13 +237,11 @@ def append_metrics(
             "mean_iou": val_metrics.mean_iou,
             "recall_agnostic": val_metrics.recall_agnostic,
             "precision_agnostic": val_metrics.precision_agnostic,
-            "fp_per_tp_agnostic": val_metrics.fp_per_tp_agnostic,
             "operating_score": score,
             "ap_agnostic": {
                 str(threshold): ap for threshold, ap in sorted(val_metrics.ap_agnostic.items())
             },
             "recall_per_class": val_metrics.recall_per_class,
-            "precision_per_class": val_metrics.precision_per_class,
         },
     }
     with path.open("a", encoding="utf-8") as handle:
@@ -273,7 +281,7 @@ class BestTracker:
                 "config": self.config,
                 "epoch": epoch,
                 "recall_agn": val_metrics.recall_agnostic,
-                "fp_per_tp": val_metrics.fp_per_tp_agnostic,
+                "precision_agn": val_metrics.precision_agnostic,
             },
             self.checkpoint_path,
         )
@@ -338,7 +346,7 @@ def train(
             detailed=detailed,
             desc=f"val {progress}",
         )
-        score = operating_score(val_metrics.recall_agnostic, val_metrics.fp_per_tp_agnostic)
+        score = operating_score(val_metrics.recall_agnostic, val_metrics.precision_agnostic)
 
         log_epoch(epoch, train_losses, val_metrics, score)
         append_metrics(metrics_path, epoch, train_losses, val_metrics, learning_rate, score)
@@ -350,10 +358,10 @@ def train(
     if tracker.best_metrics is None:
         raise RuntimeError("No se completó ninguna época.")
     logger.info(
-        "mejor recall_agn@%.2f de validación: %s (FP/TP=%s, score=%.3f) -> %s",
+        "mejor recall_agn@%.2f de validación: %s (precision_agn=%s, score=%.3f) -> %s",
         METRIC_IOU_THRESHOLD,
         format_metric(tracker.best_metrics.recall_agnostic),
-        format_metric(tracker.best_metrics.fp_per_tp_agnostic, digits=2),
+        format_metric(tracker.best_metrics.precision_agnostic),
         tracker.best_score,
         checkpoint_path,
     )
@@ -366,6 +374,11 @@ if __name__ == "__main__":
     setup_project_path(PROJECT_DIR)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    device_idx = 2
+    if device == "cuda":
+        torch.cuda.set_device(device_idx)
+        device = f"cuda:{device_idx}"
+
     logger.info("device: %s", device)
 
     labels, _meta, train_dataset, val_dataset = load_datasets()

@@ -256,7 +256,7 @@ class ASTDeformableDETR(nn.Module):
         n_classes: int = 1,
         freeze: bool = True,
         n_frames: int | None = None,
-        time_stride: int = 5,
+        time_stride: int = 2,
         n_levels: int = 3,
         n_mels: int = 128,
     ):
