@@ -19,7 +19,7 @@ FloatArray = npt.NDArray[np.float64]
 BOX_COORDINATES_SLICE = slice(0, 4)  # cx, cy, w, h
 LABEL_INDEX = 4  # id de clase en el `LabelSet`, en 0..N-1
 N_BOX_COLS = 5
-MIN_BOX_SIZE = 1e-3  # ancho/alto normalizado mínimo para que una caja sea utilizable
+MIN_BOX_SIZE = 1e-3
 
 
 class ClipWindow(NamedTuple):
@@ -32,7 +32,6 @@ class ClipWindow(NamedTuple):
 def _boxes_in_window(
     group: pd.DataFrame, class_ids: FloatArray, clip_start_s: float, params: Parameters
 ) -> FloatArray:
-    """Cajas normalizadas de los eventos que solapan lo suficiente con la ventana."""
     begin = group["begin_time_s"].to_numpy()
     end = group["end_time_s"].to_numpy()
 
@@ -47,9 +46,6 @@ def _boxes_in_window(
     y1 = np.clip(hz_to_y(group["high_freq_hz"].to_numpy()[keep], params), 0.0, 1.0)
 
     boxes = np.stack([(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, class_ids[keep]], axis=-1)
-    # Una anotación enteramente por encima de `f_max` (o al ras del borde del clip) se
-    # recorta a una caja de área cero: IoU 0 para siempre y un target de tamaño 0 que
-    # el modelo no puede alcanzar. Mejor descartarla que entrenar contra ella.
     usable = (boxes[:, 2] >= MIN_BOX_SIZE) & (boxes[:, 3] >= MIN_BOX_SIZE)
     return boxes[usable]
 
@@ -61,10 +57,6 @@ def build_manifest(
     empty_ratio: float = 0.0,
     seed: int = 42,
 ) -> list[ClipWindow]:
-    """`empty_ratio` es la proporción objetivo de ventanas sin cajas en el manifiesto
-    final (ej. 0.4 -> ~40% vacías). Se muestrean al azar del pool de vacías disponibles;
-    si no alcanzan para llegar al objetivo, se devuelven todas las que haya. En 0.0
-    (default) no se agrega ninguna ventana vacía, como antes."""
     if not 0.0 <= empty_ratio < 1.0:
         raise ValueError(f"empty_ratio debe estar en [0, 1): {empty_ratio}")
 
@@ -89,7 +81,6 @@ def build_manifest(
     if empty_ratio <= 0.0 or not empty:
         return positive
 
-    # empty / (positive + empty) = empty_ratio  =>  empty = positive * ratio / (1 - ratio)
     n_empty = min(len(empty), round(len(positive) * empty_ratio / (1 - empty_ratio)))
     keep_idx = np.random.default_rng(seed).choice(len(empty), size=n_empty, replace=False)
     return positive + [empty[i] for i in keep_idx]
@@ -104,7 +95,6 @@ def split_manifest(
     if not np.isclose(sum(ratios), 1.0):
         raise ValueError(f"los ratios deben sumar 1.0: {ratios} suma {sum(ratios)}")
 
-    # conteos[archivo] = vector (n_classes,) de cajas por clase
     counts: dict[str, np.ndarray] = defaultdict(lambda: np.zeros(n_classes))
     windows_by_file: dict[str, list[ClipWindow]] = defaultdict(list)
     for window in manifest:
@@ -139,7 +129,6 @@ def split_manifest(
             current[best] += counts[file]
             n_windows[best] += len(windows_by_file[file])
 
-    # archivos sin ninguna caja (ventanas vacías): equilibrar solo por tamaño
     for file in files:
         if file not in assigned:
             best = int(np.argmax(target_windows - n_windows))
@@ -172,16 +161,9 @@ class CallBoxDataset(Dataset):
             "labels": torch.from_numpy(window.boxes[:, LABEL_INDEX].astype(np.int64)),
         }
 
+
 @dataclass(frozen=True)
 class BoxJitter:
-    """Ruido sobre las cajas del target, sin tocar el espectrograma.
-
-    Las anotaciones no son exactas: los bordes de una vocalización son difusos y cada
-    anotador los corta distinto. Perturbar la caja en cada `__getitem__` (o sea, un
-    jitter distinto por época) evita que el modelo memorice las coordenadas exactas de
-    cada ventana y lo empuja a aprender el evento, no la anotación.
-    """
-
     scale: float = 0.15  # ±15% de ancho y alto
     shift: float = 0.10  # corrimiento en el eje temporal, en fracción del ancho de la caja
     min_size: float = 0.02  # ancho/alto mínimo tras el jitter, en fracción del clip
@@ -192,7 +174,6 @@ def _uniform(shape: tuple[int, ...], low: float, high: float) -> torch.Tensor:
 
 
 def jitter_boxes(boxes: torch.Tensor, jitter: BoxJitter) -> torch.Tensor:
-    """Cajas cxcywh normalizadas -> cajas perturbadas, siempre dentro del clip [0, 1]."""
     if not len(boxes):
         return boxes
 
@@ -203,33 +184,18 @@ def jitter_boxes(boxes: torch.Tensor, jitter: BoxJitter) -> torch.Tensor:
     shift = _uniform((len(boxes), 1), -jitter.shift, jitter.shift) * sizes[:, :1]
     centers = centers + torch.cat([shift, torch.zeros_like(shift)], dim=1)
 
-    # recorte en xyxy y no en el centro: una llamada que ya venía cortada por el borde
-    # del clip se queda pegada al borde en vez de moverse hacia adentro.
     low = (centers - sizes / 2).clamp(0.0, 1.0)
     high = (centers + sizes / 2).clamp(0.0, 1.0)
     return torch.cat([(low + high) / 2, high - low], dim=1)
 
 
 class CachedCallBoxDataset(Dataset):
-    """Split materializado por `create_dataset.py`: tensores ya listos en `path`,
-    sin I/O de audio ni cómputo de espectrograma en cada `__getitem__`."""
-
     def __init__(self, path: Path, jitter: BoxJitter | None = None):
         cache = torch.load(path, weights_only=False)
         self.images: torch.Tensor = cache["images"]
         self.boxes: list[torch.Tensor] = cache["boxes"]
         self.labels: list[torch.Tensor] = cache["labels"]
         self.jitter = jitter  # sólo en train: validar contra cajas perturbadas no sirve
-
-    def use_precomputed(self, features: torch.Tensor) -> None:
-        """Sustituye los espectrogramas por features ya calculadas del backbone congelado.
-
-        Todo lo de abajo (collate, jitter, targets) sigue igual: lo único que cambia es
-        qué tensor viaja como "imagen" hasta el modelo.
-        """
-        if len(features) != len(self.images):
-            raise ValueError(f"{len(features)} features para {len(self.images)} ventanas")
-        self.images = features
 
     def __len__(self) -> int:
         return len(self.images)

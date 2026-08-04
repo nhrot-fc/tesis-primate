@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,8 +10,6 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     HF_TOKEN: SecretStr | None = None
-    GOOGLE_DRIVE_FOLDER_ID: str | None = None
-    GOOGLE_DRIVE_CREDENTIALS_PATH: Path | None = None
     PROJECT_DIR: Path = Path.cwd()
     CHECKPOINTS_DIR: Path | None = None
 
@@ -25,14 +24,6 @@ class Settings(BaseSettings):
     def data_dir(self) -> Path:
         return self.PROJECT_DIR / "data"
 
-    @property
-    def zip_dir(self) -> Path:
-        return self.data_dir / "zip"
-
-    @property
-    def raw_dir(self) -> Path:
-        return self.data_dir / "raw"
-
 
 @dataclass
 class Parameters:
@@ -40,8 +31,8 @@ class Parameters:
     clip_len_s: float = 3.0
     clip_hop_s: float = 1.5
     min_overlap: float = 0.5
-    pad_mode: str = "noise"  # relleno de la última ventana: "noise" | "zeros"
-    pad_seed: int = 0  # semilla del relleno, para que la inferencia sea reproducible
+    pad_mode: Literal["noise", "zeros"] = "noise"
+    pad_seed: int = 0
 
     # STFT
     target_sr: int = 44100

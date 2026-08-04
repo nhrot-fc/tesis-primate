@@ -7,22 +7,17 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
-from torchvision.ops import batched_nms, box_convert
+from torchvision.ops import batched_nms, box_convert, box_iou
 from tqdm.auto import tqdm
 
 from architectures.deformable_detr import predict_scores
-from architectures.iou import get_iou_fn
+from architectures.iou import box_iou_pairwise
 
 Target = dict[str, Tensor]
 Batch = tuple[Tensor, list[Target]]
 
 LOSS_KEYS: tuple[str, ...] = ("total", "cls", "bbox", "iou")
 IouFn = Callable[[Tensor, Tensor], Tensor]
-
-# Las métricas se reportan siempre en IoU estándar, aunque el matcher y la pérdida usen
-# otro criterio de solape (`iomin`): un número comparable con la literatura no debería
-# depender de cómo se emparejó. Es configurable en `evaluate` por si hace falta lo otro.
-METRIC_IOU_TYPE = "iou"
 
 
 class Losses(NamedTuple):
@@ -222,7 +217,6 @@ def evaluate(
     ap_thresholds: tuple[float, ...] = (0.25, 0.3, 0.5, 0.75),
     score_threshold: float = 0.5,
     nms_iou: float | None = 0.3,
-    metric_iou_type: str = METRIC_IOU_TYPE,
     desc: str = "val",
 ) -> EvalMetrics:
     model.eval()
@@ -237,8 +231,8 @@ def evaluate(
             "métricas de emparejamiento y la pérdida hablan de asignaciones distintas."
         )
 
-    iou_fn = get_iou_fn(metric_iou_type)
-    pairwise_iou_fn = get_iou_fn(metric_iou_type, pairwise=True)
+    iou_fn = box_iou
+    pairwise_iou_fn = box_iou_pairwise
     totals = dict.fromkeys(LOSS_KEYS, 0.0)
     matched, matched_correct, iou_sum = 0, 0, 0.0
     # filas=clase real, columnas=clase predicha + "no-objeto" (background_id = n_classes)

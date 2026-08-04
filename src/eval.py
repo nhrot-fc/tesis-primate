@@ -44,8 +44,6 @@ def format_report(
     score = operating_score(metrics.recall_agnostic, metrics.fp_per_tp_agnostic)
     f1_agn = _f1(metrics.precision_agnostic, metrics.recall_agnostic)
     ap_values = [ap for ap in metrics.ap_agnostic.values() if ap is not None]
-    # Promedio sobre umbrales de IoU (estilo COCO AP@[.5:.95]), no sobre clases: sigue
-    # siendo agnóstico de clase, así que no es un mAP.
     mean_ap = sum(ap_values) / len(ap_values) if ap_values else None
     lines = [
         f"checkpoint: {checkpoint}",
@@ -99,11 +97,8 @@ def main() -> None:
         dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn, pin_memory=True
     )
 
-    matcher_iou_type = config.get("matcher_iou_type", "iou")
-    matcher = HungarianMatcher(iou_type=matcher_iou_type)
-    criterion = SetCriterion(
-        n_classes=len(loaded.labels), matcher=matcher, iou_type=matcher_iou_type
-    ).to(device)
+    matcher = HungarianMatcher()
+    criterion = SetCriterion(n_classes=len(loaded.labels), matcher=matcher).to(device)
 
     metrics = evaluate(
         loaded.model,

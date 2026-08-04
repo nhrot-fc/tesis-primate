@@ -42,6 +42,12 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
     excluded = annotations[["species", "call_type"]].apply(tuple, axis=1).isin(EXCLUDED_PAIRS)
     annotations = annotations[~excluded]
     annotations["low_freq_hz"] = annotations["low_freq_hz"].clip(lower=P.f_min)
+    for old_pairs, new_pair in JOINED_PAIRS.items():
+        for old_pair in old_pairs:
+            joined = (annotations["species"] == old_pair[0]) & (
+                annotations["call_type"] == old_pair[1]
+            )
+            annotations.loc[joined, ["species", "call_type"]] = new_pair
     logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
 
     pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
@@ -57,14 +63,6 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
 
     experiment_df = annotations[pairs.isin(valid_pairs)].copy()
     experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
-
-    for old_pairs, new_pair in JOINED_PAIRS.items():
-        for old_pair in old_pairs:
-            experiment_df.loc[
-                (experiment_df["species"] == old_pair[0])
-                & (experiment_df["call_type"] == old_pair[1]),
-                ["species", "call_type", "label"],
-            ] = new_pair + ("/".join(new_pair),)
 
     labels = LabelSet(experiment_df["label"])
     logger.info(

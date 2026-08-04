@@ -33,8 +33,6 @@ CHECKPOINT_DIR = PROJECT_DIR / "checkpoints"
 LOG_DIR = PROJECT_DIR / "logs"
 
 # --- Preprocesado ---------------------------------------------------------------
-# El dataset (manifest + mel + cajas) se materializa aparte con `create_dataset.py`;
-# acá sólo se carga lo que ya quedó cacheado en `CACHE_DIR`.
 SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
@@ -42,7 +40,6 @@ MODEL_DIM, N_QUERIES, N_LEVELS = 128, 16, 3
 EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 64, 2e-4, 1e-4, 0
 DETAIL_EVERY = 4
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
-MATCHER_IOU_TYPE = "iou"
 METRIC_IOU_THRESHOLD = 0.5
 OPERATING_SCORE_THRESHOLD = 0.5
 NMS_IOU = 0.3
@@ -62,7 +59,6 @@ def training_config() -> dict[str, object]:
         "learning_rate": LEARNING_RATE,
         "weight_decay": WEIGHT_DECAY,
         "box_jitter": asdict(BOX_JITTER),
-        "matcher_iou_type": MATCHER_IOU_TYPE,
         "metric_iou_threshold": METRIC_IOU_THRESHOLD,
         "operating_score_threshold": OPERATING_SCORE_THRESHOLD,
         "nms_iou": NMS_IOU,
@@ -102,9 +98,6 @@ def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBox
             f"no hay dataset cacheado en {CACHE_DIR}. Corré `python src/create_dataset.py` primero."
         )
     meta = json.loads((CACHE_DIR / "meta.json").read_text())
-    # El modelo ya no usa estas estadísticas (normaliza la salida del PCEN, ver
-    # `ASTDeformableDETR.pcen_norm`), pero su ausencia sigue delatando un caché viejo:
-    # esos guardaban el mel ya estandarizado por clip, o sea otra entrada.
     if not meta.get("normalization"):
         raise ValueError(
             f"{CACHE_DIR / 'meta.json'} no tiene las estadísticas de normalización: es un caché "
@@ -156,19 +149,14 @@ class TrainingComponents(NamedTuple):
 
 
 def build_model(n_classes: int, steps_per_epoch: int, device: str) -> TrainingComponents:
-    # Sin estadísticas de normalización acá: las del caché son del mel de potencia, y lo
-    # que hay que normalizar es la salida del PCEN, que se mueve mientras entrena. El
-    # modelo las estima solo (`ASTDeformableDETR.pcen_norm`).
     model = ASTDeformableDETR(
         dim=MODEL_DIM,
         n_queries=N_QUERIES,
         n_classes=n_classes,
         n_levels=N_LEVELS,
     ).to(device)
-    matcher = HungarianMatcher(iou_type=MATCHER_IOU_TYPE)
-    criterion = SetCriterion(n_classes=n_classes, matcher=matcher, iou_type=MATCHER_IOU_TYPE).to(
-        device
-    )
+    matcher = HungarianMatcher()
+    criterion = SetCriterion(n_classes=n_classes, matcher=matcher).to(device)
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = OneCycleLR(
@@ -240,8 +228,6 @@ def append_metrics(
             "losses": val_metrics.losses._asdict(),
             "accuracy": val_metrics.accuracy,
             "mean_iou": val_metrics.mean_iou,
-            # `*_agnostic`: agnósticas de clase, ver `EvalMetrics`. El nombre viaja al
-            # jsonl para que nadie las lea después como si fueran recall/AP por especie.
             "recall_agnostic": val_metrics.recall_agnostic,
             "precision_agnostic": val_metrics.precision_agnostic,
             "fp_per_tp_agnostic": val_metrics.fp_per_tp_agnostic,
@@ -315,7 +301,7 @@ def train(
     )
 
     CHECKPOINT_DIR.mkdir(exist_ok=True)
-    name = f"{MODEL_DIM}d_{N_QUERIES}q_{MATCHER_IOU_TYPE}iou_{n_classes}cls"
+    name = f"{MODEL_DIM}d_{N_QUERIES}q_{n_classes}cls"
     checkpoint_path = CHECKPOINT_DIR / f"{name}_best.pth"
     labels_path = CHECKPOINT_DIR / f"{name}_labels.json"
 

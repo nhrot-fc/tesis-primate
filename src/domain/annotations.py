@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from slugify import slugify
 
-from domain.species import CALL_TYPES, VALID_PAIRS
+from domain.species import CALL_TYPES, VALID_PAIRS, Species
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ MAX_FREQ_HZ = 22050.0
 MIN_DURATION_S = 0.01
 
 DROP_COLUMNS = ["selection", "view", "channel", "reference", "begin_file", "file_offset_s"]
-CALL_SYNONYMS = {
+MANUAL_SYNONYMS = {
     "noises": NOISE,
     "cs_a": "cs",
     "whinnie": "whc",
@@ -24,7 +24,7 @@ CALL_SYNONYMS = {
     "php": "phc",
     "sqr": "sqc",
     "tc": "tr",
-} | {label: code for codes in CALL_TYPES.values() for code, label in codes.items()}
+}
 
 MANUAL_FIXES: dict[tuple[str, str], tuple[str, str]] = {("aa", "hc"): ("aa", "hm")}
 
@@ -35,12 +35,17 @@ def clean_annotations(df: pd.DataFrame, species_dir: str) -> pd.DataFrame:
     df.columns = [slugify(col, separator="_") for col in df.columns]
     df = df.drop(columns=DROP_COLUMNS, errors="ignore")
 
+    species = species_dir.split("__")[-1].lower()
+    species_enum = next((s for s in Species if s.name.lower() == species), None)
+    label_synonyms = (
+        {label: code for code, label in CALL_TYPES[species_enum].items()} if species_enum else {}
+    )
     df["call_type"] = (
         df["call_type"]
         .map(lambda v: slugify(v, separator="_") or None if isinstance(v, str) else None)
-        .replace(CALL_SYNONYMS)
+        .replace(MANUAL_SYNONYMS | label_synonyms)
     )
-    df["species"] = species_dir.split("__")[-1].lower()
+    df["species"] = species
     df = df[df["call_type"].notna() & df["call_type"].ne(NOISE)]
 
     for (bad_sp, bad_ct), (sp, ct) in MANUAL_FIXES.items():
@@ -74,6 +79,6 @@ def load_annotations(root: Path) -> pd.DataFrame:
             frame = pd.read_csv(annotation_path, sep="\t")
             frame["audio_path"] = str(wav_path)
             frames.append(clean_annotations(frame, species_dir))
-        except Exception as exc:  # anotación corrupta o con columnas inesperadas
+        except Exception as exc:
             logger.warning("%s: %s", annotation_path.name, exc)
     return pd.concat(frames, ignore_index=True)

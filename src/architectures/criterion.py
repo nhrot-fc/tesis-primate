@@ -1,18 +1,12 @@
-"""Matcher húngaro y pérdida de conjunto de DETR (Carion et al., 2020).
-
-Sigue la implementación de referencia de facebookresearch/detr: el canal
-`n_classes` del head es el "no-objeto" y las cajas se comparan en `xyxy`.
-"""
-
 from typing import Any
 
 import torch
 import torch.nn.functional as F
 from scipy.optimize import linear_sum_assignment
 from torch import Tensor, nn
-from torchvision.ops import box_convert
+from torchvision.ops import box_convert, box_iou
 
-from architectures.iou import get_iou_fn
+from architectures.iou import box_iou_pairwise
 
 Target = dict[str, Tensor]
 Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
@@ -25,13 +19,11 @@ class HungarianMatcher(nn.Module):
         cost_class: float = 1.0,
         cost_bbox: float = 5.0,
         cost_iou: float = 2.0,
-        iou_type: str = "iou",
     ) -> None:
         super().__init__()
         self.cost_class = cost_class
         self.cost_bbox = cost_bbox
         self.cost_iou = cost_iou
-        self.iou_fn = get_iou_fn(iou_type)
 
     @torch.no_grad()
     def forward(self, outputs: Outputs, targets: list[Target]) -> Indices:
@@ -45,7 +37,7 @@ class HungarianMatcher(nn.Module):
 
         cost_class = -probabilities[:, target_labels]
         cost_bbox = torch.cdist(predicted_boxes, target_boxes, p=1)
-        cost_iou = -self.iou_fn(
+        cost_iou = -box_iou(
             box_convert(predicted_boxes, "cxcywh", "xyxy"),
             box_convert(target_boxes, "cxcywh", "xyxy"),
         )
@@ -53,11 +45,6 @@ class HungarianMatcher(nn.Module):
         cost_matrix = (
             self.cost_class * cost_class + self.cost_bbox * cost_bbox + self.cost_iou * cost_iou
         )
-        # Dimensión explícita, no `-1`: en un batch entero sin anotaciones (habitual en
-        # bioacústica, donde el clip negativo es la norma) `cost_matrix` tiene 0 elementos
-        # y `view(B, Q, -1)` no puede inferir el tamaño. Con el 0 explícito el resto del
-        # camino aguanta: `split([0, 0, ...])` devuelve matrices (Q, 0) y
-        # `linear_sum_assignment` sobre ellas devuelve asignaciones vacías.
         cost_matrix = cost_matrix.view(batch_size, num_queries, target_boxes.shape[0]).cpu()
 
         sizes = [len(target["boxes"]) for target in targets]
@@ -85,16 +72,14 @@ class SetCriterion(nn.Module):
         weight_class: float = 1.0,
         weight_bbox: float = 5.0,
         weight_iou: float = 2.0,
-        iou_type: str = "iou",
     ) -> None:
         super().__init__()
         self.n_classes = n_classes
         self.background_id = n_classes
-        self.matcher = matcher or HungarianMatcher(iou_type=iou_type)
+        self.matcher = matcher or HungarianMatcher()
         self.weight_class = weight_class
         self.weight_bbox = weight_bbox
         self.weight_iou = weight_iou
-        self.iou_fn = get_iou_fn(iou_type, pairwise=True)
 
         empty_weight = torch.ones(n_classes + 1)
         empty_weight[self.background_id] = eos_coef
@@ -133,7 +118,7 @@ class SetCriterion(nn.Module):
             ]
         )
         loss_bbox = F.l1_loss(predicted_boxes, matched_boxes, reduction="sum") / num_boxes
-        iou = self.iou_fn(
+        iou = box_iou_pairwise(
             box_convert(predicted_boxes, "cxcywh", "xyxy"),
             box_convert(matched_boxes, "cxcywh", "xyxy"),
         )
@@ -151,14 +136,6 @@ class SetCriterion(nn.Module):
         }
 
     def forward(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
-        """Pérdida en la salida final + cada salida intermedia (`aux_outputs`), **sumadas**.
-
-        Cada capa se empareja por separado (la asignación óptima cambia de capa a capa)
-        y aporta con peso 1, como en DETR. Promediar por número de capas dejaba a la
-        capa final —la única que se usa en inferencia— con 1/6 del gradiente, y dejaba
-        el `clip_grad=0.1` (que es el valor de DETR, calibrado para la suma) recortando
-        en una escala 6 veces menor de la que le corresponde.
-        """
         aux_outputs_list: list[dict[str, Tensor]] = outputs.get("aux_outputs", [])
         losses = self._compute(outputs, targets)
         for aux_outputs in aux_outputs_list:
