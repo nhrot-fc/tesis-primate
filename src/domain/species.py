@@ -5,14 +5,14 @@ from enum import Enum
 
 
 class Species(Enum):
-    AA = "night_monkey"
-    AC = "peruvian_spider_monkey"
-    AS = "howler_monkey"
-    CC = "shock_headed_capuchin_monkey"
-    LW = "weddells_saddleback_tamarin"
-    PT = "toppins_titi_monkey"
-    SB = "bolivian_squirrel_monkey"
-    SM = "large_headed_capuchin"
+    AA = "night_monkey"  # Aotus azarae
+    AC = "peruvian_spider_monkey"  # Ateles chamek
+    AS = "howler_monkey"  # Alouatta sara
+    CC = "shock_headed_capuchin_monkey"  # Cebus cuscinus
+    LW = "weddells_saddleback_tamarin"  # Leontocebus weddelli
+    PT = "toppins_titi_monkey"  # Plecturocebus toppini
+    SB = "bolivian_squirrel_monkey"  # Saimiri boliviensis peruviensis
+    SM = "large_headed_capuchin"  # Sapajus macrocephalus
 
 
 # Tipos de llamada válidos por especie: código en la anotación -> nombre legible.

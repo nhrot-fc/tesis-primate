@@ -52,3 +52,7 @@ logs/
 secrets/
 .vscode/
 *.zip
+
+# Add exceptions for research build artifacts
+!research/build/
+!research/build/main.pdf
