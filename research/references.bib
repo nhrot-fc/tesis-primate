@@ -1,4 +1,3 @@
-
 @misc{airale_nbm_2025,
   title      = {{NBM}: an Open Dataset for the Acoustic Monitoring of Nocturnal Migratory Birds in Europe},
   url        = {http://arxiv.org/abs/2412.03633},
@@ -13,15 +12,36 @@
   year       = {2025},
   eprinttype = {arxiv},
   eprint     = {2412.03633 [cs]},
-  keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/SUUJ4Z6A/Airale et al. - 2025 - NBM an Open Dataset for the Acoustic Monitoring of Nocturnal Migratory Birds in Europe.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/8CYLEM7T/2412.html:text/html}
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+}
+
+@article{blumstein_acoustic_2011,
+  title   = {Acoustic monitoring in terrestrial environments using microphone arrays: applications, technological considerations and prospectus},
+  author  = {Blumstein, Daniel T. and Mennill, Daniel J. and Clemins, Patrick and Girod, Lewis and Yao, Kung and Patricelli, Gail and Deppe, Jill L. and Krakauer, Alan H. and Clark, Christopher and Cortopassi, Kathryn A. and Hanser, Sean F. and McCowan, Brenda and Ali, Andreas M. and Kirschel, Alexander N. G.},
+  journal = {Journal of Applied Ecology},
+  volume  = {48},
+  number  = {3},
+  pages   = {758--767},
+  year    = {2011},
+  doi     = {10.1111/j.1365-2664.2011.01993.x}
+}
+
+@article{bonet-sola_comparative_2021,
+  title   = {A Comparative Survey of Feature Extraction and Machine Learning Methods in Diverse Acoustic Environments},
+  author  = {Bonet-Sol\'a, Daniel and Alsina-Pag\`es, Rosa Ma},
+  journal = {Sensors},
+  volume  = {21},
+  number  = {4},
+  pages   = {1274},
+  year    = {2021},
+  doi     = {10.3390/s21041274}
 }
 
 @article{Campos_Krofel_Rio-Maior_Renna_2025,
   title        = {HOWLish: a CNN for automated wolf howl detection},
   url          = {http://dx.doi.org/10.1002/rse2.70024},
   doi          = {10.1002/rse2.70024},
-  abstractnote = {<jats:title>Abstract</jats:title><jats:p>Automated sound‐event detection is crucial for large‐scale passive acoustic monitoring of wildlife, but the availability of ready‐to‐use tools is narrow across taxa. Machine learning is currently the state‐of‐the‐art framework for developing sound‐event detection tools tailored to specific wildlife calls. Gray wolves (<jats:italic>Canis lupus</jats:italic>), a species with intricate management necessities, howl spontaneously for long‐distance intra‐ and inter‐pack communication, which makes them a prime target for passive acoustic monitoring. Yet, there is currently no pre‐trained, open‐access tool that allows reliable automated detection of wolf howls in recorded soundscapes. We collected 50 137 h of soundscape data, where we manually labeled 841 unique howling events. We used this dataset to fine‐tune VGGish—a convolutional neural network trained for audio classification—effectively retraining it for wolf howl detection. HOWLish correctly classified 77% of the wolf howling examples present on our test set, with a false positive rate of 1.74%; still, precision was low (0.006) granted extreme class imbalance (7124:1). During field tests, HOWLish retrieved 81.3% of the observed howling events while offering a 15‐fold reduction in operator time when compared to fully manual detection. This work establishes the baseline for open‐access automated wolf howl detection. HOWLish facilitates remote sensing of wild wolf populations, offering new opportunities in non‐invasive large‐scale monitoring and communication research of wolves. The knowledge gap we addressed here spans across many soniferous taxa, to which our approach also tallies.</jats:p>},
+  abstractnote = {<jats:title>Abstract</jats:title><jats:p>Automated sound-event detection is crucial for large‐scale passive acoustic monitoring of wildlife, but the availability of ready‐to‐use tools is narrow across taxa. Machine learning is currently the state‐of‐the‐art framework for developing sound‐event detection tools tailored to specific wildlife calls. Gray wolves (<jats:italic>Canis lupus</jats:italic>), a species with intricate management necessities, howl spontaneously for long‐distance intra‐ and inter‐pack communication, which makes them a prime target for passive acoustic monitoring. Yet, there is currently no pre‐trained, open‐access tool that allows reliable automated detection of wolf howls in recorded soundscapes. We collected 50 137 h of soundscape data, where we manually labeled 841 unique howling events. We used this dataset to fine‐tune VGGish-a convolutional neural network trained for audio classification-effectively retraining it for wolf howl detection. HOWLish correctly classified 77% of the wolf howling examples present on our test set, with a false positive rate of 1.74%; still, precision was low (0.006) granted extreme class imbalance (7124:1). During field tests, HOWLish retrieved 81.3% of the observed howling events while offering a 15‐fold reduction in operator time when compared to fully manual detection. This work establishes the baseline for open‐access automated wolf howl detection. HOWLish facilitates remote sensing of wild wolf populations, offering new opportunities in non‐invasive large‐scale monitoring and communication research of wolves. The knowledge gap we addressed here spans across many soniferous taxa, to which our approach also tallies.</jats:p>},
   journal      = {Remote Sensing in Ecology and Conservation},
   publisher    = {Wiley},
   author       = {Campos, Rafael and Krofel, Miha and Rio-Maior, Helena and Renna, Francesco},
@@ -30,23 +50,11 @@
   language     = {en}
 }
 
-@article{dias_enhancing_2025,
-  title        = {Enhancing sound-based classification of birds and anurans with spectrogram representations and acoustic indices in neural network architectures},
-  volume       = {90},
-  year         = {2025},
-  issn         = {1574-9541},
-  url          = {https://www.sciencedirect.com/science/article/pii/S1574954125002419},
-  doi          = {10.1016/j.ecoinf.2025.103232},
-  abstract     = {Research on habitat monitoring via passive acoustics has generated vast audio resources for soundscape ecology, calling for automated methods to aid data analysis. While Deep Neural Networks excel in classification tasks, their application to audio collected in the wild presents several challenges compared to other audio sources. Nature recordings present ambient noise, sparsity of targeted events, various vocalizations attributed to the same species, and fine-grained sound variance. In addition to sound characterization, we lack annotated datasets of suitable size to train networks accurately for detecting and identifying animal species. To leverage the best from these models, this work investigates different audio input representations, particularly spectrogram-based and acoustic indices, which are pre-processed features extracted from audio sources. We evaluate the impact of combining both input categories, often treated separately, in various architectures, employing quantification in the training process as well as transfer learning. With that, we propose guidelines for using neural networks to classify species based on their sound patterns, even for a small dataset. We have evaluated these guidelines with a dataset collected in Brazil under different environmental conditions and a dataset for detecting and classifying acoustic scenes and events. The empirical results ratify that the pre-trained network learns better (accuracy up to 0.91); that using acoustic features can improve the results marginally (up to 13 percentage points of difference) depending on the time-frequency input and main architecture; and that combining spectrogram representations with acoustic features yields the best results (accuracy up to 0.91).},
-  pages        = {103232},
-  journal      = {Ecological Informatics},
-  journaltitle = {Ecological Informatics},
-  shortjournal = {Ecological Informatics},
-  author       = {Dias, Fábio Felix and Ponti, Moacir Antonelli and Minghim, Rosane},
-  urldate      = {2026-01-30},
-  date         = {2025-12-01},
-  keywords     = {Convolutional neural networks, Feature fusion, Sound event detection},
-  file         = {ScienceDirect Full Text PDF:/home/nhrot-fc/Zotero/storage/2RYVXH58/Dias et al. - 2025 - Enhancing sound-based classification of birds and anurans with spectrogram representations and acous.pdf:application/pdf;ScienceDirect Snapshot:/home/nhrot-fc/Zotero/storage/RJNNYAVR/S1574954125002419.html:text/html}
+@book{chapman_crisp-dm_2000,
+  title     = {{CRISP}-{DM} 1.0: Step-by-step data mining guide},
+  author    = {Chapman, Pete and Clinton, Julian and Kerber, Randy and Khabaza, Thomas and Reinartz, Thomas and Shearer, Colin and Wirth, R\"udiger},
+  publisher = {SPSS Inc.},
+  year      = {2000}
 }
 
 @misc{ebbers_sound_2024,
@@ -59,10 +67,10 @@
   author     = {Ebbers, Janek and Germain, Francois G. and Wichern, Gordon and Roux, Jonathan Le},
   urldate    = {2026-01-31},
   date       = {2024-06-06},
+  year       = {2024},
   eprinttype = {arxiv},
   eprint     = {2406.04212 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/B247C8Z4/Ebbers et al. - 2024 - Sound Event Bounding Boxes.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/W5NLWWW7/2406.html:text/html}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
 
 @article{escobar-amado_computer_2024,
@@ -81,8 +89,29 @@
   urldate      = {2026-01-31},
   date         = {2024-01},
   year         = {2024},
-  keywords     = {Arctic, bearded seals, computer vision, Computer vision, deep learning, marine mammals, Object detection, Oceans, Prediction algorithms, Seals, Spectrogram, You Only Look Once Version 5 ({YOLOV}5)},
-  file         = {Snapshot:/home/nhrot-fc/Zotero/storage/JLWY2Y82/10261873.html:text/html}
+  keywords     = {Arctic, bearded seals, computer vision, Computer vision, deep learning, marine mammals, Object detection, Oceans, Prediction algorithms, Seals, Spectrogram, You Only Look Once Version 5 ({YOLOV}5)}
+}
+
+@article{gebru_2021,
+  title   = {Datasheets for Datasets},
+  author  = {Gebru, Timnit and Morgenstern, Jamie and Vecchione, Briana and Vaughan, Jennifer Wortman and Wallach, Hanna and Daume III, Hal and Crawford, Kate},
+  journal = {Communications of the ACM},
+  volume  = {64},
+  number  = {12},
+  pages   = {86--92},
+  year    = {2021},
+  doi     = {10.1145/3458723}
+}
+
+@article{gibb_2018,
+  title   = {Emerging opportunities and challenges in passive acoustic monitoring},
+  author  = {Gibb, Rory and Browning, Ella and Glover-Kapfer, Paul and Jones, Kate E.},
+  journal = {Methods in Ecology and Evolution},
+  volume  = {9},
+  number  = {5},
+  pages   = {1191--1201},
+  year    = {2018},
+  doi     = {10.1111/2041-210X.12978}
 }
 
 @article{gonzalez_yolo-based_2025,
@@ -102,29 +131,19 @@
   date         = {2025-12-23},
   year         = {2025},
   langid       = {english},
-  keywords     = {event detection, object detection, transfer learning, {YOLO}},
-  file         = {Full Text PDF:/home/nhrot-fc/Zotero/storage/8YSNTM2R/González et al. - 2025 - YOLO-Based Transfer Learning for Sound Event Detection Using Visual Object Detection Techniques.pdf:application/pdf}
+  keywords     = {event detection, object detection, transfer learning, {YOLO}}
 }
 
-@article{gul_survey_2023,
-  title        = {A Survey of Audio Enhancement Algorithms for Music, Speech, Bioacoustics, Biomedical, Industrial, and Environmental Sounds by Image U-Net},
-  volume       = {11},
-  issn         = {2169-3536},
-  url          = {https://ieeexplore.ieee.org/document/10371226},
-  doi          = {10.1109/ACCESS.2023.3344813},
-  abstract     = {The recent surge in the use of Deep Neural Networks ({DNNs}) has also made its mark in the field of Audio Enhancement ({AE}), providing much better quality than the classical methods. Although, there are dedicated audio processing {DNNs}, yet, many recent models of {AE} have utilized U-Net: a {DNN} based on Convolutional Neural Network ({CNN}), fundamentally developed for image segmentation. It is found that the useful features hidden in the time domain are highlighted when the audio signal is converted to a spectrogram, which can be treated as an image. In this article, we will review the recent work, utilizing U-Nets for different {AE} applications. Different than other published reviews, this review focuses entirely on {AE} techniques based on image U-Nets. We will discuss the need for {AE}, U-Net comparison to other {DNNs}, the benefits of converting the audio to 2D, input representations that are useful for different {AE} applications, the architecture of vanilla U-Net and the pre-trained models, variations in vanilla architecture incorporated in different E models, and the state-of-the-art {AE} algorithms based on U-Net in various applications. Apart from speech and music, this article discusses a wide range of audio signals e.g. environmental, biomedical, bioacoustics, and industrial sounds, not covered collectively in a single article in previously published studies. The article ends with the discussion of colored spectrograms in future {AE} applications.},
-  pages        = {144456--144483},
-  journal      = {{IEEE} Access},
-  journaltitle = {{IEEE} Access},
-  author       = {Gul, Sania and Khan, Muhammad Salman},
-  urldate      = {2026-01-30},
-  date         = {2023},
-  year         = {2023},
-  keywords     = {Artificial neural networks, {CNNs}, Convolutional neural networks, Image processing, image processing deep neural networks, Music, pre-trained networks, Recurrent neural networks, spectrogram, Spectrogram, Speech enhancement, Time-domain analysis, U-Net},
-  file         = {Full Text PDF:/home/nhrot-fc/Zotero/storage/MRFBXX47/Gul and Khan - 2023 - A Survey of Audio Enhancement Algorithms for Music, Speech, Bioacoustics, Biomedical, Industrial, an.pdf:application/pdf}
+@inproceedings{he_deep_2016,
+  title     = {Deep Residual Learning for Image Recognition},
+  author    = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {770--778},
+  year      = {2016},
+  doi       = {10.1109/CVPR.2016.90}
 }
 
- @misc{he_sounddet_2021,
+@misc{he_sounddet_2021,
   title      = {{SoundDet}: Polyphonic Moving Sound Event Detection and Localization from Raw Waveform},
   url        = {http://arxiv.org/abs/2106.06969},
   doi        = {10.48550/arXiv.2106.06969},
@@ -134,13 +153,23 @@
   publisher  = {{arXiv}},
   author     = {He, Yuhang and Trigoni, Niki and Markham, Andrew},
   urldate    = {2026-01-31},
+  year       = {2021},
   date       = {2021-08-21},
   eprinttype = {arxiv},
   eprint     = {2106.06969 [cs]},
-  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/HFMPD9V9/He et al. - 2021 - SoundDet Polyphonic Moving Sound Event Detection and Localization from Raw Waveform.pdf:application/pdf}
+  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
 
+@article{heinicke_2015,
+  title   = {Assessing the performance of a semi-automated acoustic monitoring system for primates},
+  author  = {Heinicke, Stefanie and Kalan, Ammie K. and Wagner, Oliver J. and Mundry, Roger and Lukashevich, H. and Kuhl, Hjalmar S.},
+  journal = {Methods in Ecology and Evolution},
+  volume  = {6},
+  number  = {7},
+  pages   = {753--763},
+  year    = {2015},
+  doi     = {10.1111/2041-210X.12384}
+}
 
 @article{jin_semantic_2022,
   title        = {Semantic segmentation-based whistle extraction of Indo-Pacific Bottlenose Dolphin residing at the coast of Jeju island},
@@ -157,11 +186,10 @@
   urldate      = {2026-01-30},
   date         = {2022-04-01},
   year         = {2022},
-  keywords     = {Indo-Pacific Bottlenose Dolphin, Jeju Island, Passive acoustic monitoring, Semantic segmentation-based whistle extraction, Snapping shrimp sound},
-  file         = {ScienceDirect Full Text PDF:/home/nhrot-fc/Zotero/storage/6ZNG9PKJ/Jin et al. - 2022 - Semantic segmentation-based whistle extraction of Indo-Pacific Bottlenose Dolphin residing at the co.pdf:application/pdf}
+  keywords     = {Indo-Pacific Bottlenose Dolphin, Jeju Island, Passive acoustic monitoring, Semantic segmentation-based whistle extraction, Snapping shrimp sound}
 }
 
-@article{kahl_birdnet_2021,
+ @article{kahl_birdnet_2021,
   title        = {{BirdNET}: A deep learning solution for avian diversity monitoring},
   volume       = {61},
   issn         = {1574-9541},
@@ -177,9 +205,10 @@
   urldate      = {2026-01-31},
   date         = {2021-03-01},
   year         = {2021},
-  keywords     = {Avian diversity, Bioacoustics, Bird sound recognition, Conservation, Convolutional neural networks, Deep learning, Passive acoustic monitoring},
-  file         = {ScienceDirect Full Text PDF:/home/nhrot-fc/Zotero/storage/BDHPHLEY/Kahl et al. - 2021 - BirdNET A deep learning solution for avian diversity monitoring.pdf:application/pdf}
+  keywords     = {Avian diversity, Bioacoustics, Bird sound recognition, Conservation, Convolutional neural networks, Deep learning, Passive acoustic monitoring}
 }
+
+
 
 @article{kao_cosine_2025,
   title        = {Cosine similarity-based few-shot bioacoustic event detection with automatic frequency range identification in Mel-spectrograms},
@@ -196,8 +225,28 @@
   author       = {Kao, Sheng-Lun and Liu, Yi-Wen},
   urldate      = {2026-01-31},
   date         = {2025-07-07},
-  year         = {2025},
-  file         = {Snapshot:/home/nhrot-fc/Zotero/storage/QNK6NDG5/10.html:text/html}
+  year         = {2025}
+}
+
+@article{kath_leveraging_2024,
+  title   = {Leveraging transfer learning and active learning for data annotation in passive acoustic monitoring of wildlife},
+  author  = {Kath, Hannes and Serafini, Patricia P. and Campos, Ivan B. and Gouv\^ea, Thiago S. and Sonntag, Daniel},
+  journal = {Ecological Informatics},
+  volume  = {82},
+  pages   = {102710},
+  year    = {2024},
+  doi     = {10.1016/j.ecoinf.2024.102710}
+}
+
+@article{kershenbaum_acoustic_2016,
+  title   = {Acoustic sequences in non-human animals: a tutorial review and prospectus},
+  author  = {Kershenbaum, Arik and Blumstein, Daniel T. and Roch, Marie A. and Ak\c{c}ay, {\c{C}}a\u{g}lar and Backus, Gregory and Bee, Mark A. and Bohn, Kirsten and Cao, Yan and Carter, Gerald and Ca{\v s}ar, Cristiane and Coen, Michael and DeRuiter, Stacy L. and Doyle, Laurance and Edelman, Shimon and Ferrer-i-Cancho, Ramon and Freeberg, Todd M. and Garland, Ellen C. and Gustison, Morgan and Harley, Heidi E. and Huetz, Chlo\'e and Hughes, Melissa and Hyland Bruno, Julia and Ilany, Amiyaal and Jin, Dezhe Z. and Johnson, Michael and Ju, Chenghui and Karnowski, Jeremy and Lohr, Bernard and Manser, Marta B. and McCowan, Brenda and Mercado III, Eduardo and Narins, Peter M. and Piel, Alex and Rice, Megan and Salmi, Roberta and Sasahara, Kazutoshi and Sayigh, Laela and Shiu, Yu and Taylor, Charles and Vallejo, Edgar E. and Waller, Sara and Zamora-Guti\'errez, Veronica},
+  journal = {Biological Reviews},
+  volume  = {91},
+  number  = {1},
+  pages   = {13--52},
+  year    = {2016},
+  doi     = {10.1111/brv.12160}
 }
 
 @inproceedings{koga_lead_2024,
@@ -213,30 +262,66 @@
   author     = {Koga, Naoki and Bando, Yoshiaki and Imoto, Keisuke},
   urldate    = {2026-01-31},
   date       = {2024-12},
+  year       = {2024},
   note       = {{ISSN}: 2640-0103},
-  keywords   = {Acoustics, Annotations, Asia, Data models, Event detection, Information processing, Lead, Training},
-  file       = {Snapshot:/home/nhrot-fc/Zotero/storage/XRTJRFC6/10848643.html:text/html;Submitted Version:/home/nhrot-fc/Zotero/storage/FCE9A49Z/Koga et al. - 2024 - LEAD Dataset How Can Labels for Sound Event Detection Vary Depending on Annotators.pdf:application/pdf}
+  keywords   = {Acoustics, Annotations, Asia, Data models, Event detection, Information processing, Lead, Training}
 }
 
-@article{li_anchor-free_2025,
-  title        = {Anchor-Free {SNR}-Aware Signal Detector for Wideband Signal Detection Framework},
-  volume       = {14},
-  rights       = {http://creativecommons.org/licenses/by/3.0/},
-  issn         = {2079-9292},
-  url          = {https://www.mdpi.com/2079-9292/14/11/2260},
-  doi          = {10.3390/electronics14112260},
-  abstract     = {The spectrogram-based wideband signal detection framework has garnered increasing attention in various wireless communication applications. However, t...},
-  number       = {11},
-  journal      = {Electronics},
-  journaltitle = {Electronics},
-  publisher    = {publisher},
-  author       = {Li, Chunhui and Xiang, Xin and Mao, Hu and Wang, Rui and Qi, Yonglei},
-  urldate      = {2026-01-30},
-  date         = {2025-05-30},
-  year         = {2025},
-  langid       = {english},
-  keywords     = {detection network, enhanced spectrogram, feature fusion, prior knowledge, wideband signal detection framework},
-  file         = {Full Text PDF:/home/nhrot-fc/Zotero/storage/JP9FEACS/Li et al. - 2025 - Anchor-Free SNR-Aware Signal Detector for Wideband Signal Detection Framework.pdf:application/pdf}
+@article{leroy_reliability_2018,
+  title   = {On the reliability of acoustic annotations and automatic detections of {A}ntarctic blue whale calls under different acoustic conditions},
+  author  = {Leroy, Emmanuelle C. and Thomisch, Karolin and Royer, Jean-Yves and Boebel, Olaf and Van Opzeeland, Ilse},
+  journal = {The Journal of the Acoustical Society of America},
+  volume  = {144},
+  number  = {2},
+  pages   = {740--754},
+  year    = {2018},
+  doi     = {10.1121/1.5049803}
+}
+
+@article{Leroy_Thomisch_Royer_Boebel_Van_Opzeeland_2018,
+  title        = {On the reliability of acoustic annotations and automatic detections of Antarctic blue whale calls under different acoustic conditions},
+  volume       = {144},
+  url          = {http://dx.doi.org/10.1121/1.5049803},
+  doi          = {10.1121/1.5049803},
+  abstractnote = {<jats:p>Evaluation of the performance of computer-based algorithms to automatically detect mammalian vocalizations often relies on comparisons between detector outputs and a reference data set, generally obtained by manual annotation of acoustic recordings. To explore the reproducibility of these annotations, inter- and intra-analyst variability in manually annotated Antarctic blue whale (ABW) Z-calls are investigated by two analysts in acoustic data from two ocean basins representing different scenarios in terms of call abundance and background noise. Manual annotations exhibit strong inter- and intra-analyst variability, with less than 50% agreement between analysts. This variability is mainly caused by the difficulty of reliably and reproducibly distinguishing single calls in an ABW chorus made of overlaying distant calls. Furthermore, the performance of two automated detectors, based on spectrogram correlation or subspace-detection strategy, is evaluated by comparing detector output to a “conservative” manually annotated reference data set, which comprises only analysts’ matching events. This study highlights the need for a standardized approach for human annotations and automatic detections, including a quantitative description of their performance, to improve the comparability of acoustic data, which is particularly relevant in the context of collaborative approaches in collecting and analyzing large passive acoustic data sets.</jats:p>},
+  number       = {2},
+  journal      = {The Journal of the Acoustical Society of America},
+  publisher    = {Acoustical Society of America (ASA)},
+  author       = {Leroy, Emmanuelle C. and Thomisch, Karolin and Royer, Jean-Yves and Boebel, Olaf and Van Opzeeland, Ilse},
+  year         = {2018},
+  month        = aug,
+  pages        = {740-754},
+  language     = {en}
+}
+
+@inproceedings{lin_2014,
+  title     = {Microsoft COCO: Common Objects in Context},
+  author    = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Hays, James and Perona, Pietro and Ramanan, Deva and Dollár, Piotr and Zitnick, C. Lawrence},
+  booktitle = {Computer Vision -- ECCV 2014},
+  pages     = {740--755},
+  year      = {2014}
+}
+
+@article{lostanlen_robust_2019,
+  title   = {Robust sound event detection in bioacoustic sensor networks},
+  author  = {Lostanlen, Vincent and Salamon, Justin and Farnsworth, Andrew and Kelling, Steve and Bello, Juan Pablo},
+  journal = {PLOS ONE},
+  volume  = {14},
+  number  = {10},
+  pages   = {e0214168},
+  year    = {2019},
+  doi     = {10.1371/journal.pone.0214168}
+}
+
+@article{meedeniya_survey_2023,
+  title   = {A Survey on Deep Learning Based Forest Environment Sound Classification at the Edge},
+  author  = {Meedeniya, Dulani and Ariyarathne, Isuru and Bandara, Meelan and Jayasundara, Roshinie and Perera, Charith},
+  journal = {ACM Computing Surveys},
+  volume  = {56},
+  number  = {3},
+  pages   = {1--36},
+  year    = {2023},
+  doi     = {10.1145/3618104}
 }
 
 @inproceedings{nam_frequency_2022,
@@ -248,24 +333,8 @@
   pages      = {2763--2767},
   author     = {Nam, Hyeonuk and Kim, Seong-Hu and Ko, Byeong-Yun and Park, Yong-Hwa},
   urldate    = {2026-01-31},
-  date       = {2022},
-  file       = {Submitted Version:/home/nhrot-fc/Zotero/storage/KCD5756Z/Nam et al. - 2022 - Frequency Dynamic Convolution Frequency-Adaptive Pattern Recognition for Sound Event Detection.pdf:application/pdf}
-}
-
-@misc{nam_pushing_2024,
-  title      = {Pushing the Limit of Sound Event Detection with Multi-Dilated Frequency Dynamic Convolution},
-  url        = {http://arxiv.org/abs/2406.13312},
-  doi        = {10.48550/arXiv.2406.13312},
-  abstract   = {Frequency dynamic convolution ({FDY} conv) has been a milestone in the sound event detection ({SED}) field, but it involves a substantial increase in model size due to multiple basis kernels. In this work, we propose partial frequency dynamic convolution ({PFD} conv), which concatenates outputs by conventional 2D convolution and {FDY} conv as static and dynamic branches respectively. {PFD}-{CRNN} with proportion of dynamic branch output as one eighth reduces 51.9\% of parameters from {FDY}-{CRNN} while retaining the performance. Additionally, we propose multi-dilated frequency dynamic convolution ({MDFD} conv), which integrates multiple dilated frequency dynamic convolution ({DFD} conv) branches with different dilation size sets and a static branch within a single convolution layer. Resulting best {MDFD}-{CRNN} with five non-dilated {FDY} Conv branches, three differently dilated {DFD} Conv branches and a static branch achieved 3.17\% improvement in polyphonic sound detection score ({PSDS}) over {FDY} conv without class-wise median filter. Application of sound event bounding box as post processing on best {MDFD}-{CRNN} achieved true {PSDS}1 of 0.485, which is the state-of-the-art score in {DESED} dataset without external dataset or pretrained model. From the results of extensive ablation studies, we discovered that not only multiple dynamic branches but also specific proportion of static branch helps {SED}. In addition, non-dilated dynamic branches are necessary in addition to dilated dynamic branches in order to obtain optimal {SED} performance. The results and discussions on ablation studies further enhance understanding and usability of {FDY} conv variants.},
-  number     = {{arXiv}:2406.13312},
-  publisher  = {{arXiv}},
-  author     = {Nam, Hyeonuk and Park, Yong-Hwa},
-  urldate    = {2026-01-31},
-  date       = {2024-09-20},
-  eprinttype = {arxiv},
-  eprint     = {2406.13312 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/U9N892WS/Nam and Park - 2024 - Pushing the Limit of Sound Event Detection with Multi-Dilated Frequency Dynamic Convolution.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/ZRHKS97S/2406.html:text/html}
+  year       = {2022},
+  date       = {2022}
 }
 
 @misc{nam_self_2024,
@@ -277,31 +346,35 @@
   publisher  = {{arXiv}},
   author     = {Nam, Hyeonuk and Min, Deokki and Choi, Seungdeok and Choi, Inhan and Park, Yong-Hwa},
   urldate    = {2026-01-31},
+  year       = {2024},
   date       = {2024-09-20},
   eprinttype = {arxiv},
   eprint     = {2406.15725 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/VDVR8KKT/Nam et al. - 2024 - Self Training and Ensembling Frequency Dependent Networks with Coarse Prediction Pooling and Sound E.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/F536Q3SU/2406.html:text/html}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
 
-@incollection{ngatched_nkouatchah_detection_2023,
-  location  = {Cham},
-  title     = {Detection and Classification of Underwater Acoustic Events},
-  volume    = {459},
-  isbn      = {978-3-031-25270-9 978-3-031-25271-6},
-  url       = {https://link.springer.com/10.1007/978-3-031-25271-6_16},
-  doi       = {10.1007/978-3-031-25271-6_16},
-  abstract  = {The knowledge of fish assemblage in submarine environments is a keystone for fishery management but remain poorly monitored due to heavy methodological requirements for scientific fish sampling. Passive acoustic monitoring appeared as a promising non intrusive alternative to fish sampling, potentially providing more objective data at a reduced cost, but still rely on heavy expert analysis of the acoustic signal. We propose in this paper to improve passive acoustic monitoring efficiency with deep learning. Using convolutional recurrent neural networks, we built and tested models able to detect two types of fish vocalizations as well as motor engine sounds. The detector had a high F1 score ({\textgreater}0.94) and an error rate ({\textless}0.18). These methods are promising tools for the fish communities management as they allow automatic fish sounds detection and classification.},
-  pages     = {251--269},
-  booktitle = {Pan-African Artificial Intelligence and Smart Systems},
-  publisher = {Springer Nature Switzerland},
-  author    = {Kammegne, Caouis and Bayet, Theophile and Brochier, Timothee and Idy, Diop and Denis, Christophe and Tremblay, Yann},
-  editor    = {Ngatched Nkouatchah, Telex Magloire and Woungang, Isaac and Tapamo, Jules-Raymond and Viriri, Serestina},
-  urldate   = {2026-01-30},
-  date      = {2023},
-  langid    = {english},
-  note      = {Series Title: Lecture Notes of the Institute for Computer Sciences, Social Informatics and Telecommunications Engineering},
-  file      = {PDF:/home/nhrot-fc/Zotero/storage/GLXKMIS7/Kammegne et al. - 2023 - Detection and Classification of Underwater Acoustic Events.pdf:application/pdf}
+@article{nguyen_assessing_2021,
+  title   = {Assessing inter-annotator agreement from collaborative annotation campaign in marine bioacoustics},
+  author  = {Nguyen Hong Duc, Paul and Torterotot, Ma\"elle and Samaran, Flore and White, Paul R. and G\'erard, Odile and Adam, Olivier and Cazau, Dorian},
+  journal = {Ecological Informatics},
+  volume  = {61},
+  pages   = {101185},
+  year    = {2021},
+  doi     = {10.1016/j.ecoinf.2020.101185}
+}
+
+@article{Nguyen_Hong_Duc_Torterotot_Samaran_White_Gérard_Adam_Cazau_2021,
+  title     = {Assessing inter-annotator agreement from collaborative annotation campaign in marine bioacoustics},
+  volume    = {61},
+  url       = {http://dx.doi.org/10.1016/j.ecoinf.2020.101185},
+  doi       = {10.1016/j.ecoinf.2020.101185},
+  journal   = {Ecological Informatics},
+  publisher = {Elsevier BV},
+  author    = {Nguyen Hong Duc, Paul and Torterotot, Maëlle and Samaran, Flore and White, Paul R. and Gérard, Odile and Adam, Olivier and Cazau, Dorian},
+  year      = {2021},
+  month     = mar,
+  pages     = {101185},
+  language  = {en}
 }
 
 @article{nolasco_learning_2023,
@@ -310,7 +383,7 @@
   issn         = {1574-9541},
   url          = {https://www.sciencedirect.com/science/article/pii/S157495412300287X},
   doi          = {10.1016/j.ecoinf.2023.102258},
-  abstract     = {Automatic detection and classification of animal sounds has many applications in biodiversity monitoring and animal behavior. In the past twenty years, the volume of digitised wildlife sound available has massively increased, and automatic classification through deep learning now shows strong results. However, bioacoustics is not a single task but a vast range of small-scale tasks (such as individual {ID}, call type, emotional indication) with wide variety in data characteristics, and most bioacoustic tasks do not come with strongly-labelled training data. The standard paradigm of supervised learning, focussed on a single large-scale dataset and/or a generic pre-trained algorithm, is insufficient. In this work we recast bioacoustic sound event detection within the {AI} framework of few-shot learning. We adapt this framework to sound event detection, such that a system can be given the annotated start/end times of as few as 5 events, and can then detect events in long-duration audio—even when the sound category was not known at the time of algorithm training. We introduce a collection of open datasets designed to strongly test a system's ability to perform few-shot sound event detections, and we present the results of a public contest to address the task. Our analysis shows that prototypical networks are a very common used strategy and they perform well when enhanced with adaptations for general characteristics of animal sounds. However, systems with high time resolution capabilities perform the best in this challenge. We demonstrate that widely-varying sound event durations are an important factor in performance, as well as non-stationarity, i.e. gradual changes in conditions throughout the duration of a recording. For fine-grained bioacoustic recognition tasks without massive annotated training data, our analysis demonstrate that few-shot sound event detection is a powerful new method, strongly outperforming traditional signal-processing detection methods in the fully automated scenario.},
+  abstract     = {Automatic detection and classification of animal sounds has many applications in biodiversity monitoring and animal behavior. In the past twenty years, the volume of digitised wildlife sound available has massively increased, and automatic classification through deep learning now shows strong results. However, bioacoustics is not a single task but a vast range of small-scale tasks (such as individual {ID}, call type, emotional indication) with wide variety in data characteristics, and most bioacoustic tasks do not come with strongly-labelled training data. The standard paradigm of supervised learning, focussed on a single large-scale dataset and/or a generic pre-trained algorithm, is insufficient. In this work we recast bioacoustic sound event detection within the {AI} framework of few-shot learning. We adapt this framework to sound event detection, such that a system can be given the annotated start/end times of as few as 5 events, and can then detect events in long-duration audio-even when the sound category was not known at the time of algorithm training. We introduce a collection of open datasets designed to strongly test a system's ability to perform few-shot sound event detections, and we present the results of a public contest to address the task. Our analysis shows that prototypical networks are a very common used strategy and they perform well when enhanced with adaptations for general characteristics of animal sounds. However, systems with high time resolution capabilities perform the best in this challenge. We demonstrate that widely-varying sound event durations are an important factor in performance, as well as non-stationarity, i.e. gradual changes in conditions throughout the duration of a recording. For fine-grained bioacoustic recognition tasks without massive annotated training data, our analysis demonstrate that few-shot sound event detection is a powerful new method, strongly outperforming traditional signal-processing detection methods in the fully automated scenario.},
   pages        = {102258},
   journal      = {Ecological Informatics},
   journaltitle = {Ecological Informatics},
@@ -319,8 +392,7 @@
   urldate      = {2026-01-30},
   date         = {2023-11-01},
   year         = {2023},
-  keywords     = {Bioacoustics, Deep learning, Event detection, Few-shot learning},
-  file         = {ScienceDirect Full Text PDF:/home/nhrot-fc/Zotero/storage/USGRNNUI/Nolasco et al. - 2023 - Learning to detect an animal sound from five examples.pdf:application/pdf;ScienceDirect Snapshot:/home/nhrot-fc/Zotero/storage/GHD64XAY/S157495412300287X.html:text/html}
+  keywords     = {Bioacoustics, Deep learning, Event detection, Few-shot learning}
 }
 
 @misc{pham_eventness_2018,
@@ -334,27 +406,20 @@
   author     = {Pham, Phuong and Li, Juncheng and Szurley, Joseph and Das, Samarjit},
   urldate    = {2026-01-31},
   date       = {2018-02-19},
+  year       = {2018},
   eprinttype = {arxiv},
   eprint     = {1712.09668 [cs]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/VKU5TQI7/Pham et al. - 2018 - Eventness Object Detection on Spectrograms for Temporal Localization of Audio Events.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/4I3LPRCM/1712.html:text/html}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
 
-@misc{schmid_improving_2024,
-  title      = {Improving Audio Spectrogram Transformers for Sound Event Detection Through Multi-Stage Training},
-  url        = {http://arxiv.org/abs/2408.00791},
-  doi        = {10.48550/arXiv.2408.00791},
-  abstract   = {This technical report describes the {CP}-{JKU} team's submission for Task 4 Sound Event Detection with Heterogeneous Training Datasets and Potentially Missing Labels of the {DCASE} 24 Challenge. We fine-tune three large Audio Spectrogram Transformers, {PaSST}, {BEATs}, and {ATST}, on the joint {DESED} and {MAESTRO} datasets in a two-stage training procedure. The first stage closely matches the baseline system setup and trains a {CRNN} model while keeping the large pre-trained transformer model frozen. In the second stage, both {CRNN} and transformer are fine-tuned using heavily weighted self-supervised losses. After the second stage, we compute strong pseudo-labels for all audio clips in the training set using an ensemble of all three fine-tuned transformers. Then, in a second iteration, we repeat the two-stage training process and include a distillation loss based on the pseudo-labels, boosting single-model performance substantially. Additionally, we pre-train {PaSST} and {ATST} on the subset of {AudioSet} that comes with strong temporal labels, before fine-tuning them on the Task 4 datasets.},
-  number     = {{arXiv}:2408.00791},
-  publisher  = {{arXiv}},
-  author     = {Schmid, Florian and Primus, Paul and Morocutti, Tobias and Greif, Jonathan and Widmer, Gerhard},
-  urldate    = {2026-01-31},
-  date       = {2024-07-17},
-  eprinttype = {arxiv},
-  eprint     = {2408.00791 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/AEFU3WZ6/Schmid et al. - 2024 - Improving Audio Spectrogram Transformers for Sound Event Detection Through Multi-Stage Training.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/ZN82TFNU/2408.html:text/html}
+@inproceedings{politis_dataset_2020,
+  title     = {A Dataset of Reverberant Spatial Sound Scenes with Moving Sources for Sound Event Localization and Detection},
+  author    = {Politis, Archontis and Adavanne, Sharath and Virtanen, Tuomas},
+  booktitle = {Proceedings of the Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2020)},
+  pages     = {165--169},
+  year      = {2020}
 }
+
 
 @misc{schmid_sound_2026,
   title      = {Sound Event Detection with Boundary-Aware Optimization and Inference},
@@ -363,14 +428,21 @@
   abstract   = {Temporal detection problems appear in many fields including time-series estimation, activity recognition and sound event detection ({SED}). In this work, we propose a new approach to temporal event modeling by explicitly modeling event onsets and offsets, and by introducing boundary-aware optimization and inference strategies that substantially enhance temporal event detection. The presented methodology incorporates new temporal modeling layers - Recurrent Event Detection ({RED}) and Event Proposal Network ({EPN}) - which, together with tailored loss functions, enable more effective and precise temporal event detection. We evaluate the proposed method in the {SED} domain using a subset of the temporally-strongly annotated portion of {AudioSet}. Experimental results show that our approach not only outperforms traditional frame-wise {SED} models with state-of-the-art post-processing, but also removes the need for post-processing hyperparameter tuning, and scales to achieve new state-of-the-art performance across all {AudioSet} Strong classes.},
   number     = {{arXiv}:2601.04178},
   publisher  = {{arXiv}},
-  author     = {Schmid, Florian and Tang, Chi Ian and Parekh, Sanjeel and Ithapu, Vamsi Krishna and Ortiz, Juan Azcarreta and Ferroni, Giacomo and Qian, Yijun and Jasonas, Arnoldas and Frateanu, Cosmin and Clark, Camilla and Widmer, Gerhard and Bilen, Çağdaş},
+  author     = {Schmid, Florian and Tang, Chi Ian and Parekh, Sanjeel and Ithapu, Vamsi Krishna and Ortiz, Juan Azcarreta and Ferroni, Giacomo and Qian, Yijun and Jasonas, Arnoldas and Frateanu, Cosmin and Clark, Camilla and Widmer, Gerhard and Bilen, Cagdas},
   urldate    = {2026-01-31},
+  year       = {2026},
   date       = {2026-01-07},
   eprinttype = {arxiv},
   eprint     = {2601.04178 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/4NGGVYB5/Schmid et al. - 2026 - Sound Event Detection with Boundary-Aware Optimization and Inference.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/W3CKWHI4/2601.html:text/html}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
+
+% ===================================================================
+% Entradas añadidas para los capítulos 1 (métodos), 2, 3 y el anexo.
+% Los DOI de Lostanlen, Kath, Bonet-Solà y Meedeniya provienen de la
+% tabla de documentos encontrados del informe E3; el resto son
+% referencias canónicas. VERIFICAR volumen y páginas antes de entregar.
+% ===================================================================
 
 @misc{song_frequency-aware_2024,
   title      = {Frequency-aware convolution for sound event detection},
@@ -381,6 +453,7 @@
   publisher  = {{arXiv}},
   author     = {Song, Tao and Zhang, {WenWen}},
   urldate    = {2026-01-31},
+  year       = {2024},
   date       = {2024-10-28},
   eprinttype = {arxiv},
   eprint     = {2403.13252 [cs]},
@@ -397,44 +470,14 @@
   shorttitle   = {Computational bioacoustics with deep learning},
   abstract     = {Animal vocalisations and natural soundscapes are fascinating objects of study, and contain valuable evidence about animal behaviours, populations and ecosystems. They are studied in bioacoustics and ecoacoustics, with signal processing and analysis an important component. Computational bioacoustics has accelerated in recent decades due to the growth of affordable digital sound recording devices, and to huge progress in informatics such as big data, signal processing and machine learning. Methods are inherited from the wider field of deep learning, including speech and image processing. However, the tasks, demands and data characteristics are often different from those addressed in speech or music analysis. There remain unsolved problems, and tasks for which evidence is surely present in many acoustic signals, but not yet realised. In this paper I perform a review of the state of the art in deep learning for computational bioacoustics, aiming to clarify key concepts and identify and analyse knowledge gaps. Based on this, I offer a subjective but principled roadmap for computational bioacoustics with deep learning: topics that the community should aim to address, in order to make the most of future developments in {AI} and informatics, and to use audio data in answering zoological and ecological questions.},
   pages        = {e13152},
+  journal      = {{PeerJ}},
   journaltitle = {{PeerJ}},
   shortjournal = {{PeerJ}},
   author       = {Stowell, Dan},
   urldate      = {2026-01-30},
   date         = {2022-03-21},
-  langid       = {english},
-  file         = {Full Text PDF:/home/nhrot-fc/Zotero/storage/D2UTWE8F/Stowell - 2022 - Computational bioacoustics with deep learning a r.pdf:application/pdf}
-}
-
-@inproceedings{tian_sound_2023,
-  title      = {Sound Event Detection Based on Mel Spectral Envelope Estimation and Regression Detection},
-  issn       = {2837-116X},
-  url        = {https://ieeexplore.ieee.org/document/10400273},
-  doi        = {10.1109/ICSPCC59353.2023.10400273},
-  abstract   = {Binary metrics is employed in traditional deep learning methods of sound event detection({SED}) to determine the presence or absence of an event. However, these binary activity metrics inadequately characterize the nuanced states of events, which limiting the performance of current detection algorithms, particularly in scenarios involving event overlaps. Concurrently, conventional sound event detection algorithms suffer from sluggish detection speeds, resulting in substantial temporal costs. To solve the above problems, a novel sound event detection algorithm based on amplitude envelope estimation and regression detection({EERD}) is proposed in this paper. In this algorithm, firstly the envelope of the Mel Frequency Cepstrum Coefficient({MFCC}) of the audio signal is estimatied, thereby enhanced information concerning the sound events is obtained. Secondly, the regression-based detection is introduced into the network model, so that the algorithm's reliance on post-processing is reduced and concomitantly the detection speed is improved. Empirical validation is conducted on the {TUT} sound event detection dataset. Experiments show that the algorithm proposed in this paper attains superior F-measure for sound event detection contrast to benchmark algorithms, hence heightened detection performance is substantiated. At the same time, detection speed is achieved at least sixfold faster in the proposed algorithm than the conventional segmentation-by-class approach.},
-  eventtitle = {2023 {IEEE} International Conference on Signal Processing, Communications and Computing ({ICSPCC})},
-  pages      = {1--5},
-  booktitle  = {2023 {IEEE} International Conference on Signal Processing, Communications and Computing ({ICSPCC})},
-  author     = {Tian, Maocun and Li, Ruwei and An, Weidong},
-  urldate    = {2026-01-31},
-  date       = {2023-11},
-  note       = {{ISSN}: 2837-116X},
-  keywords   = {Cepstrum, envelope estimate, Estimation, Event detection, Feature extraction, Frequency estimation, Measurement, Mel Frequency Cepstrum Coefficient({MFCC}), regression detection, Signal processing algorithms, sound events detection({SED})},
-  file       = {Snapshot:/home/nhrot-fc/Zotero/storage/BXJ3GMMY/10400273.html:text/html}
-}
-
-@article{turpault_sound_2019,
-  title    = {Sound Event Detection in Domestic Environments with Weakly Labeled Data and Soundscape Synthesis},
-  rights   = {Distributed under the terms of the Creative Commons Attribution 4.0 International ({CC}-{BY}) license.},
-  url      = {http://archive.nyu.edu/handle/2451/60771},
-  doi      = {10.33682/006b-jx26},
-  abstract = {This paper presents Task 4 of the Detection and Classification of Acoustic Scenes and Events ({DCASE}) 2019 challenge and provides a first analysis of the challenge results. The task is a follow-up to Task 4 of {DCASE} 2018, and involves training systems for large-scale detection of sound events using a combination of weakly labeled data, i.e.{\textasciitilde}training labels without time boundaries, and strongly-labeled synthesized data. The paper introduces Domestic Environment Sound Event Detection ({DESED}) dataset mixing a part of last year dataset and an additional synthetic, strongly labeled, dataset provided this year that we'll describe more in detail. We also report the performance of the submitted systems on the official evaluation (test) and development sets as well as several additional datasets. The best systems from this year outperform last year's winning system by about 10{\textbackslash}\% points in terms of F-measure.},
-  author   = {Turpault, Nicolas and Serizel, Romain and Salamon, Justin and Shah, Ankit Parag},
-  urldate  = {2026-01-31},
-  date     = {2019-10},
-  langid   = {english},
-  note     = {Accepted: 2019-10-24T01:50:24Z},
-  file     = {Full Text PDF:/home/nhrot-fc/Zotero/storage/Z6LAU8SI/Turpault et al. - 2019 - Sound Event Detection in Domestic Environments with Weakly Labeled Data and Soundscape Synthesis.pdf:application/pdf}
+  year         = {2022},
+  langid       = {english}
 }
 
 @misc{turpault_training_2020,
@@ -446,11 +489,11 @@
   publisher  = {{arXiv}},
   author     = {Turpault, Nicolas and Serizel, Romain},
   urldate    = {2026-01-31},
+  year       = {2020},
   date       = {2020-07-08},
   eprinttype = {arxiv},
   eprint     = {2007.03931 [cs]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing, Electrical Engineering and Systems Science - Signal Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/JZV7TLVG/Turpault and Serizel - 2020 - Training Sound Event Detection On A Heterogeneous Dataset.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/4F7V869Y/2007.html:text/html}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing, Electrical Engineering and Systems Science - Signal Processing}
 }
 
 @article{venkatesh_you_2022,
@@ -472,8 +515,29 @@
   year         = {2022},
   eprinttype   = {arxiv},
   eprint       = {2109.00962 [eess]},
-  keywords     = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file         = {Preprint PDF:/home/nhrot-fc/Zotero/storage/PYWHCHJH/Venkatesh et al. - 2022 - You Only Hear Once A YOLO-like Algorithm for Audio Segmentation and Sound Event Detection.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/B3GIDVQV/2109.html:text/html}
+  keywords     = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+}
+
+@article{vesely_problem_2008,
+  title   = {Problem Tree: A Problem Structuring Heuristic},
+  author  = {Arno{\v{s}}t Vesel{\'y}},
+  journal = {Central European Journal of Public Policy},
+  volume  = {2},
+  number  = {2},
+  pages   = {68--80},
+  year    = {2008},
+  url     = {https://api.semanticscholar.org/CorpusID:154144462}
+}
+
+@misc{Willem-Pier_Vellinga_2026,
+  title        = {Xeno-canto - Bird sounds from around the world},
+  url          = {https://www.gbif.org/dataset/b1047888-ae52-4179-9dd5-5448ea342a24},
+  doi          = {10.15468/QV0KSN},
+  abstractnote = {This dataset covers the sounds of the Bird sound collection of Xeno-canto (XC). XC is an online database that provides access to sound recordings of wildlife from around the world. The recordings are shared by a growing community of thousands of recordists from around the world, amateurs and professionals alike. The aim of Xeno-canto is to eventually represent sounds of all animals, meaning of all taxa, to subspecies level, of their complete repertoire, with all of the geographic variability, at all stages of development.The website of Xeno-canto (xeno-canto.org) was launched in 2005, and initially focussed on Neotropical birds. The scope of Xeno-canto is gradually widening. XC is run by the Xeno-canto Foundation for Nature Sounds in The Netherlands, with support from Naturalis Biodiversity Center. Please note that the Bird sound dataset shared on GBIF is a subset of the entire collection that is available on https://xeno-canto.org/?gid=1. Only the recordings by recordists who have given their permission to share recording metadata with GBIF are shared here.},
+  publisher    = {Xeno-canto Foundation for Nature Sounds},
+  author       = {Willem-Pier Vellinga},
+  year         = {2026},
+  language     = {en}
 }
 
 @misc{wood_deep_2022,
@@ -485,11 +549,11 @@
   publisher  = {{arXiv}},
   author     = {Wood, Luke and Anderson, Kevin and Gerstoft, Peter and Bell, Richard and Subbaraman, Raghab and Bharadia, Dinesh},
   urldate    = {2026-01-31},
+  year       = {2022},
   date       = {2022-11-01},
   eprinttype = {arxiv},
   eprint     = {2210.16173 [cs]},
-  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/WXFF9VXH/Wood et al. - 2022 - Deep Learning Object Detection Approaches to Signal Identification.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/2K56ZKUM/2210.html:text/html}
+  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
 }
 
 @inproceedings{xiao_dg-sed_2025,
@@ -504,44 +568,29 @@
   booktitle  = {2025 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})},
   author     = {Xiao, Yang and Yin, Han and Bai, Jisheng and Das, Rohan Kumar},
   urldate    = {2026-01-31},
+  year       = {2025},
   date       = {2025-10},
   note       = {{ISSN}: 2640-0103},
-  keywords   = {Adaptation models, Asia, Codes, Data models, Event detection, Frequency-domain analysis, Information processing, Training data},
-  file       = {Snapshot:/home/nhrot-fc/Zotero/storage/TUUB64L6/11249270.html:text/html}
+  keywords   = {Adaptation models, Asia, Codes, Data models, Event detection, Frequency-domain analysis, Information processing, Training data}
 }
 
-@misc{xiao_fmsg-jless_2024,
-  title      = {{FMSG}-{JLESS} Submission for {DCASE} 2024 Task4 on Sound Event Detection with Heterogeneous Training Dataset and Potentially Missing Labels},
-  url        = {http://arxiv.org/abs/2407.00291},
-  doi        = {10.48550/arXiv.2407.00291},
-  abstract   = {This report presents the systems developed and submitted by Fortemedia Singapore ({FMSG}) and Joint Laboratory of Environmental Sound Sensing ({JLESS}) for {DCASE} 2024 Task 4. The task focuses on recognizing event classes and their time boundaries, given that multiple events can be present and may overlap in an audio recording. The novelty this year is a dataset with two sources, making it challenging to achieve good performance without knowing the source of the audio clips during evaluation. To address this, we propose a sound event detection method using domain generalization. Our approach integrates features from bidirectional encoder representations from audio transformers and a convolutional recurrent neural network. We focus on three main strategies to improve our method. First, we apply mixstyle to the frequency dimension to adapt the mel-spectrograms from different domains. Second, we consider training loss of our model specific to each datasets for their corresponding classes. This independent learning framework helps the model extract domain-specific features effectively. Lastly, we use the sound event bounding boxes method for post-processing. Our proposed method shows superior macro-average {pAUC} and polyphonic {SED} score performance on the {DCASE} 2024 Challenge Task 4 validation dataset and public evaluation dataset.},
-  number     = {{arXiv}:2407.00291},
-  publisher  = {{arXiv}},
-  author     = {Xiao, Yang and Yin, Han and Bai, Jisheng and Das, Rohan Kumar},
-  urldate    = {2026-01-31},
-  date       = {2024-06-29},
-  eprinttype = {arxiv},
-  eprint     = {2407.00291 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/6NP4AW4H/Xiao et al. - 2024 - FMSG-JLESS Submission for DCASE 2024 Task4 on Sound Event Detection with Heterogeneous Training Data.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/MBKQYZXY/2407.html:text/html}
+@inproceedings{zhu_sound_2025,
+  title     = {Sound Event Detection using Time-frequency Bounding Boxes with a Self-Supervised Audio Spectrogram Transformer},
+  author    = {Zhu, Zhi and Sato, Yoshinao},
+  booktitle = {Proceedings of the Detection and Classification of Acoustic Scenes and Events 2025 Workshop (DCASE2025)},
+  address   = {Barcelona, Spain},
+  year      = {2025}
 }
 
-@article{zhou_multimodal_2025,
-  title        = {Multimodal mechanical wear fault diagnosis: Fusion of signal characterization and image information},
-  volume       = {28},
-  issn         = {2590-1230},
-  url          = {https://www.sciencedirect.com/science/article/pii/S2590123025032591},
-  doi          = {10.1016/j.rineng.2025.107204},
-  shorttitle   = {Multimodal mechanical wear fault diagnosis},
-  abstract     = {In the industrial sector, diagnosing bearing metal surface wear faults presents several challenges, including limited data sources, difficulty in detecting small defects, and redundancy in fault modes. The main goals of the research are to improve the detection accuracy of small wear defects, solve the problem of multi-scale defect localization, and achieve effective fusion of signal and image information. The method is based on the {YOLOv}8 architecture, utilizing the Faster-{EMA} backbone network and incorporating a multi-scale, lightweight channel-spatial attention mechanism to accurately localize defects of different scales. Meanwhile, the {KernelWarehouse} method is introduced to dynamically optimize convolutional kernels, enabling adaptation to changing industrial conditions and significantly improving feature extraction for wear modes such as cracks, pitting, and scratches. A novel Inner-{MPDIoU} loss function is proposed to enhance bounding box regression accuracy by jointly optimizing center distance and minimum envelope deviation. For comprehensive failure analysis, parallel Transformer branches process synchronized time-frequency domain signals, with cross-modal feature fusion achieved through a self-attention mechanism, achieving a detection accuracy of 82.8\% and a real-time processing speed of 12.2 ms/plot. Compared with existing methods, the mean average precision ({mAP}) is improved by 7.1\%, and the accuracy of failure mode diagnosis increases by 20.5\%. This study offers an effective solution for industrial predictive maintenance, enhancing the reliability and efficiency of wear fault detection in real-world scenarios.},
-  pages        = {107204},
-  journal      = {Results in Engineering},
-  journaltitle = {Results in Engineering},
-  shortjournal = {Results in Engineering},
-  author       = {Zhou, Qifan and Chai, Bosong and Guo, Yingqing and Li, Teng and Zhou, Shan and Wang, Kun and Ye, Yun},
-  urldate      = {2026-01-30},
-  date         = {2025-12-01},
-  year         = {2025},
-  keywords     = {Aero-engine, Mechanical wear, Multi-scale defect detection, Small target localization, {YOLO}},
-  file         = {ScienceDirect Full Text PDF:/home/nhrot-fc/Zotero/storage/BLAUMDJ9/Zhou et al. - 2025 - Multimodal mechanical wear fault diagnosis Fusion of signal characterization and image information.pdf:application/pdf;ScienceDirect Snapshot:/home/nhrot-fc/Zotero/storage/FYU4LKAM/S2590123025032591.html:text/html}
+@inproceedings{Zhu2025,
+  author    = {Zhu, Zhi and Sato, Yoshinao},
+  title     = {Sound Event Detection using Time-frequency Bounding Boxes with a Self-Supervised Audio Spectrogram Transformer},
+  booktitle = {Proceedings of the 10th Workshop on Detection and Classification of Acoustic Scenes and Events (DCASE 2025)},
+  address   = {Barcelona, Spain},
+  month     = {October},
+  year      = {2025},
+  pages     = {150--154},
+  abstract  = {Time-frequency bounding boxes of sound events in audio spectrograms capture essential information across various domains. Nevertheless, previous studies of sound event detection (SED) have focused on detecting temporal boundaries. Although object detection models can be adapted for time-frequency SED, they are intended for image data that exhibit significantly different features compared to audio spectrograms. To address this modality gap, this study employs an audio spectrogram transformer (AST) as the backbone of a detection transformer (DETR). A dataset of whistle sounds from defective wind turbine blades was used for model training and evaluation. The proposed model outperformed a faster region-based convolutional neural network with a residual network backbone, which is an established object detection model. The integration of deformable attention with a multiscale feature pyramid significantly contributed to improving the performance. These results demonstrate the effectiveness of deformable DETR models with an AST backbone for time-frequency SED. Our findings will contribute to advancing time-frequency SED, an area that remains underexplored.},
+  isbn      = {978-84-09-77652-8},
+  doi       = {10.5281/zenodo.17251589}
 }

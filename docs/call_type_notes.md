@@ -4,7 +4,7 @@ Notas del protocolo de anotación: qué significa cada llamada y qué criterio u
 anotadores para dibujar la caja en Raven. No cubre todos los códigos de
 `domain.species.CALL_TYPES`, solo los que tienen nota documentada.
 
-## AA — night_monkey
+## AA - night_monkey
 
 - **gc** (gulp_call): Done to maintain the spatial cohesion of the group. Female.
   Selección: spaced calls. Low frequency. Consider the bottom point.
@@ -13,7 +13,7 @@ anotadores para dibujar la caja en Raven. No cubre todos los códigos de
 - **sc** (squeak_call): Warning call to acknowledge terrestrial danger.
   Selección: entire sequence. Looks like 2 or 3 vertical lines. Sounds like an insect.
 
-## AC — peruvian_spider_monkey
+## AC - peruvian_spider_monkey
 
 - **chc** (chitter_call): Warning call to acknowledge terrestrial danger (researchers), not
   an alarm call. Selección: entire sequence, varying length.
@@ -29,18 +29,18 @@ anotadores para dibujar la caja en Raven. No cubre todos los códigos de
   call, possible predator close by, or when juveniles lost the troop. Selección: spaced
   calls with harmonics.
 
-## AS — howler_monkey
+## AS - howler_monkey
 
 - **hc** (howl_call): Long territorial call. Selección: entire sequence.
 - **bc** (bark_call): Warning call, sometimes happens in the introduction of the howl
   call. Selección: spaced calls.
 
-## CC — shock_headed_capuchin_monkey
+## CC - shock_headed_capuchin_monkey
 
 - **cc** (contact_call): Done to maintain cohesion in the group. Selección: spaced calls
   with harmonics.
 
-## LW — weddells_saddleback_tamarin
+## LW - weddells_saddleback_tamarin
 
 - **cc** (contact_call): Done to maintain cohesion in the group; often followed by a
   response; 3-7 syllables. Selección: entire sequence, different lengths.
@@ -63,7 +63,7 @@ anotadores para dibujar la caja en Raven. No cubre todos los códigos de
 - **vc** (visual_contact_call): Visual acknowledgment, occurs during undisturbed social
   contexts. Selección: entire sequence.
 
-## PT — toppins_titi_monkey
+## PT - toppins_titi_monkey
 
 - **dc** (duet_call): Territorial call made in chorus by a male and female couple.
   Selección: entire sequence, mix of bellow phrases (straight lines - female) and pant
@@ -72,7 +72,7 @@ anotadores para dibujar la caja en Raven. No cubre todos los códigos de
   other individuals about location and distance of the predator. Selección: entire
   sequence, with harmonics.
 
-## SB — bolivian_squirrel_monkey
+## SB - bolivian_squirrel_monkey
 
 - **pcc** (peep_contact_call): Done to maintain cohesion in the group. Selección: entire
   sequence. Can take different shapes. Different length.
@@ -86,7 +86,7 @@ anotadores para dibujar la caja en Raven. No cubre todos los códigos de
   restrained. During or before an attack. Selección: isolated calls, very high pitch
   sounds.
 
-## SM — large_headed_capuchin
+## SM - large_headed_capuchin
 
 - **cc** (contact_call): Done to maintain cohesion in the group. Selección: spaced calls
   with harmonics.
