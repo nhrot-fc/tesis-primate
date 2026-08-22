@@ -1,5 +1,3 @@
-"""Inferencia dentro del propio proceso del visor: sin servidor ni contenedor."""
-
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -22,13 +20,6 @@ def detect(
     batch_size: int = 2,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> pd.DataFrame:
-    """Corre el modelo sobre un audio. Va en el hilo de trabajo: bloquea el suyo.
-
-    Detecta con un umbral bajo a propósito, para que el slider de la ventana pueda
-    explorar hacia abajo; el punto de operación con el que se eligió el checkpoint
-    viaja en `table.attrs` y es donde arranca ese slider.
-    """
-    # Imports diferidos: torch tarda segundos en cargarse y la ventana debe abrir ya.
     import torch
 
     from infer import load_model
@@ -41,9 +32,8 @@ def detect(
     loaded = LOADED[checkpoint_path]
 
     table = predict(
-        loaded.model,
+        loaded,
         audio_path,
-        loaded.labels,
         device,
         score_threshold=min(score_threshold, loaded.score_threshold),
         nms_iou=loaded.nms_iou if nms_iou is None else nms_iou,

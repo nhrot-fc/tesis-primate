@@ -49,6 +49,7 @@ venv/
 data/
 checkpoints/hf/
 logs/
+runs/
 secrets/
 .vscode/
 *.zip

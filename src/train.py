@@ -9,19 +9,21 @@ from typing import NamedTuple
 import torch
 from torch import Tensor, nn
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader
 
 from architectures.criterion import HungarianMatcher, SetCriterion
 from architectures.deformable_detr import ASTDeformableDETR
+from architectures.registry import save_checkpoint, save_labels_json
 from core.config import settings
 from core.setup import setup_logging, setup_project_path
-from domain.dataset import BoxJitter, CachedCallBoxDataset, collate_fn
+from domain.dataset import BoxJitter, CachedCallBoxDataset
 from domain.species import LabelSet
-from pipelines.common import Losses, format_metric
+from pipelines.common import Losses, format_metric, make_loader
 from pipelines.evaluation_pipeline import EvalMetrics, evaluate
 from pipelines.training_pipeline import train_one_epoch
 
 logger = logging.getLogger("training")
+
+ARCHITECTURE = "ast_deformable_detr"
 
 PROJECT_DIR = Path.cwd()
 CACHE_DIR = PROJECT_DIR / "data" / "processed"
@@ -68,21 +70,6 @@ def operating_score(
     if recall is None or precision is None:
         return 0.0
     return (1 + beta**2) * precision * recall / (beta**2 * precision + recall + 1e-9)
-
-
-def save_labels_json(labels: LabelSet, path: Path) -> None:
-    path.write_text(json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False))
-
-
-def make_loader(dataset: CachedCallBoxDataset, shuffle: bool) -> DataLoader:
-    return DataLoader(
-        dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=shuffle,
-        num_workers=NUM_WORKERS,
-        collate_fn=collate_fn,
-        pin_memory=True,
-    )
 
 
 def load_datasets() -> tuple[LabelSet, dict, CachedCallBoxDataset, CachedCallBoxDataset]:
@@ -248,13 +235,6 @@ def append_metrics(
         handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def model_state_dict(model: nn.Module) -> dict[str, Tensor]:
-    frozen = {name for name, param in model.named_parameters() if not param.requires_grad}
-    return {
-        key: value.detach().cpu() for key, value in model.state_dict().items() if key not in frozen
-    }
-
-
 class BestTracker:
     def __init__(self, checkpoint_path: Path, labels: LabelSet, config: dict[str, object]) -> None:
         self.checkpoint_path = checkpoint_path
@@ -269,21 +249,24 @@ class BestTracker:
         if score <= self.best_score:
             return
         self.best_score, self.best_metrics = score, val_metrics
-        torch.save(
-            {
-                "state_dict": model_state_dict(model),
-                "labels": self.labels.names,
+        save_checkpoint(
+            self.checkpoint_path,
+            architecture=ARCHITECTURE,
+            model=model,
+            # La geometría del modelo no viaja en los pesos (el pos-embed del AST se
+            # re-interpola al construir), así que se guarda para poder rearmarlo igual.
+            hparams={
                 "dim": MODEL_DIM,
                 "n_queries": N_QUERIES,
                 "n_levels": N_LEVELS,
                 "n_frames": model.backbone.n_frames,
                 "time_stride": model.backbone.time_stride,
-                "config": self.config,
-                "epoch": epoch,
-                "recall_agn": val_metrics.recall_agnostic,
-                "precision_agn": val_metrics.precision_agnostic,
             },
-            self.checkpoint_path,
+            labels=self.labels,
+            config=self.config,
+            epoch=epoch,
+            recall_agn=val_metrics.recall_agnostic,
+            precision_agn=val_metrics.precision_agnostic,
         )
         logger.info("Nuevo mejor score=%.3f -> %s", score, self.checkpoint_path)
 
@@ -298,8 +281,8 @@ def train(
     torch.manual_seed(SEED)
     n_classes = len(labels)
 
-    train_loader = make_loader(train_dataset, shuffle=True)
-    val_loader = make_loader(val_dataset, shuffle=False)
+    train_loader = make_loader(train_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=True)
+    val_loader = make_loader(val_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=False)
 
     model, matcher, criterion, optimizer, scheduler = build_model(
         n_classes, len(train_loader), device

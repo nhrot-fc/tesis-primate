@@ -21,6 +21,9 @@ CACHE_DIR = PROJECT_DIR / "data" / "processed"
 
 SEED = 42
 MIN_PAIR_COUNT = 100
+# Se queda con las N clases más frecuentes de las que sobreviven a `EXCLUDED_PAIRS`,
+# `JOINED_PAIRS` y `MIN_PAIR_COUNT`. `None` las conserva todas.
+MAX_CLASSES: int | None = None
 EMPTY_RATIO = 0.25
 LABEL_BY = "species/call_type"
 LABEL_COLUMN = {
@@ -51,13 +54,26 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
     logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
 
     pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
-    pair_counts = pairs.value_counts()
-    valid_pairs = pair_counts[pair_counts >= MIN_PAIR_COUNT].index
+    pair_counts = pairs.value_counts()  # ya ordenado de mayor a menor
+    frequent = pair_counts[pair_counts >= MIN_PAIR_COUNT]
     logger.info(
-        "%d/%d pares species/call_type con >= %d anotaciones: %s",
-        len(valid_pairs),
+        "%d/%d pares species/call_type con >= %d anotaciones",
+        len(frequent),
         len(pair_counts),
         MIN_PAIR_COUNT,
+    )
+    if MAX_CLASSES is not None and len(frequent) > MAX_CLASSES:
+        dropped = frequent.iloc[MAX_CLASSES:]
+        frequent = frequent.iloc[:MAX_CLASSES]
+        logger.info(
+            "recorte a las %d más frecuentes; quedan fuera %s",
+            MAX_CLASSES,
+            ", ".join(f"{sp}/{ct} ({n})" for (sp, ct), n in dropped.items()),
+        )
+
+    valid_pairs = frequent.index
+    logger.info(
+        "pares seleccionados: %s",
         ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
     )
 
@@ -134,6 +150,7 @@ def main() -> None:
             {
                 "seed": SEED,
                 "min_pair_count": MIN_PAIR_COUNT,
+                "max_classes": MAX_CLASSES,
                 "empty_ratio": EMPTY_RATIO,
                 "label_by": LABEL_BY,
                 "excluded_pairs": sorted(EXCLUDED_PAIRS),

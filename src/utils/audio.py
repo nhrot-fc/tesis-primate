@@ -79,6 +79,33 @@ def y_to_hz(y: FloatArray, params: Parameters) -> FloatArray:
     return params.mel_break_hz * (10.0 ** (mel_value / params.mel_scale_q) - 1.0)
 
 
+DB_PERCENTILES = (1.0, 99.9)
+DB_RANGE_SAMPLE = 2000  # ventanas con las que se estiman los percentiles
+
+
+def mel_to_db(mel: Tensor, params: Parameters = P) -> Tensor:
+    return 10.0 * torch.log10(mel + params.eps)
+
+
+def mel_db_range(
+    mels: Tensor,
+    percentiles: tuple[float, float] = DB_PERCENTILES,
+    sample: int = DB_RANGE_SAMPLE,
+    seed: int = 42,
+) -> tuple[float, float]:
+    index = np.random.default_rng(seed).choice(
+        len(mels), size=min(sample, len(mels)), replace=False
+    )
+    # `torch.quantile` no acepta tensores de este tamaño (decenas de millones de bins)
+    db = mel_to_db(mels[torch.from_numpy(index)].float()).numpy()
+    low, high = np.percentile(db, percentiles)
+    return float(low), float(high)
+
+
+def mel_to_unit(mel: Tensor, low: float, high: float) -> Tensor:
+    return ((mel_to_db(mel) - low) / (high - low)).clamp(0.0, 1.0)
+
+
 class MelSpectrogram(nn.Module):
     def __init__(self, params: Parameters = P) -> None:
         super().__init__()

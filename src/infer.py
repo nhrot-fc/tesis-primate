@@ -1,60 +1,24 @@
 import argparse
 import logging
 from pathlib import Path
-from typing import NamedTuple
 
 import torch
-from torch import nn
 
-from architectures.deformable_detr import ASTDeformableDETR
+from architectures.registry import LoadedModel, load_checkpoint
 from core.setup import setup_logging
-from domain.species import LabelSet
 from pipelines.inference_pipeline import predict
 
 logger = logging.getLogger("inference")
 
 
-class LoadedModel(NamedTuple):
-    model: nn.Module
-    labels: LabelSet
-    score_threshold: float  # punto de operación con el que se eligió este checkpoint
-    nms_iou: float
-    config: dict
-
-
 def load_model(checkpoint_path: Path, device: str) -> LoadedModel:
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    labels = LabelSet(checkpoint["labels"])
-    config = checkpoint.get("config", {})
+    """Reconstruye la arquitectura que dice el checkpoint y le carga sus pesos.
 
-    # La geometría del backbone (n_frames, time_stride) no viaja en los pesos: el
-    # pos-embed se re-interpola al construir. Si no se reconstruye con los mismos
-    # valores del entrenamiento, el modelo carga sin protestar y predice peor.
-    model = ASTDeformableDETR(
-        dim=checkpoint["dim"],
-        n_queries=checkpoint["n_queries"],
-        n_classes=len(labels),
-        n_levels=checkpoint.get("n_levels", 3),
-        n_frames=checkpoint.get("n_frames"),
-        time_stride=checkpoint.get("time_stride", 5),
-    ).to(device)
-
-    # El checkpoint no guarda el AST congelado (`ASTBackbone` ya lo cargó de la copia
-    # local), así que faltan sus claves a propósito. Cualquier otra ausencia es un
-    # checkpoint incompatible y hay que gritarlo, no cargar pesos a medias.
-    missing, unexpected = model.load_state_dict(checkpoint["state_dict"], strict=False)
-    unexpected_keys = list(unexpected) + [k for k in missing if not k.startswith("backbone.model.")]
-    if unexpected_keys:
-        raise RuntimeError(f"checkpoint incompatible con el modelo: {sorted(unexpected_keys)}")
-
-    model.eval()
-    return LoadedModel(
-        model=model,
-        labels=labels,
-        score_threshold=float(config.get("operating_score_threshold", 0.5)),
-        nms_iou=float(config.get("nms_iou", 0.3)),
-        config=config,
-    )
+    La geometría del modelo no viaja en los pesos (el pos-embed del AST, por ejemplo,
+    se re-interpola al construir): si no se rearma con los mismos hiperparámetros del
+    entrenamiento, carga sin protestar y predice peor. Por eso viajan en `hparams`.
+    """
+    return load_checkpoint(checkpoint_path, device)
 
 
 def wav_paths(audio_path: Path) -> list[Path]:
@@ -95,9 +59,8 @@ def main() -> None:
 
     for wav_path in paths:
         table = predict(
-            loaded.model,
+            loaded,
             wav_path,
-            loaded.labels,
             device,
             score_threshold=score_threshold,
             nms_iou=nms_iou,

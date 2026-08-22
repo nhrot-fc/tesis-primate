@@ -326,3 +326,9 @@ def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detectio
             )
         )
     return detections
+
+
+def detect(
+    model: nn.Module, images: torch.Tensor, score_threshold: float = 0.5
+) -> list[Detections]:
+    return postprocess(model(images), score_threshold)

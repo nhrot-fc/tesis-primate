@@ -4,13 +4,11 @@ from pathlib import Path
 import pandas as pd
 import soundfile as sf
 import torch
-from torch import nn
 
-from architectures.deformable_detr import postprocess
 from architectures.iou import suppress_nested
+from architectures.registry import LoadedModel
 from core.config import P, Parameters
 from domain.raven import RAVEN_COLUMNS
-from domain.species import LabelSet
 from utils.audio import MelSpectrogram, load_clips, window_starts, y_to_hz
 
 
@@ -26,9 +24,8 @@ def species_and_call(name: str) -> tuple[str, str]:
 
 @torch.no_grad()
 def predict(
-    model: nn.Module,
+    loaded: LoadedModel,
     audio_path: str | Path,
-    labels: LabelSet,
     device: str | torch.device = "cpu",
     score_threshold: float = 0.5,
     nms_iou: float = 0.3,
@@ -36,7 +33,8 @@ def predict(
     on_progress: Callable[[int, int], None] | None = None,
     params: Parameters = P,
 ) -> pd.DataFrame:
-    model.eval()
+    labels = loaded.labels
+    loaded.model.eval()
     duration_s = sf.info(str(audio_path)).duration
     starts = window_starts(duration_s, params)
     mel = MelSpectrogram(params)
@@ -49,7 +47,7 @@ def predict(
         images = torch.stack(
             [mel(clip) for clip in load_clips(audio_path, chunk, params)]
         ).unsqueeze(1)
-        detections = postprocess(model(images.to(device)), score_threshold)
+        detections = loaded.detect(images.to(device), score_threshold)
 
         for clip_start, det in zip(chunk, detections, strict=True):
             cx, cy, w, h = det.boxes.T.cpu()
