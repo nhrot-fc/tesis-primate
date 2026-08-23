@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 from collections import Counter
@@ -9,6 +10,7 @@ from typing import NamedTuple
 import torch
 from torch import Tensor, nn
 from torch.optim.lr_scheduler import OneCycleLR
+from torch.utils.data import Dataset, Subset
 
 from architectures.criterion import HungarianMatcher, SetCriterion
 from architectures.deformable_detr import ASTDeformableDETR
@@ -35,8 +37,17 @@ SEED = 42
 
 # --- Entrenamiento ------------------------------------------------------------
 MODEL_DIM, N_QUERIES, N_LEVELS = 128, 64, 3
-EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 40, 16, 2e-4, 1e-4, 0
+EPOCHS, BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, NUM_WORKERS = 30, 16, 2e-4, 1e-4, 0
 DETAIL_EVERY = 10
+DEVICE_INDEX = 2
+
+# --- Ablaciones (docs/experimentos_ablacion.md) -------------------------------
+# Los tres factores que se barren; estos son los valores del baseline.
+FRONTEND = "pcen"  # "pcen" o "logmel"
+TIME_STRIDE = 2  # paso temporal del parcheo del AST: 2, 5 o 10
+FREEZE_BACKBONE = True
+
+# --- Punto de operación y métricas --------------------------------------------
 BOX_JITTER = BoxJitter(scale=0.15, shift=0.10, min_size=0.02)
 METRIC_IOU_THRESHOLD = 0.5
 OPERATING_SCORE_THRESHOLD = 0.5
@@ -44,17 +55,59 @@ NMS_IOU = 0.3
 CHECKPOINT_SELECTION_BETA = 3.0
 
 
-def training_config() -> dict[str, object]:
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Entrena el AST + Deformable-DETR.")
+    parser.add_argument("--epochs", type=int, default=EPOCHS)
+    parser.add_argument("--batch", type=int, default=BATCH_SIZE)
+    parser.add_argument("--lr", type=float, default=LEARNING_RATE)
+    parser.add_argument("--workers", type=int, default=NUM_WORKERS)
+    parser.add_argument("--device", default=None, help="'cuda', 'cuda:1', 'cpu'")
+    # Los tres factores de `docs/experimentos_ablacion.md`. Cambiar uno solo por corrida.
+    parser.add_argument(
+        "--frontend",
+        choices=("pcen", "logmel"),
+        default=FRONTEND,
+        help="entrada al AST: PCEN entrenable o compresión logarítmica fija",
+    )
+    parser.add_argument(
+        "--time-stride",
+        type=int,
+        default=TIME_STRIDE,
+        help="paso temporal del parcheo del AST; menos paso, más tokens y más VRAM",
+    )
+    parser.add_argument(
+        "--unfreeze",
+        action="store_true",
+        help="fine-tunea el AST entero en vez de dejarlo congelado",
+    )
+    parser.add_argument("--limit", type=int, default=None, help="usa sólo N ventanas (pruebas)")
+    parser.add_argument("--name", default=None, help="nombre de la corrida y del checkpoint")
+    return parser.parse_args()
+
+
+def run_name(args: argparse.Namespace) -> str:
+    """Identifica la corrida por su ablación: dos combinaciones no se pisan el checkpoint."""
+    if args.name:
+        return args.name
+    state = "ft" if args.unfreeze else "frozen"
+    return f"detr_{args.frontend}_ts{args.time_stride}_{state}"
+
+
+def training_config(args: argparse.Namespace) -> dict[str, object]:
     dataset_meta = json.loads((CACHE_DIR / "meta.json").read_text())
     return {
         "seed": SEED,
         "dataset": dataset_meta,
+        "architecture": ARCHITECTURE,
         "model_dim": MODEL_DIM,
         "n_queries": N_QUERIES,
         "n_levels": N_LEVELS,
-        "epochs": EPOCHS,
-        "batch_size": BATCH_SIZE,
-        "learning_rate": LEARNING_RATE,
+        "frontend": args.frontend,
+        "time_stride": args.time_stride,
+        "freeze_backbone": not args.unfreeze,
+        "epochs": args.epochs,
+        "batch_size": args.batch,
+        "learning_rate": args.lr,
         "weight_decay": WEIGHT_DECAY,
         "box_jitter": asdict(BOX_JITTER),
         "metric_iou_threshold": METRIC_IOU_THRESHOLD,
@@ -144,39 +197,61 @@ class TrainingComponents(NamedTuple):
     scheduler: OneCycleLR
 
 
-def build_model(n_classes: int, steps_per_epoch: int, device: str) -> TrainingComponents:
-    model = ASTDeformableDETR(
-        dim=MODEL_DIM,
-        n_queries=N_QUERIES,
-        n_classes=n_classes,
-        n_levels=N_LEVELS,
-    ).to(device)
+def model_hparams(args: argparse.Namespace) -> dict[str, object]:
+    """Lo que hace falta para rearmar el grafo; los pesos entran por el `state_dict`.
+
+    La geometría no viaja en los pesos (el pos-embed del AST se re-interpola al
+    construir) y la ablación tampoco: sin `frontend` ni `freeze` el checkpoint se
+    reconstruye con otra entrada y otra lista de parámetros.
+    """
+    return {
+        "dim": MODEL_DIM,
+        "n_queries": N_QUERIES,
+        "n_levels": N_LEVELS,
+        "time_stride": args.time_stride,
+        "frontend": args.frontend,
+        "freeze": not args.unfreeze,
+    }
+
+
+def build_model(
+    n_classes: int, steps_per_epoch: int, device: str, args: argparse.Namespace
+) -> TrainingComponents:
+    model = ASTDeformableDETR(n_classes=n_classes, **model_hparams(args)).to(device)  # type: ignore
     matcher = HungarianMatcher()
     criterion = SetCriterion(n_classes=n_classes, matcher=matcher).to(device)
     trainable = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(trainable, lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    optimizer = torch.optim.AdamW(trainable, lr=args.lr, weight_decay=WEIGHT_DECAY)
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=LEARNING_RATE,
-        total_steps=EPOCHS * steps_per_epoch,
+        max_lr=args.lr,
+        total_steps=args.epochs * steps_per_epoch,
         pct_start=0.05,
         anneal_strategy="cos",
     )
     logger.info(
-        "%.1fM parámetros (%.1fM entrenables) | %d clases",
+        "%.1fM parámetros (%.1fM entrenables) | %d clases | frontend=%s time_stride=%d "
+        "backbone=%s | %d x %d tokens",
         sum(p.numel() for p in model.parameters()) / 1e6,
         sum(p.numel() for p in trainable) / 1e6,
         n_classes,
+        args.frontend,
+        args.time_stride,
+        "congelado" if model.backbone.freeze else "fine-tune",
+        model.backbone.freq_out,
+        model.backbone.time_out,
     )
     return TrainingComponents(model, matcher, criterion, optimizer, scheduler)
 
 
-def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics, score: float) -> None:
+def log_epoch(
+    epoch: int, epochs: int, train_losses: Losses, val_metrics: EvalMetrics, score: float
+) -> None:
     logger.info(
         "[%4d/%d] train=%.3f val=%.3f cls_acc=%.3f IoU=%.3f recall_agn@%.2f=%s "
-        "precision_agn=%s score=%.3f",
+        "precision_agn=%s mAP50=%s mAP50-95=%s score=%.3f",
         epoch + 1,
-        EPOCHS,
+        epochs,
         train_losses.total,
         val_metrics.losses.total,
         val_metrics.accuracy,
@@ -184,6 +259,8 @@ def log_epoch(epoch: int, train_losses: Losses, val_metrics: EvalMetrics, score:
         METRIC_IOU_THRESHOLD,
         format_metric(val_metrics.recall_agnostic),
         format_metric(val_metrics.precision_agnostic),
+        format_metric(val_metrics.map_50),
+        format_metric(val_metrics.map_50_95),
         score,
     )
 
@@ -199,6 +276,10 @@ def log_detail(val_metrics: EvalMetrics, labels: LabelSet) -> None:
             f"{threshold}={format_metric(ap)}"
             for threshold, ap in sorted(val_metrics.ap_agnostic.items())
         ),
+    )
+    logger.info(
+        "AP por clase @0.5 -> %s",
+        format_recall_per_class(val_metrics.ap_per_class_50, labels.names),
     )
     logger.info(
         "Confusiones más frecuentes (queries emparejadas):\n%s",
@@ -225,9 +306,16 @@ def append_metrics(
             "recall_agnostic": val_metrics.recall_agnostic,
             "precision_agnostic": val_metrics.precision_agnostic,
             "operating_score": score,
+            "map_50": val_metrics.map_50,
+            "map_50_95": val_metrics.map_50_95,
             "ap_agnostic": {
                 str(threshold): ap for threshold, ap in sorted(val_metrics.ap_agnostic.items())
             },
+            "map_per_threshold": {
+                str(threshold): value
+                for threshold, value in sorted(val_metrics.map_per_threshold.items())
+            },
+            "ap_per_class_50": val_metrics.ap_per_class_50,
             "recall_per_class": val_metrics.recall_per_class,
         },
     }
@@ -236,10 +324,17 @@ def append_metrics(
 
 
 class BestTracker:
-    def __init__(self, checkpoint_path: Path, labels: LabelSet, config: dict[str, object]) -> None:
+    def __init__(
+        self,
+        checkpoint_path: Path,
+        labels: LabelSet,
+        config: dict[str, object],
+        hparams: dict[str, object],
+    ) -> None:
         self.checkpoint_path = checkpoint_path
         self.labels = labels
         self.config = config
+        self.hparams = hparams
         self.best_score = float("-inf")
         self.best_metrics: EvalMetrics | None = None
 
@@ -253,43 +348,38 @@ class BestTracker:
             self.checkpoint_path,
             architecture=ARCHITECTURE,
             model=model,
-            # La geometría del modelo no viaja en los pesos (el pos-embed del AST se
-            # re-interpola al construir), así que se guarda para poder rearmarlo igual.
-            hparams={
-                "dim": MODEL_DIM,
-                "n_queries": N_QUERIES,
-                "n_levels": N_LEVELS,
-                "n_frames": model.backbone.n_frames,
-                "time_stride": model.backbone.time_stride,
-            },
+            hparams={**self.hparams, "n_frames": model.backbone.n_frames},
             labels=self.labels,
             config=self.config,
             epoch=epoch,
             recall_agn=val_metrics.recall_agnostic,
             precision_agn=val_metrics.precision_agnostic,
+            map_50=val_metrics.map_50,
+            map_50_95=val_metrics.map_50_95,
         )
         logger.info("Nuevo mejor score=%.3f -> %s", score, self.checkpoint_path)
 
 
 def train(
     labels: LabelSet,
-    train_dataset: CachedCallBoxDataset,
-    val_dataset: CachedCallBoxDataset,
+    train_dataset: Dataset,
+    val_dataset: Dataset,
     device: str,
     metrics_path: Path,
+    args: argparse.Namespace,
 ) -> None:
     torch.manual_seed(SEED)
     n_classes = len(labels)
 
-    train_loader = make_loader(train_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=True)
-    val_loader = make_loader(val_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=False)
+    train_loader = make_loader(train_dataset, args.batch, args.workers, shuffle=True)
+    val_loader = make_loader(val_dataset, args.batch, args.workers, shuffle=False)
 
     model, matcher, criterion, optimizer, scheduler = build_model(
-        n_classes, len(train_loader), device
+        n_classes, len(train_loader), device, args
     )
 
     CHECKPOINT_DIR.mkdir(exist_ok=True)
-    name = f"{MODEL_DIM}d_{N_QUERIES}q_{n_classes}cls"
+    name = f"{run_name(args)}_{n_classes}cls"
     checkpoint_path = CHECKPOINT_DIR / f"{name}_best.pth"
     labels_path = CHECKPOINT_DIR / f"{name}_labels.json"
 
@@ -299,10 +389,10 @@ def train(
         {class_id: label for class_id, label in enumerate(labels.names)},
     )
 
-    tracker = BestTracker(checkpoint_path, labels, training_config())
+    tracker = BestTracker(checkpoint_path, labels, training_config(args), model_hparams(args))
 
-    for epoch in range(EPOCHS):
-        progress = f"{epoch + 1}/{EPOCHS}"
+    for epoch in range(args.epochs):
+        progress = f"{epoch + 1}/{args.epochs}"
         learning_rate = optimizer.param_groups[0]["lr"]
         train_losses = train_one_epoch(
             model,
@@ -314,7 +404,7 @@ def train(
             desc=f"train {progress}",
         )
 
-        is_last = epoch + 1 == EPOCHS
+        is_last = epoch + 1 == args.epochs
         detailed = (epoch + 1) % DETAIL_EVERY == 0 or is_last
         val_metrics = evaluate(
             model,
@@ -331,7 +421,7 @@ def train(
         )
         score = operating_score(val_metrics.recall_agnostic, val_metrics.precision_agnostic)
 
-        log_epoch(epoch, train_losses, val_metrics, score)
+        log_epoch(epoch, args.epochs, train_losses, val_metrics, score)
         append_metrics(metrics_path, epoch, train_losses, val_metrics, learning_rate, score)
         tracker.consider(epoch, model, val_metrics, score)
 
@@ -341,31 +431,53 @@ def train(
     if tracker.best_metrics is None:
         raise RuntimeError("No se completó ninguna época.")
     logger.info(
-        "mejor recall_agn@%.2f de validación: %s (precision_agn=%s, score=%.3f) -> %s",
+        "mejor recall_agn@%.2f de validación: %s (precision_agn=%s, mAP50=%s, mAP50-95=%s, "
+        "score=%.3f) -> %s",
         METRIC_IOU_THRESHOLD,
         format_metric(tracker.best_metrics.recall_agnostic),
         format_metric(tracker.best_metrics.precision_agnostic),
+        format_metric(tracker.best_metrics.map_50),
+        format_metric(tracker.best_metrics.map_50_95),
         tracker.best_score,
         checkpoint_path,
     )
     logger.info("métricas por época -> %s", metrics_path)
+    logger.info(
+        "evaluá con: python src/eval_detector.py --checkpoint %s --split test", checkpoint_path
+    )
 
 
-if __name__ == "__main__":
-    run_dir = LOG_DIR / datetime.now().strftime("%Y%m%d_%H%M%S")
+def resolve_device(requested: str | None) -> str:
+    if requested:
+        return requested
+    if not torch.cuda.is_available():
+        return "cpu"
+    torch.cuda.set_device(DEVICE_INDEX)
+    return f"cuda:{DEVICE_INDEX}"
+
+
+def main() -> None:
+    args = parse_args()
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = LOG_DIR / f"{run_name(args)}_{stamp}"
     setup_logging(settings.LOG_LEVEL, log_file=run_dir / "train.log")
     setup_project_path(PROJECT_DIR)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    device_idx = 2
-    if device == "cuda":
-        torch.cuda.set_device(device_idx)
-        device = f"cuda:{device_idx}"
-
+    device = resolve_device(args.device)
     logger.info("device: %s", device)
 
-    labels, _meta, train_dataset, val_dataset = load_datasets()
+    labels, _meta, cached_train, cached_val = load_datasets()
+    train_dataset: Dataset = cached_train
+    val_dataset: Dataset = cached_val
+    if args.limit:
+        train_dataset = Subset(cached_train, range(min(args.limit, len(cached_train))))
+        val_dataset = Subset(cached_val, range(min(args.limit, len(cached_val))))
+
     (run_dir / "config.json").write_text(
-        json.dumps(training_config(), indent=2, ensure_ascii=False, default=str)
+        json.dumps(training_config(args), indent=2, ensure_ascii=False, default=str)
     )
-    train(labels, train_dataset, val_dataset, device, run_dir / "metrics.jsonl")
+    train(labels, train_dataset, val_dataset, device, run_dir / "metrics.jsonl", args)
+
+
+if __name__ == "__main__":
+    main()

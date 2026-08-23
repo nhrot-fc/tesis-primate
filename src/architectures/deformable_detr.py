@@ -248,6 +248,23 @@ class DetectionHead(nn.Module):
         return self.detr(self.pyramid(features))
 
 
+class LogMelFrontend(nn.Module):
+    """Rama de control del PCEN: compresión logarítmica fija, sin parámetros.
+
+    Es la entrada estándar de un espectrograma a un transformer de audio; comparada
+    contra `TrainablePCEN` aísla cuánto aporta la normalización de energía por canal
+    (ver `docs/experimentos_ablacion.md`). La `BatchNorm2d` que va después es la misma
+    en las dos ramas, así que lo único que cambia es la compresión.
+    """
+
+    def __init__(self, eps: float = 1e-6) -> None:
+        super().__init__()
+        self.eps = eps
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.log(x.clamp_min(0) + self.eps)
+
+
 class ASTDeformableDETR(nn.Module):
     def __init__(
         self,
@@ -259,6 +276,7 @@ class ASTDeformableDETR(nn.Module):
         time_stride: int = 2,
         n_levels: int = 3,
         n_mels: int = 128,
+        frontend: str = "pcen",
     ):
         super().__init__()
         from architectures.backbone import ASTBackbone
@@ -270,8 +288,13 @@ class ASTDeformableDETR(nn.Module):
                 f"n_mels={n_mels} no coincide con las {self.backbone.n_mels} bandas del "
                 "checkpoint del AST; el pos-embed sólo se re-interpola en el eje temporal."
             )
+        if frontend not in ("pcen", "logmel"):
+            raise ValueError(f"frontend desconocido: {frontend!r}; hay 'pcen' y 'logmel'")
 
-        self.pcen = TrainablePCEN(n_mels=n_mels)
+        # El atributo se sigue llamando `pcen` con las dos ramas: es la clave con la que
+        # los checkpoints ya guardados nombran esta capa.
+        self.frontend = frontend
+        self.pcen = TrainablePCEN(n_mels=n_mels) if frontend == "pcen" else LogMelFrontend()
         self.pcen_norm = nn.BatchNorm2d(1, affine=False)
 
         self.head = DetectionHead(

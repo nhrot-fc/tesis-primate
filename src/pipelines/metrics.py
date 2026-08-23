@@ -15,6 +15,9 @@ Overlaps = list[tuple[list[int], Tensor]]
 # por clip: (filas de predictions, matriz P x G)
 
 AP_THRESHOLDS: tuple[float, ...] = (0.25, 0.5)
+# COCO promedia la mAP sobre 0.50, 0.55, ..., 0.95: la primera mide "encontró el
+# evento", la última "lo encuadró". Reportar las dos separa detección de encuadre.
+MAP_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
 
 
 class Boxes(NamedTuple):
@@ -29,6 +32,10 @@ class Boxes(NamedTuple):
 
 class DetectionMetrics(NamedTuple):
     ap_agnostic: dict[float, float | None]
+    map_50: float | None  # mAP por clase con IoU >= 0.5
+    map_50_95: float | None  # la misma, promediada sobre `MAP_THRESHOLDS`
+    map_per_threshold: dict[float, float | None]
+    ap_per_class_50: dict[int, float | None]
     recall_agnostic: float | None
     precision_agnostic: float | None
     recall_per_class: dict[int, float | None]
@@ -101,6 +108,41 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
     return float(((recall - torch.cat([recall.new_zeros(1), recall[:-1]])) * precision).sum())
 
 
+def average_precision_per_class(
+    predictions: Boxes,
+    truth: Boxes,
+    n_classes: int,
+    thresholds: tuple[float, ...] = MAP_THRESHOLDS,
+) -> dict[float, dict[int, float | None]]:
+    """AP por umbral de IoU y por clase, al estilo COCO.
+
+    Cada clase se mide sobre sus propias cajas: una predicción sólo puede acertarle a un
+    GT de la misma clase, y las clases sin cajas anotadas quedan en `None` para que no
+    entren al promedio. `predictions` tiene que venir ordenado por score descendente.
+    """
+    per_threshold: dict[float, dict[int, float | None]] = {
+        threshold: {} for threshold in thresholds
+    }
+    for class_id in range(n_classes):
+        class_predictions = predictions.select(predictions.labels == class_id)
+        class_truth = truth.select(truth.labels == class_id)
+        # El solape se calcula una vez por clase y se reusa en los diez umbrales.
+        matrices = overlaps(class_predictions, class_truth)
+        n_gt = len(class_truth.boxes)
+        n_predictions = len(class_predictions.boxes)
+        for threshold in thresholds:
+            per_threshold[threshold][class_id] = average_precision(
+                hits(matrices, n_predictions, threshold), n_gt
+            )
+    return per_threshold
+
+
+def mean_average_precision(ap_per_class: dict[int, float | None]) -> float | None:
+    """Promedio sobre las clases que tienen cajas anotadas; las demás no puntúan."""
+    values = [ap for ap in ap_per_class.values() if ap is not None]
+    return sum(values) / len(values) if values else None
+
+
 def detection_metrics(
     predictions: Boxes,
     truth: Boxes,
@@ -108,6 +150,7 @@ def detection_metrics(
     iou_threshold: float = 0.5,
     score_threshold: float = 0.5,
     ap_thresholds: tuple[float, ...] = AP_THRESHOLDS,
+    map_thresholds: tuple[float, ...] = MAP_THRESHOLDS,
     detailed: bool = True,
 ) -> DetectionMetrics:
     """`predictions` tiene que venir ordenado por score descendente (`sort_by_score`)."""
@@ -139,8 +182,21 @@ def detection_metrics(
                 else None
             )
 
+    # La mAP no depende del punto de operación ni de `detailed`: es la métrica con la
+    # que se comparan las corridas entre sí, así que se calcula en todas las épocas.
+    ap_per_class = average_precision_per_class(predictions, truth, n_classes, map_thresholds)
+    map_per_threshold = {
+        threshold: mean_average_precision(per_class)
+        for threshold, per_class in ap_per_class.items()
+    }
+    scored = [value for value in map_per_threshold.values() if value is not None]
+
     return DetectionMetrics(
         ap_agnostic=ap_agnostic,
+        map_50=map_per_threshold.get(0.5),
+        map_50_95=sum(scored) / len(scored) if scored else None,
+        map_per_threshold=map_per_threshold,
+        ap_per_class_50=ap_per_class.get(0.5, {}),
         recall_agnostic=tp / n_gt if n_gt else None,
         precision_agnostic=tp / k if k else None,
         recall_per_class=recall_per_class,

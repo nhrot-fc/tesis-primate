@@ -61,14 +61,19 @@ def build_model(name: str, n_classes: int, hparams: dict[str, Any], **extra: Any
 def savable_state_dict(model: nn.Module, name: str) -> dict[str, Tensor]:
     """Todos los pesos menos los que la arquitectura repone sola al construirse.
 
-    No sirve filtrar por `requires_grad`: las capas congeladas de Faster R-CNN son pesos
-    de COCO que nadie vuelve a poner, y sin ellas el checkpoint carga medio ResNet al azar.
+    No sirve filtrar sólo por `requires_grad`: las capas congeladas de Faster R-CNN son
+    pesos de COCO que nadie vuelve a poner, y sin ellas el checkpoint carga medio ResNet
+    al azar. La excepción va al revés: dentro de un prefijo `provided`, lo que sí recibió
+    gradiente ya no es el preentrenado y hay que guardarlo --si no, una corrida con el
+    AST descongelado guardaría un checkpoint que al cargarse vuelve a los pesos de
+    AudioSet y pierde el fine-tuning entero.
     """
     provided = architecture(name).provided
+    trained = {key for key, param in model.named_parameters() if param.requires_grad}
     return {
         key: value.detach().cpu()
         for key, value in model.state_dict().items()
-        if not key.startswith(provided)
+        if not key.startswith(provided) or key in trained
     }
 
 
@@ -94,8 +99,46 @@ def save_checkpoint(
     )
 
 
+def operating_point(config: dict[str, Any]) -> tuple[float, float]:
+    return (
+        float(config.get("operating_score_threshold", 0.5)),
+        float(config.get("nms_iou", 0.3)),
+    )
+
+
+def load_foreign_checkpoint(path: Path, checkpoint: Any, device: str) -> LoadedModel:
+    """Un `.pt` que no salió de `save_checkpoint`.
+
+    El único que sabemos adaptar es el `best.pt` de Ultralytics, que es el archivo que
+    `train_yolo.py` deja como resultado natural de una corrida; cualquier otro se
+    rechaza diciendo qué archivo hace falta, en vez de reventar con un `KeyError`.
+    """
+    yolo = import_module("architectures.yolo")
+    if yolo.is_ultralytics_checkpoint(checkpoint):
+        adapted = yolo.load_ultralytics_checkpoint(Path(path), checkpoint, str(device))
+        adapted.model.eval()
+        score_threshold, nms_iou = operating_point(adapted.config)
+        logger.info("yolo (Ultralytics) | %d clases | %s", len(adapted.labels), path)
+        return LoadedModel(
+            model=adapted.model,
+            architecture="yolo",
+            labels=adapted.labels,
+            score_threshold=score_threshold,
+            nms_iou=nms_iou,
+            config=adapted.config,
+        )
+    raise ValueError(
+        f"{path} no es un checkpoint de este proyecto: no tiene 'state_dict' ni 'labels'. "
+        f"Los checkpoints válidos son los que dejan `train.py` y `train_frcnn.py` en "
+        f"checkpoints/, y para YOLO el `best.pt` o el `best_spectrogram.pth` de "
+        f"runs/yolo/<corrida>/weights/."
+    )
+
+
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
     checkpoint = torch.load(path, map_location=device, weights_only=False)
+    if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
+        return load_foreign_checkpoint(Path(path), checkpoint, str(device))
     name = checkpoint.get("architecture", LEGACY_ARCHITECTURE)
     # antes del registro los hiperparámetros iban sueltos en la raíz del checkpoint
     hparams = checkpoint.get("hparams") or {
@@ -115,13 +158,14 @@ def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> Loa
         raise RuntimeError(f"checkpoint incompatible con {name}: {sorted(broken)}")
 
     model.eval()
+    score_threshold, nms_iou = operating_point(config)
     logger.info("%s | %d clases | %s", name, len(labels), path)
     return LoadedModel(
         model=model,
         architecture=name,
         labels=labels,
-        score_threshold=float(config.get("operating_score_threshold", 0.5)),
-        nms_iou=float(config.get("nms_iou", 0.3)),
+        score_threshold=score_threshold,
+        nms_iou=nms_iou,
         config=config,
     )
 

@@ -23,6 +23,10 @@ class EvalMetrics(NamedTuple):
     mean_iou: float  # encuadre: sobre los pares del matcher, sin umbral de score
     accuracy: float  # clasificación: sobre los mismos pares, sin umbral de score
     ap_agnostic: dict[float, float | None]
+    map_50: float | None  # mAP por clase, IoU >= 0.5
+    map_50_95: float | None  # mAP promediada sobre 0.50:0.05:0.95 (COCO)
+    map_per_threshold: dict[float, float | None]
+    ap_per_class_50: dict[int, float | None]
     recall_agnostic: float | None
     precision_agnostic: float | None
     recall_per_class: dict[int, float | None]
@@ -130,6 +134,10 @@ def evaluate(
         mean_iou=iou_sum / max(matched, 1),
         accuracy=matched_correct / max(matched, 1),
         ap_agnostic=detections.ap_agnostic,
+        map_50=detections.map_50,
+        map_50_95=detections.map_50_95,
+        map_per_threshold=detections.map_per_threshold,
+        ap_per_class_50=detections.ap_per_class_50,
         recall_agnostic=detections.recall_agnostic,
         precision_agnostic=detections.precision_agnostic,
         recall_per_class=detections.recall_per_class,

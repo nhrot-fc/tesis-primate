@@ -597,10 +597,10 @@ selva altamente ruidoso.
 \subsection{Objetivo general}
 
 \begin{quote}
-    \textbf{OG.} Desarrollar y evaluar un sistema de pre-anotación asistida que
-    proponga cajas tiempo--frecuencia con especie y tipo de llamada sobre grabaciones
-    de PAM de primates amazónicos, con el fin de reducir el tiempo de revisión
-    experta.
+    \textbf{OG.} Desarrollar y evaluar un sistema de pre-anotación asistida 
+    que proponga cajas tiempo--frecuencia con especie y tipo de llamada sobre 
+    grabaciones de PAM de primates amazónicos, con el fin de maximizar la 
+    cobertura de eventos anotados bajo una carga de revisión acotada.
 \end{quote}
 
 El encuadre asistido cuenta con respaldo en la literatura. La inteligencia
@@ -620,11 +620,28 @@ de un humano recolectando y procesando los datos de vocalización.
 % redacción como "cuatro especies de primates" sin insinuar que son
 % neotropicales. El valor de la cita está en la TAREA, no en el taxón.
 
-El mismo patrón se repite fuera de primates: HOWLish recupera el 81,3\,\% de los
-eventos de aullido observados y ofrece una reducción de 15 veces en el tiempo del
-operador frente a la detección totalmente manual, y su tubería redujo 22 veces el
-volumen de datos que un operador debía procesar manualmente
-\citep{Campos_Krofel_Rio-Maior_Renna_2025}.
+El mismo patrón se repite fuera de primates, y lo hace con una distinción que
+este objetivo general adopta de forma deliberada. HOWLish recupera el 81,3\,\% de
+los eventos de aullido observados y ofrece una reducción de 15 veces en el tiempo
+del operador frente a la detección totalmente manual, y su tubería redujo 22
+veces el volumen de datos que un operador debía procesar manualmente
+\citep{Campos_Krofel_Rio-Maior_Renna_2025}. Son dos cifras de naturaleza
+distinta: la primera es una medida de tiempo humano y exige cronometrar a una
+persona; la segunda es una cantidad contable que se deriva de la propia salida
+del sistema. Por eso el enunciado habla de \emph{carga} de revisión y no de
+tiempo de revisión: la carga —cuántas propuestas hay que inspeccionar y cuánto
+audio puede omitirse por completo— es la magnitud que este trabajo puede medir
+sobre su propio conjunto de prueba, sin depender de la disponibilidad de un
+revisor externo. El dato de \citet{heinicke_2015} conserva su lugar como
+motivación, pues muestra que el encuadre asistido es rentable en primates y en
+selva ruidosa, pero no como indicador.
+
+El enunciado fija además el compromiso que el sistema asume de antemano:
+priorizar la cobertura aceptando falsos positivos. Ese sesgo no es una concesión
+sino una decisión con precedente cuantificado, ya que HOWLish resulta útil
+operando con una precisión de 0,006 bajo desbalance extremo
+\citep{Campos_Krofel_Rio-Maior_Renna_2025}. Su contrapartida es que la carga
+generada por ese sesgo debe quedar acotada y reportada, y de eso se ocupa OE3.
 
 \subsection{Objetivos específicos}
 
@@ -642,9 +659,9 @@ escasez de horas de analista (C1).
           devuelva cajas tiempo--frecuencia con especie, tipo de llamada y confianza,
           comparándolo con una línea base establecida.
 
-    \item[OE3.] Cuantificar la reducción del tiempo de revisión que aporta el
-          sistema y caracterizar sus errores mediante revisión experta de una muestra de
-          predicciones.
+    \item[OE3.] Caracterizar el comportamiento operativo del detector sobre un conjunto 
+          de prueba independiente, cuantificando la cobertura de las anotaciones de 
+          referencia, la carga de revisión asociada y la naturaleza de sus discrepancias.
 \end{description}
 
 % ===================================================================
@@ -785,7 +802,7 @@ los \textit{sound event bounding boxes} y YOHO entregan límites temporales
 \citep{ebbers_sound_2024,venkatesh_you_2022}, y esta tesis entrega la tupla
 completa de tiempo, frecuencia, especie, tipo de llamada y confianza.
 
-\subsection{OE3: Tiempo de revisión y análisis de errores}
+\subsection{OE3: Cobertura, carga de revisión y análisis de discrepancias}
 
 \begin{table}[htbp]
     \centering
@@ -796,49 +813,111 @@ completa de tiempo, frecuencia, especie, tipo de llamada y confianza.
         \toprule
         \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
         \midrule
-        RE3.1 & Metodología de validación comparativa. & Documento de metodología y protocolo de revisión experta. & Especifica el subconjunto de prueba, el punto de operación (confianza 0,5 y NMS IoU 0,3), el umbral IoU 0,5 para verdadero positivo, las métricas, el emparejamiento y el procedimiento para revisar discrepancias y eventos potencialmente omitidos. \\
+        RE3.1 & Protocolo de evaluación operativa. & Documento del protocolo, fechado antes de ejecutar la evaluación. & Especifica el subconjunto de prueba particionado por archivo y sin solapamiento, el punto de operación y el criterio con que se elige, el umbral IoU 0,5 de emparejamiento, la supresión de no máximos entre ventanas, el procedimiento de agregación por archivo y las cuatro categorías de la taxonomía de discrepancias. \\
         \addlinespace
-        RE3.2 & Medición comparativa del tiempo de revisión. & Informe de validación, registros de tiempo y medición de inferencia. & Reporta minutos por hora de audio en condición manual y asistida, describe el material comparable y el orden de revisión, y presenta el tiempo de procesamiento del modelo por hora de audio. No fija un porcentaje de ahorro antes de medirlo. \\
+        RE3.2 & Curva de cobertura frente a carga de revisión. & Informe de evaluación operativa, archivos de métricas y medición de inferencia. & Reporta la curva completa de cobertura (\textit{recall} por evento a IoU 0,5) frente a propuestas por hora de audio; el punto de operación elegido junto con su criterio; el cociente FP/TP; la fracción de audio sin ninguna propuesta como reducción de volumen; y el costo de inferencia en minutos de GPU por hora de audio. No fija un porcentaje de ahorro antes de medirlo. \\
         \addlinespace
-        RE3.3 & Análisis cualitativo de errores y hallazgos. & Informe de análisis y espectrogramas anotados. & Clasifica una muestra de predicciones de alta confianza en evento no anotado, ruido y error de encuadre, e incluye ejemplos visuales de aciertos, errores comunes y detecciones correctas ausentes de la anotación de referencia. \\
+        RE3.3 & Taxonomía geométrica de discrepancias. & Informe de análisis, tablas de distribución y panel de espectrogramas. & Distribuye las predicciones de alta confianza entre las cuatro categorías de la Tabla~\ref{tab:taxonomia-fp}; caracteriza la categoría D por banda de frecuencia, duración y puntuación frente a la distribución de los eventos anotados de cada clase; e incluye ejemplos visuales representativos de cada categoría sobre el espectrograma. \\
+        \addlinespace
+        RE3.4 & Validación experta de la categoría abierta \textit{(condicional)}. & Informe de validación, sujeto a la disponibilidad del equipo de investigación. & Si se concreta: resuelve una muestra de predicciones de categoría D entre evento omitido por la referencia y falso positivo genuino, y estima el acuerdo entre el modelo y el criterio experto. Su ausencia no compromete el cumplimiento de OE3. \\
         \bottomrule
     \end{tabular}
 \end{table}
 
+OE3 mide la utilidad operativa del sistema con magnitudes que se calculan sobre
+el propio conjunto de prueba. Ninguno de sus tres resultados comprometidos
+depende de cronometrar a un revisor externo, y el cuarto se declara condicional
+justamente porque sí depende de él.
+
 \begin{description}
-    \item[RE3.1.] Protocolo de la prueba: material, punto de operación,
-          procedimiento y métricas, siguiendo el marco de tubería para identificación
-          automatizada de sonidos \citep{gibb_2018}.
+    \item[RE3.1.] Protocolo de evaluación operativa, redactado y fechado antes de
+          ejecutar la evaluación: material de prueba, punto de operación y criterio
+          con que se elige, umbral de emparejamiento, supresión de no máximos entre
+          ventanas, agregación por archivo y taxonomía de discrepancias, siguiendo el
+          marco de tubería para identificación automatizada de sonidos
+          \citep{gibb_2018}. Fijarlo de antemano impide elegir a posteriori el umbral
+          o la métrica que mejor favorezcan al resultado ya obtenido.
 
-          % TODO METODOLÓGICO
-          % Al diseñar RE3.2 hay que controlar el EFECTO DE APRENDIZAJE: un
-          % revisor va más rápido la segunda vez que revisa un material aunque
-          % no reciba ayuda. Usa material distinto pero comparable en cada
-          % condición, o dos revisores con orden contrabalanceado. Declararlo
-          % en RE3.1 evita que el jurado lo señale como falla de diseño.
-          % =================================================================
+    \item[RE3.2.] Curva de cobertura frente a carga de revisión, en lugar de una
+          única cifra cronometrada. La curva expresa qué fracción de las anotaciones
+          de referencia recupera el sistema en función de cuántas propuestas por hora
+          de audio se pide inspeccionar, y sobre ella se elige el punto de operación:
+          el umbral que maximiza la cobertura sujeto a un techo de propuestas por
+          hora. El punto de operación deja así de ser una constante heredada y pasa a
+          ser una decisión justificada. Las cinco magnitudes que se reportan
+          —cobertura, propuestas por hora, FP/TP, reducción de volumen y costo de
+          inferencia— se computan íntegramente sobre la partición de prueba. El
+          precedente metodológico directo es la reducción de 22 veces en el volumen de
+          datos que un operador debía procesar manualmente
+          \citep{Campos_Krofel_Rio-Maior_Renna_2025}, indicador que ese trabajo deriva
+          de la salida del sistema y no de un cronómetro; el mismo trabajo sostiene el
+          compromiso de cobertura sobre precisión al resultar útil operando con una
+          precisión de 0,006 bajo desbalance extremo. El dato de tiempo de
+          \citet{heinicke_2015} queda como motivación del encuadre asistido, no como
+          indicador de este resultado.
 
-    \item[RE3.2.] Medición del tiempo de revisión asistida frente a anotación
-          manual sobre material comparable. \citet{heinicke_2015} reportan que
-          en primates la remoción manual de falsos positivos tomó 3--5\,\% del tiempo
-          frente a la recolección y el procesamiento humanos, y
-          \citet{Campos_Krofel_Rio-Maior_Renna_2025} reportan una reducción de 15 veces
-          en tiempo de operador y de 22 veces en volumen de audio a revisar. Son los dos
-          precedentes metodológicos de esta medición.
+          Si el calendario lo permite, se añade una medición cronometrada sobre una
+          muestra pequeña revisada por el propio autor, declarada de forma explícita
+          como cota ilustrativa y no como validación experta.
 
-          % TODO No comprometer un VALOR concreto de ahorro en el enunciado del
-          % objetivo. "Reducir el tiempo de revisión" es un objetivo; "reducirlo
-          % en 60 %" es una apuesta que puede hacer fracasar la tesis por una
-          % cifra elegida antes de tener datos.
+    \item[RE3.3.] Taxonomía geométrica de las discrepancias entre las predicciones
+          de alta confianza y las anotaciones de referencia, según la
+          Tabla~\ref{tab:taxonomia-fp}. Las tres primeras categorías se resuelven sin
+          consultar a nadie, porque quedan determinadas por la relación geométrica
+          entre la caja predicha y una caja anotada que sí existe: son modos de error
+          del modelo operando sobre eventos presentes en la referencia. Los dos que
+          documenta \citet{zhu_sound_2025} —una caja anotada detectada como varias, y
+          varias detectadas como una— corresponden a la categoría B, y la borrosidad
+          de las fronteras del evento que ese mismo trabajo describe es lo que hace
+          necesaria la categoría A.
 
-    \item[RE3.3.] Informe de revisión experta de falsos positivos de alta
-          confianza, clasificados en evento no anotado, ruido o error de encuadre. Los
-          métodos automáticos fallan con llamadas tenues o enmascaradas
-          \citep{gibb_2018}, lo que implica la existencia de eventos válidos
-          fuera del \textit{ground truth}; la variabilidad intra-analista
-          \citep{leroy_reliability_2018} apunta en la misma dirección desde el lado
-          humano.
+          Solo la categoría D queda abierta, y se caracteriza estadísticamente en
+          lugar de dejarse sin resolver: se compara la distribución de banda de
+          frecuencia, duración y puntuación de esas predicciones contra la de los
+          eventos anotados de cada clase. Si se parecen geométricamente a los eventos
+          anotados y se concentran en las bandas correctas, eso constituye un
+          \emph{indicio} —no una prueba— de que la referencia omite eventos. Que tal
+          indicio sea plausible tiene respaldo: los métodos automáticos fallan con
+          llamadas tenues o enmascaradas \citep{gibb_2018}, lo que implica la
+          existencia de eventos válidos fuera del \textit{ground truth}, y la
+          variabilidad intra-analista \citep{leroy_reliability_2018} apunta en la
+          misma dirección desde el lado humano.
+
+    \item[RE3.4.] Validación experta de una muestra de predicciones de categoría D,
+          para resolver si son eventos omitidos por la referencia o falsos positivos
+          genuinos, y estimar el acuerdo entre el modelo y el criterio experto. Se
+          declara \textbf{condicional}, sujeto a la disponibilidad del equipo de
+          investigación. Su función en el documento es doble: proteger el cierre de la
+          tesis, que no queda supeditado a la agenda de un tercero, y dejar preparado
+          el resultado adicional si esa disponibilidad se concreta.
 \end{description}
+
+\begin{table}[htbp]
+    \centering
+    \caption[Taxonomía de discrepancias]{Taxonomía geométrica de las discrepancias de alta confianza}
+    \label{tab:taxonomia-fp}
+    \small
+    \begin{tabular}{@{}L{1.0cm}L{2.9cm}L{6.9cm}L{2.8cm}@{}}
+        \toprule
+        \textbf{Tipo} & \textbf{Discrepancia} & \textbf{Definición} & \textbf{¿Resoluble sin experto?} \\
+        \midrule
+        A & Encuadre  & Solapa con una anotación de la misma clase, pero con IoU inferior al umbral de emparejamiento.                       & Sí \\
+        \addlinespace
+        B & Unidad    & Varias predicciones sobre una misma anotación, o una predicción sobre varias anotaciones: división y fusión.          & Sí \\
+        \addlinespace
+        C & Clase     & Encuadre correcto sobre una anotación, con etiqueta de especie o de tipo de llamada incorrecta.                       & Sí \\
+        \addlinespace
+        D & Región sin anotación & No solapa con ninguna caja anotada. Puede ser un evento omitido por la referencia o un falso positivo genuino. & \textbf{No} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\rotulo{Limitación declarada.} Sin revisión experta, las predicciones de alta
+confianza situadas en regiones sin anotación (tipo D) no pueden clasificarse de
+forma concluyente entre eventos omitidos por la referencia y falsos positivos
+genuinos. Esta tesis las caracteriza geométricamente y las reporta como una
+cantidad acotada, dejando su resolución como trabajo futuro condicionado a la
+disponibilidad del equipo de investigación.
 
 % ===================================================================
 \section{Trazabilidad}
@@ -848,7 +927,8 @@ La relación entre las causas del problema, sus efectos y los productos
 comprometidos se resume en la Tabla~\ref{tab:trazabilidad}. En la práctica, OE1
 aborda la heterogeneidad del etiquetado, OE2 la representación funcional de los
 eventos, y OE3 la utilidad operativa del sistema dentro del flujo de trabajo del
-analista.
+analista. OE3 sigue atacando C1, la escasez de horas de analista, pero lo hace
+midiendo cuánto trabajo se evita y no cuánto tiempo tarda alguien en hacerlo.
 
 \begin{table}[htbp]
     \centering
@@ -859,7 +939,7 @@ analista.
         \toprule
         \textbf{Causa}         & \textbf{Efecto} & \textbf{Objetivo} & \textbf{Resultados esperados}               \\
         \midrule
-        C1: Velocidad          & E1              & OE3               & RE3.1, RE3.2, RE3.3                         \\
+        C1: Velocidad          & E1              & OE3               & RE3.1, RE3.2, RE3.3 y RE3.4 (condicional)   \\
         \addlinespace
         C2: Consistencia       & E2              & OE1               & RE1.1, RE1.2, RE1.3                         \\
         \addlinespace
@@ -904,7 +984,7 @@ objetivos específicos y los capítulos de este documento.
         \addlinespace
         4. Modelado                 & Detector de cajas tiempo--frecuencia y línea base                            & OE2               & 5                 \\
         \addlinespace
-        5. Evaluación               & Métricas por eje, análisis de errores y tiempo de revisión                   & OE2, OE3          & 5                 \\
+        5. Evaluación               & Métricas por eje, discrepancias y carga de revisión                          & OE2, OE3          & 5                 \\
         \addlinespace
         6. Despliegue               & Inferencia por lotes y exportación a tabla de selección de Raven             & OE2               & 5                 \\
         \bottomrule
@@ -926,8 +1006,8 @@ anteriores de este capítulo: la brecha operativa se estructura como árbol de
 problemas y de ahí derivan el objetivo general, los objetivos específicos y los
 resultados esperados. Los criterios de éxito son a la vez técnicos, relacionados
 con el desempeño en detección, encuadre y clasificación, y operativos, vinculados
-con la reducción efectiva del tiempo de revisión experta, como recomienda el marco para
-asegurar que el resultado sea útil y no solo correcto.
+con la cobertura alcanzada y con la carga de revisión que genera alcanzarla, como
+recomienda el marco para asegurar que el resultado sea útil y no solo correcto.
 
 \paragraph{Fase 2: Comprensión de los datos.}
 Los datos primarios son grabaciones en formato WAV muestreadas a 44,1\,kHz,
@@ -998,6 +1078,12 @@ sesgo no degenere en proponer indiscriminadamente, junto a él se reporta el
 cociente \textbf{FP/TP al punto de operación}, que es literalmente la carga de
 revisión que el experto asume por cada acierto y la magnitud que conecta esta
 fase con OE3.
+
+El umbral de confianza de 0,5 que fija la métrica principal es un punto de
+comparación común entre configuraciones, no el punto de operación definitivo del
+sistema. Ese último se elige en OE3 barriendo el umbral y leyendo la curva de
+cobertura frente a propuestas por hora de audio, de modo que la comparación entre
+modelos y la decisión operativa quedan separadas.
 
 El encuadre se puntúa aparte, con el IoU medio sobre los pares ya emparejados y
 la precisión media a varios umbrales de IoU. El barrido incluye umbrales bajos
@@ -3137,6 +3223,54 @@ La ficha declara además, como limitaciones conocidas del conjunto derivado:
 % se comprometía en el capítulo 1 y en la EDT del anexo, pero ningún
 % apartado del cuerpo lo entregaba.
 
+\section{Protocolo de evaluación operativa (RE3.1)}
+% TODO Redactar. El protocolo se fecha ANTES de correr la evaluación.
+% Debe fijar, en este orden: (1) el subconjunto de prueba, particionado
+% por archivo de grabación y sin solapamiento con entrenamiento ni
+% validación; (2) el criterio con que se elige el punto de operación
+% —umbral que maximiza cobertura sujeto a un techo de propuestas por
+% hora—, no un 0,5 heredado; (3) el umbral IoU 0,5 de emparejamiento;
+% (4) la supresión de no máximos entre ventanas solapadas de 3 s;
+% (5) la agregación de las predicciones por archivo; y (6) las cuatro
+% categorías de la Tabla~\ref{tab:taxonomia-fp}.
+% ===================================================================
+
+\section{Cobertura frente a carga de revisión (RE3.2)}
+% TODO Redactar. Núcleo del capítulo por el lado de OE3.
+% TODO FIGURA: curva cobertura (recall por evento @ IoU 0,5) en el eje
+%              vertical contra propuestas por hora de audio en el
+%              horizontal, con el punto de operación elegido marcado
+%              sobre la curva y su criterio anotado.
+% TODO TABLA: las cinco magnitudes al punto de operación —cobertura,
+%             propuestas por hora, FP/TP, fracción de audio sin
+%             ninguna propuesta (reducción de volumen) y minutos de GPU
+%             por hora de audio.
+% La reducción de volumen es el análogo directo del 22x reportado por
+% Campos et al. (2025); citarlo aquí como precedente del indicador.
+% Opcional y claramente rotulado como cota ilustrativa: cronometraje de
+% una muestra pequeña revisada por el propio autor.
+% ===================================================================
+
+\section{Taxonomía de discrepancias (RE3.3)}
+% TODO Redactar. Distribuir las predicciones de alta confianza entre
+% las categorías A, B, C y D de la Tabla~\ref{tab:taxonomia-fp}.
+% TODO TABLA: conteo y porcentaje por categoría.
+% TODO FIGURA: distribución de banda de frecuencia, duración y
+%              puntuación de las predicciones de tipo D superpuesta a
+%              la de los eventos anotados de cada clase.
+% TODO FIGURA: panel de espectrogramas con un ejemplo representativo
+%              de cada una de las cuatro categorías.
+% CUIDADO CON LA REDACCIÓN: el parecido geométrico de las predicciones
+% de tipo D con los eventos anotados es INDICIO de omisiones en la
+% referencia, no prueba. Usar esa palabra y no otra.
+% ===================================================================
+
+\section{Validación experta (RE3.4, condicional)}
+% TODO Redactar solo si el equipo de investigación resuelve una muestra
+% de predicciones de tipo D. Si no se concreta, esta sección se elimina
+% y basta con la limitación ya declarada en el Capítulo~\ref{cap:generalidades}.
+% ===================================================================
+
 % ===================================================================
 % ANEXOS
 % ===================================================================
@@ -3168,7 +3302,8 @@ jerárquico de especie y tipo de llamada sobre eventos detectados.
 \subsection{Beneficios esperados}
 
 \begin{itemize}[nosep]
-    \item Reducir el tiempo de revisión experta por hora de audio analizada.
+    \item Reducir la carga de revisión por hora de audio analizada: menos
+          material que inspeccionar para la misma cobertura de eventos.
     \item Poner en uso el audio ya grabado que hoy permanece sin anotar.
     \item Acortar la latencia entre la recolección y la obtención de resultados
           ecológicos.
@@ -3213,9 +3348,13 @@ cajas tiempo--frecuencia etiquetadas sobre grabaciones de monitoreo acústico
 pasivo, para las ocho especies de la Tabla~\ref{tab:especies}. El sistema debe
 cumplir tres tareas: localizar el evento en tiempo y frecuencia, identificar la
 especie y clasificar el tipo de vocalización. Una parte central del alcance es
-la comparación cuantitativa del tiempo de revisión asistida frente al análisis
-manual. El proyecto recorre el ciclo completo de CRISP-DM, desde la preparación
-de los datos hasta el procesamiento de grabaciones nuevas.
+la caracterización cuantitativa de su comportamiento operativo: la cobertura que
+alcanza sobre un conjunto de prueba independiente, la carga de revisión asociada
+y la naturaleza de sus discrepancias. Queda fuera del alcance la medición
+cronometrada del tiempo de un revisor experto, que depende de la disponibilidad
+del equipo de investigación y se declara como resultado condicional. El proyecto
+recorre el ciclo completo de CRISP-DM, desde la preparación de los datos hasta el
+procesamiento de grabaciones nuevas.
 
 \subsection{Entregables y criterios de aceptación}
 
@@ -3249,11 +3388,13 @@ terminado.
         \addlinespace
         RE2.5            & El repositorio público contiene el código del \textit{pipeline}, los pesos del modelo final y las instrucciones para reproducir la inferencia.                                                                   \\
         \addlinespace
-        RE3.1            & El protocolo especifica el material de prueba, el punto de operación, el umbral de IoU que define un verdadero positivo y el procedimiento de revisión experta, incluyendo el control del efecto de aprendizaje. \\
+        RE3.1            & El protocolo, fechado antes de la evaluación, especifica el material de prueba, el criterio de elección del punto de operación, el umbral de IoU que define un verdadero positivo, la agregación por archivo y las cuatro categorías de discrepancia. \\
         \addlinespace
-        RE3.2            & Se reporta el tiempo de revisión en ambas condiciones sobre material comparable, junto con el tiempo de procesamiento del modelo por hora de audio.                                                              \\
+        RE3.2            & Se reporta la curva de cobertura frente a propuestas por hora de audio, el punto de operación elegido con su criterio, el cociente FP/TP, la fracción de audio sin propuestas y el costo de inferencia por hora de audio.                          \\
         \addlinespace
-        RE3.3            & El informe clasifica la muestra de falsos positivos de alta confianza en evento no anotado, ruido y error de encuadre, con ejemplos visualizados sobre el espectrograma.                                         \\
+        RE3.3            & El informe distribuye la muestra de predicciones de alta confianza entre las cuatro categorías, caracteriza la categoría D por banda, duración y puntuación frente a los eventos anotados, e incluye ejemplos sobre el espectrograma.                \\
+        \addlinespace
+        RE3.4            & \textit{Condicional.} Si el equipo de investigación está disponible, se resuelve una muestra de categoría D entre evento omitido y falso positivo genuino y se estima el acuerdo con el criterio experto; si no, la limitación queda declarada.       \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -3279,7 +3420,13 @@ entorno acústico amazónico es denso y presenta con frecuencia baja relación
 señal-ruido. La variabilidad intraespecífica de las vocalizaciones y su
 naturaleza graduada dificultan definir categorías discretas, y las llamadas
 superpuestas o de baja intensidad son especialmente difíciles de modelar. Los
-sensores de bajo costo añaden variabilidad entre dispositivos.
+sensores de bajo costo añaden variabilidad entre dispositivos. Por último, sin
+revisión experta las predicciones de alta confianza situadas en regiones sin
+anotación (tipo D de la Tabla~\ref{tab:taxonomia-fp}) no pueden clasificarse de
+forma concluyente entre eventos omitidos por la referencia y falsos positivos
+genuinos: esta tesis las caracteriza geométricamente y las reporta como una
+cantidad acotada, y deja su resolución como trabajo futuro condicionado a la
+disponibilidad del equipo de investigación.
 
 \rotulo{Restricciones.} El desarrollo está sujeto al calendario académico. El
 proyecto depende del conjunto de datos entregado y de la verificación de su
@@ -3321,9 +3468,10 @@ el entregable asociado a cada uno.
         \addlinespace
         6.1         & Evaluación cuantitativa          & Métricas por eje, comparación con la línea base, análisis de errores                               & RE2.3               \\
         6.2         & Selección del modelo final       & Modelo elegido y exportador a tabla de selección de Raven                                          & RE2.4               \\
-        6.3         & Protocolo de la prueba de tiempo & Material, punto de operación, procedimiento y métricas                                             & RE3.1               \\
-        6.4         & Medición del tiempo de revisión  & Revisión asistida frente a anotación manual                                                        & RE3.2               \\
-        6.5         & Revisión experta de errores      & Clasificación de una muestra de falsos positivos de alta confianza                                 & RE3.3               \\
+        6.3         & Protocolo de evaluación operativa & Material, criterio de elección del punto de operación, emparejamiento y taxonomía                 & RE3.1               \\
+        6.4         & Curva de cobertura y carga       & Barrido de umbral, elección del punto de operación y métricas de carga e inferencia                & RE3.2               \\
+        6.5         & Análisis de discrepancias        & Clasificación geométrica de las predicciones de alta confianza y caracterización de la categoría D & RE3.3               \\
+        6.6         & Validación experta (condicional) & Revisión de una muestra de categoría D con el equipo de investigación                              & RE3.4               \\
         \addlinespace
         7           & Despliegue                       & Inferencia por lotes sobre grabaciones no vistas y generación de tablas de anotación               & N/A                 \\
         \addlinespace
@@ -3343,9 +3491,11 @@ el entregable asociado a cada uno.
 
 El cronograma se ajusta al calendario académico y se organiza en bloques que
 respetan las dependencias entre paquetes: la preparación de datos precede al
-modelado, el modelado precede a la evaluación, y la medición de tiempo de
-revisión precede al análisis de errores, porque se realiza sobre las
-predicciones del modelo ya seleccionado.
+modelado, el modelado precede a la evaluación, y el barrido de umbral que produce
+la curva de cobertura frente a carga precede al análisis de discrepancias, porque
+este se realiza sobre las predicciones del modelo ya seleccionado en el punto de
+operación ya elegido. El paquete condicional de validación experta se planifica
+al final y fuera de la ruta crítica.
 
 
 \subsection{Estimación de costos}
@@ -3505,11 +3655,12 @@ impacto, severidad y las acciones previstas.
         acotar la búsqueda de hiperparámetros; parada temprana                                                                                               \\
         \addlinespace
         R3. Baja disponibilidad de revisores expertos para la validación      &
-        Media                                                                 & Media         &
-        Contactar a los revisores con antelación; protocolo de revisión breve y
-        de carga acotada                                                      &
-        Validación interna con el asesor, declarada de forma transparente como
-        limitación del estudio                                                                                                                               \\
+        Media                                                                 & Baja          &
+        Ningún resultado comprometido de OE3 depende de un revisor externo; la
+        validación experta se declara como RE3.4 condicional y fuera de la ruta
+        crítica                                                               &
+        Cerrar OE3 con la caracterización geométrica de la categoría D y
+        declarar la limitación de forma explícita                                                                                                            \\
         \addlinespace
         R4. Falla del equipo de desarrollo                                    &
         Alta                                                                  & Media         &

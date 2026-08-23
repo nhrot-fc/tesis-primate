@@ -61,11 +61,21 @@ def format_report(
         )
         + f" | medio sobre umbrales={format_metric(mean_ap)}",
         "",
-        "Recall por clase (punto de operación):",
-        f"{'clase':<20}{'recall':>10}",
+        "mAP por clase (independiente del punto de operación):",
+        f"  mAP@0.5={format_metric(metrics.map_50)} "
+        f"mAP@0.5:0.95={format_metric(metrics.map_50_95)}",
+        "  por umbral de IoU -> "
+        + ", ".join(
+            f"{threshold:g}={format_metric(value)}"
+            for threshold, value in sorted(metrics.map_per_threshold.items())
+        ),
+        "",
+        "Por clase (recall al punto de operación, AP sobre toda la curva):",
+        f"{'clase':<20}{'recall':>10}{'AP@0.5':>10}",
     ]
     lines += [
         f"{name:<20}{format_metric(metrics.recall_per_class.get(class_id)):>10}"
+        f"{format_metric(metrics.ap_per_class_50.get(class_id)):>10}"
         for class_id, name in enumerate(names)
     ]
     return "\n".join(lines) + "\n"
@@ -140,6 +150,7 @@ def main() -> None:
                 "metrics": {
                     **metrics._asdict(),
                     "ap_agnostic": {str(k): v for k, v in metrics.ap_agnostic.items()},
+                    "map_per_threshold": {str(k): v for k, v in metrics.map_per_threshold.items()},
                     "operating_score": operating_score(
                         metrics.recall_agnostic, metrics.precision_agnostic
                     ),

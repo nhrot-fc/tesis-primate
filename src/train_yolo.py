@@ -25,7 +25,7 @@ YOLO_DIR = PROJECT_DIR / "data" / "yolo"
 RUNS_DIR = PROJECT_DIR / "runs" / "yolo"
 
 MODEL = "yolo26s"  # n < s < m < l < x
-EPOCHS, BATCH_SIZE, IMAGE_SIZE, WORKERS = 100, 32, 512, 8
+EPOCHS, BATCH_SIZE, IMAGE_SIZE, WORKERS = 50, 32, 512, 8
 PATIENCE = 30
 CLS_POWER_WEIGHT = 0.0
 # Mismo punto de operación que `src/train.py`, para que los informes se comparen.

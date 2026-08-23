@@ -59,6 +59,8 @@ def format_report(
             for threshold, ap in sorted(metrics.ap_agnostic.items())
         )
         + f" | AP_agn medio sobre umbrales={format_metric(mean_ap)}",
+        f"mAP por clase -> @0.5={format_metric(metrics.map_50)} "
+        f"@0.5:0.95={format_metric(metrics.map_50_95)}",
         "",
         "Métricas por clase (punto de operación):",
         format_class_table(metrics, labels_names),

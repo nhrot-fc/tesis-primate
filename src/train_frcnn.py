@@ -208,19 +208,26 @@ def train(args: argparse.Namespace, device: str, run_dir: Path) -> None:
         score = operating_score(metrics.recall_agnostic, metrics.precision_agnostic)
 
         logger.info(
-            "[%4d/%d] train=%.3f recall_agn@%.2f=%s precision_agn=%s score=%.3f",
+            "[%4d/%d] train=%.3f recall_agn@%.2f=%s precision_agn=%s mAP50=%s mAP50-95=%s "
+            "score=%.3f",
             epoch + 1,
             args.epochs,
             losses["total"],
             METRIC_IOU_THRESHOLD,
             format_metric(metrics.recall_agnostic),
             format_metric(metrics.precision_agnostic),
+            format_metric(metrics.map_50),
+            format_metric(metrics.map_50_95),
             score,
         )
         if detailed:
             logger.info(
                 "Recall por clase -> %s",
                 format_recall_per_class(metrics.recall_per_class, labels.names),
+            )
+            logger.info(
+                "AP por clase @0.5 -> %s",
+                format_recall_per_class(metrics.ap_per_class_50, labels.names),
             )
 
         with metrics_path.open("a", encoding="utf-8") as handle:
@@ -233,6 +240,9 @@ def train(args: argparse.Namespace, device: str, run_dir: Path) -> None:
                         "val": {
                             **metrics._asdict(),
                             "ap_agnostic": {str(k): v for k, v in metrics.ap_agnostic.items()},
+                            "map_per_threshold": {
+                                str(k): v for k, v in metrics.map_per_threshold.items()
+                            },
                             "operating_score": score,
                         },
                     },
@@ -253,10 +263,13 @@ def train(args: argparse.Namespace, device: str, run_dir: Path) -> None:
                 epoch=epoch,
                 recall_agn=metrics.recall_agnostic,
                 precision_agn=metrics.precision_agnostic,
+                map_50=metrics.map_50,
+                map_50_95=metrics.map_50_95,
             )
             logger.info("Nuevo mejor score=%.3f -> %s", score, checkpoint_path)
 
     logger.info("mejor operating_score de validación: %.3f -> %s", best_score, checkpoint_path)
+    logger.info("métricas por época -> %s", metrics_path)
     logger.info(
         "evaluá con: python src/eval_detector.py --checkpoint %s --split test", checkpoint_path
     )
