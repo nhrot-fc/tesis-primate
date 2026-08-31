@@ -1,9 +1,3 @@
-"""Barrido de un detector sobre un split: cajas predichas y anotadas, listas de medir.
-
-Recibe una función de detección, no un modelo, así que los tres detectores pasan por el
-mismo pos-proceso antes de que `pipelines.metrics` los compare.
-"""
-
 from collections.abc import Callable
 
 import torch
@@ -12,9 +6,15 @@ from torch.utils.data import DataLoader
 from torchvision.ops import box_convert
 from tqdm.auto import tqdm
 
-from architectures.deformable_detr import Detections
-from architectures.iou import suppress_nested
-from pipelines.metrics import Boxes, concat, sort_by_score
+from evaluation.metrics import (
+    BETA,
+    Boxes,
+    DetectionMetrics,
+    concat,
+    detection_metrics,
+    sort_by_score,
+)
+from utils.boxes import Detections, suppress_nested
 
 Detect = Callable[[Tensor, float], list[Detections]]
 
@@ -34,8 +34,6 @@ def collect_detections(
     loader: DataLoader,
     device: str | torch.device = "cpu",
     nms_iou: float | None = 0.3,
-    min_score: float = MIN_SCORE,
-    max_detections: int | None = MAX_DETECTIONS,
     desc: str = "detectando",
 ) -> tuple[Boxes, Boxes]:
     """-> (predicciones ordenadas por score descendente, verdad de terreno)."""
@@ -44,11 +42,9 @@ def collect_detections(
     image_id = 0
 
     for images, targets in tqdm(loader, desc=desc, unit="batch", leave=False):
-        detections = detect(images.to(device), min_score)
+        detections = detect(images.to(device), MIN_SCORE)
         for detection, target in zip(detections, targets, strict=True):
-            boxes = detection.boxes.cpu()
-            scores = detection.scores.cpu()
-            labels = detection.labels.cpu()
+            boxes, scores, labels = (t.cpu() for t in detection)
             if nms_iou is not None and len(boxes):
                 # el DETR lo necesita (sus queries se pisan entre sí) y en los demás
                 # saca cajas anidadas, que acá son duplicados de una misma llamada
@@ -56,21 +52,42 @@ def collect_detections(
                     box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou
                 )
                 boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
-
-            if max_detections is not None and len(boxes) > max_detections:
-                keep = scores.topk(max_detections).indices
+            if len(boxes) > MAX_DETECTIONS:
+                keep = scores.topk(MAX_DETECTIONS).indices
                 boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
 
             predicted.append(Boxes(boxes, torch.full((len(boxes),), image_id), labels, scores))
             n_target = len(target["labels"])
             truth.append(
                 Boxes(
-                    target["boxes"],
+                    target["boxes"].cpu(),
                     torch.full((n_target,), image_id),
-                    target["labels"],
+                    target["labels"].cpu(),
                     torch.ones(n_target),
                 )
             )
             image_id += 1
 
     return sort_by_score(concat(predicted)), concat(truth)
+
+
+def evaluate(
+    detect: Detect,
+    loader: DataLoader,
+    n_classes: int,
+    device: str | torch.device = "cpu",
+    iou_threshold: float = 0.5,
+    score_threshold: float = 0.5,
+    nms_iou: float | None = 0.3,
+    beta: float = BETA,
+    desc: str = "val",
+) -> DetectionMetrics:
+    predictions, truth = collect_detections(detect, loader, device, nms_iou, desc)
+    return detection_metrics(
+        predictions,
+        truth,
+        n_classes=n_classes,
+        iou_threshold=iou_threshold,
+        score_threshold=score_threshold,
+        beta=beta,
+    )

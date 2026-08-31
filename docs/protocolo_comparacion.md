@@ -36,7 +36,7 @@ igual para las tres arquitecturas:
 | Score mínimo al detectar | 0.001 |
 | Tope de detecciones por clip | 64 |
 
-`eval_detector.py` evalúa cualquier checkpoint desde `data/processed/*.pt`, incluido el
+`evaluate.py` evalúa cualquier checkpoint desde `data/processed/*.pt`, incluido el
 de YOLO: su adaptador rehace el PNG en memoria con la misma función que usó el
 exportador. Verificado que las imágenes salen idénticas salvo 6 píxeles por millón que
 difieren en un nivel de gris (redondeo float32 contra float64).
@@ -109,7 +109,7 @@ Si en algún momento se quiere cerrar esa brecha, hay dos caminos:
 1. Un callback `on_fit_epoch_end` en `train_yolo.py` que evalúe con
    `pipelines.detection_pipeline` y guarde por `operating_score`. Correcto, pero agrega
    una pasada de validación por época.
-2. Entrenar con `save_period=1` y elegir después, offline, con `eval_detector.py`. Cuesta
+2. Entrenar con `save_period=1` y elegir después, offline, con `evaluate.py`. Cuesta
    unos 2 GB de checkpoints y una evaluación por época.
 
 ### La segunda: regularización asimétrica
@@ -124,17 +124,22 @@ La asimetría va en las dos direcciones, así que no favorece obviamente a nadie
 ## 4. Reproducir la comparación
 
 ```bash
-python src/create_dataset.py                       # data/processed/*.pt (fuente única)
-python src/create_yolo_dataset.py                  # reexporta a data/yolo/
+python src/prepare_data.py                         # data/processed/*.pt (fuente única)
+python src/export_yolo.py                          # reexporta a data/yolo/
 
-python src/train.py                                # Deformable-DETR
-python src/train_frcnn.py --device 0               # Faster R-CNN
+python src/train.py --arch detr                    # Deformable-DETR
+python src/train.py --arch frcnn --device cuda:0   # Faster R-CNN
 python src/train_yolo.py --device 0                # YOLO26
 
-python src/eval_detector.py --checkpoint <ckpt> --split test   # los tres, mismo comando
+python src/evaluate.py --run <corrida> --split test   # los tres, mismo comando
 ```
 
-`eval_detector.py` escribe un `.txt` legible y un `.json` con las mismas cifras, al lado
-del checkpoint. `eval.py` sigue existiendo solo para el informe extra del DETR --pérdidas,
-accuracy de clasificación y matriz de confusión del matcher húngaro--, que no tiene
-equivalente en un detector con anchors.
+Cada corrida vive en `runs/<corrida>/`: `config.json` con todo lo que la definió,
+`metrics.jsonl` con una línea por época, `train.log`, y dos checkpoints --`best.pt`, el de
+mejor F-beta, y `last.pt`, que además lleva optimizador y scheduler--. Relanzar el mismo
+comando retoma la corrida donde se cortó; el barrido de la ablación se pide en un solo
+comando, p. ej. `python src/train.py --time-stride 10 5 2`.
+
+`evaluate.py` escribe un `.txt` legible y un `.json` con las mismas cifras, al lado del
+checkpoint. Las métricas son las mismas para los tres: recall y precisión al punto de
+operación, la F-beta (beta=3) que elige el checkpoint, y mAP@0.5 y mAP@0.5:0.95.

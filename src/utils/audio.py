@@ -10,18 +10,23 @@ import torch.nn.functional as F
 import torchaudio
 from torch import Tensor, nn
 
-from core.config import P, Parameters
+from core.config import SEED, P, Parameters
 
 FloatArray = npt.NDArray[np.float64]
 
 
-def waveform_padding(waveform: Tensor, params: Parameters) -> Tensor:
+# --- Del .wav a las ventanas ----------------------------------------------------
+
+
+def _pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
     missing = params.clip_len_samples - waveform.numel()
     if missing <= 0:
         return waveform[: params.clip_len_samples]
     if params.pad_mode == "zeros":
         return F.pad(waveform, (0, missing))
 
+    # Ruido al percentil 10 de |x|, que aproxima el piso de la grabación: el silencio
+    # digital sería un salto abrupto y el mel lo vería como energía de banda ancha.
     noise_floor = float(waveform.abs().quantile(0.1)) if waveform.numel() else 0.0
     generator = torch.Generator().manual_seed(params.pad_seed)
     return torch.cat([waveform, torch.randn(missing, generator=generator) * noise_floor])
@@ -39,7 +44,7 @@ def read_clip(
     waveform = torch.from_numpy(frames.mean(axis=1))
     if source_sample_rate != params.target_sr:
         waveform = torchaudio.functional.resample(waveform, source_sample_rate, params.target_sr)
-    return waveform_padding(waveform, params)
+    return _pad_to_clip(waveform, params)
 
 
 def load_clip(audio_path: Path | str, clip_start_s: float, params: Parameters = P) -> Tensor:
@@ -62,36 +67,57 @@ def window_starts(duration_s: float, params: Parameters) -> FloatArray:
     return np.arange(n_hops + 1, dtype=np.float64) * params.clip_hop_s
 
 
-def _mel(hz: FloatArray | float, params: Parameters) -> FloatArray:
+# --- Eje de frecuencia: Hz <-> `y` normalizado de la caja ------------------------
+
+
+def hz_to_mel(hz: FloatArray | float, params: Parameters) -> FloatArray:
+    # Escala mel (HTK): m(f) = q·log10(1 + f/f_break), q = 2595 y f_break = 700 Hz. Comprime
+    # los agudos igual que el banco de filtros, y es el eje donde vive la caja.
     return params.mel_scale_q * np.log10(
         1.0 + np.asarray(hz, dtype=np.float64) / params.mel_break_hz
     )
 
 
 def hz_to_y(freq_hz: FloatArray, params: Parameters) -> FloatArray:
-    mel_lo, mel_hi = _mel(params.f_min, params), _mel(params.f_max, params)
-    return (_mel(freq_hz, params) - mel_lo) / (mel_hi - mel_lo)
+    # y = (m(f) - m(f_min)) / (m(f_max) - m(f_min)): la fila del espectrograma, en [0, 1].
+    low, high = hz_to_mel(params.f_min, params), hz_to_mel(params.f_max, params)
+    return (hz_to_mel(freq_hz, params) - low) / (high - low)
 
 
 def y_to_hz(y: FloatArray, params: Parameters) -> FloatArray:
-    mel_lo, mel_hi = _mel(params.f_min, params), _mel(params.f_max, params)
-    mel_value = mel_lo + np.clip(y, 0.0, 1.0) * (mel_hi - mel_lo)
+    # Inversa: se deshace la normalización y después el log10, f = f_break·(10^(m/q) - 1).
+    low, high = hz_to_mel(params.f_min, params), hz_to_mel(params.f_max, params)
+    mel_value = low + np.clip(y, 0.0, 1.0) * (high - low)
     return params.mel_break_hz * (10.0 ** (mel_value / params.mel_scale_q) - 1.0)
 
 
-DB_PERCENTILES = (1.0, 99.9)
-DB_RANGE_SAMPLE = 2000  # ventanas con las que se estiman los percentiles
+# --- Mel: potencia -> dB -> gris -------------------------------------------------
+
+
+def mel_spectrogram(params: Parameters = P) -> nn.Module:
+    return torchaudio.transforms.MelSpectrogram(
+        sample_rate=params.target_sr,
+        n_fft=params.n_fft,
+        win_length=params.win_length,
+        hop_length=params.hop_length,
+        n_mels=params.n_mels,
+        f_min=params.f_min,
+        f_max=params.f_max,
+        power=2.0,
+        mel_scale=params.mel_scale,
+    )
 
 
 def mel_to_db(mel: Tensor, params: Parameters = P) -> Tensor:
+    # 10·log10 y no 20: `mel_spectrogram` va con power=2.0. El eps evita el -inf en los ceros.
     return 10.0 * torch.log10(mel + params.eps)
 
 
 def mel_db_range(
     mels: Tensor,
-    percentiles: tuple[float, float] = DB_PERCENTILES,
-    sample: int = DB_RANGE_SAMPLE,
-    seed: int = 42,
+    percentiles: tuple[float, float] = (1.0, 99.9),
+    sample: int = 2000,  # ventanas con las que se estiman los percentiles
+    seed: int = SEED,
 ) -> tuple[float, float]:
     index = np.random.default_rng(seed).choice(
         len(mels), size=min(sample, len(mels)), replace=False
@@ -103,23 +129,15 @@ def mel_db_range(
 
 
 def mel_to_unit(mel: Tensor, low: float, high: float) -> Tensor:
+    # Lineal de [low, high] dB a [0, 1] saturando afuera: con los percentiles de
+    # `mel_db_range`, el 1% más callado y el 0.1% más fuerte quedan recortados.
     return ((mel_to_db(mel) - low) / (high - low)).clamp(0.0, 1.0)
 
 
-class MelSpectrogram(nn.Module):
-    def __init__(self, params: Parameters = P) -> None:
-        super().__init__()
-        self.mel_spectrogram = torchaudio.transforms.MelSpectrogram(
-            sample_rate=params.target_sr,
-            n_fft=params.n_fft,
-            win_length=params.win_length,
-            hop_length=params.hop_length,
-            n_mels=params.n_mels,
-            f_min=params.f_min,
-            f_max=params.f_max,
-            power=2.0,
-            mel_scale=params.mel_scale,
-        )
+def mel_to_gray(mel: Tensor, low: float, high: float, size: int | None = None) -> np.ndarray:
+    import cv2
 
-    def forward(self, waveform: Tensor) -> Tensor:
-        return self.mel_spectrogram(waveform)
+    gray = np.flipud((mel_to_unit(mel, low, high) * 255).to(torch.uint8).numpy())
+    if size is None:
+        return np.ascontiguousarray(gray)
+    return cv2.resize(gray, (size, size), interpolation=cv2.INTER_LINEAR)

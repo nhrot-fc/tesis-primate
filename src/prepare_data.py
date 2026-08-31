@@ -1,25 +1,23 @@
+import argparse
 import json
 import logging
 from dataclasses import asdict
-from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 from tqdm import tqdm
 
-from core.config import P, settings
-from core.setup import setup_logging, setup_project_path
-from domain.annotations import load_annotations
-from domain.dataset import CallBoxDataset, ClipWindow, build_manifest, split_manifest
-from domain.species import LabelSet
+from core.config import SEED, P, Parameters, settings
+from core.runtime import setup_logging
+from data.annotations import load_annotations
+from data.manifest import ClipWindow, build_manifest, split_manifest
+from data.species import LabelSet
+from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
-logger = logging.getLogger("create_dataset")
+logger = logging.getLogger("prepare_data")
 
-PROJECT_DIR = Path.cwd()
-CACHE_DIR = PROJECT_DIR / "data" / "processed"
-
-SEED = 42
 MIN_PAIR_COUNT = 100
 # Se queda con las N clases más frecuentes de las que sobreviven a `EXCLUDED_PAIRS`,
 # `JOINED_PAIRS` y `MIN_PAIR_COUNT`. `None` las conserva todas.
@@ -35,9 +33,6 @@ EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs"
 JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
     (("lw", "tr"), ("lw", "tj"), ("lw", "tt"), ("lw", "tf")): ("lw", "trino"),
 }
-
-
-OTHER_LABEL = "other"
 
 
 def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
@@ -104,22 +99,34 @@ def compute_mel_statistics(images: torch.Tensor, chunk: int = 256) -> dict[str, 
     return {"mean": mean, "std": variance**0.5}
 
 
-def build_dataset(manifest: list[ClipWindow], params=P) -> dict[str, Any]:
-    dataset = CallBoxDataset(manifest, params)
-    images = torch.empty(len(dataset), 1, params.n_mels, params.n_frames, dtype=torch.float32)
+def build_dataset(manifest: list[ClipWindow], params: Parameters = P) -> dict[str, Any]:
+    to_mel = mel_spectrogram(params)
+    images = torch.empty(len(manifest), 1, params.n_mels, params.n_frames, dtype=torch.float32)
     boxes: list[torch.Tensor] = []
     labels: list[torch.Tensor] = []
-    for index in tqdm(range(len(dataset)), desc="materializando"):
-        image, target = dataset[index]
-        images[index] = image
-        boxes.append(target["boxes"])
-        labels.append(target["labels"])
+    for index, window in enumerate(tqdm(manifest, desc="materializando")):
+        waveform = load_clip(window.audio_path, window.clip_start_s, params)
+        images[index] = to_mel(waveform)
+        boxes.append(torch.from_numpy(window.boxes.astype(np.float32)))
+        labels.append(torch.from_numpy(window.labels))
     return {"images": images, "boxes": boxes, "labels": labels}
 
 
 def main() -> None:
-    setup_logging(settings.LOG_LEVEL)
-    setup_project_path(PROJECT_DIR)
+    parser = argparse.ArgumentParser(
+        description="Materializa el caché de ventanas que consumen los tres detectores."
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="regenera aunque ya haya un caché (la reconstrucción es destructiva)",
+    )
+    args = parser.parse_args()
+
+    setup_logging()
+    cache_dir = settings.processed_dir
+    if (cache_dir / "meta.json").exists() and not args.force:
+        raise SystemExit(f"ya hay un caché en {cache_dir}; pasá --force para regenerarlo.")
 
     experiment_df, labels = select_experiment()
     manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
@@ -127,25 +134,27 @@ def main() -> None:
         manifest, n_classes=len(labels), seed=SEED, ratios=(0.6, 0.225, 0.175)
     )
 
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    (CACHE_DIR / "meta.json").unlink(missing_ok=True)
-    (CACHE_DIR / "labels.json").write_text(
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    (cache_dir / "meta.json").unlink(missing_ok=True)
+    (cache_dir / "labels.json").write_text(
         json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False)
     )
 
     normalization: dict[str, float] = {}
+    db_range: list[float] = []
     for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
         logger.info("%s: materializando %d ventanas...", name, len(split))
-        cache = build_dataset(split)
-        images: torch.Tensor = cache["images"]
+        windows = build_dataset(split)
+        images: torch.Tensor = windows["images"]
         if name == "train":
             normalization = compute_mel_statistics(images)
-            logger.info("normalización (mel de train) -> %s", normalization)
-        path = CACHE_DIR / f"{name}.pt"
-        torch.save(cache, path)
+            db_range = list(mel_db_range(images[:, 0]))
+            logger.info("mel de train -> normalización %s | dB %s", normalization, db_range)
+        path = cache_dir / f"{name}.pt"
+        torch.save(windows, path)
         logger.info("%s -> %s (%.2f GB)", name, path, path.stat().st_size / 1024**3)
 
-    (CACHE_DIR / "meta.json").write_text(
+    (cache_dir / "meta.json").write_text(
         json.dumps(
             {
                 "seed": SEED,
@@ -155,6 +164,7 @@ def main() -> None:
                 "label_by": LABEL_BY,
                 "excluded_pairs": sorted(EXCLUDED_PAIRS),
                 "normalization": normalization,
+                "db_range": db_range,
                 "params": asdict(P),
             },
             indent=2,

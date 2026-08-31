@@ -46,12 +46,12 @@ venv/
 .env.*
 
 # Project files
-data/
-checkpoints/hf/
-logs/
-runs/
-secrets/
-.vscode/
+/data/
+/checkpoints/hf/
+/logs/
+/runs/
+/secrets/
+/.vscode/
 *.zip
 
 # Add exceptions for research build artifacts

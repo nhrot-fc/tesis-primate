@@ -1,11 +1,3 @@
-"""Adaptador de un YOLO de Ultralytics al mismo contrato que el resto de detectores.
-
-Ultralytics entrena con PNG en disco, así que acá se rehace en memoria la conversión de
-`create_yolo_dataset.py`: mel de potencia -> dB con el rango global -> gris de 8 bits ->
-cuadrado de `imgsz`. Ese exportador deja el grave abajo, de modo que las detecciones
-vuelven con `cy -> 1 - cy` al espacio mel normalizado que usan las otras arquitecturas.
-"""
-
 import json
 import logging
 from pathlib import Path
@@ -15,10 +7,10 @@ import numpy as np
 import torch
 from torch import Tensor, nn
 
-from architectures.deformable_detr import Detections
 from core.config import settings
-from domain.species import LabelSet
-from utils.audio import mel_to_unit
+from data.species import LabelSet
+from utils.audio import mel_to_gray
+from utils.boxes import Detections
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +49,13 @@ class SpectrogramYOLO(nn.Module):
     def to_images(self, mel: Tensor) -> list[np.ndarray]:
         import cv2
 
-        unit = mel_to_unit(mel.detach().cpu(), self.db_low, self.db_high)
-        images = []
-        for gray in (unit[:, 0] * 255).to(torch.uint8).numpy():
-            resized = cv2.resize(
-                np.flipud(gray), (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR
+        mel = mel.detach().cpu()
+        return [
+            cv2.cvtColor(
+                mel_to_gray(mel[i, 0], self.db_low, self.db_high, self.imgsz), cv2.COLOR_GRAY2BGR
             )
-            images.append(cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR))
-        return images
+            for i in range(len(mel))
+        ]
 
     @torch.no_grad()
     def detect(self, mel: Tensor, score_threshold: float = 0.5) -> list[Detections]:
@@ -121,7 +112,7 @@ def _dataset_meta(checkpoint: dict, weights: Path) -> tuple[Path, dict]:
     data = (checkpoint.get("train_args") or {}).get("data")
     if data:
         candidates.append(Path(data).parent / "meta.json")
-    candidates.append(settings.data_dir / "yolo" / "meta.json")
+    candidates.append(settings.yolo_dir / "meta.json")
 
     for candidate in candidates:
         if candidate.is_file():
@@ -130,8 +121,8 @@ def _dataset_meta(checkpoint: dict, weights: Path) -> tuple[Path, dict]:
         f"{weights} es un checkpoint de Ultralytics, pero no encuentro el `meta.json` del "
         f"export de YOLO (busqué en {', '.join(str(c) for c in candidates)}). Sin él no se "
         "sabe con qué rango de dB se generaron las imágenes ni cómo se llamaban las clases. "
-        "Corré `python src/create_yolo_dataset.py`, o cargá el `best_spectrogram.pth` que "
-        "`train_yolo.py` deja al lado del `best.pt`."
+        "Corré `python src/export_yolo.py`, o cargá el `best.pt` que `train_yolo.py` "
+        "deja en runs/<corrida>/."
     )
 
 
@@ -144,7 +135,7 @@ def load_ultralytics_checkpoint(weights: Path, checkpoint: dict, device: str) ->
         raise ValueError(
             f"{weights} se entrenó con {trained_classes} clases y {meta_path} describe "
             f"{len(labels)}: el export se regeneró después de entrenar. Volvé a correr "
-            "`python src/create_yolo_dataset.py` y `python src/train_yolo.py`."
+            "`python src/export_yolo.py` y `python src/train_yolo.py`."
         )
 
     train_args = checkpoint.get("train_args") or {}
@@ -157,16 +148,8 @@ def load_ultralytics_checkpoint(weights: Path, checkpoint: dict, device: str) ->
     model = SpectrogramYOLO(n_classes=len(labels), **hparams)
     load_ultralytics_state(model, checkpoint)
 
-    # `train_yolo.py` deja el punto de operación en `spectrogram_config.json`, un nivel
-    # arriba de `weights/`. Si no está, valen los mismos valores por defecto del registro.
-    config_path = weights.parent.parent / "spectrogram_config.json"
-    config = json.loads(config_path.read_text()) if config_path.is_file() else {}
-    logger.info(
-        "checkpoint de Ultralytics adaptado con %s%s",
-        meta_path,
-        "" if config else " (sin spectrogram_config.json: punto de operación por defecto)",
-    )
-    return AdaptedYOLO(model.to(device), labels, hparams, config)
+    logger.info("checkpoint de Ultralytics adaptado con %s", meta_path)
+    return AdaptedYOLO(model.to(device), labels, hparams, {})
 
 
 def detect(

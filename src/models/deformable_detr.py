@@ -1,18 +1,12 @@
-"""Deformable DETR (versión de referencia en PyTorch puro para Etapa 0).
-
-Estructura calcada de Zhu & Sato Fig. 2: multiscale features -> decoder con
-object queries fijas -> refinamiento iterativo de caja + clase por capa. La
-caja se predice como (cx, cy, w, h) = (time_center, freq_center, duration,
-bandwidth).
-"""
-
 import math
-from typing import Any, NamedTuple
+from typing import Any
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
+
+from utils.boxes import Detections
 
 Outputs = dict[str, Any]
 # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
@@ -233,7 +227,7 @@ class DetectionHead(nn.Module):
         n_levels: int = 3,
     ):
         super().__init__()
-        from architectures.backbone import MultiScalePyramid
+        from models.backbone import MultiScalePyramid
 
         self.freq_out, self.time_out = freq_out, time_out
         self.proj = nn.Linear(token_dim, dim)
@@ -252,9 +246,9 @@ class LogMelFrontend(nn.Module):
     """Rama de control del PCEN: compresión logarítmica fija, sin parámetros.
 
     Es la entrada estándar de un espectrograma a un transformer de audio; comparada
-    contra `TrainablePCEN` aísla cuánto aporta la normalización de energía por canal
-    (ver `docs/experimentos_ablacion.md`). La `BatchNorm2d` que va después es la misma
-    en las dos ramas, así que lo único que cambia es la compresión.
+    contra `TrainablePCEN` aísla cuánto aporta la normalización de energía por canal.
+    La `BatchNorm2d` que va después es la misma en las dos ramas, así que lo único que
+    cambia es la compresión.
     """
 
     def __init__(self, eps: float = 1e-6) -> None:
@@ -279,8 +273,9 @@ class ASTDeformableDETR(nn.Module):
         frontend: str = "pcen",
     ):
         super().__init__()
-        from architectures.backbone import ASTBackbone
-        from architectures.trainable_pcen import TrainablePCEN
+        from models.backbone import ASTBackbone
+        from models.criterion import SetCriterion
+        from models.pcen import TrainablePCEN
 
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
         if n_mels != self.backbone.n_mels:
@@ -306,18 +301,17 @@ class ASTDeformableDETR(nn.Module):
             n_classes=n_classes,
             n_levels=n_levels,
         )
+        # El matcher húngaro sólo hace falta al entrenar, pero vive acá para que el
+        # modelo cumpla el mismo contrato que torchvision: con targets, pérdidas.
+        self.criterion = SetCriterion(n_classes=n_classes)
 
-    def forward(self, x: torch.Tensor) -> Outputs:
+    def forward(
+        self, x: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
+    ) -> Outputs | dict[str, torch.Tensor]:
         x = self.pcen(x)
         x = self.pcen_norm(x) / 2
-        x = self.backbone(x)
-        return self.head(x)
-
-
-class Detections(NamedTuple):
-    boxes: torch.Tensor  # (K, 4) cxcywh normalizado
-    scores: torch.Tensor  # (K,)
-    labels: torch.Tensor  # (K,) id de clase en `domain.species.LabelSet`
+        outputs = self.head(self.backbone(x))
+        return outputs if targets is None else self.criterion(outputs, targets)
 
 
 def predict_scores(outputs: Outputs) -> tuple[torch.Tensor, torch.Tensor]:
@@ -354,4 +348,4 @@ def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detectio
 def detect(
     model: nn.Module, images: torch.Tensor, score_threshold: float = 0.5
 ) -> list[Detections]:
-    return postprocess(model(images), score_threshold)
+    return postprocess(model(images), score_threshold)  # type: ignore[arg-type]

@@ -5,11 +5,10 @@ import pandas as pd
 import soundfile as sf
 import torch
 
-from architectures.iou import suppress_nested
-from architectures.registry import LoadedModel
 from core.config import P, Parameters
-from domain.raven import RAVEN_COLUMNS
-from utils.audio import MelSpectrogram, load_clips, window_starts, y_to_hz
+from models.registry import LoadedModel
+from utils.audio import load_clips, mel_spectrogram, window_starts, y_to_hz
+from utils.boxes import suppress_nested
 
 
 def species_and_call(name: str) -> tuple[str, str]:
@@ -37,7 +36,7 @@ def predict(
     loaded.model.eval()
     duration_s = sf.info(str(audio_path)).duration
     starts = window_starts(duration_s, params)
-    mel = MelSpectrogram(params)
+    mel = mel_spectrogram(params)
     if on_progress is not None:
         on_progress(0, len(starts))
 
@@ -96,6 +95,5 @@ def predict(
             "Species": [species for species, _ in names],
             "Call type": [call_type for _, call_type in names],
             "Score": score[order].numpy(),
-        },
-        columns=RAVEN_COLUMNS,
+        }
     )

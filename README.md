@@ -201,7 +201,7 @@ The model cannot represent that. It returns a flat list of boxes, and training p
 true box with exactly one predicted box, with no way to say "this box contains that one".
 Keeping both levels would mean asking the model to report the same sound twice, as two
 unrelated events sitting on top of each other. The two phrase classes are therefore dropped
-before training (`EXCLUDED_PAIRS` in `create_dataset.py`); they appear in Table 2 marked
+before training (`EXCLUDED_PAIRS` in `prepare_data.py`); they appear in Table 2 marked
 *excluded (phrase)*.
 
 ### Geometric separability

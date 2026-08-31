@@ -1,9 +1,3 @@
-"""Métricas de detección compartidas por todos los detectores.
-
-Trabajan sobre cajas ya decodificadas (cxcywh normalizado, score y clase) sin saber de
-qué arquitectura salieron, así que los tres modelos se miden con el mismo código.
-"""
-
 from collections import defaultdict
 from typing import NamedTuple
 
@@ -11,13 +5,13 @@ import torch
 from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
-Overlaps = list[tuple[list[int], Tensor]]
-# por clip: (filas de predictions, matriz P x G)
+Overlaps = list[tuple[list[int], Tensor]]  # por clip: (filas de predictions, matriz P x G)
 
-AP_THRESHOLDS: tuple[float, ...] = (0.25, 0.5)
 # COCO promedia la mAP sobre 0.50, 0.55, ..., 0.95: la primera mide "encontró el
 # evento", la última "lo encuadró". Reportar las dos separa detección de encuadre.
 MAP_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
+# Perderse una llamada cuesta más que revisar un falso positivo: beta > 1 pesa el recall.
+BETA = 3.0
 
 
 class Boxes(NamedTuple):
@@ -31,17 +25,22 @@ class Boxes(NamedTuple):
 
 
 class DetectionMetrics(NamedTuple):
-    ap_agnostic: dict[float, float | None]
+    recall: float | None  # agnóstico de clase, al punto de operación
+    precision: float | None
+    f_beta: float | None
     map_50: float | None  # mAP por clase con IoU >= 0.5
     map_50_95: float | None  # la misma, promediada sobre `MAP_THRESHOLDS`
-    map_per_threshold: dict[float, float | None]
-    ap_per_class_50: dict[int, float | None]
-    recall_agnostic: float | None
-    precision_agnostic: float | None
     recall_per_class: dict[int, float | None]
+    ap_per_class_50: dict[int, float | None]
     n_gt: int
     n_predictions: int
     n_above_threshold: int
+
+
+def f_beta(precision: float | None, recall: float | None, beta: float = BETA) -> float | None:
+    if precision is None or recall is None or precision + recall <= 0:
+        return None
+    return (1 + beta**2) * precision * recall / (beta**2 * precision + recall)
 
 
 def concat(chunks: list[Boxes]) -> Boxes:
@@ -109,10 +108,7 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
 
 
 def average_precision_per_class(
-    predictions: Boxes,
-    truth: Boxes,
-    n_classes: int,
-    thresholds: tuple[float, ...] = MAP_THRESHOLDS,
+    predictions: Boxes, truth: Boxes, n_classes: int
 ) -> dict[float, dict[int, float | None]]:
     """AP por umbral de IoU y por clase, al estilo COCO.
 
@@ -120,9 +116,7 @@ def average_precision_per_class(
     GT de la misma clase, y las clases sin cajas anotadas quedan en `None` para que no
     entren al promedio. `predictions` tiene que venir ordenado por score descendente.
     """
-    per_threshold: dict[float, dict[int, float | None]] = {
-        threshold: {} for threshold in thresholds
-    }
+    per_threshold: dict[float, dict[int, float | None]] = {t: {} for t in MAP_THRESHOLDS}
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
         class_truth = truth.select(truth.labels == class_id)
@@ -130,7 +124,7 @@ def average_precision_per_class(
         matrices = overlaps(class_predictions, class_truth)
         n_gt = len(class_truth.boxes)
         n_predictions = len(class_predictions.boxes)
-        for threshold in thresholds:
+        for threshold in MAP_THRESHOLDS:
             per_threshold[threshold][class_id] = average_precision(
                 hits(matrices, n_predictions, threshold), n_gt
             )
@@ -149,9 +143,7 @@ def detection_metrics(
     n_classes: int,
     iou_threshold: float = 0.5,
     score_threshold: float = 0.5,
-    ap_thresholds: tuple[float, ...] = AP_THRESHOLDS,
-    map_thresholds: tuple[float, ...] = MAP_THRESHOLDS,
-    detailed: bool = True,
+    beta: float = BETA,
 ) -> DetectionMetrics:
     """`predictions` tiene que venir ordenado por score descendente (`sort_by_score`)."""
     n_gt = len(truth.boxes)
@@ -160,46 +152,33 @@ def detection_metrics(
     # las primeras k y `found[:k]` es su resultado sin necesidad de rehacer el greedy.
     k = int((predictions.scores >= score_threshold).sum())
 
-    agnostic = overlaps(predictions, truth)
-    tp = int(hits(agnostic, n_predictions, iou_threshold)[:k].sum())
+    tp = int(hits(overlaps(predictions, truth), n_predictions, iou_threshold)[:k].sum())
+    recall = tp / n_gt if n_gt else None
+    precision = tp / k if k else None
 
-    ap_agnostic: dict[float, float | None] = {}
+    class_hits = hits(overlaps(predictions, truth, class_aware=True), n_predictions, iou_threshold)
+    predicted_labels = predictions.labels[:k]
     recall_per_class: dict[int, float | None] = {}
-    if detailed:
-        ap_agnostic = {
-            threshold: average_precision(hits(agnostic, n_predictions, threshold), n_gt)
-            for threshold in ap_thresholds
-        }
-        class_hits = hits(
-            overlaps(predictions, truth, class_aware=True), n_predictions, iou_threshold
+    for class_id in range(n_classes):
+        class_gt = int((truth.labels == class_id).sum())
+        recall_per_class[class_id] = (
+            float(class_hits[:k][predicted_labels == class_id].sum()) / class_gt
+            if class_gt
+            else None
         )
-        predicted_labels = predictions.labels[:k]
-        for class_id in range(n_classes):
-            class_gt = int((truth.labels == class_id).sum())
-            recall_per_class[class_id] = (
-                float(class_hits[:k][predicted_labels == class_id].sum()) / class_gt
-                if class_gt
-                else None
-            )
 
-    # La mAP no depende del punto de operación ni de `detailed`: es la métrica con la
-    # que se comparan las corridas entre sí, así que se calcula en todas las épocas.
-    ap_per_class = average_precision_per_class(predictions, truth, n_classes, map_thresholds)
-    map_per_threshold = {
-        threshold: mean_average_precision(per_class)
-        for threshold, per_class in ap_per_class.items()
-    }
-    scored = [value for value in map_per_threshold.values() if value is not None]
+    ap_per_class = average_precision_per_class(predictions, truth, n_classes)
+    per_threshold = [mean_average_precision(per_class) for per_class in ap_per_class.values()]
+    scored = [value for value in per_threshold if value is not None]
 
     return DetectionMetrics(
-        ap_agnostic=ap_agnostic,
-        map_50=map_per_threshold.get(0.5),
+        recall=recall,
+        precision=precision,
+        f_beta=f_beta(precision, recall, beta),
+        map_50=mean_average_precision(ap_per_class[0.5]),
         map_50_95=sum(scored) / len(scored) if scored else None,
-        map_per_threshold=map_per_threshold,
-        ap_per_class_50=ap_per_class.get(0.5, {}),
-        recall_agnostic=tp / n_gt if n_gt else None,
-        precision_agnostic=tp / k if k else None,
         recall_per_class=recall_per_class,
+        ap_per_class_50=ap_per_class[0.5],
         n_gt=n_gt,
         n_predictions=n_predictions,
         n_above_threshold=k,

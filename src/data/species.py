@@ -1,5 +1,3 @@
-"""Vocabulario del dominio: especies, tipos de llamada y sus ids de clase."""
-
 from collections.abc import Iterable
 from enum import Enum
 
@@ -97,6 +95,3 @@ class LabelSet:
 
     def __repr__(self) -> str:
         return f"LabelSet({len(self)} clases: {', '.join(self.names)})"
-
-    def __iter__(self):
-        return iter(self.names)

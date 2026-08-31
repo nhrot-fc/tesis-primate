@@ -1,9 +1,3 @@
-"""Entrena un detector YOLO (Ultralytics) sobre los espectrogramas exportados.
-
-El dataset lo produce `src/create_yolo_dataset.py` desde el mismo caché de ventanas que
-usa el Deformable-DETR, así que los dos modelos se comparan directamente.
-"""
-
 import argparse
 import json
 import logging
@@ -11,26 +5,19 @@ from pathlib import Path
 
 from ultralytics import YOLO
 
-from architectures.registry import save_checkpoint
-from architectures.yolo import SpectrogramYOLO, load_ultralytics_weights
-from core.config import settings
-from core.setup import setup_logging, setup_project_path
-from domain.species import LabelSet
-from train import CACHE_DIR, SEED
+from core.config import SEED, settings
+from core.runtime import setup_logging
+from data import cache
+from models.yolo import SpectrogramYOLO, load_ultralytics_weights
+from training.checkpoint import BEST, save
+from training.trainer import TrainConfig
 
 logger = logging.getLogger("train_yolo")
-
-PROJECT_DIR = Path.cwd()
-YOLO_DIR = PROJECT_DIR / "data" / "yolo"
-RUNS_DIR = PROJECT_DIR / "runs" / "yolo"
 
 MODEL = "yolo26s"  # n < s < m < l < x
 EPOCHS, BATCH_SIZE, IMAGE_SIZE, WORKERS = 50, 32, 512, 8
 PATIENCE = 30
-CLS_POWER_WEIGHT = 0.0
-# Mismo punto de operación que `src/train.py`, para que los informes se comparen.
-OPERATING_SCORE_THRESHOLD = 0.5
-NMS_IOU = 0.3  # 1.0 pondera las clases por frecuencia inversa
+CLS_POWER_WEIGHT = 0.0  # 1.0 pondera las clases por frecuencia inversa
 
 # Aumentaciones: espectrograma, no foto.
 AUGMENTATION = {
@@ -55,90 +42,86 @@ AUGMENTATION = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Entrena YOLO sobre los espectrogramas.")
+    parser = argparse.ArgumentParser(
+        description="Entrena un YOLO de Ultralytics sobre los espectrogramas exportados."
+    )
     parser.add_argument("--model", default=MODEL, help="p. ej. yolo26n, yolo26s, yolo26m")
     parser.add_argument("--epochs", type=int, default=EPOCHS)
     parser.add_argument("--batch", type=int, default=BATCH_SIZE)
     parser.add_argument("--imgsz", type=int, default=IMAGE_SIZE)
     parser.add_argument("--workers", type=int, default=WORKERS)
     parser.add_argument("--device", default=None, help="'0', '0,1', 'cpu'; por defecto, automático")
-    parser.add_argument(
-        "--scratch", action="store_true", help="entrena desde cero, sin los pesos de COCO"
-    )
-    parser.add_argument(
-        "--fraction", type=float, default=1.0, help="fracción de train (para pruebas rápidas)"
-    )
-    parser.add_argument("--name", default=None, help="nombre de la corrida dentro de runs/yolo")
+    parser.add_argument("--scratch", action="store_true", help="sin los pesos de COCO")
+    parser.add_argument("--fraction", type=float, default=1.0, help="fracción de train (pruebas)")
+    parser.add_argument("--name", default=None, help="nombre de la corrida dentro de runs/")
     parser.add_argument("--resume", action="store_true")
     return parser.parse_args()
 
 
-def export_checkpoint(save_dir: Path, args: argparse.Namespace, meta: dict, config: dict) -> Path:
+def check_export() -> dict:
+    """El dataset de YOLO es una reexportación del caché: si el caché se regeneró (otras
+    clases, otro split), entrenar contra el export viejo invalida la comparación."""
+    data_yaml = settings.yolo_dir / "dataset.yaml"
+    if not data_yaml.exists():
+        raise FileNotFoundError(
+            f"no hay dataset YOLO en {settings.yolo_dir}. Corré `python src/export_yolo.py`."
+        )
+    meta = json.loads((settings.yolo_dir / "meta.json").read_text())
+    if meta["dataset"] != cache.meta():
+        raise ValueError(
+            f"{settings.yolo_dir} se exportó de otra versión del caché. Volvé a correr "
+            "`python src/export_yolo.py`."
+        )
+    return meta
+
+
+def export_checkpoint(run_dir: Path, weights: Path, meta: dict, config: dict) -> Path:
     """Reempaqueta el `best.pt` de Ultralytics al formato del registro.
 
     Ultralytics guarda el modelo pickleado; el registro guarda arquitectura,
-    hiperparámetros y `state_dict`, que es lo que `src/viewer/` sabe abrir.
+    hiperparámetros y `state_dict`, que es lo que `src/evaluate.py` y el viewer abren.
     """
-    labels = LabelSet(meta["names_original"])
+    labels = cache.labels()
     hparams = {
-        "model": Path(args.model).stem,
+        "model": Path(config["model"]).stem,
         "imgsz": meta["image_size"],
         "db_low": meta["db_range"]["low"],
         "db_high": meta["db_range"]["high"],
     }
     model = SpectrogramYOLO(n_classes=len(labels), **hparams)
-    load_ultralytics_weights(model, save_dir / "weights" / "best.pt")
+    load_ultralytics_weights(model, weights)
 
-    path = save_dir / "weights" / "best_spectrogram.pth"
-    save_checkpoint(
+    path = run_dir / BEST
+    save(
         path,
         architecture="yolo",
         model=model,
         hparams=hparams,
         labels=labels,
         config=config,
+        epoch=config["epochs"] - 1,
+        metrics={},  # las de Ultralytics están en results.csv; las comparables salen de evaluate.py
     )
     return path
 
 
-def train(args: argparse.Namespace) -> Path:
-    data_yaml = YOLO_DIR / "dataset.yaml"
-    if not data_yaml.exists():
-        raise FileNotFoundError(
-            f"no hay dataset YOLO en {YOLO_DIR}. Corré `python src/create_yolo_dataset.py` primero."
-        )
-
-    # El dataset de YOLO es una reexportación del caché: si el caché se regeneró (otras
-    # clases, otro split), entrenar contra el export viejo invalida la comparación.
-    meta = json.loads((YOLO_DIR / "meta.json").read_text())
-    if meta["dataset"] != json.loads((CACHE_DIR / "meta.json").read_text()):
-        raise ValueError(
-            f"{YOLO_DIR} se exportó de otra versión de {CACHE_DIR}. Volvé a correr "
-            "`python src/create_yolo_dataset.py`."
-        )
+def main() -> None:
+    args = parse_args()
+    name = args.name or f"{Path(args.model).stem}_{'scratch' if args.scratch else 'coco'}"
+    setup_logging(log_file=settings.runs_dir / name / "train.log")
+    meta = check_export()
 
     stem = Path(args.model).stem
-    model = YOLO(f"{stem}.yaml" if args.scratch else f"{stem}.pt")
-    run_name = args.name or f"{Path(args.model).stem}_{'scratch' if args.scratch else 'coco'}"
-    logger.info(
-        "%s | %s | %d épocas | batch %d | imgsz %d",
-        args.model,
-        "desde cero" if args.scratch else "preentrenado en COCO",
-        args.epochs,
-        args.batch,
-        args.imgsz,
-    )
-
-    results = model.train(
-        data=str(data_yaml),
+    results = YOLO(f"{stem}.yaml" if args.scratch else f"{stem}.pt").train(
+        data=str(settings.yolo_dir / "dataset.yaml"),
         epochs=args.epochs,
         batch=args.batch,
         imgsz=args.imgsz,
         workers=args.workers,
         device=args.device,
         fraction=args.fraction,
-        project=str(RUNS_DIR),
-        name=run_name,
+        project=str(settings.runs_dir),
+        name=name,
         exist_ok=True,
         resume=args.resume,
         pretrained=not args.scratch,
@@ -152,40 +135,30 @@ def train(args: argparse.Namespace) -> Path:
         plots=True,
         **AUGMENTATION,
     )
+    if results is None:
+        raise RuntimeError("Ultralytics no devolvió resultados de entrenamiento.")
 
-    save_dir = Path(results.save_dir)
+    run_dir = Path(results.save_dir)  # pyright: ignore[reportAttributeAccessIssue]
+    # YOLO26 es end-to-end (sin NMS), pero el pos-proceso de cajas anidadas se le aplica
+    # igual que a los demás para que el punto de operación sea el mismo.
+    defaults = TrainConfig()
     config = {
         "architecture": "yolo",
         "model": args.model,
         "pretrained": not args.scratch,
         "epochs": args.epochs,
-        "batch": args.batch,
+        "batch_size": args.batch,
         "imgsz": args.imgsz,
         "seed": SEED,
         "cls_pw": CLS_POWER_WEIGHT,
         "augmentation": AUGMENTATION,
-        # YOLO26 es end-to-end (sin NMS), pero el pos-proceso de cajas anidadas de
-        # `pipelines.detection_pipeline` se aplica igual que a los demás detectores.
-        "operating_score_threshold": OPERATING_SCORE_THRESHOLD,
-        "nms_iou": NMS_IOU,
-        "dataset": meta,
+        "score_threshold": defaults.score_threshold,
+        "nms_iou": defaults.nms_iou,
+        "dataset": meta["dataset"],
     }
-    (save_dir / "spectrogram_config.json").write_text(
-        json.dumps(config, indent=2, ensure_ascii=False)
-    )
-    logger.info("pesos de Ultralytics -> %s", save_dir / "weights" / "best.pt")
-    logger.info("checkpoint del registro -> %s", export_checkpoint(save_dir, args, meta, config))
-    return save_dir
-
-
-def main() -> None:
-    setup_logging(settings.LOG_LEVEL)
-    setup_project_path(PROJECT_DIR)
-    save_dir = train(parse_args())
-    logger.info(
-        "evaluá con: python src/eval_detector.py --checkpoint %s --split test",
-        save_dir / "weights" / "best_spectrogram.pth",
-    )
+    checkpoint = export_checkpoint(run_dir, run_dir / "weights" / "best.pt", meta, config)
+    logger.info("checkpoint -> %s", checkpoint)
+    logger.info("evaluá con: python src/evaluate.py --run %s --split test", name)
 
 
 if __name__ == "__main__":

@@ -125,15 +125,12 @@ class SetCriterion(nn.Module):
             / num_boxes
         )
 
+        # Ya ponderados: quien entrena los suma sin saber de pesos, y el log muestra
+        # lo que cada término aporta de verdad al gradiente.
         return {
-            "loss_cls": loss_class,
-            "loss_bbox": loss_bbox,
-            "loss_iou": loss_iou,
-            "loss_total": (
-                self.weight_class * loss_class
-                + self.weight_bbox * loss_bbox
-                + self.weight_iou * loss_iou
-            ),
+            "loss_cls": self.weight_class * loss_class,
+            "loss_bbox": self.weight_bbox * loss_bbox,
+            "loss_iou": self.weight_iou * loss_iou,
         }
 
     def forward(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:

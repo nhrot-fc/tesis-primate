@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from slugify import slugify
 
-from domain.species import CALL_TYPES, VALID_PAIRS, Species
+from data.species import CALL_TYPES, VALID_PAIRS
 
 logger = logging.getLogger(__name__)
 
@@ -28,22 +28,22 @@ MANUAL_SYNONYMS = {
 
 MANUAL_FIXES: dict[tuple[str, str], tuple[str, str]] = {("aa", "hc"): ("aa", "hm")}
 
+# Las anotaciones mezclan el código y el nombre legible del tipo de llamada.
+CALL_SYNONYMS: dict[str, dict[str, str]] = {
+    species.name.lower(): {name: code for code, name in codes.items()}
+    for species, codes in CALL_TYPES.items()
+}
 
-def clean_annotations(df: pd.DataFrame, species_dir: str) -> pd.DataFrame:
-    """Normaliza columnas, códigos de llamada y rangos de un `.txt` de Raven."""
+
+def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     df = df.copy()
     df.columns = [slugify(col, separator="_") for col in df.columns]
     df = df.drop(columns=DROP_COLUMNS, errors="ignore")
 
-    species = species_dir.split("__")[-1].lower()
-    species_enum = next((s for s in Species if s.name.lower() == species), None)
-    label_synonyms = (
-        {label: code for code, label in CALL_TYPES[species_enum].items()} if species_enum else {}
-    )
     df["call_type"] = (
         df["call_type"]
         .map(lambda v: slugify(v, separator="_") or None if isinstance(v, str) else None)
-        .replace(MANUAL_SYNONYMS | label_synonyms)
+        .replace(MANUAL_SYNONYMS | CALL_SYNONYMS.get(species, {}))
     )
     df["species"] = species
     df = df[df["call_type"].notna() & df["call_type"].ne(NOISE)]
@@ -63,6 +63,14 @@ def clean_annotations(df: pd.DataFrame, species_dir: str) -> pd.DataFrame:
     return df.sort_values("begin_time_s").reset_index(drop=True)
 
 
+def species_of(wav_path: Path) -> str:
+    # El corpus nombra las carpetas `<nombre_comun>__<CODIGO>`; vale el código.
+    for parent in wav_path.parents:
+        if "__" in parent.name:
+            return parent.name.split("__")[-1].lower()
+    return wav_path.parent.name.lower()
+
+
 def load_annotations(root: Path) -> pd.DataFrame:
     frames = []
     for annotation_path in sorted(Path(root).rglob("*.txt")):
@@ -70,15 +78,9 @@ def load_annotations(root: Path) -> pd.DataFrame:
         if not wav_path.exists():
             continue
         try:
-            species_dir = wav_path.parent.name
-            for parent in wav_path.parents:
-                if "__" in parent.name:
-                    species_dir = parent.name
-                    break
-
             frame = pd.read_csv(annotation_path, sep="\t")
             frame["audio_path"] = str(wav_path)
-            frames.append(clean_annotations(frame, species_dir))
+            frames.append(clean_annotations(frame, species_of(wav_path)))
         except Exception as exc:
             logger.warning("%s: %s", annotation_path.name, exc)
     return pd.concat(frames, ignore_index=True)

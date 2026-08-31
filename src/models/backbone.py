@@ -46,9 +46,9 @@ class ASTBackbone(nn.Module):
         self.model = load_ast_model(checkpoint)
         self.n_frames = n_frames if n_frames is not None else P.n_frames
         self.time_stride = time_stride
+        self.freeze = freeze
         self._interpolate_time_pos_embed(self.n_frames, time_stride)
 
-        self.freeze = freeze
         if freeze:
             for name, param in self.model.named_parameters():
                 param.requires_grad_(name.startswith("embeddings.patch_embeddings.projection"))
@@ -89,6 +89,13 @@ class ASTBackbone(nn.Module):
         )
         config.time_stride = time_stride
         config.max_length = n_frames
+        logger.info(
+            "AST: %d x %d tokens | time_stride=%d | %s",
+            freq_out,
+            self.time_out,
+            time_stride,
+            "congelado" if self.freeze else "fine-tune",
+        )
 
     def train(self, mode: bool = True) -> "ASTBackbone":
         super().train(mode)

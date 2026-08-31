@@ -5,6 +5,8 @@ from typing import Literal
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+SEED = 42
+
 
 class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
@@ -17,12 +19,23 @@ class Settings(BaseSettings):
 
     @property
     def checkpoints_dir(self) -> Path:
-        """Pesos propios y copia local del backbone AST (`architectures.backbone`)."""
         return self.CHECKPOINTS_DIR or self.PROJECT_DIR / "checkpoints"
 
     @property
     def data_dir(self) -> Path:
         return self.PROJECT_DIR / "data"
+
+    @property
+    def processed_dir(self) -> Path:
+        return self.data_dir / "processed"
+
+    @property
+    def yolo_dir(self) -> Path:
+        return self.data_dir / "yolo"
+
+    @property
+    def runs_dir(self) -> Path:
+        return self.PROJECT_DIR / "runs"
 
 
 @dataclass

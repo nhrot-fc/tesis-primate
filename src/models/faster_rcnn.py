@@ -1,11 +1,3 @@
-"""Faster R-CNN de torchvision sobre el espectrograma mel.
-
-El caché guarda el mel en potencia y de un canal; el modelo espera 3 canales en [0, 1],
-así que la conversión a dB con rango global va adentro del `forward`. El eje de
-frecuencia no se invierte: la fila 0 es la banda más grave, la misma `y` normalizada que
-usan `utils.audio.hz_to_y` y el Deformable-DETR.
-"""
-
 import torch
 from torch import Tensor, nn
 from torchvision.models.detection import (
@@ -14,11 +6,9 @@ from torchvision.models.detection import (
 )
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead
-from torchvision.ops import box_convert
 
-from architectures.deformable_detr import Detections
-from core.config import P, Parameters
 from utils.audio import mel_to_unit
+from utils.boxes import Detections, to_unit_cxcywh
 
 # El alto/ancho real de las cajas va de 0.05 a 9 (p1, p95=6.2): con los (0.5, 1, 2)
 # de fábrica el RPN se pierde los tonos angostos y las bandas largas.
@@ -79,37 +69,13 @@ class SpectrogramFasterRCNN(nn.Module):
         return self.model(self.to_images(mel), targets)
 
 
-def to_torchvision_targets(
-    targets: list[dict[str, Tensor]], params: Parameters = P
-) -> list[dict[str, Tensor]]:
-    """Cajas cxcywh normalizadas -> xyxy en píxeles, con la clase 0 reservada al fondo."""
-    scale = torch.tensor(
-        [params.n_frames, params.n_mels, params.n_frames, params.n_mels], dtype=torch.float32
-    )
-    return [
-        {
-            "boxes": box_convert(target["boxes"], "cxcywh", "xyxy")
-            * scale.to(target["boxes"].device),
-            "labels": target["labels"].to(torch.int64) + 1,
-        }
-        for target in targets
-    ]
-
-
-def postprocess(
-    outputs: list[dict[str, Tensor]], score_threshold: float = 0.5, params: Parameters = P
-) -> list[Detections]:
-    scale = torch.tensor(
-        [params.n_frames, params.n_mels, params.n_frames, params.n_mels], dtype=torch.float32
-    )
-
+def postprocess(outputs: list[dict[str, Tensor]], score_threshold: float = 0.5) -> list[Detections]:
     detections = []
     for output in outputs:
         keep = output["scores"] >= score_threshold
-        boxes = output["boxes"][keep] / scale.to(output["boxes"].device)
         detections.append(
             Detections(
-                boxes=box_convert(boxes, "xyxy", "cxcywh"),
+                boxes=to_unit_cxcywh(output["boxes"][keep]),
                 scores=output["scores"][keep],
                 labels=output["labels"][keep] - 1,
             )
