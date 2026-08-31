@@ -1,0 +1,32 @@
+checkpoints/frcnn_coco_25cls_best.pth (faster_rcnn) | split val: 9446 ventanas
+cajas anotadas: 10090 | detecciones: 210014 (con score >= 0.5: 15553)
+
+Punto de operación (score >= 0.5, IoU >= 0.5): recall=0.770 precision=0.500 F3=0.731 mAP50=0.474 mAP50-95=0.205
+
+Por clase (recall al punto de operación, AP sobre toda la curva):
+clase                   recall    AP@0.5
+aa/gc                    0.813     0.782
+aa/hm                    0.685     0.579
+aa/sc                    0.853     0.662
+ac/bc                    0.698     0.602
+ac/chc                   0.596     0.380
+ac/gc                    0.338     0.078
+ac/sc                    0.380     0.384
+as/bc                    0.732     0.488
+as/hc                    0.928     0.854
+lw/cs                    0.849     0.779
+lw/sqc                   0.662     0.406
+lw/ta                    0.641     0.559
+lw/trino                 0.624     0.410
+lw/vc                    0.566     0.343
+pt/dc                    0.815     0.711
+pt/sqc                   0.752     0.404
+sb/pcc                   0.605     0.458
+sb/ppc                   0.570     0.271
+sb/sc                    0.370     0.246
+sb/spc                   0.641     0.424
+sm/cc                    0.717     0.527
+sm/fs                    0.495     0.352
+sm/hic                   0.694     0.698
+sm/pc                    0.481     0.171
+sm/sc                    0.513     0.280

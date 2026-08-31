@@ -1,0 +1,62 @@
+{
+ "especie": [
+  "as",
+  "sm",
+  "ac",
+  "lw",
+  "pt",
+  "sb",
+  "aa",
+  "cc"
+ ],
+ "nombre": [
+  "howler monkey",
+  "large headed capuchin",
+  "peruvian spider monkey",
+  "weddells saddleback tamarin",
+  "toppins titi monkey",
+  "bolivian squirrel monkey",
+  "night monkey",
+  "shock headed capuchin monkey"
+ ],
+ "latin": [
+  "Alouatta sara",
+  "Sapajus macrocephalus",
+  "Ateles chamek",
+  "Leontocebus weddelli",
+  "Plecturocebus toppini",
+  "Saimiri boliviensis",
+  "Aotus azarae",
+  "Cebus cuscinus"
+ ],
+ "horas_grabadas": [
+  7.542186827916352,
+  6.133350707986899,
+  6.06465589191232,
+  5.269840463592844,
+  3.347272917611489,
+  3.082505396825397,
+  1.084778231292517,
+  0.10636996724615772
+ ],
+ "horas_con_anotacion": [
+  7.242073973293021,
+  5.313125039052658,
+  3.618287071680524,
+  3.7013631645250693,
+  2.822781970269589,
+  2.7943221315192743,
+  0.7613565129755606,
+  0.04123799445704208
+ ],
+ "minutos_de_evento": [
+  315.9940569337333,
+  16.410449840549997,
+  30.275603024566667,
+  47.47580113326667,
+  90.97589817393333,
+  12.176249548016669,
+  2.5082284502499985,
+  0.06850441296666668
+ ]
+}

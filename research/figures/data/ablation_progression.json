@@ -1,0 +1,23 @@
+{
+ "variantes": {
+  "Deformable DETR base": {
+   "AP@0.25": 0.609,
+   "AP@0.50": 0.325,
+   "AP@0.75": 0.037,
+   "épocas": 30
+  },
+  "+ init de atención, refinamiento\niterativo y pérdidas auxiliares": {
+   "AP@0.25": 0.742,
+   "AP@0.50": 0.569,
+   "AP@0.75": 0.112,
+   "épocas": 75
+  },
+  "+ IoU en el matcher y en la pérdida": {
+   "AP@0.25": 0.803,
+   "AP@0.50": 0.648,
+   "AP@0.75": 0.133,
+   "épocas": 20
+  }
+ },
+ "fuente": "reporte de avance, subconjunto de 10 clases"
+}

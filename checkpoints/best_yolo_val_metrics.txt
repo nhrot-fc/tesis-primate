@@ -1,0 +1,32 @@
+checkpoints/best_yolo.pth (yolo) | split val: 9446 ventanas
+cajas anotadas: 10090 | detecciones: 35699 (con score >= 0.5: 6569)
+
+Punto de operación (score >= 0.5, IoU >= 0.5): recall=0.533 precision=0.819 F3=0.552 mAP50=0.531 mAP50-95=0.263
+
+Por clase (recall al punto de operación, AP sobre toda la curva):
+clase                   recall    AP@0.5
+aa/gc                    0.429     0.743
+aa/hm                    0.574     0.641
+aa/sc                    0.471     0.664
+ac/bc                    0.695     0.781
+ac/chc                   0.423     0.585
+ac/gc                    0.085     0.114
+ac/sc                    0.310     0.445
+as/bc                    0.356     0.562
+as/hc                    0.810     0.870
+lw/cs                    0.609     0.748
+lw/sqc                   0.426     0.532
+lw/ta                    0.256     0.467
+lw/trino                 0.401     0.446
+lw/vc                    0.264     0.461
+pt/dc                    0.722     0.752
+pt/sqc                   0.081     0.565
+sb/pcc                   0.302     0.465
+sb/ppc                   0.106     0.286
+sb/sc                    0.196     0.344
+sb/spc                   0.087     0.415
+sm/cc                    0.278     0.557
+sm/fs                    0.398     0.537
+sm/hic                   0.477     0.673
+sm/pc                    0.160     0.235
+sm/sc                    0.303     0.385
