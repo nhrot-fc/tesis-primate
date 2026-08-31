@@ -32,6 +32,13 @@ ARCHITECTURES: dict[str, Architecture] = {
         # el AST congelado se lee de la copia local y el criterio se rearma solo
         provided=("backbone.model.", "criterion."),
     ),
+    "eat_dino": Architecture(
+        "models.dino",
+        "EATDINO",
+        clip_grad=0.1,
+        # el EAT congelado se lee de la copia local y el criterio se rearma solo
+        provided=("backbone.model.", "criterion."),
+    ),
     "faster_rcnn": Architecture(
         "models.faster_rcnn", "SpectrogramFasterRCNN", FasterRCNNDataset, clip_grad=10.0
     ),

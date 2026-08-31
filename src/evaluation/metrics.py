@@ -11,7 +11,7 @@ Overlaps = list[tuple[list[int], Tensor]]  # por clip: (filas de predictions, ma
 # evento", la última "lo encuadró". Reportar las dos separa detección de encuadre.
 MAP_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
 # Perderse una llamada cuesta más que revisar un falso positivo: beta > 1 pesa el recall.
-BETA = 3.0
+BETA = 1.5
 
 
 class Boxes(NamedTuple):

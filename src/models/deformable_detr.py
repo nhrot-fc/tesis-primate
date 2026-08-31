@@ -1,4 +1,5 @@
 import math
+from collections.abc import Callable
 from typing import Any
 
 import torch
@@ -12,7 +13,7 @@ Outputs = dict[str, Any]
 # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
 
 
-def _mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
+def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
     seq: list[nn.Module] = []
     d = dim
     for _ in range(layers - 1):
@@ -22,7 +23,7 @@ def _mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
     return nn.Sequential(*seq)
 
 
-def _inv_sigmoid(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+def inverse_sigmoid(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
     """Inversa de sigmoid: lleva coords en [0,1] al espacio logit para sumar offsets."""
     x = x.clamp(min=0, max=1)
     return torch.log(x.clamp(min=eps) / (1 - x).clamp(min=eps))
@@ -151,12 +152,15 @@ class DeformableDecoderLayer(nn.Module):
         query_pos: torch.Tensor,
         ref_boxes: torch.Tensor,
         value_maps: list[torch.Tensor],
+        attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         # `query_pos` se suma a query y key en cada capa (DETR): sin eso la identidad
         # de cada query se diluye en los residuales después de la primera capa y todas
         # tienden a mirar lo mismo.
+        # `attn_mask` sólo lo usa DINO, para que los grupos de denoising no se vean entre
+        # sí ni con las queries de matching.
         qk = q + query_pos
-        q = self.n1(q + self.self_attn(qk, qk, q)[0])
+        q = self.n1(q + self.self_attn(qk, qk, q, attn_mask=attn_mask, need_weights=False)[0])
         q = self.n2(q + self.cross_attn(q + query_pos, ref_boxes, value_maps))
         q = self.n3(q + self.ffn(q))
         return q
@@ -188,7 +192,7 @@ class DeformableDETR(nn.Module):
         self.class_heads = nn.ModuleList(
             nn.Linear(dim, n_classes + 1) for _ in range(n_decoder_layers)
         )
-        self.bbox_heads = nn.ModuleList(_mlp(dim, dim, 4) for _ in range(n_decoder_layers))
+        self.bbox_heads = nn.ModuleList(mlp(dim, dim, 4) for _ in range(n_decoder_layers))
 
     def forward(self, features: list[torch.Tensor]) -> Outputs:
         B = features[0].shape[0]
@@ -204,7 +208,7 @@ class DeformableDETR(nn.Module):
         for i, layer in enumerate(self.layers):
             q = layer(q, query_pos, ref_box, features)
             delta = self.bbox_heads[i](q)  # (B,Q,4) offsets crudos en espacio logit
-            ref_box = (delta + _inv_sigmoid(ref_box)).sigmoid()
+            ref_box = (delta + inverse_sigmoid(ref_box)).sigmoid()
             aux.append({"pred_logits": self.class_heads[i](q), "pred_boxes": ref_box})
             ref_box = (
                 ref_box.detach()
@@ -218,12 +222,11 @@ class DeformableDETR(nn.Module):
 class DetectionHead(nn.Module):
     def __init__(
         self,
+        detr: nn.Module,
         token_dim: int,
         freq_out: int,
         time_out: int,
         dim: int = 256,
-        n_queries: int = 50,
-        n_classes: int = 1,
         n_levels: int = 3,
     ):
         super().__init__()
@@ -233,13 +236,16 @@ class DetectionHead(nn.Module):
         self.proj = nn.Linear(token_dim, dim)
         self.pyramid = MultiScalePyramid(dim, n_levels=n_levels)
         self.pyramid.check_input_size(freq_out, time_out)
-        self.detr = DeformableDETR(dim, n_queries, n_classes, n_levels=self.pyramid.n_levels)
+        self.detr = detr
 
-    def forward(self, tokens: torch.Tensor) -> Outputs:
+    def pyramid_features(self, tokens: torch.Tensor) -> list[torch.Tensor]:
         # tokens: (B, freq_out*time_out, token_dim); las cacheadas llegan en fp16
         features = self.proj(tokens.to(self.proj.weight.dtype))
         features = features.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
-        return self.detr(self.pyramid(features))
+        return self.pyramid(features)
+
+    def forward(self, tokens: torch.Tensor) -> Outputs:
+        return self.detr(self.pyramid_features(tokens))
 
 
 class LogMelFrontend(nn.Module):
@@ -293,12 +299,11 @@ class ASTDeformableDETR(nn.Module):
         self.pcen_norm = nn.BatchNorm2d(1, affine=False)
 
         self.head = DetectionHead(
+            DeformableDETR(dim, n_queries, n_classes, n_levels=n_levels),
             token_dim=self.backbone.hidden_size,
             freq_out=self.backbone.freq_out,
             time_out=self.backbone.time_out,
             dim=dim,
-            n_queries=n_queries,
-            n_classes=n_classes,
             n_levels=n_levels,
         )
         # El matcher húngaro sólo hace falta al entrenar, pero vive acá para que el
@@ -327,9 +332,12 @@ def predict_scores(outputs: Outputs) -> tuple[torch.Tensor, torch.Tensor]:
     return scores, labels
 
 
-def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detections]:
-    """Detecciones por imagen sobre el umbral, ordenadas por score descendente."""
-    scores, labels = predict_scores(outputs)
+def postprocess(
+    outputs: Outputs,
+    score_threshold: float = 0.5,
+    scores_of: Callable[[Outputs], tuple[torch.Tensor, torch.Tensor]] = predict_scores,
+) -> list[Detections]:
+    scores, labels = scores_of(outputs)
     detections = []
     for index in range(scores.shape[0]):
         keep = scores[index] >= score_threshold  # `>=`, igual que en `evaluate`

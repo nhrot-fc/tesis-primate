@@ -24,6 +24,12 @@ TRAINERS: dict[str, tuple[str, TrainConfig]] = {
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=16, learning_rate=2e-4, workers=0),
     ),
+    # DINO trae encoder deformable además del decodificador: entra menos lote y va con la
+    # tasa de aprendizaje de su paper (1e-4) en vez de la del DETR de acá.
+    "dino": (
+        "eat_dino",
+        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=0),
+    ),
     "frcnn": (
         "faster_rcnn",
         TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=4),
@@ -31,6 +37,12 @@ TRAINERS: dict[str, tuple[str, TrainConfig]] = {
 }
 
 MODEL_DIM, N_QUERIES, N_LEVELS = 128, 64, 3
+# EAT + DINO va con la geometría de la literatura (Zhu & Sato, DCASE 2025): 100 queries de
+# 256 dimensiones y pirámide de cuatro niveles {1/32, 1/16, 1/8, 1/4}.
+DINO_DIM, DINO_QUERIES, DINO_LEVELS, DINO_DN_QUERIES = 256, 100, 4, 100
+# Paso temporal por defecto: el AST parchea con solape y el EAT, como en su
+# preentrenamiento, sin solape (16 x 16).
+DEFAULT_TIME_STRIDE = {"detr": 2, "dino": 16}
 TRAINABLE_BACKBONE_LAYERS = 3  # de 5; congelar las primeras ahorra memoria y sobreajuste
 
 
@@ -49,20 +61,45 @@ def parse_args() -> argparse.Namespace:
         "--name", default=None, help="nombre de la corrida; por defecto, la ablación"
     )
 
-    detr = parser.add_argument_group("Deformable-DETR")
+    detr = parser.add_argument_group("Deformable-DETR y DINO")
     detr.add_argument("--frontend", nargs="+", choices=("pcen", "logmel"), default=["pcen"])
     detr.add_argument(
         "--time-stride",
         type=int,
         nargs="+",
-        default=[2],
-        help="paso temporal del parcheo del AST; menos paso, más tokens y más VRAM",
+        default=None,
+        help="paso temporal del parcheo del backbone; menos paso, más tokens y más VRAM "
+        f"(por defecto {DEFAULT_TIME_STRIDE})",
     )
-    detr.add_argument("--unfreeze", action="store_true", help="fine-tunea el AST entero")
+    detr.add_argument("--unfreeze", action="store_true", help="fine-tunea el backbone entero")
+    detr.add_argument(
+        "--enc-layers",
+        type=int,
+        default=6,
+        help="capas del encoder deformable de DINO; bajarlo es lo primero si falta VRAM",
+    )
 
     frcnn = parser.add_argument_group("Faster R-CNN")
     frcnn.add_argument("--scratch", action="store_true", help="sin los pesos de COCO")
     return parser.parse_args()
+
+
+def detector_hparams(args: argparse.Namespace, frontend: str, stride: int) -> dict[str, Any]:
+    shared = {
+        "n_frames": P.n_frames,
+        "frontend": frontend,
+        "time_stride": stride,
+        "freeze": not args.unfreeze,
+    }
+    if args.arch == "dino":
+        return shared | {
+            "dim": DINO_DIM,
+            "n_queries": DINO_QUERIES,
+            "n_levels": DINO_LEVELS,
+            "n_encoder_layers": args.enc_layers,
+            "dn_queries": DINO_DN_QUERIES,
+        }
+    return shared | {"dim": MODEL_DIM, "n_queries": N_QUERIES, "n_levels": N_LEVELS}
 
 
 def variants(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
@@ -90,22 +127,15 @@ def variants(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
         ]
 
     state = "ft" if args.unfreeze else "frozen"
-    combinations = list(product(args.frontend, args.time_stride))
+    strides = args.time_stride or [DEFAULT_TIME_STRIDE[args.arch]]
+    combinations = list(product(args.frontend, strides))
     if args.name and len(combinations) > 1:
         # Con un solo nombre las corridas se pisarían la carpeta y los checkpoints.
         raise SystemExit("--name sólo vale para una combinación; sacalo para barrer varias.")
     return [
         (
-            args.name or f"detr_{frontend}_ts{stride}_{state}",
-            {
-                "dim": MODEL_DIM,
-                "n_queries": N_QUERIES,
-                "n_levels": N_LEVELS,
-                "n_frames": P.n_frames,
-                "frontend": frontend,
-                "time_stride": stride,
-                "freeze": not args.unfreeze,
-            },
+            args.name or f"{args.arch}_{frontend}_ts{stride}_{state}",
+            detector_hparams(args, frontend, stride),
         )
         for frontend, stride in combinations
     ]
