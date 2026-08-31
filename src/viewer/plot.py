@@ -3,22 +3,27 @@ from typing import override
 
 import pandas as pd
 import pyqtgraph as pg
-import pyqtgraph.exporters  # noqa: F401
-from PyQt6.QtCore import QRectF, pyqtSignal
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtWidgets import QGraphicsRectItem
+from pyqtgraph.exporters import ImageExporter
 
 from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
+from viewer.widgets import Latest
 
 BOX_COLUMNS = ["Begin Time (s)", "End Time (s)", "Low Freq (Hz)", "High Freq (Hz)"]
 ANNOTATION_COLOR = "#00d8ff"
 DETECTION_COLOR = "#8cff3d"
-PLAYHEAD_COLOR = "#c8ffd0"
+PLAYHEAD_COLOR = "#ffffff"
 AXIS_PAD = 12
 AXIS_SAMPLE = "00000"
 EXPORT_WIDTH = 2400
+# Se calcula una banda mas ancha que la ventana visible: mientras el scroll no salga
+# de ella, moverse no cuesta ni una FFT.
+BAND = 4.0
 
 COLORMAPS = ["magma", "inferno", "viridis", "cividis", "gray", "gray_r"]
+RESOLUTIONS = [(512, 64), (1024, 128), (2048, 256), (4096, 512), (8192, 1024)]
 
 
 def read_boxes(path: Path) -> pd.DataFrame:
@@ -38,7 +43,9 @@ def box_label(row: pd.Series) -> str:
 
 class SpectrogramView(pg.PlotWidget):
     scrolled = pyqtSignal(int)
+    zoomed = pyqtSignal(int)
     moved = pyqtSignal(float, float)
+    clicked = pyqtSignal(float)
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,7 +84,14 @@ class SpectrogramView(pg.PlotWidget):
         self.sr = 1
         self.baseline = (-100.0, 0.0)
         self.baseline_n_fft = 0
-        self.boxes: list = []
+        self.levels = (0.0, 1.0)
+        self.band: tuple[float, float, int, int] | None = None
+        self.pending: tuple[float, float, int, int] | None = None
+        self.job = 0
+        self.pool: list[tuple[QGraphicsRectItem, pg.TextItem]] = []
+
+        self.renderer = Latest()
+        self.renderer.done.connect(self._on_render)
 
     def set_colormap(self, name: str) -> None:
         colormap = pg.colormap.getFromMatplotlib(name)
@@ -88,6 +102,7 @@ class SpectrogramView(pg.PlotWidget):
         self.waveform = waveform
         self.sr = sr
         self.baseline_n_fft = 0
+        self.band = None
         self.vb.setYRange(0.0, sr / 2, padding=0)
 
     def draw(
@@ -95,22 +110,63 @@ class SpectrogramView(pg.PlotWidget):
     ) -> None:
         if self.waveform is None:
             return
-        if n_fft != self.baseline_n_fft:
-            self.baseline = db_baseline(self.waveform, self.sr, n_fft)
-            self.baseline_n_fft = n_fft
-
-        first = int(start * self.sr)
-        chunk = self.waveform[first : first + int(span * self.sr)]
-        self.image.setImage(stft_db(chunk, n_fft, min(hop, n_fft)), autoLevels=False)
-        self.image.setRect(QRectF(start, 0.0, chunk.size / self.sr, self.sr / 2))
-        self.image.setLevels(db_levels(self.baseline, brightness, contrast))
+        self.levels = (brightness, contrast)
         self.vb.setXRange(start, start + span, padding=0)
+        if self._covers(start, span, n_fft, hop):
+            self.image.setLevels(db_levels(self.baseline, *self.levels))
+            return
+
+        band_span = span * BAND
+        band_start = max(start - (band_span - span) / 2, 0.0)
+        first = int(band_start * self.sr)
+        chunk = self.waveform[first : first + int(band_span * self.sr)]
+        # La linea base recorre el audio entero, asi que solo se recalcula al cambiar
+        # n_fft y viaja al hilo junto con la banda.
+        whole = self.waveform if n_fft != self.baseline_n_fft else None
+        sr = self.sr
+
+        self.pending = (band_start, chunk.size / sr, n_fft, hop)
+        self.job = self.renderer.submit(
+            lambda: (
+                stft_db(chunk, n_fft, min(hop, n_fft)),
+                db_baseline(whole, sr, n_fft) if whole is not None else None,
+            )
+        )
+
+    def _covers(self, start: float, span: float, n_fft: int, hop: int) -> bool:
+        if self.band is None:
+            return False
+        band_start, band_span, band_n_fft, band_hop = self.band
+        inside = band_start <= start and start + span <= band_start + band_span + 1e-6
+        return inside and (n_fft, hop) == (band_n_fft, band_hop)
+
+    def _on_render(self, job_id: int, result) -> None:
+        if job_id != self.job or result is None or self.pending is None:
+            return
+        image, baseline = result
+        band_start, band_span, n_fft, _ = self.pending
+        if baseline is not None:
+            self.baseline = baseline
+            self.baseline_n_fft = n_fft
+        self.band = self.pending
+        self.image.setImage(image, autoLevels=False)
+        self.image.setRect(QRectF(band_start, 0.0, band_span, self.sr / 2))
+        self.image.setLevels(db_levels(self.baseline, *self.levels))
+
+    def _slot(self, index: int) -> tuple[QGraphicsRectItem, pg.TextItem]:
+        while len(self.pool) <= index:
+            rect = QGraphicsRectItem()
+            # Fondo translucido: sin el, el verde sobre magma claro es ilegible.
+            text = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(0, 0, 0, 150))
+            self.vb.addItem(rect)
+            self.vb.addItem(text)
+            self.pool.append((rect, text))
+        return self.pool[index]
 
     def draw_boxes(self, tables: list, start: float, stop: float, score: float) -> list[int]:
-        while self.boxes:
-            self.vb.removeItem(self.boxes.pop())
-        counts = []
-        for table, color in tables:
+        """Reusa los items ya creados: redibujar al mover la barra no construye nada."""
+        counts, used = [], 0
+        for table, color, above in tables:
             if table is None or table.empty:
                 counts.append(0)
                 continue
@@ -118,21 +174,28 @@ class SpectrogramView(pg.PlotWidget):
             if "Score" in visible.columns:
                 visible = visible[visible["Score"] >= score]
             counts.append(len(visible))
+            pen = pg.mkPen(color, width=2)
             for _, row in visible.iterrows():
+                rect, text = self._slot(used)
                 x0, y0 = row["Begin Time (s)"], row["Low Freq (Hz)"]
-                width = row["End Time (s)"] - x0
                 height = row["High Freq (Hz)"] - y0
-                rect = QGraphicsRectItem(QRectF(x0, y0, width, height))
-                rect.setPen(pg.mkPen(color, width=2))
-                text = pg.TextItem(box_label(row), color=color, anchor=(0, 1))
+                rect.setRect(QRectF(x0, y0, row["End Time (s)"] - x0, height))
+                rect.setPen(pen)
+                rect.setVisible(True)
+                text.setText(box_label(row), color=color)
+                # Cada capa rotula a un lado del borde superior --una afuera y otra
+                # adentro-- para que una deteccion encima de su anotacion no la tape.
+                text.setAnchor((0, 1) if above else (0, 0))
                 text.setPos(x0, y0 + height)
-                self.vb.addItem(rect)
-                self.vb.addItem(text)
-                self.boxes += [rect, text]
+                text.setVisible(True)
+                used += 1
+        for rect, text in self.pool[used:]:
+            rect.setVisible(False)
+            text.setVisible(False)
         return counts
 
     def export_png(self, path: Path) -> None:
-        exporter = pg.exporters.ImageExporter(self.getPlotItem())
+        exporter = ImageExporter(self.getPlotItem())
         exporter.parameters()["width"] = EXPORT_WIDTH
         exporter.export(str(path))
 
@@ -143,10 +206,25 @@ class SpectrogramView(pg.PlotWidget):
             self.playhead.setPos(seconds)
             self.playhead.show()
 
+    def close_renderer(self) -> None:
+        self.renderer.close()
+
     def _on_move(self, position) -> None:
         point = self.vb.mapSceneToView(position)
         self.moved.emit(point.x(), point.y())
 
     @override
+    def mousePressEvent(self, ev) -> None:
+        if ev is not None and ev.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit(self.vb.mapSceneToView(ev.position()).x())
+        super().mousePressEvent(ev)
+
+    @override
     def wheelEvent(self, ev) -> None:
-        self.scrolled.emit(-1 if ev.angleDelta().y() > 0 else 1)
+        if ev is None:
+            return
+        direction = -1 if ev.angleDelta().y() > 0 else 1
+        if ev.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self.zoomed.emit(direction)
+        else:
+            self.scrolled.emit(direction)

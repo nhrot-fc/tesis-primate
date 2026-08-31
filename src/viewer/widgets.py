@@ -1,24 +1,33 @@
 import math
-from pathlib import Path
+from collections.abc import Callable
 from typing import override
 
-from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import (
+    QBuffer,
+    QByteArray,
+    QIODevice,
+    QMutex,
+    Qt,
+    QThread,
+    QTimer,
+    QWaitCondition,
+    pyqtSignal,
+)
 from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
-    QPushButton,
     QSlider,
+    QToolButton,
     QWidget,
 )
 
-LABEL_WIDTH = 100
+LABEL_WIDTH = 78
+READOUT_WIDTH = 52
 TICK_MS = 30
-SWATCH_WIDTH = 14
+SWATCH_WIDTH = 10
 
 
 class Worker(QThread):
@@ -40,47 +49,55 @@ class Worker(QThread):
             self.error.emit(f"{type(exc).__name__}: {exc}")
 
 
-class FileField(QWidget):
-    changed = pyqtSignal()
+class Latest(QThread):
+    """Hilo de un solo trabajo a la vez: si llega otro mientras calcula, el que
+    esperaba se descarta. Es lo que mantiene fluido el scroll del espectrograma."""
 
-    def __init__(self, text: str, file_filter: str) -> None:
+    done = pyqtSignal(int, object)
+
+    def __init__(self) -> None:
         super().__init__()
-        self.file_filter = file_filter
-        name = QLabel(text)
-        name.setFixedWidth(LABEL_WIDTH)
-        self.edit = QLineEdit()
-        self.edit.setPlaceholderText("sin seleccionar")
-        self.edit.setReadOnly(True)
-        self.edit.setAcceptDrops(False)  # deja pasar el drop a la ventana principal
-        button = QPushButton("Examinar")
+        self.mutex = QMutex()
+        self.waiting = QWaitCondition()
+        self.job: tuple[int, Callable[[], object]] | None = None
+        self.counter = 0
+        self.closing = False
+        self.start()
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(name)
-        layout.addWidget(self.edit, 1)
-        layout.addWidget(button)
-        button.clicked.connect(self._browse)
+    def submit(self, task: Callable[[], object]) -> int:
+        self.mutex.lock()
+        self.counter += 1
+        job_id = self.counter
+        self.job = (job_id, task)
+        self.waiting.wakeOne()
+        self.mutex.unlock()
+        return job_id
 
-    def _browse(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar", self.edit.text(), self.file_filter
-        )
-        if path:
-            self.edit.setText(path)
-            self.changed.emit()
+    def close(self) -> None:
+        self.mutex.lock()
+        self.closing = True
+        self.waiting.wakeOne()
+        self.mutex.unlock()
+        self.wait()
 
-    def path(self) -> Path | None:
-        text = self.edit.text().strip()
-        return Path(text) if text else None
-
-    def set_path(self, path: Path) -> None:
-        self.edit.setText(str(path))
-        self.changed.emit()
-
-    def suffixes(self) -> set[str]:
-        """Extensiones aceptadas por el filtro, en minusculas y con punto."""
-        inside = self.file_filter[self.file_filter.find("(") + 1 : self.file_filter.rfind(")")]
-        return {pattern.removeprefix("*").lower() for pattern in inside.split()}
+    @override
+    def run(self) -> None:
+        while True:
+            self.mutex.lock()
+            while self.job is None and not self.closing:
+                self.waiting.wait(self.mutex)
+            if self.closing or self.job is None:
+                self.mutex.unlock()
+                if self.closing:
+                    return
+                continue  # despertar espurio: no hay nada que calcular
+            job_id, task = self.job
+            self.job = None
+            self.mutex.unlock()
+            try:
+                self.done.emit(job_id, task())
+            except Exception:
+                self.done.emit(job_id, None)  # una banda fallida no merece una alerta
 
 
 class Choice(QWidget):
@@ -96,8 +113,9 @@ class Choice(QWidget):
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, len(values) - 1)
         self.slider.setValue(index)
+        self.slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.readout = QLabel(fmt.format(values[index]))
-        self.readout.setFixedWidth(48)
+        self.readout.setFixedWidth(READOUT_WIDTH)
         self.readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         layout = QHBoxLayout(self)
@@ -119,26 +137,37 @@ class Choice(QWidget):
         nearest = min(range(len(self.values)), key=lambda i: abs(self.values[i] - value))
         self.slider.setValue(nearest)
 
+    def step(self, delta: int) -> None:
+        self.slider.setValue(self.slider.value() + delta)
+
 
 class Dropdown(QWidget):
     changed = pyqtSignal()
 
-    def __init__(self, text: str, options: list[str], index: int = 0) -> None:
+    def __init__(self, text: str, options: list[tuple[str, object]], index: int = 0) -> None:
         super().__init__()
-        name = QLabel(text)
-        name.setFixedWidth(LABEL_WIDTH)
         self.combo = QComboBox()
-        self.combo.addItems(options)
+        for label, data in options:
+            self.combo.addItem(label, data)
         self.combo.setCurrentIndex(index)
+        self.combo.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(name)
+        if text:
+            name = QLabel(text)
+            name.setFixedWidth(LABEL_WIDTH)
+            layout.addWidget(name)
         layout.addWidget(self.combo, 1)
         self.combo.currentIndexChanged.connect(self.changed.emit)
 
-    def value(self) -> str:
-        return self.combo.currentText()
+    def value(self):
+        return self.combo.currentData()
+
+    def step(self, delta: int) -> None:
+        self.combo.setCurrentIndex(
+            min(max(self.combo.currentIndex() + delta, 0), self.combo.count() - 1)
+        )
 
 
 class Layers(QWidget):
@@ -152,22 +181,29 @@ class Layers(QWidget):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
         for text, color in entries:
             swatch = QLabel()
             swatch.setFixedWidth(SWATCH_WIDTH)
             swatch.setStyleSheet(f"background-color: {color}; border-radius: 2px;")
             box = QCheckBox(text)
             box.setChecked(True)
+            box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             # Lambda: `toggled` emite el estado y `changed` no lleva argumentos.
             box.toggled.connect(lambda _: self.changed.emit())
             self.boxes[text] = box
             layout.addWidget(swatch)
             layout.addWidget(box)
-            layout.addSpacing(6)
+            layout.addSpacing(8)
 
     def enabled(self, text: str) -> bool:
         return self.boxes[text].isChecked()
+
+    def toggle(self, text: str) -> None:
+        self.boxes[text].setChecked(not self.boxes[text].isChecked())
+
+    def set_count(self, text: str, shown: int, total: int) -> None:
+        self.boxes[text].setText(f"{text}  {shown}/{total}" if total else text)
 
 
 class AudioPlayer(QWidget):
@@ -175,6 +211,7 @@ class AudioPlayer(QWidget):
 
     moved = pyqtSignal(float)
     stopped = pyqtSignal()
+    failed = pyqtSignal(str)
 
     def __init__(self) -> None:
         super().__init__()
@@ -186,19 +223,20 @@ class AudioPlayer(QWidget):
         self.paused = False
 
         self.clock = QLabel("0.00 s")
-        self.clock.setFixedWidth(64)
+        self.clock.setFixedWidth(120)
         self.clock.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        for text, tip, slot in (
-            ("▶", "Reproducir (Espacio)", self.play),
-            ("‖", "Pausa (Espacio)", self.pause),
-            ("■", "Detener", self.stop),
+        layout.setSpacing(2)
+        self.play_button = QToolButton()
+        for button, text, tip, slot in (
+            (self.play_button, "▶", "Reproducir / pausar (Espacio)", self.toggle),
+            (QToolButton(), "■", "Detener", self.stop),
         ):
-            button = QPushButton(text)
+            button.setText(text)
             button.setToolTip(tip)
-            button.setFixedWidth(36)
+            button.setFixedWidth(30)
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             button.clicked.connect(slot)
             layout.addWidget(button)
@@ -218,7 +256,10 @@ class AudioPlayer(QWidget):
         """Mueve el punto de arranque; se ignora mientras suena el audio."""
         if self.sink is None:
             self.origin = max(seconds, 0.0)
-            self.clock.setText(f"{self.origin:.2f} s")
+            self._show(self.origin)
+
+    def _show(self, seconds: float) -> None:
+        self.clock.setText(f"{seconds:.2f} / {self.duration():.2f} s")
 
     def duration(self) -> float:
         return self.pcm.size() / (2 * self.sr)
@@ -232,11 +273,17 @@ class AudioPlayer(QWidget):
                 self.paused = False
                 self.sink.resume()
                 self.timer.start()
+                self.play_button.setText("‖")
             return
         if self.pcm.isEmpty():
             return
         if self.origin >= self.duration():
             self.origin = 0.0
+
+        device = QMediaDevices.defaultAudioOutput()
+        if device.isNull():
+            self.failed.emit("No hay dispositivo de salida de audio.")
+            return
 
         fmt = QAudioFormat()
         fmt.setSampleRate(self.sr)
@@ -248,9 +295,12 @@ class AudioPlayer(QWidget):
         self.buffer.open(QIODevice.OpenModeFlag.ReadOnly)
         self.buffer.seek(2 * int(self.origin * self.sr))
 
-        self.sink = QAudioSink(QMediaDevices.defaultAudioOutput(), fmt)
+        # Con padre, el sink lo destruye Qt cuando toca y no al soltar la referencia
+        # de Python, que podia caer mientras su hilo de audio seguia leyendo.
+        self.sink = QAudioSink(device, fmt, self)
         self.sink.start(self.buffer)
         self.timer.start()
+        self.play_button.setText("‖")
 
     def pause(self) -> None:
         if self.sink is None or self.paused:
@@ -258,14 +308,17 @@ class AudioPlayer(QWidget):
         self.paused = True
         self.timer.stop()
         self.sink.suspend()
+        self.play_button.setText("▶")
 
     def stop(self) -> None:
         self.timer.stop()
         if self.sink is not None:
             self.sink.stop()
+            self.sink.deleteLater()
             self.sink = None
         self.buffer.close()
         self.paused = False
+        self.play_button.setText("▶")
         self.stopped.emit()
 
     def toggle(self) -> None:
@@ -280,5 +333,5 @@ class AudioPlayer(QWidget):
             self.stop()
             return
 
-        self.clock.setText(f"{seconds:.2f} s")
+        self._show(seconds)
         self.moved.emit(seconds)

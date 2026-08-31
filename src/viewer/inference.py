@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -10,6 +11,14 @@ if TYPE_CHECKING:
 # Un checkpoint cargado ocupa cientos de MB, asi que se reutiliza mientras no
 # cambie y solo se guarda uno.
 LOADED: dict[Path, "LoadedModel | Any"] = {}
+
+
+def preload() -> None:
+    import inference.predictor  # noqa: F401
+    from models.registry import ARCHITECTURES, architecture
+
+    for name in ARCHITECTURES:
+        import_module(architecture(name).module)
 
 
 def detect(

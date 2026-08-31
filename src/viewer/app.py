@@ -6,6 +6,7 @@ from typing import override
 import pandas as pd
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -17,30 +18,36 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollBar,
+    QSizePolicy,
+    QStatusBar,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
 
 from core.config import P
-from viewer.inference import detect
+from viewer.inference import detect, preload
 from viewer.plot import (
     ANNOTATION_COLOR,
     COLORMAPS,
     DETECTION_COLOR,
+    RESOLUTIONS,
     SpectrogramView,
     read_boxes,
 )
 from viewer.spectrogram import load_audio, pcm16
-from viewer.widgets import AudioPlayer, Choice, Dropdown, FileField, Layers, Worker
+from viewer.widgets import AudioPlayer, Choice, Dropdown, Layers, Worker
 
 BASE_TITLE = "Visor de espectrogramas"
 ANNOTATIONS = "Anotaciones"
 DETECTIONS = "Modelo"
 TIME_STEP = 0.05
 WINDOW_VALUES = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
-NFFT_VALUES = [256, 512, 1024, 2048, 4096, 8192]
-HOP_VALUES = [32, 64, 128, 256, 512, 1024]
-BATCH_VALUES = [1, 2, 4, 8, 16, 32, 64]
+BATCH_SIZE = 8
+
+AUDIO_FILTER = "Audio (*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3)"
+TABLE_FILTER = "Raven (*.txt *.csv)"
+MODEL_FILTER = "Checkpoint (*.pth *.pt)"
 
 
 class Viewer(QMainWindow):
@@ -48,155 +55,214 @@ class Viewer(QMainWindow):
         super().__init__()
         self.setWindowTitle(BASE_TITLE)
         self.setMinimumSize(880, 560)
-        self.resize(1240, 800)
+        self.resize(1240, 820)
         self.setAcceptDrops(True)
 
         self.audio_path: Path | None = None
+        self.model_path: Path | None = None
         self.duration = 0.0
         self.annotations: pd.DataFrame | None = None
         self.detections: pd.DataFrame | None = None
         self.worker: Worker | None = None
 
-        self.audio_field = FileField("Audio", "Audio (*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3)")
-        self.model_field = FileField("Modelo", "Checkpoint (*.pth *.pt)")
-        self.annotation_field = FileField("Anotaciones", "Raven (*.txt *.csv)")
-        self.audio_field.changed.connect(self.load_audio)
-        self.annotation_field.changed.connect(self.load_annotations)
-        self.model_field.changed.connect(self.sync_controls)
-
-        self.run_button = QPushButton("Detectar vocalizaciones")
-        self.image_button = QPushButton("Guardar imagen")
-        self.table_button = QPushButton("Guardar detecciones")
-        self.run_button.clicked.connect(self.run_model)
-        self.image_button.clicked.connect(self.export_image)
-        self.table_button.clicked.connect(self.export_detections)
-
         self.plot = SpectrogramView()
         self.plot.scrolled.connect(self.step)
         self.plot.moved.connect(self.track)
+        self.plot.clicked.connect(self.seek)
 
+        # --- Acciones: una sola barra reemplaza las tres filas de selectores de archivo ---
+        self.actions_ = {
+            "audio": QAction("Abrir audio", self),
+            "table": QAction("Anotaciones", self),
+            "model": QAction("Modelo", self),
+            "run": QAction("Detectar", self),
+            "image": QAction("Guardar imagen", self),
+            "export": QAction("Guardar detecciones", self),
+        }
+        for key, shortcut, slot in (
+            ("audio", "Ctrl+O", self.open_audio),
+            ("table", "Ctrl+T", self.open_annotations),
+            ("model", "Ctrl+M", self.open_model),
+            ("run", "Ctrl+R", self.run_model),
+            ("image", "Ctrl+S", self.export_image),
+            ("export", "Ctrl+E", self.export_detections),
+        ):
+            self.actions_[key].setShortcut(QKeySequence(shortcut))
+            self.actions_[key].triggered.connect(lambda _, run=slot: run())
+
+        self.visuals_action = QAction("Visualización", self)
+        self.visuals_action.setCheckable(True)
+        self.visuals_action.setShortcut(QKeySequence("V"))
+
+        toolbar = QToolBar()
+        toolbar.setMovable(False)
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        toolbar.addAction(self.actions_["audio"])
+        toolbar.addAction(self.actions_["table"])
+        toolbar.addAction(self.actions_["model"])
+        toolbar.addSeparator()
+        toolbar.addAction(self.actions_["run"])
+        toolbar.addSeparator()
+        toolbar.addAction(self.actions_["image"])
+        toolbar.addAction(self.actions_["export"])
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(spacer)
+        toolbar.addAction(self.visuals_action)
+        self.addToolBar(toolbar)
+
+        # --- Transporte: reproduccion, recorrido y ancho de ventana en una sola fila ---
         self.timebar = QScrollBar(Qt.Orientation.Horizontal)
         self.timebar.valueChanged.connect(self.refresh)
-
         self.player = AudioPlayer()
         self.player.moved.connect(self.follow_playhead)
+        self.player.failed.connect(self.say)
         self.player.stopped.connect(self.playback_stopped)
-
-        self.n_fft = Choice("n_fft", NFFT_VALUES, NFFT_VALUES.index(2048))
-        self.hop = Choice("hop", HOP_VALUES, HOP_VALUES.index(256))
-        self.brightness = Choice("Brillo (dB)", list(range(-60, 61, 2)), 30)
-        self.contrast = Choice("Contraste", [round(0.2 + 0.05 * i, 2) for i in range(97)], 16)
-        self.score = Choice("Score >=", [i / 100 for i in range(101)], 50, "{:.2f}")
-        self.span = Choice("Ventana (s)", WINDOW_VALUES, WINDOW_VALUES.index(5.0))
-        self.colormap = Dropdown("Colormap", COLORMAPS)
-        # Lotes pequenos: la barra avanza de forma fluida. Lotes grandes: la GPU
-        # rinde mas pero el progreso llega a saltos.
-        self.batch = Choice("Lote", BATCH_VALUES, BATCH_VALUES.index(2))
-        self.batch.setToolTip(
-            "Ventanas que el modelo procesa a la vez.\n"
-            "Valores bajos dan progreso fluido; valores altos aprovechan mejor la GPU."
+        self.span_box = Dropdown(
+            "Ventana",
+            [(f"{value:g} s", value) for value in WINDOW_VALUES],
+            WINDOW_VALUES.index(5.0),
         )
-        for control in (self.n_fft, self.hop, self.brightness, self.contrast):
-            control.changed.connect(self.draw_spectrogram)
-        self.score.changed.connect(self.draw_boxes)
-        self.span.changed.connect(self.rescale)
-        self.colormap.changed.connect(self.change_colormap)
-
-        self.status = QLabel("Selecciona un audio.")
-        self.counts = QLabel("")
-        self.layers = Layers([(ANNOTATIONS, ANNOTATION_COLOR), (DETECTIONS, DETECTION_COLOR)])
-        self.layers.changed.connect(self.draw_boxes)
-        self.readout = QLabel("")
-        self.readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self.progress = QProgressBar()
-        self.progress.hide()
-
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.image_button)
-        buttons.addWidget(self.table_button)
-        buttons.addStretch(1)
-        buttons.addWidget(self.run_button)
-
-        header = QVBoxLayout()
-        header.setSpacing(6)
-        header.addWidget(self.audio_field)
-        header.addWidget(self.annotation_field)
-        header.addWidget(self.model_field)
-        header.addLayout(buttons)
-
-        controls = QGridLayout()
-        controls.setHorizontalSpacing(28)
-        controls.setColumnStretch(0, 1)
-        controls.setColumnStretch(1, 1)
-        controls.addWidget(self.n_fft, 0, 0)
-        controls.addWidget(self.brightness, 0, 1)
-        controls.addWidget(self.hop, 1, 0)
-        controls.addWidget(self.contrast, 1, 1)
-        controls.addWidget(self.score, 2, 0)
-        controls.addWidget(self.span, 2, 1)
-        controls.addWidget(self.colormap, 3, 0)
-        controls.addWidget(self.batch, 3, 1)
+        self.span_box.setMaximumWidth(160)
+        self.span_box.changed.connect(self.rescale)
+        self.plot.zoomed.connect(self.span_box.step)  # Ctrl+rueda cambia el ancho
 
         transport = QHBoxLayout()
-        transport.addWidget(self.timebar, 1)
+        transport.setSpacing(10)
         transport.addWidget(self.player)
+        transport.addWidget(self.timebar, 1)
+        transport.addWidget(self.span_box)
 
-        footer = QHBoxLayout()
-        footer.addWidget(self.layers)
-        footer.addWidget(self.status, 1)
-        footer.addWidget(self.counts)
-        footer.addWidget(self.readout)
+        # --- Filtro: lo unico que se toca sin parar durante una revision ---
+        self.score = Choice("Score ≥", [i / 100 for i in range(101)], 50, "{:.2f}")
+        self.score.changed.connect(self.draw_boxes)
+        self.score.setMaximumWidth(320)
+        self.layers = Layers([(ANNOTATIONS, ANNOTATION_COLOR), (DETECTIONS, DETECTION_COLOR)])
+        self.layers.changed.connect(self.draw_boxes)
+        self.prev_button = QPushButton("◀ anterior")
+        self.next_button = QPushButton("siguiente ▶")
+        self.prev_button.setToolTip("Detección anterior (P)")
+        self.next_button.setToolTip("Detección siguiente (N)")
+        for button, direction in ((self.prev_button, -1), (self.next_button, 1)):
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _, d=direction: self.jump(d))
+
+        filters = QHBoxLayout()
+        filters.setSpacing(16)
+        filters.addWidget(self.score)
+        filters.addWidget(self.layers)
+        filters.addStretch(1)
+        filters.addWidget(self.prev_button)
+        filters.addWidget(self.next_button)
+
+        # --- Visualizacion: se ajusta una vez y estorba, asi que va plegada ---
+        self.resolution = Dropdown(
+            "Resolución", [(f"{n_fft} / {hop}", (n_fft, hop)) for n_fft, hop in RESOLUTIONS], 2
+        )
+        self.brightness = Choice("Brillo (dB)", list(range(-60, 61, 2)), 30)
+        self.contrast = Choice("Contraste", [round(0.2 + 0.05 * i, 2) for i in range(97)], 16)
+        self.colormap = Dropdown("Colormap", [(name, name) for name in COLORMAPS])
+        for control in (self.resolution, self.brightness, self.contrast):
+            control.changed.connect(self.draw_spectrogram)
+        self.colormap.changed.connect(self.change_colormap)
+
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 4, 0, 0)
+        grid.setHorizontalSpacing(28)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        grid.addWidget(self.resolution, 0, 0)
+        grid.addWidget(self.brightness, 0, 1)
+        grid.addWidget(self.colormap, 1, 0)
+        grid.addWidget(self.contrast, 1, 1)
+        self.visuals = QWidget()
+        self.visuals.setLayout(grid)
+        self.visuals.setVisible(False)
+        self.visuals_action.toggled.connect(self.visuals.setVisible)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
-        layout.addLayout(header)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(6)
         layout.addWidget(self.plot, 1)
         layout.addLayout(transport)
-        layout.addLayout(controls)
-        layout.addWidget(self.progress)
-        layout.addLayout(footer)
+        layout.addLayout(filters)
+        layout.addWidget(self.visuals)
 
         central = QWidget()
         central.setLayout(layout)
         self.setCentralWidget(central)
+
+        self.progress = QProgressBar()
+        self.progress.setFixedWidth(180)
+        self.progress.setTextVisible(False)
+        self.progress.hide()
+        self.readout = QLabel("")
+        self.readout.setMinimumWidth(150)
+        self.readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.bar = QStatusBar()
+        self.bar.addPermanentWidget(self.progress)
+        self.bar.addPermanentWidget(self.readout)
+        self.setStatusBar(self.bar)
+        self.engine = False
         self.sync_controls()
+        self.say("Preparando el motor de detección...")
+        self.preloader = Worker(preload)
+        self.preloader.ok.connect(self.engine_ready)
+        self.preloader.error.connect(self.engine_failed)
+        self.preloader.start()
+
+    def engine_ready(self, _) -> None:
+        self.engine = True
+        self.sync_controls()
+        self.say("Abre un audio (Ctrl+O) o arrástralo a la ventana.")
+
+    def engine_failed(self, message: str) -> None:
+        # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas.
+        self.engine = True
+        self.sync_controls()
+        self.say(f"El motor de detección no cargó ({message}). El visor funciona igual.")
+
+    # --- Estado -----------------------------------------------------------------
+
+    def span(self) -> float:
+        return float(self.span_box.value())
+
+    def say(self, message: str) -> None:
+        self.bar.showMessage(message)
 
     def sync_controls(self, busy: bool = False) -> None:
         loaded = self.plot.waveform is not None
+        has_detections = self.detections is not None
         for widget in (
             self.timebar,
             self.player,
-            self.n_fft,
-            self.hop,
-            self.brightness,
-            self.contrast,
-            self.span,
-            self.colormap,
+            self.span_box,
+            self.visuals,
         ):
             widget.setEnabled(loaded)
-        for field in (self.audio_field, self.annotation_field, self.model_field):
-            field.setEnabled(not busy)
-        self.batch.setEnabled(not busy)
-        self.run_button.setEnabled(not busy and loaded and self.model_field.path() is not None)
-        self.image_button.setEnabled(not busy and loaded)
-        self.table_button.setEnabled(not busy and self.detections is not None)
-        self.score.setEnabled(self.detections is not None)
+        for key in ("audio", "table", "model"):
+            self.actions_[key].setEnabled(not busy)
+        self.actions_["run"].setEnabled(not busy and loaded and self.model_path is not None)
+        self.actions_["image"].setEnabled(not busy and loaded)
+        self.actions_["export"].setEnabled(not busy and has_detections)
+        self.score.setEnabled(has_detections)
+        self.prev_button.setEnabled(has_detections)
+        self.next_button.setEnabled(has_detections)
 
     def fail(self, message: str) -> None:
-        self.status.setText("Error.")
+        self.say("Error.")
         QMessageBox.critical(self, "Error", message)
 
-    def start(self, task, done, message: str, reports: bool = False, on_error=None) -> None:
+    def start(self, task, done, message: str, reports: bool = False) -> None:
         if self.worker is not None and self.worker.isRunning():
             return
-        self.status.setText(message)
+        self.say(message)
         self.sync_controls(busy=True)
         self.progress.setRange(0, 0)  # indeterminado hasta el primer reporte
         self.progress.show()
         self.worker = Worker(task, reports)
         self.worker.ok.connect(done)
-        self.worker.error.connect(on_error or self.fail)
+        self.worker.error.connect(self.fail)
         self.worker.progress.connect(self.show_progress)
         self.worker.finished.connect(self.finish)
         self.worker.start()
@@ -209,18 +275,15 @@ class Viewer(QMainWindow):
         self.progress.hide()
         self.sync_controls()
 
-    def checked_path(self, field: FileField) -> Path | None:
-        path = field.path()
-        if path is None:
-            self.fail("Selecciona un archivo.")
-        elif not path.is_file():
-            self.fail(f"No existe el archivo:\n{path}")
-        else:
-            return path
-        return None
+    # --- Apertura de archivos ---------------------------------------------------
 
-    def load_audio(self) -> None:
-        path = self.checked_path(self.audio_field)
+    def ask(self, title: str, file_filter: str) -> Path | None:
+        folder = str(self.audio_path.parent) if self.audio_path is not None else ""
+        chosen, _ = QFileDialog.getOpenFileName(self, title, folder, file_filter)
+        return Path(chosen) if chosen else None
+
+    def open_audio(self, path: Path | None = None) -> None:
+        path = path or self.ask("Abrir audio", AUDIO_FILTER)
         if path is not None:
             self.start(
                 lambda: (path, load_audio(path, P.target_sr)),
@@ -228,18 +291,25 @@ class Viewer(QMainWindow):
                 "Cargando audio...",
             )
 
-    def load_annotations(self) -> None:
-        path = self.checked_path(self.annotation_field)
+    def open_annotations(self, path: Path | None = None) -> None:
+        path = path or self.ask("Abrir anotaciones", TABLE_FILTER)
         if path is not None:
             self.start(lambda: read_boxes(path), self.annotations_loaded, "Cargando anotaciones...")
 
+    def open_model(self, path: Path | None = None) -> None:
+        path = path or self.ask("Abrir modelo", MODEL_FILTER)
+        if path is not None:
+            self.model_path = path
+            self.actions_["model"].setToolTip(str(path))
+            self.say(f"Modelo listo: {path.name}   (Ctrl+R para detectar)")
+            self.sync_controls()
+
     def run_model(self) -> None:
-        model = self.checked_path(self.model_field)
-        if self.audio_path is None or model is None:
+        if self.audio_path is None or self.model_path is None:
             return
-        audio, batch = self.audio_path, self.batch.value()
+        audio, model = self.audio_path, self.model_path
         self.start(
-            lambda report: detect(audio, model, batch_size=batch, on_progress=report),
+            lambda report: detect(audio, model, batch_size=BATCH_SIZE, on_progress=report),
             self.detections_ready,
             f"Ejecutando '{model.name}'...",
             reports=True,
@@ -249,7 +319,11 @@ class Viewer(QMainWindow):
         self.audio_path, waveform = loaded
         self.duration = waveform.size / P.target_sr
         self.detections = None
+        if self.audio_path is None:
+            print("Error: audio_loaded recibió None")
+            return
         self.setWindowTitle(f"{self.audio_path.name} - {BASE_TITLE}")
+        self.actions_["audio"].setToolTip(str(self.audio_path))
         self.plot.set_waveform(waveform, P.target_sr)
         self.player.set_audio(pcm16(waveform), P.target_sr)
         self.timebar.blockSignals(True)
@@ -257,25 +331,11 @@ class Viewer(QMainWindow):
         self.timebar.blockSignals(False)
         self.rescale()
 
-    def rescale(self) -> None:
-        """Reajusta la barra de tiempo al ancho de ventana, conservando el instante actual."""
-        start = self.timebar.value() * TIME_STEP
-        span = self.span.value()
-        self.timebar.blockSignals(True)
-        self.timebar.setRange(0, max(int((self.duration - span) / TIME_STEP), 0))
-        self.timebar.setSingleStep(max(int(0.1 * span / TIME_STEP), 1))
-        self.timebar.setPageStep(max(int(span / TIME_STEP), 1))
-        self.timebar.setValue(int(start / TIME_STEP))
-        self.timebar.blockSignals(False)
-        self.refresh()
-
-    def change_colormap(self) -> None:
-        self.plot.set_colormap(self.colormap.value())
-
     def annotations_loaded(self, table: pd.DataFrame) -> None:
         self.annotations = table
         self.draw_boxes()
-        self.status.setText(f"{len(table)} anotaciones cargadas.")
+        self.sync_controls()
+        self.say(f"{len(table)} anotaciones cargadas.")
 
     def detections_ready(self, table: pd.DataFrame) -> None:
         self.detections = table
@@ -285,16 +345,57 @@ class Viewer(QMainWindow):
         if operating is not None:
             self.score.set_value(operating)
         self.draw_boxes()
-        self.status.setText(f"{len(table)} detecciones del modelo.")
+        self.sync_controls()
+        self.say(f"{len(table)} detecciones del modelo.")
+
+    # --- Recorrido --------------------------------------------------------------
+
+    def rescale(self) -> None:
+        """Reajusta la barra de tiempo al ancho de ventana, conservando el instante actual."""
+        start = self.timebar.value() * TIME_STEP
+        span = self.span()
+        self.timebar.blockSignals(True)
+        self.timebar.setRange(0, max(int((self.duration - span) / TIME_STEP), 0))
+        self.timebar.setSingleStep(max(int(0.1 * span / TIME_STEP), 1))
+        self.timebar.setPageStep(max(int(span / TIME_STEP), 1))
+        self.timebar.setValue(int(start / TIME_STEP))
+        self.timebar.blockSignals(False)
+        self.refresh()
 
     def time_window(self) -> tuple[float, float]:
         start = self.timebar.value() * TIME_STEP
-        return start, min(start + self.span.value(), self.duration)
+        return start, min(start + self.span(), self.duration)
 
     def refresh(self) -> None:
         self.player.set_origin(self.time_window()[0])
         self.draw_spectrogram()
         self.draw_boxes()
+
+    def step(self, direction: int) -> None:
+        self.timebar.setValue(self.timebar.value() + direction * self.timebar.singleStep())
+
+    def seek(self, seconds: float) -> None:
+        self.player.set_origin(seconds)
+        self.plot.set_playhead(seconds)
+
+    def jump(self, direction: int) -> None:
+        """Centra la ventana en la primera deteccion que aun no esta en pantalla.
+
+        La referencia es el borde de la ventana y no su centro: al principio y al final
+        del audio la barra no puede centrar la caja, y con el centro la misma deteccion
+        volvia a salir elegida una y otra vez.
+        """
+        table = self.visible_detections()
+        if table is None or table.empty:
+            return
+        start, stop = self.time_window()
+        times = table["Begin Time (s)"].to_numpy()
+        candidates = times[times >= stop] if direction > 0 else times[times < start]
+        if candidates.size == 0:
+            self.say("No hay más detecciones en esa dirección.")
+            return
+        target = float(candidates[0] if direction > 0 else candidates[-1])
+        self.timebar.setValue(int(max(target - self.span() / 2, 0.0) / TIME_STEP))
 
     def follow_playhead(self, seconds: float) -> None:
         start, stop = self.time_window()
@@ -306,36 +407,40 @@ class Viewer(QMainWindow):
         self.plot.set_playhead(None)
         self.player.set_origin(self.time_window()[0])
 
+    # --- Dibujo -----------------------------------------------------------------
+
+    def change_colormap(self) -> None:
+        self.plot.set_colormap(self.colormap.value())
+
     def draw_spectrogram(self) -> None:
         start, stop = self.time_window()
+        n_fft, hop = self.resolution.value()
         self.plot.draw(
-            start,
-            self.span.value(),
-            self.n_fft.value(),
-            self.hop.value(),
-            self.brightness.value(),
-            self.contrast.value(),
+            start, self.span(), n_fft, hop, self.brightness.value(), self.contrast.value()
         )
-        self.status.setText(f"{start:.2f} - {stop:.2f} s  de  {self.duration:.2f} s")
+        self.say(f"{start:.2f} - {stop:.2f} s   de   {self.duration:.2f} s")
 
     def draw_boxes(self) -> None:
         start, stop = self.time_window()
+        # El ultimo campo situa la etiqueta arriba o abajo de la caja.
         layers = [
-            (ANNOTATIONS, "anot.", self.annotations, ANNOTATION_COLOR),
-            (DETECTIONS, "det.", self.detections, DETECTION_COLOR),
+            (ANNOTATIONS, self.annotations, ANNOTATION_COLOR, True),
+            (DETECTIONS, self.detections, DETECTION_COLOR, False),
         ]
         # Una capa apagada entra como None: ni se dibuja ni se cuenta.
         tables = [
-            (table if self.layers.enabled(name) else None, color)
-            for name, _, table, color in layers
+            (table if self.layers.enabled(name) else None, color, above)
+            for name, table, color, above in layers
         ]
         shown = self.plot.draw_boxes(tables, start, stop, self.score.value())
-        parts = [
-            f"{short} {count}/{len(table)}"
-            for (name, short, table, _), count in zip(layers, shown, strict=True)
-            if table is not None and self.layers.enabled(name)
-        ]
-        self.counts.setText("   ".join(parts))
+        for (name, table, _, _), count in zip(layers, shown, strict=True):
+            self.layers.set_count(name, count, 0 if table is None else len(table))
+
+    def track(self, seconds: float, hz: float) -> None:
+        if self.plot.waveform is not None:
+            self.readout.setText(f"{seconds:.3f} s    {hz:,.0f} Hz")
+
+    # --- Exportacion ------------------------------------------------------------
 
     def visible_detections(self) -> pd.DataFrame | None:
         if self.detections is None:
@@ -364,7 +469,7 @@ class Viewer(QMainWindow):
         except Exception as exc:
             self.fail(f"No se pudo guardar la imagen:\n{type(exc).__name__}: {exc}")
         else:
-            self.status.setText(f"Imagen guardada en {path.name}")
+            self.say(f"Imagen guardada en {path.name}")
 
     def export_detections(self) -> None:
         table = self.visible_detections()
@@ -380,62 +485,76 @@ class Viewer(QMainWindow):
         except Exception as exc:
             self.fail(f"No se pudieron guardar las detecciones:\n{type(exc).__name__}: {exc}")
         else:
-            score = self.score.value()
-            self.status.setText(f"{len(table)} detecciones (score >= {score:.2f}) en {path.name}")
+            self.say(f"{len(table)} detecciones (score ≥ {self.score.value():.2f}) en {path.name}")
 
-    def step(self, direction: int) -> None:
-        self.timebar.setValue(self.timebar.value() + direction * self.timebar.singleStep())
+    # --- Eventos ----------------------------------------------------------------
 
-    def track(self, seconds: float, hz: float) -> None:
-        if self.plot.waveform is not None:
-            self.readout.setText(f"{seconds:.3f} s   {hz:,.0f} Hz")
-
-    def dropped_field(self, event) -> tuple[FileField, Path] | None:
+    def dropped(self, event) -> tuple[str, Path] | None:
         mime = event.mimeData() if event is not None else None
         urls = mime.urls() if mime is not None and mime.hasUrls() else []
-        if not urls or not self.audio_field.isEnabled():
+        if not urls or not self.actions_["audio"].isEnabled():
             return None
         path = Path(urls[0].toLocalFile())
         if not path.is_file():
             return None
-        for field in (self.audio_field, self.annotation_field, self.model_field):
-            if path.suffix.lower() in field.suffixes():
-                return field, path
+        for key, suffixes in (
+            ("audio", {".wav", ".flac", ".mp3"}),
+            ("table", {".txt", ".csv"}),
+            ("model", {".pth", ".pt"}),
+        ):
+            if path.suffix.lower() in suffixes:
+                return key, path
         return None
 
     @override
     def dragEnterEvent(self, a0) -> None:
-        if a0 is not None and self.dropped_field(a0) is not None:
+        if a0 is not None and self.dropped(a0) is not None:
             a0.acceptProposedAction()
 
     @override
     def dropEvent(self, a0) -> None:
-        target = self.dropped_field(a0) if a0 is not None else None
+        target = self.dropped(a0) if a0 is not None else None
         if a0 is not None and target is not None:
             a0.acceptProposedAction()
-            field, path = target
-            field.set_path(path)
+            key, path = target
+            {"audio": self.open_audio, "table": self.open_annotations, "model": self.open_model}[
+                key
+            ](path)
 
     @override
     def keyPressEvent(self, a0) -> None:
+        if a0 is None:
+            return
         steps = {
             Qt.Key.Key_Left: -self.timebar.singleStep(),
             Qt.Key.Key_Right: self.timebar.singleStep(),
             Qt.Key.Key_PageUp: -self.timebar.pageStep(),
             Qt.Key.Key_PageDown: self.timebar.pageStep(),
         }
-        if a0 is None:
-            return
-        if a0.key() == Qt.Key.Key_Space:
+        key = a0.key()
+        if key == Qt.Key.Key_Space:
             self.player.toggle()
-        elif a0.key() in steps:
-            self.timebar.setValue(self.timebar.value() + steps[Qt.Key(a0.key())])
-        elif a0.key() == Qt.Key.Key_Home:
+        elif key in steps:
+            self.timebar.setValue(self.timebar.value() + steps[Qt.Key(key)])
+        elif key == Qt.Key.Key_Home:
             self.timebar.setValue(self.timebar.minimum())
-        elif a0.key() == Qt.Key.Key_End:
+        elif key == Qt.Key.Key_End:
             self.timebar.setValue(self.timebar.maximum())
+        elif key == Qt.Key.Key_N:
+            self.jump(1)
+        elif key == Qt.Key.Key_P:
+            self.jump(-1)
+        elif key == Qt.Key.Key_1:
+            self.layers.toggle(ANNOTATIONS)
+        elif key == Qt.Key.Key_2:
+            self.layers.toggle(DETECTIONS)
         else:
             super().keyPressEvent(a0)
+
+    @override
+    def closeEvent(self, a0) -> None:
+        self.plot.close_renderer()
+        super().closeEvent(a0)
 
 
 def main() -> None:
