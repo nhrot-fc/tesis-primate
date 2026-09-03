@@ -17,17 +17,8 @@ from evaluation.metrics import (
 )
 from utils.boxes import Detections, suppress_nested
 
-# El `detect` del registro con el modelo ya atado: sólo quedan imágenes y umbral.
 BoundDetect = Callable[[Tensor, float], list[Detections]]
-
-# Umbral bajo al detectar y filtro después: así el AP ve toda la cola de la curva y el
-# punto de operación se puede mover sin volver a correr el modelo.
 MIN_SCORE = 0.001
-# El DETR no puede emitir más cajas que sus queries (64), mientras torchvision corta en
-# 100 y Ultralytics en 300. Sin un techo común, los dos últimos consiguen una cola de AP
-# más larga por diseño y no por mérito. Ninguna ventana tiene más de 9 cajas anotadas,
-# así que recortar acá no pierde nada real.
-MAX_DETECTIONS = 64
 
 
 @torch.no_grad()
@@ -36,6 +27,7 @@ def collect_detections(
     loader: DataLoader,
     device: str | torch.device = "cpu",
     nms_iou: float | None = 0.3,
+    max_detections: int | None = None,
     desc: str = "detectando",
 ) -> tuple[Boxes, Boxes, int]:
     # -> (predicciones ordenadas por score descendente, verdad de terreno, ventanas).
@@ -54,8 +46,8 @@ def collect_detections(
                     box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou
                 )
                 boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
-            if len(boxes) > MAX_DETECTIONS:
-                keep = scores.topk(MAX_DETECTIONS).indices
+            if max_detections is not None and len(boxes) > max_detections:
+                keep = scores.topk(max_detections).indices
                 boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
 
             predicted.append(Boxes(boxes, torch.full((len(boxes),), image_id), labels, scores))
@@ -81,10 +73,13 @@ def evaluate(
     iou_threshold: float = MATCH_IOU,
     score_threshold: float = 0.5,
     nms_iou: float | None = 0.3,
+    max_detections: int | None = None,
     beta: float = BETA,
     desc: str = "val",
 ) -> DetectionMetrics:
-    predictions, truth, n_images = collect_detections(detect, loader, device, nms_iou, desc)
+    predictions, truth, n_images = collect_detections(
+        detect, loader, device, nms_iou, max_detections, desc
+    )
     return detection_metrics(
         predictions,
         truth,

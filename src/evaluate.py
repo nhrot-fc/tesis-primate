@@ -35,6 +35,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--nms-iou", type=float, default=None, help="por defecto, el del checkpoint"
     )
+    parser.add_argument(
+        "--max-detections",
+        type=int,
+        default=None,
+        help="techo de cajas por ventana; sin esto, el que ponga cada framework",
+    )
     parser.add_argument("--limit", type=int, default=None, help="usa sólo las primeras N ventanas")
     return parser.parse_args()
 
@@ -62,6 +68,7 @@ def main() -> None:
         iou_threshold=IOU_THRESHOLD,
         score_threshold=score_threshold,
         nms_iou=nms_iou,
+        max_detections=args.max_detections,
         desc=args.split,
     )
 
@@ -82,6 +89,7 @@ def main() -> None:
                 "split": args.split,
                 "score_threshold": score_threshold,
                 "nms_iou": nms_iou,
+                "max_detections": args.max_detections,
                 "metrics": metrics._asdict(),
             },
             indent=2,
