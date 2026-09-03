@@ -4,6 +4,10 @@ Qué está igualado entre el Deformable-DETR, Faster R-CNN y YOLO26, y qué no. 
 importa tanto como lo primero: son las diferencias que la tesis tiene que declarar al
 presentar la tabla de resultados.
 
+El EAT+DINO (`--arch dino`) entra por el mismo camino que el DETR --mismo `Trainer`, mismo
+`TrainConfig`, mismas métricas-- y todo lo de la sección 1 le aplica igual; su
+arquitectura y su relación con el paper de referencia están en `docs/eat_dino.md`.
+
 ## 1. Lo que es idéntico para los tres
 
 ### Datos
@@ -23,23 +27,76 @@ sin darse cuenta.
 
 ### Punto de operación y métricas
 
-Todo esto vive en `pipelines/metrics.py` y `pipelines/detection_pipeline.py`, y corre
+Todo esto vive en `src/evaluation/metrics.py` y `src/evaluation/evaluator.py`, y corre
 igual para las tres arquitecturas:
 
-| | Valor |
-|---|---|
-| Umbral de score | `>= 0.5` |
-| IoU para contar acierto | `>= 0.5` |
-| Supresión de cajas anidadas | `suppress_nested`, IoU 0.3 |
-| Umbrales de AP agnóstico | 0.25 y 0.5 |
-| Selección de checkpoint | `operating_score` con beta=3 (ver sección 3) |
-| Score mínimo al detectar | 0.001 |
-| Tope de detecciones por clip | 64 |
+| | Valor | Constante |
+|---|---|---|
+| Umbral de score | `>= 0.5` | `TrainConfig.score_threshold` |
+| IoU para contar acierto | `>= 0.3` | `MATCH_IOU` |
+| Supresión de cajas anidadas | `suppress_nested`, IoU 0.3 | `TrainConfig.nms_iou` |
+| mAP reportadas | 0.3, 0.5 y 0.5:0.95 | `MAP_THRESHOLDS` |
+| Selección de checkpoint | F-beta con beta=2 | `BETA` |
+| Ruido reportado | falsos positivos por hora | `fp_per_hour` |
+| Score mínimo al detectar | 0.001 | `MIN_SCORE` |
+| Tope de detecciones por clip | 64 | `MAX_DETECTIONS` |
 
 `evaluate.py` evalúa cualquier checkpoint desde `data/processed/*.pt`, incluido el
 de YOLO: su adaptador rehace el PNG en memoria con la misma función que usó el
 exportador. Verificado que las imágenes salen idénticas salvo 6 píxeles por millón que
 difieren en un nivel de gris (redondeo float32 contra float64).
+
+### Por qué el IoU de acierto es 0.3 y no 0.5
+
+Lo que la tesis quiere medir es si la llamada se **encontró**, no si la caja quedó
+ajustada. El eje de frecuencia lo dibuja el anotador con criterio variable, y las llamadas
+son cortas. Sobre las 7 985 cajas de test:
+
+| | ancho (tiempo) | alto (frecuencia) |
+|---|---|---|
+| p5 | 0.026 (77 ms) | 0.050 |
+| mediana | 0.134 (401 ms) | 0.199 |
+| p95 | 1.000 | 0.622 |
+
+Con IoU 0.5 y encuadre frecuencial perfecto, el corrimiento temporal tolerado es el 33%
+del ancho de la propia caja: 134 ms en la mediana y **26 ms en el decil corto**. Eso es
+resolución de encuadre, y castiga sistemáticamente a las clases de llamada breve, que son
+las que la tesis necesita detectar. A IoU 0.3 la tolerancia sube al 54% del ancho.
+
+**Por qué 0.3 y no 0.25.** Bajar más degrada la métrica hasta volverla ganable con cajas
+gordas. Una predicción de banda completa --tiempo exacto, toda la frecuencia-- acertaría:
+
+| IoU de acierto | cajas que una predicción de banda completa acertaría |
+|---|---|
+| 0.25 | 34% |
+| 0.30 | 26% |
+| 0.50 | 9% |
+
+A 0.25 se regala un tercio de las cajas sin encuadrar nada. Además, `mAP50` y `mAP50-95`
+se siguen reportando al lado de `mAP30` justamente para que engordar cajas no salga
+gratis: para subir las tres hay que detectar **y** encuadrar.
+
+### Por qué beta = 2
+
+`beta**2` es la razón de costos entre un falso negativo y un falso positivo. **beta=2
+declara que perderse una llamada cuesta como cuatro falsos positivos**: descartar un
+recorte de 3 s son segundos de revisión, y una llamada perdida no se recupera sin volver
+al campo. Con beta=3 la razón sería 9 y la F deja de distinguir un detector útil de uno
+que dispara a todo.
+
+Es una declaración de preferencia entre recall y precisión, **no** un ajuste de encuadre
+(eso es `MATCH_IOU`) ni un control del ruido (eso es el umbral de score). Los tres ejes se
+mueven por separado y conviene no confundirlos al justificar la elección.
+
+### Cómo se audita el ruido: `fp_per_hour`
+
+El beta dice cuánto se valora el recall; `fp_per_hour` dice qué costó, en la unidad en la
+que alguien decide: cuántos recortes hay que descartar por hora de audio.
+
+Se calcula sobre el audio **procesado** (`n_ventanas * clip_len_s`), no sobre audio de
+campo: el split lleva un 25% de ventanas vacías (`EMPTY_RATIO`) mientras una grabación
+real es casi toda vacía. **No es la tasa de campo y no hay que reportarla como tal.** Es
+la misma vara para los tres detectores, que es para lo que sirve.
 
 ### Dos decisiones de igualación que parecen arbitrarias y no lo son
 
@@ -63,7 +120,7 @@ No se pueden igualar sin desvirtuar el modelo; se declaran.
 | Preentrenamiento | AST sobre AudioSet, congelado | COCO | COCO |
 | Cajas candidatas | 64 queries | RPN + 100 propuestas | 300 (end-to-end) |
 | NMS propio | ninguno | sí, IoU 0.5 | ninguno (end-to-end) |
-| Entrada al modelo | mel 1 x 128 x 331 | 3 x 416 x 1024 | 3 x 512 x 512 |
+| Entrada al modelo | mel 1 x 128 x 331 | 3 x 396 x 1024 | 3 x 512 x 512 |
 
 El DETR entrena 3.1 M de parámetros contra los 43.4 M de Faster R-CNN, porque su
 backbone AST está congelado. Es una diferencia de capacidad efectiva, no solo de tamaño.
@@ -79,38 +136,72 @@ implica, y hay que enunciarlas al reportar resultados.
 
 | | DETR | Faster R-CNN | YOLO26 |
 |---|---|---|---|
-| Épocas | 40 | 30 | 100 (con `patience=30`) |
+| Épocas | 30 | 30 | 50 (con `patience=30`) |
 | Batch | 16 | 8 | 32 |
 | Optimizador | AdamW 2e-4 + OneCycle | AdamW 1e-4 + OneCycle | `auto` de ultralytics + cos_lr |
 | Jitter de cajas | sí | sí | no |
 | Aumentación de imagen | ninguna | ninguna | translate 0.05, scale 0.2, brillo 0.2 |
-| **Elección del `best`** | `operating_score` beta=3 | `operating_score` beta=3 | **mAP@0.5:0.95** |
+| **Elección del `best`** | F-beta beta=2 | F-beta beta=2 | **mAP@0.5:0.95** |
 
 ### La que más pesa: cómo se elige el checkpoint
 
-DETR y Faster R-CNN guardan la época con mejor `operating_score` beta=3 sobre validación
---una F-beta que pondera el recall nueve veces más que la precisión, medida al punto de
-operación 0.5--. YOLO deja esa decisión a ultralytics, cuyo `fitness` es:
+DETR y Faster R-CNN guardan la época con mejor F-beta sobre validación, medida al punto de
+operación (score 0.5, IoU 0.3). YOLO deja esa decisión a ultralytics, cuyo `fitness` es
+(verificado en 8.4.135, `ultralytics/utils/metrics.py:1009`):
 
 ```python
-w = [0.0, 0.0, 0.0, 1.0]  # [P, R, mAP@0.5, mAP@0.5:0.95]
+w = [0.0, 0.0, 0.0, 1.0]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
 ```
 
 es decir, **mAP@0.5:0.95 puro**: una métrica dominada por la precisión de localización de
-la caja, indiferente al punto de operación y mucho menos sensible al recall.
+la caja, indiferente al punto de operación y mucho menos sensible al recall. Ni siquiera
+es la mAP de acá: el validador interno de ultralytics corre con `conf=0.001`,
+`max_det=300`, por clase y sin `suppress_nested`.
 
-Consecuencia concreta: si la tesis reporta recall al punto de operación, el `best.pt` de
-YOLO fue elegido optimizando otra cosa. Puede quedar por debajo de su propio mejor
-resultado en la métrica reportada. **No es que YOLO detecte peor: es que su checkpoint se
-eligió con otro criterio.** Al comparar, decirlo.
+El sesgo se compone: DETR y Faster R-CNN se seleccionan por **la métrica exacta que
+después se reporta, al umbral exacto que después se usa**, así que quedan optimizados para
+ser permisivos en 0.5. YOLO no se selecciona por ninguna de las dos cosas.
+
+**No es que YOLO detecte peor: es que su checkpoint se eligió con otro criterio.** Al
+comparar, decirlo.
 
 Si en algún momento se quiere cerrar esa brecha, hay dos caminos:
 
 1. Un callback `on_fit_epoch_end` en `train_yolo.py` que evalúe con
-   `pipelines.detection_pipeline` y guarde por `operating_score`. Correcto, pero agrega
-   una pasada de validación por época.
+   `src/evaluation/evaluator.py` y guarde por F-beta. Correcto, pero agrega una pasada de
+   validación por época.
 2. Entrenar con `save_period=1` y elegir después, offline, con `evaluate.py`. Cuesta
    unos 2 GB de checkpoints y una evaluación por época.
+
+### El umbral fijo de 0.5 no es el mismo punto de operación para los tres
+
+Este es el confundido que queda abierto, y hay que declararlo hasta que se cierre. Cortar
+las tres curvas en score 0.5 no las evalúa en el mismo lugar de su curva
+precisión-recall: mide **calibración**, no capacidad de detección. Las cabezas de
+clasificación son distintas (BCE sobre asignación TAL en YOLO, softmax sobre propuestas en
+Faster R-CNN, queries en el DETR) y no hay ninguna razón para que 0.5 signifique lo mismo
+en las tres.
+
+Medido sobre test con el protocolo **anterior** (IoU 0.5, checkpoints de
+`checkpoints/*_test_metrics.json`), recalculando la F-beta a distintos beta:
+
+| run | R | P | F1 | F1.5 | F2 | F3 | mAP50 | mAP50-95 | dets >= 0.5 |
+|---|---|---|---|---|---|---|---|---|---|
+| yolo | 0.532 | **0.805** | **0.640** | 0.594 | 0.570 | 0.550 | **0.520** | **0.264** | 5 277 |
+| detr ts10 | 0.682 | 0.499 | 0.576 | 0.613 | 0.635 | 0.658 | 0.347 | 0.138 | 10 914 |
+| detr ts5 | 0.694 | 0.517 | 0.592 | 0.628 | 0.650 | 0.671 | 0.373 | 0.143 | 10 733 |
+| frcnn | **0.777** | 0.499 | 0.608 | 0.663 | 0.699 | 0.736 | 0.487 | 0.211 | 12 447 |
+
+**El ranking se invierte exactamente cuando beta cruza 1.** YOLO gana mAP50, mAP50-95,
+precisión y F1, y pierde toda F con beta > 1. No detecta peor: está parado en otro punto
+de la curva, y emite 5 277 cajas sobre 0.5 contra las 12 447 de Faster R-CNN sobre el
+mismo split. Subir el beta agrava esto, porque el recall a umbral fijo *es* una medición
+de calibración y cuanto más alto el beta más la domina.
+
+**El cierre correcto es elegir el umbral por modelo sobre validación** --el que maximiza
+F-beta, o el que la maximiza sujeto a un presupuesto de `fp_per_hour`-- y reportar test en
+ese punto. Recién ahí el beta mide preferencia ecológica y no calibración. La fila a
+umbral 0.5 fijo se puede conservar como secundaria.
 
 ### La segunda: regularización asimétrica
 
@@ -118,8 +209,8 @@ La asimetría va en las dos direcciones, así que no favorece obviamente a nadie
 
 - YOLO es el único que ve aumentación de imagen (corrimiento, escala, brillo).
 - DETR y Faster R-CNN son los únicos que ven jitter de cajas
-  (`BoxJitter(scale=0.15, shift=0.10, min_size=0.02)`), un regularizador sobre las
-  etiquetas que ultralytics no expone.
+  (`BoxJitter`: ±15% de escala y ±10% de corrimiento en los dos ejes, `min_size=0.02`), un
+  regularizador sobre las etiquetas que ultralytics no expone.
 
 ## 4. Reproducir la comparación
 
@@ -128,10 +219,11 @@ python src/prepare_data.py                         # data/processed/*.pt (fuente
 python src/export_yolo.py                          # reexporta a data/yolo/
 
 python src/train.py --arch detr                    # Deformable-DETR
+python src/train.py --arch dino                    # EAT + DINO (docs/eat_dino.md)
 python src/train.py --arch frcnn --device cuda:0   # Faster R-CNN
 python src/train_yolo.py --device 0                # YOLO26
 
-python src/evaluate.py --run <corrida> --split test   # los tres, mismo comando
+python src/evaluate.py --run <corrida> --split test   # los cuatro, mismo comando
 ```
 
 Cada corrida vive en `runs/<corrida>/`: `config.json` con todo lo que la definió,
@@ -141,5 +233,19 @@ comando retoma la corrida donde se cortó; el barrido de la ablación se pide en
 comando, p. ej. `python src/train.py --time-stride 10 5 2`.
 
 `evaluate.py` escribe un `.txt` legible y un `.json` con las mismas cifras, al lado del
-checkpoint. Las métricas son las mismas para los tres: recall y precisión al punto de
-operación, la F-beta (beta=3) que elige el checkpoint, y mAP@0.5 y mAP@0.5:0.95.
+checkpoint. Las métricas son las mismas para todos: recall y precisión al punto de
+operación, la F-beta que elige el checkpoint, `fp_per_hour`, y mAP@0.3, mAP@0.5 y
+mAP@0.5:0.95.
+
+Para elegir el umbral por modelo (sección 3), barrerlo sobre **val** y fijar el ganador
+antes de tocar test:
+
+```bash
+for t in 0.1 0.2 0.3 0.4 0.5 0.6 0.7; do
+  python src/evaluate.py --run <corrida> --split val --score-threshold $t
+done
+```
+
+> Los `checkpoints/*_metrics.txt` y `.json` que están en el repo son del protocolo
+> anterior (beta=3, IoU de acierto 0.5, sin `fp_per_hour`). Hay que regenerarlos con
+> `evaluate.py` antes de usarlos en ninguna tabla.

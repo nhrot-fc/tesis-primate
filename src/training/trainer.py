@@ -15,7 +15,7 @@ from core.config import SEED
 from data.datasets import BoxJitter, to_device
 from data.species import LabelSet
 from evaluation.evaluator import evaluate
-from evaluation.metrics import BETA, DetectionMetrics
+from evaluation.metrics import BETA, MATCH_IOU, DetectionMetrics
 from evaluation.report import format_line
 from models.registry import architecture, detector
 from training import checkpoint
@@ -31,7 +31,7 @@ class TrainConfig:
     weight_decay: float = 1e-4
     workers: int = 0
     seed: int = SEED
-    iou_threshold: float = 0.5  # con el que una detección cuenta como acierto
+    iou_threshold: float = MATCH_IOU  # con el que una detección cuenta como acierto
     score_threshold: float = 0.5  # punto de operación que reportan recall y precisión
     nms_iou: float = 0.3
     beta: float = BETA  # el de la F-beta que elige el checkpoint

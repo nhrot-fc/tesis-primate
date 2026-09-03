@@ -5,13 +5,14 @@ import torch
 from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
+from core.config import P
+
 Overlaps = list[tuple[list[int], Tensor]]  # por clip: (filas de predictions, matriz P x G)
 
-# COCO promedia la mAP sobre 0.50, 0.55, ..., 0.95: la primera mide "encontró el
-# evento", la última "lo encuadró". Reportar las dos separa detección de encuadre.
-MAP_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
-# Perderse una llamada cuesta más que revisar un falso positivo: beta > 1 pesa el recall.
-BETA = 1.5
+MATCH_IOU = 0.3
+COCO_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
+MAP_THRESHOLDS: tuple[float, ...] = (MATCH_IOU, *COCO_THRESHOLDS)
+BETA = 2.0
 
 
 class Boxes(NamedTuple):
@@ -28,10 +29,12 @@ class DetectionMetrics(NamedTuple):
     recall: float | None  # agnóstico de clase, al punto de operación
     precision: float | None
     f_beta: float | None
-    map_50: float | None  # mAP por clase con IoU >= 0.5
-    map_50_95: float | None  # la misma, promediada sobre `MAP_THRESHOLDS`
+    fp_per_hour: float | None  # cuánto ruido cuesta ese recall, en unidades revisables
+    map_30: float | None  # mAP por clase con IoU >= `MATCH_IOU`
+    map_50: float | None  # la misma, con IoU >= 0.5
+    map_50_95: float | None  # promediada sobre `COCO_THRESHOLDS`
     recall_per_class: dict[int, float | None]
-    ap_per_class_50: dict[int, float | None]
+    ap_per_class: dict[int, float | None]  # a `MATCH_IOU`, igual que el recall
     n_gt: int
     n_predictions: int
     n_above_threshold: int
@@ -41,6 +44,15 @@ def f_beta(precision: float | None, recall: float | None, beta: float = BETA) ->
     if precision is None or recall is None or precision + recall <= 0:
         return None
     return (1 + beta**2) * precision * recall / (beta**2 * precision + recall)
+
+
+def false_positives_per_hour(false_positives: int, n_images: int) -> float | None:
+    # Por hora de audio procesado: cada ventana son `clip_len_s` que el modelo miró. No es
+    # la tasa de campo --el split lleva un 25% de ventanas vacías y una grabación real
+    # tiene muchísimas más--, pero es la misma vara para los tres detectores y está en la
+    # unidad en la que se decide: cuántos recortes tiene que descartar alguien por hora.
+    hours = n_images * P.clip_len_s / 3600
+    return false_positives / hours if hours else None
 
 
 def concat(chunks: list[Boxes]) -> Boxes:
@@ -137,7 +149,8 @@ def detection_metrics(
     predictions: Boxes,
     truth: Boxes,
     n_classes: int,
-    iou_threshold: float = 0.5,
+    n_images: int = 0,
+    iou_threshold: float = MATCH_IOU,
     score_threshold: float = 0.5,
     beta: float = BETA,
 ) -> DetectionMetrics:
@@ -163,18 +176,22 @@ def detection_metrics(
             else None
         )
 
-    ap_per_class = average_precision_per_class(predictions, truth, n_classes)
-    per_threshold = [mean_average_precision(per_class) for per_class in ap_per_class.values()]
+    ap = average_precision_per_class(predictions, truth, n_classes)
+    # La mAP50-95 promedia sólo los umbrales de COCO: `MATCH_IOU` es un punto aparte, no
+    # el primero de esa escalera.
+    per_threshold = [mean_average_precision(ap[threshold]) for threshold in COCO_THRESHOLDS]
     scored = [value for value in per_threshold if value is not None]
 
     return DetectionMetrics(
         recall=recall,
         precision=precision,
         f_beta=f_beta(precision, recall, beta),
-        map_50=mean_average_precision(ap_per_class[0.5]),
+        fp_per_hour=false_positives_per_hour(k - tp, n_images),
+        map_30=mean_average_precision(ap[MATCH_IOU]),
+        map_50=mean_average_precision(ap[0.5]),
         map_50_95=sum(scored) / len(scored) if scored else None,
         recall_per_class=recall_per_class,
-        ap_per_class_50=ap_per_class[0.5],
+        ap_per_class=ap[MATCH_IOU],
         n_gt=n_gt,
         n_predictions=n_predictions,
         n_above_threshold=k,

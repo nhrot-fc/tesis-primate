@@ -8,6 +8,7 @@ from core.runtime import resolve_device, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
 from evaluation.evaluator import evaluate
+from evaluation.metrics import MATCH_IOU
 from evaluation.report import format_report
 from models.registry import load_checkpoint
 from training.checkpoint import BEST
@@ -15,7 +16,7 @@ from training.checkpoint import BEST
 logger = logging.getLogger("evaluate")
 
 BATCH_SIZE = 16
-IOU_THRESHOLD = 0.5
+IOU_THRESHOLD = MATCH_IOU
 
 
 def parse_args() -> argparse.Namespace:

@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 
 from evaluation.metrics import (
     BETA,
+    MATCH_IOU,
     Boxes,
     DetectionMetrics,
     concat,
@@ -36,8 +37,8 @@ def collect_detections(
     device: str | torch.device = "cpu",
     nms_iou: float | None = 0.3,
     desc: str = "detectando",
-) -> tuple[Boxes, Boxes]:
-    # -> (predicciones ordenadas por score descendente, verdad de terreno).
+) -> tuple[Boxes, Boxes, int]:
+    # -> (predicciones ordenadas por score descendente, verdad de terreno, ventanas).
     predicted: list[Boxes] = []
     truth: list[Boxes] = []
     image_id = 0
@@ -69,7 +70,7 @@ def collect_detections(
             )
             image_id += 1
 
-    return sort_by_score(concat(predicted)), concat(truth)
+    return sort_by_score(concat(predicted)), concat(truth), image_id
 
 
 def evaluate(
@@ -77,17 +78,18 @@ def evaluate(
     loader: DataLoader,
     n_classes: int,
     device: str | torch.device = "cpu",
-    iou_threshold: float = 0.5,
+    iou_threshold: float = MATCH_IOU,
     score_threshold: float = 0.5,
     nms_iou: float | None = 0.3,
     beta: float = BETA,
     desc: str = "val",
 ) -> DetectionMetrics:
-    predictions, truth = collect_detections(detect, loader, device, nms_iou, desc)
+    predictions, truth, n_images = collect_detections(detect, loader, device, nms_iou, desc)
     return detection_metrics(
         predictions,
         truth,
         n_classes=n_classes,
+        n_images=n_images,
         iou_threshold=iou_threshold,
         score_threshold=score_threshold,
         beta=beta,
