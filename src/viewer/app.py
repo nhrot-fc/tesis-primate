@@ -64,13 +64,32 @@ class Viewer(QMainWindow):
         self.annotations: pd.DataFrame | None = None
         self.detections: pd.DataFrame | None = None
         self.worker: Worker | None = None
+        self.engine = False
 
         self.plot = SpectrogramView()
         self.plot.scrolled.connect(self.step)
         self.plot.moved.connect(self.track)
         self.plot.clicked.connect(self.seek)
 
-        # --- Acciones: una sola barra reemplaza las tres filas de selectores de archivo ---
+        self.build_toolbar()
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(6)
+        layout.addWidget(self.plot, 1)
+        layout.addLayout(self.build_transport())
+        layout.addLayout(self.build_filters())
+        layout.addWidget(self.build_visuals())
+
+        central = QWidget()
+        central.setLayout(layout)
+        self.setCentralWidget(central)
+
+        self.build_status_bar()
+        self.sync_controls()
+        self.start_engine()
+
+    def build_toolbar(self) -> None:
         self.actions_ = {
             "audio": QAction("Abrir audio", self),
             "table": QAction("Anotaciones", self),
@@ -111,7 +130,7 @@ class Viewer(QMainWindow):
         toolbar.addAction(self.visuals_action)
         self.addToolBar(toolbar)
 
-        # --- Transporte: reproduccion, recorrido y ancho de ventana en una sola fila ---
+    def build_transport(self) -> QHBoxLayout:
         self.timebar = QScrollBar(Qt.Orientation.Horizontal)
         self.timebar.valueChanged.connect(self.refresh)
         self.player = AudioPlayer()
@@ -132,8 +151,9 @@ class Viewer(QMainWindow):
         transport.addWidget(self.player)
         transport.addWidget(self.timebar, 1)
         transport.addWidget(self.span_box)
+        return transport
 
-        # --- Filtro: lo unico que se toca sin parar durante una revision ---
+    def build_filters(self) -> QHBoxLayout:
         self.score = Choice("Score ≥", [i / 100 for i in range(101)], 50, "{:.2f}")
         self.score.changed.connect(self.draw_boxes)
         self.score.setMaximumWidth(320)
@@ -154,8 +174,9 @@ class Viewer(QMainWindow):
         filters.addStretch(1)
         filters.addWidget(self.prev_button)
         filters.addWidget(self.next_button)
+        return filters
 
-        # --- Visualizacion: se ajusta una vez y estorba, asi que va plegada ---
+    def build_visuals(self) -> QWidget:
         self.resolution = Dropdown(
             "Resolución", [(f"{n_fft} / {hop}", (n_fft, hop)) for n_fft, hop in RESOLUTIONS], 2
         )
@@ -175,23 +196,15 @@ class Viewer(QMainWindow):
         grid.addWidget(self.brightness, 0, 1)
         grid.addWidget(self.colormap, 1, 0)
         grid.addWidget(self.contrast, 1, 1)
+
+        # Se ajusta una vez y después estorba, así que arranca plegada.
         self.visuals = QWidget()
         self.visuals.setLayout(grid)
         self.visuals.setVisible(False)
         self.visuals_action.toggled.connect(self.visuals.setVisible)
+        return self.visuals
 
-        layout = QVBoxLayout()
-        layout.setContentsMargins(10, 6, 10, 6)
-        layout.setSpacing(6)
-        layout.addWidget(self.plot, 1)
-        layout.addLayout(transport)
-        layout.addLayout(filters)
-        layout.addWidget(self.visuals)
-
-        central = QWidget()
-        central.setLayout(layout)
-        self.setCentralWidget(central)
-
+    def build_status_bar(self) -> None:
         self.progress = QProgressBar()
         self.progress.setFixedWidth(180)
         self.progress.setTextVisible(False)
@@ -203,8 +216,8 @@ class Viewer(QMainWindow):
         self.bar.addPermanentWidget(self.progress)
         self.bar.addPermanentWidget(self.readout)
         self.setStatusBar(self.bar)
-        self.engine = False
-        self.sync_controls()
+
+    def start_engine(self) -> None:
         self.say("Preparando el motor de detección...")
         self.preloader = Worker(preload)
         self.preloader.ok.connect(self.engine_ready)

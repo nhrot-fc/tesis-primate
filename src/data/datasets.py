@@ -7,9 +7,8 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
 from utils.audio import mel_to_gray
-from utils.boxes import to_pixel_xyxy
+from utils.boxes import Target, to_pixel_xyxy
 
-Target = dict[str, Tensor]
 Batch = tuple[Tensor, list[Target]]
 
 # En una caja cxcywh, x es tiempo y w duración; y es frecuencia y h ancho de banda.

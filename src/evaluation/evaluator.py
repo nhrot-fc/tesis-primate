@@ -16,7 +16,8 @@ from evaluation.metrics import (
 )
 from utils.boxes import Detections, suppress_nested
 
-Detect = Callable[[Tensor, float], list[Detections]]
+# El `detect` del registro con el modelo ya atado: sólo quedan imágenes y umbral.
+BoundDetect = Callable[[Tensor, float], list[Detections]]
 
 # Umbral bajo al detectar y filtro después: así el AP ve toda la cola de la curva y el
 # punto de operación se puede mover sin volver a correr el modelo.
@@ -30,7 +31,7 @@ MAX_DETECTIONS = 64
 
 @torch.no_grad()
 def collect_detections(
-    detect: Detect,
+    detect: BoundDetect,
     loader: DataLoader,
     device: str | torch.device = "cpu",
     nms_iou: float | None = 0.3,
@@ -72,7 +73,7 @@ def collect_detections(
 
 
 def evaluate(
-    detect: Detect,
+    detect: BoundDetect,
     loader: DataLoader,
     n_classes: int,
     device: str | torch.device = "cpu",

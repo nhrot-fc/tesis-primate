@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,7 +43,6 @@ class Parameters:
     clip_len_s: float = 3.0
     clip_hop_s: float = 1.5
     min_overlap: float = 0.5
-    pad_mode: Literal["noise", "zeros"] = "noise"
     pad_seed: int = 0
 
     # STFT

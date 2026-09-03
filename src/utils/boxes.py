@@ -6,6 +6,9 @@ from torchvision.ops import batched_nms, box_area, box_convert
 
 from core.config import P, Parameters
 
+Target = dict[str, Tensor]  # 'boxes' (N,4) cxcywh normalizado + 'labels' (N,)
+IOMIN_THRESHOLD = 0.8  # solape sobre la caja chica a partir del cual una está anidada
+
 
 # Lo que devuelve cualquier detector del proyecto, ya decodificado.
 class Detections(NamedTuple):
@@ -19,7 +22,6 @@ def suppress_nested(
     scores: Tensor,
     labels: Tensor,
     nms_iou: float,
-    iomin_threshold: float = 0.8,
 ) -> Tensor:
     keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)  # saca los solapes parciales
     kept, kept_labels = boxes_xyxy[keep], labels[keep]
@@ -35,7 +37,7 @@ def suppress_nested(
     # `keep` viene ordenado por score, así que la triangular superior deja sólo las cajas
     # anidadas en otra mejor.
     same_class = kept_labels[:, None] == kept_labels[None, :]
-    nested = ((iomin.triu(diagonal=1) > iomin_threshold) & same_class).any(dim=0)
+    nested = ((iomin.triu(diagonal=1) > IOMIN_THRESHOLD) & same_class).any(dim=0)
     return keep[~nested]
 
 

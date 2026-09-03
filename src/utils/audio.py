@@ -6,7 +6,6 @@ import numpy as np
 import numpy.typing as npt
 import soundfile
 import torch
-import torch.nn.functional as F
 import torchaudio
 from torch import Tensor, nn
 
@@ -14,13 +13,15 @@ from core.config import SEED, P, Parameters
 
 FloatArray = npt.NDArray[np.float64]
 
+# Percentiles y número de ventanas con los que se estima el rango de dB del mel.
+DB_PERCENTILES = (1.0, 99.9)
+DB_RANGE_WINDOWS = 2000
+
 
 def pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
     missing = params.clip_len_samples - waveform.numel()
     if missing <= 0:
         return waveform[: params.clip_len_samples]
-    if params.pad_mode == "zeros":
-        return F.pad(waveform, (0, missing))
 
     # Ruido al percentil 10 de |x|, que aproxima el piso de la grabación: el silencio
     # digital sería un salto abrupto y el mel lo vería como energía de banda ancha.
@@ -104,18 +105,13 @@ def mel_to_db(mel: Tensor, params: Parameters = P) -> Tensor:
     return 10.0 * torch.log10(mel + params.eps)
 
 
-def mel_db_range(
-    mels: Tensor,
-    percentiles: tuple[float, float] = (1.0, 99.9),
-    sample: int = 2000,  # ventanas con las que se estiman los percentiles
-    seed: int = SEED,
-) -> tuple[float, float]:
-    index = np.random.default_rng(seed).choice(
-        len(mels), size=min(sample, len(mels)), replace=False
+def mel_db_range(mels: Tensor) -> tuple[float, float]:
+    index = np.random.default_rng(SEED).choice(
+        len(mels), size=min(DB_RANGE_WINDOWS, len(mels)), replace=False
     )
     # `torch.quantile` no acepta tensores de este tamaño (decenas de millones de bins)
     db = mel_to_db(mels[torch.from_numpy(index)].float()).numpy()
-    low, high = np.percentile(db, percentiles)
+    low, high = np.percentile(db, DB_PERCENTILES)
     return float(low), float(high)
 
 

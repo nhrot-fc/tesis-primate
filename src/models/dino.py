@@ -4,30 +4,30 @@ import torch
 from torch import Tensor, nn
 from torchvision.ops import box_convert
 
-from models.criterion import HungarianMatcher, SetCriterion, Target
+from models.criterion import HungarianMatcher, Outputs, SetCriterion
 from models.deformable_detr import (
     DeformableAttention,
     DeformableDecoderLayer,
     DetectionHead,
-    Outputs,
     detections_above_threshold,
     inverse_sigmoid,
     mlp,
 )
-from utils.boxes import Detections
+from utils.boxes import Detections, Target
 
 # Ruido del CDN, en las unidades del paper: la caja positiva mueve cada esquina hasta media
 # caja y la negativa entre media y una caja entera.
 DN_LABEL_NOISE = 0.5
 DN_BOX_NOISE = 1.0
 PRIOR_PROB = 0.01  # p(objeto) con la que arranca la cabeza de clase
+SINE_TEMPERATURE = 10000.0  # base de las frecuencias del embedding posicional (DAB-DETR)
 
 
-def sine_embed(coords: Tensor, dim: int, temperature: float = 10000.0) -> Tensor:
+def sine_embed(coords: Tensor, dim: int) -> Tensor:
     # (..., K) -> (..., dim), con dim/K canales por coordenada (DAB-DETR).
     per_coord = dim // coords.shape[-1]
     index = torch.arange(per_coord, device=coords.device, dtype=torch.float32)
-    frequency = temperature ** (2 * (index // 2) / per_coord)
+    frequency = SINE_TEMPERATURE ** (2 * (index // 2) / per_coord)
     angles = coords[..., None] * (2 * math.pi) / frequency
     return torch.stack([angles[..., 0::2].sin(), angles[..., 1::2].cos()], dim=-1).flatten(-3)
 

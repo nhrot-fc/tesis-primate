@@ -1,8 +1,8 @@
 from evaluation.metrics import BETA, DetectionMetrics
 
 
-def format_metric(value: float | None, digits: int = 3) -> str:
-    return f"{value:.{digits}f}" if value is not None else "n/a"
+def format_metric(value: float | None) -> str:
+    return f"{value:.3f}" if value is not None else "n/a"
 
 
 def format_line(metrics: DetectionMetrics) -> str:

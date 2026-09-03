@@ -11,7 +11,8 @@ from torchvision.ops import (
     sigmoid_focal_loss,
 )
 
-Target = dict[str, Tensor]
+from utils.boxes import Target
+
 Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
 Indices = list[tuple[Tensor, Tensor]]
 

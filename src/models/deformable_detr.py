@@ -1,15 +1,12 @@
 import math
-from typing import Any
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
+from models.criterion import Outputs
 from utils.boxes import Detections
-
-Outputs = dict[str, Any]
-# pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
 
 
 def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
