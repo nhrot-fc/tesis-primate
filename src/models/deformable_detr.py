@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 from typing import Any
 
 import torch
@@ -14,26 +13,21 @@ Outputs = dict[str, Any]
 
 
 def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
-    seq: list[nn.Module] = []
-    d = dim
+    stack: list[nn.Module] = []
+    width = dim
     for _ in range(layers - 1):
-        seq += [nn.Linear(d, hidden), nn.ReLU(inplace=True)]
-        d = hidden
-    seq += [nn.Linear(d, out)]
-    return nn.Sequential(*seq)
+        stack += [nn.Linear(width, hidden), nn.ReLU(inplace=True)]
+        width = hidden
+    stack += [nn.Linear(width, out)]
+    return nn.Sequential(*stack)
 
 
-def inverse_sigmoid(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
-    """Inversa de sigmoid: lleva coords en [0,1] al espacio logit para sumar offsets."""
-    x = x.clamp(min=0, max=1)
-    return torch.log(x.clamp(min=eps) / (1 - x).clamp(min=eps))
+def inverse_sigmoid(coordinates: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+    coordinates = coordinates.clamp(min=0, max=1)
+    return torch.log(coordinates.clamp(min=eps) / (1 - coordinates).clamp(min=eps))
 
 
 class DeformableAttention(nn.Module):
-    """Cada query predice K offsets de muestreo por nivel de la pirámide y
-    combina esos puntos con pesos aprendidos. Aproxima Deformable-DETR [Zhu2021].
-    """
-
     def __init__(
         self,
         dim: int = 256,
@@ -50,22 +44,23 @@ class DeformableAttention(nn.Module):
         self.out = nn.Linear(dim, dim)
         self.dropout = nn.Dropout(dropout)
         self.head_dim = dim // n_heads
-        self._reset_parameters()
+        self.initialize_parameters()
 
-    def _reset_parameters(self) -> None:
-        """Init de Zhu et al. 2021: `offsets` arranca en una rejilla radial (cada
-        cabeza mira en una dirección, cada punto a un radio mayor) en vez de ruido,
-        para no gastar épocas aprendiendo dónde muestrear.
-        """
+    def initialize_parameters(self) -> None:
+        # Init de Zhu et al. 2021: los offsets arrancan en una rejilla radial --cada cabeza
+        # mira en una dirección, cada punto a un radio mayor-- en vez de ruido, para no
+        # gastar épocas aprendiendo dónde muestrear.
         constant_(self.offsets.weight.data, 0.0)
-        thetas = torch.arange(self.n_heads, dtype=torch.float32) * (2.0 * math.pi / self.n_heads)
-        grid = torch.stack([thetas.cos(), thetas.sin()], -1)
-        grid = grid / grid.abs().max(-1, keepdim=True)[0]
-        grid = grid.view(self.n_heads, 1, 1, 2).repeat(1, self.n_levels, self.n_points, 1)
-        for i in range(self.n_points):
-            grid[:, :, i, :] *= i + 1
+        angles = torch.arange(self.n_heads, dtype=torch.float32) * (2.0 * math.pi / self.n_heads)
+        directions = torch.stack([angles.cos(), angles.sin()], -1)
+        directions = directions / directions.abs().max(-1, keepdim=True)[0]
+        directions = directions.view(self.n_heads, 1, 1, 2).repeat(
+            1, self.n_levels, self.n_points, 1
+        )
+        for point in range(self.n_points):
+            directions[:, :, point, :] *= point + 1
         with torch.no_grad():
-            self.offsets.bias = nn.Parameter(grid.reshape(-1))
+            self.offsets.bias = nn.Parameter(directions.reshape(-1))
 
         constant_(self.weights.weight.data, 0.0)
         constant_(self.weights.bias.data, 0.0)
@@ -76,52 +71,58 @@ class DeformableAttention(nn.Module):
         constant_(self.out.bias.data, 0.0)
 
     def forward(
-        self, query: torch.Tensor, ref_boxes: torch.Tensor, value_maps: list[torch.Tensor]
+        self,
+        query: torch.Tensor,
+        ref_boxes: torch.Tensor,
+        value_maps: list[torch.Tensor],
     ) -> torch.Tensor:
-        # query: (B,Q,C) | ref_boxes: (B,Q,4) cxcywh en [0,1] | value_maps: lista de
-        # (B,C,H,W), una por nivel de la pirámide (mismo largo que `self.n_levels`)
-        B, Q, C = query.shape
-        L = len(value_maps)
-        assert self.n_levels == L, f"esperaba {self.n_levels} niveles, llegaron {L}"
+        # query: (B,Q,C) | ref_boxes: (B,Q,4) cxcywh en [0,1] | value_maps: (B,C,H,W) por nivel
+        batch_size, n_queries, channels = query.shape
+        n_levels = len(value_maps)
+        assert self.n_levels == n_levels, f"esperaba {self.n_levels} niveles, llegaron {n_levels}"
 
-        offs = self.offsets(query).view(B, Q, self.n_heads, L, self.n_points, 2)
-        attn = self.weights(query).view(B, Q, self.n_heads, L * self.n_points)
-        attn = F.softmax(attn, dim=-1).view(B, Q, self.n_heads, L, self.n_points)
+        offsets = self.offsets(query).view(
+            batch_size, n_queries, self.n_heads, n_levels, self.n_points, 2
+        )
+        weights = self.weights(query).view(
+            batch_size, n_queries, self.n_heads, n_levels * self.n_points
+        )
+        weights = F.softmax(weights, dim=-1).view(
+            batch_size, n_queries, self.n_heads, n_levels, self.n_points
+        )
 
-        # Zhu et al. 2021, ec. de box refinement: los offsets se miden en fracciones de
-        # la caja de referencia, no del mapa de features. Sin esto una query que sigue
-        # una llamada de 2 s muestrea la misma vecindad de 4 píxeles que una de 50 ms.
-        ref_xy = ref_boxes[:, :, None, None, None, :2]  # (B,Q,1,1,1,2), contra offs (B,Q,h,L,P,2)
-        ref_wh = ref_boxes[:, :, None, None, None, 2:]
-        sample = ref_xy + offs / self.n_points * ref_wh * 0.5  # (B,Q,h,L,P,2) en [0,1]
-        sample = 2 * sample - 1  # -> [-1,1], convención align_corners=False
+        # Box refinement (Zhu et al. 2021): los offsets se miden en fracciones de la caja de
+        # referencia y no del mapa de features. Sin esto, una query que sigue una llamada de
+        # 2 s muestrea la misma vecindad de 4 píxeles que una de 50 ms.
+        centers = ref_boxes[:, :, None, None, None, :2]
+        sizes = ref_boxes[:, :, None, None, None, 2:]
+        sample_points = centers + offsets / self.n_points * sizes * 0.5
+        sample_points = 2 * sample_points - 1  # -> [-1,1], convención align_corners=False
 
-        out = query.new_zeros(B, self.n_heads, self.head_dim, Q)
+        aggregated = query.new_zeros(batch_size, self.n_heads, self.head_dim, n_queries)
         for level, value_map in enumerate(value_maps):
-            _, _, Hf, Wf = value_map.shape
-            level_sample = sample[:, :, :, level]  # (B,Q,h,P,2)
+            height, width = value_map.shape[-2:]
 
-            # value proyectado, separado por cabezas: (B*h, hd, Hf, Wf)
-            val = self.value(value_map.flatten(2).transpose(1, 2))  # (B, HW, C)
-            val = val.transpose(1, 2).reshape(B, self.n_heads, self.head_dim, Hf, Wf)
-            val = val.reshape(B * self.n_heads, self.head_dim, Hf, Wf)
-
-            # grid por cabeza: (B*h, Q, P, 2)
-            grid = level_sample.permute(0, 2, 1, 3, 4).reshape(
-                B * self.n_heads, Q, self.n_points, 2
+            values = self.value(value_map.flatten(2).transpose(1, 2))
+            values = values.transpose(1, 2).reshape(
+                batch_size * self.n_heads, self.head_dim, height, width
+            )
+            sample_grid = sample_points[:, :, :, level].permute(0, 2, 1, 3, 4)
+            sample_grid = sample_grid.reshape(
+                batch_size * self.n_heads, n_queries, self.n_points, 2
             )
 
             sampled = F.grid_sample(
-                val, grid, mode="bilinear", padding_mode="zeros", align_corners=False
-            )  # (B*h, hd, Q, P)
-            sampled = sampled.reshape(B, self.n_heads, self.head_dim, Q, self.n_points)
+                values, sample_grid, mode="bilinear", padding_mode="zeros", align_corners=False
+            )
+            sampled = sampled.reshape(
+                batch_size, self.n_heads, self.head_dim, n_queries, self.n_points
+            )
+            level_weights = weights[:, :, :, level].permute(0, 2, 1, 3).unsqueeze(2)
+            aggregated = aggregated + (sampled * level_weights).sum(-1)
 
-            # pesos de atención de este nivel, alineados a (B,h,1,Q,P) y sumados sobre P
-            level_attn = attn[:, :, :, level].permute(0, 2, 1, 3).unsqueeze(2)  # (B,h,1,Q,P)
-            out = out + (sampled * level_attn).sum(-1)
-
-        out = out.permute(0, 3, 1, 2).reshape(B, Q, C)  # (B,Q,C)
-        return self.dropout(self.out(out))
+        aggregated = aggregated.permute(0, 3, 1, 2).reshape(batch_size, n_queries, channels)
+        return self.dropout(self.out(aggregated))
 
 
 class DeformableDecoderLayer(nn.Module):
@@ -148,22 +149,21 @@ class DeformableDecoderLayer(nn.Module):
 
     def forward(
         self,
-        q: torch.Tensor,
+        queries: torch.Tensor,
         query_pos: torch.Tensor,
         ref_boxes: torch.Tensor,
         value_maps: list[torch.Tensor],
         attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        # `query_pos` se suma a query y key en cada capa (DETR): sin eso la identidad
-        # de cada query se diluye en los residuales después de la primera capa y todas
-        # tienden a mirar lo mismo.
-        # `attn_mask` sólo lo usa DINO, para que los grupos de denoising no se vean entre
-        # sí ni con las queries de matching.
-        qk = q + query_pos
-        q = self.n1(q + self.self_attn(qk, qk, q, attn_mask=attn_mask, need_weights=False)[0])
-        q = self.n2(q + self.cross_attn(q + query_pos, ref_boxes, value_maps))
-        q = self.n3(q + self.ffn(q))
-        return q
+        # La posición se resuma en cada capa: si no, la identidad de cada query se diluye
+        # en los residuales y todas terminan mirando lo mismo.
+        located = queries + query_pos
+        attended = self.self_attn(
+            located, located, queries, attn_mask=attn_mask, need_weights=False
+        )
+        queries = self.n1(queries + attended[0])
+        queries = self.n2(queries + self.cross_attn(queries + query_pos, ref_boxes, value_maps))
+        return self.n3(queries + self.ffn(queries))
 
 
 class DeformableDETR(nn.Module):
@@ -180,43 +180,42 @@ class DeformableDETR(nn.Module):
         super().__init__()
         self.n_queries = n_queries
 
-        self.query_embed = nn.Embedding(n_queries, dim)  # contenido inicial de la query
-        self.query_pos = nn.Embedding(n_queries, dim)  # identidad, se resuma en cada capa
+        self.query_embed = nn.Embedding(n_queries, dim)
+        self.query_pos = nn.Embedding(n_queries, dim)
         self.ref_point_head = nn.Linear(dim, 2)
 
         self.layers = nn.ModuleList(
             DeformableDecoderLayer(dim, n_heads, n_points, n_levels)
             for _ in range(n_decoder_layers)
         )
-        # cabezas por capa (refinamiento iterativo de caja): +1 clase para "no-objeto"
+        # Cabezas por capa, para el refinamiento iterativo de caja. +1 clase: el no-objeto.
         self.class_heads = nn.ModuleList(
             nn.Linear(dim, n_classes + 1) for _ in range(n_decoder_layers)
         )
         self.bbox_heads = nn.ModuleList(mlp(dim, dim, 4) for _ in range(n_decoder_layers))
 
     def forward(self, features: list[torch.Tensor]) -> Outputs:
-        B = features[0].shape[0]
-        q = self.query_embed.weight[None].expand(B, -1, -1)  # (B,Q,C)
-        query_pos = self.query_pos.weight[None].expand(B, -1, -1)
-        ref = self.ref_point_head(query_pos).sigmoid()  # (B,Q,2) en [0,1]
+        batch_size = features[0].shape[0]
+        queries = self.query_embed.weight[None].expand(batch_size, -1, -1)
+        query_pos = self.query_pos.weight[None].expand(batch_size, -1, -1)
+        centers = self.ref_point_head(query_pos).sigmoid()
+        reference_boxes = torch.cat([centers, torch.full_like(centers, 0.1)], dim=-1)
 
-        # w,h arrancan en un tamaño moderado; cada capa predice un delta sobre la
-        # caja de la anterior (Deformable-DETR box refinement) en vez de recalcularla.
-        ref_box = torch.cat([ref, torch.full_like(ref, 0.1)], dim=-1)  # (B,Q,4) cxcywh
+        per_layer: list[dict[str, torch.Tensor]] = []
+        for index, layer in enumerate(self.layers):
+            queries = layer(queries, query_pos, reference_boxes, features)
+            # Cada capa predice un delta en espacio logit sobre la caja de la anterior, y
+            # el `detach` corta el gradiente entre capas para estabilizar el refinamiento.
+            box_delta = self.bbox_heads[index](queries)
+            reference_boxes = (box_delta + inverse_sigmoid(reference_boxes)).sigmoid()
+            per_layer.append(
+                {"pred_logits": self.class_heads[index](queries), "pred_boxes": reference_boxes}
+            )
+            reference_boxes = reference_boxes.detach()
 
-        aux: list[dict[str, torch.Tensor]] = []
-        for i, layer in enumerate(self.layers):
-            q = layer(q, query_pos, ref_box, features)
-            delta = self.bbox_heads[i](q)  # (B,Q,4) offsets crudos en espacio logit
-            ref_box = (delta + inverse_sigmoid(ref_box)).sigmoid()
-            aux.append({"pred_logits": self.class_heads[i](q), "pred_boxes": ref_box})
-            ref_box = (
-                ref_box.detach()
-            )  # estabilidad: la siguiente capa no retropropaga por esta caja
-
-        out: Outputs = dict(aux[-1])
-        out["aux_outputs"] = aux[:-1]
-        return out
+        outputs: Outputs = dict(per_layer[-1])
+        outputs["aux_outputs"] = per_layer[:-1]
+        return outputs
 
 
 class DetectionHead(nn.Module):
@@ -239,30 +238,12 @@ class DetectionHead(nn.Module):
         self.detr = detr
 
     def pyramid_features(self, tokens: torch.Tensor) -> list[torch.Tensor]:
-        # tokens: (B, freq_out*time_out, token_dim); las cacheadas llegan en fp16
-        features = self.proj(tokens.to(self.proj.weight.dtype))
+        features = self.proj(tokens.to(self.proj.weight.dtype))  # las cacheadas llegan en fp16
         features = features.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
         return self.pyramid(features)
 
     def forward(self, tokens: torch.Tensor) -> Outputs:
         return self.detr(self.pyramid_features(tokens))
-
-
-class LogMelFrontend(nn.Module):
-    """Rama de control del PCEN: compresión logarítmica fija, sin parámetros.
-
-    Es la entrada estándar de un espectrograma a un transformer de audio; comparada
-    contra `TrainablePCEN` aísla cuánto aporta la normalización de energía por canal.
-    La `BatchNorm2d` que va después es la misma en las dos ramas, así que lo único que
-    cambia es la compresión.
-    """
-
-    def __init__(self, eps: float = 1e-6) -> None:
-        super().__init__()
-        self.eps = eps
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.log(x.clamp_min(0) + self.eps)
 
 
 class ASTDeformableDETR(nn.Module):
@@ -281,7 +262,7 @@ class ASTDeformableDETR(nn.Module):
         super().__init__()
         from models.backbone import ASTBackbone
         from models.criterion import SetCriterion
-        from models.pcen import TrainablePCEN
+        from models.pcen import LogMelFrontend, TrainablePCEN
 
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
         if n_mels != self.backbone.n_mels:
@@ -292,9 +273,9 @@ class ASTDeformableDETR(nn.Module):
         if frontend not in ("pcen", "logmel"):
             raise ValueError(f"frontend desconocido: {frontend!r}; hay 'pcen' y 'logmel'")
 
-        # El atributo se sigue llamando `pcen` con las dos ramas: es la clave con la que
-        # los checkpoints ya guardados nombran esta capa.
         self.frontend = frontend
+        # El atributo se llama `pcen` con las dos ramas: es la clave con la que los
+        # checkpoints ya guardados nombran esta capa.
         self.pcen = TrainablePCEN(n_mels=n_mels) if frontend == "pcen" else LogMelFrontend()
         self.pcen_norm = nn.BatchNorm2d(1, affine=False)
 
@@ -306,53 +287,42 @@ class ASTDeformableDETR(nn.Module):
             dim=dim,
             n_levels=n_levels,
         )
-        # El matcher húngaro sólo hace falta al entrenar, pero vive acá para que el
-        # modelo cumpla el mismo contrato que torchvision: con targets, pérdidas.
         self.criterion = SetCriterion(n_classes=n_classes)
 
     def forward(
-        self, x: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
+        self, mel: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
     ) -> Outputs | dict[str, torch.Tensor]:
-        x = self.pcen(x)
-        x = self.pcen_norm(x) / 2
-        outputs = self.head(self.backbone(x))
+        compressed = self.pcen_norm(self.pcen(mel)) / 2
+        outputs = self.head(self.backbone(compressed))
         return outputs if targets is None else self.criterion(outputs, targets)
 
 
-def predict_scores(outputs: Outputs) -> tuple[torch.Tensor, torch.Tensor]:
-    """Score y clase por query -> (B, Q), (B, Q).
-
-    Probabilidad de la clase más probable, descartando el último canal ("no-objeto"
-    de `SetCriterion`). No usar `1 - p(no-objeto)` como score: una query indecisa
-    (softmax uniforme) da 1 - 1/(C+1), que crece con el número de clases y pasa
-    cualquier umbral.
-    """
-    prob = outputs["pred_logits"].softmax(-1)
-    scores, labels = prob[..., :-1].max(-1)
-    return scores, labels
-
-
-def postprocess(
-    outputs: Outputs,
-    score_threshold: float = 0.5,
-    scores_of: Callable[[Outputs], tuple[torch.Tensor, torch.Tensor]] = predict_scores,
+def detections_above_threshold(
+    boxes: torch.Tensor, scores: torch.Tensor, labels: torch.Tensor, score_threshold: float
 ) -> list[Detections]:
-    scores, labels = scores_of(outputs)
     detections = []
     for index in range(scores.shape[0]):
-        keep = scores[index] >= score_threshold  # `>=`, igual que en `evaluate`
-        kept_scores = scores[index][keep]
-        order = kept_scores.argsort(descending=True)
+        above = scores[index] >= score_threshold  # `>=`, igual que en `evaluate`
+        kept = scores[index][above]
+        by_score = kept.argsort(descending=True)
         detections.append(
             Detections(
-                boxes=outputs["pred_boxes"][index][keep][order],
-                scores=kept_scores[order],
-                labels=labels[index][keep][order],
+                boxes=boxes[index][above][by_score],
+                scores=kept[by_score],
+                labels=labels[index][above][by_score],
             )
         )
     return detections
 
 
+def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detections]:
+    # No sirve `1 - p(no-objeto)` como score: una query indecisa da 1 - 1/(C+1), que crece
+    # con el número de clases y pasa cualquier umbral.
+    scores, labels = outputs["pred_logits"].softmax(-1)[..., :-1].max(-1)
+    return detections_above_threshold(outputs["pred_boxes"], scores, labels, score_threshold)
+
+
+@torch.no_grad()
 def detect(
     model: nn.Module, images: torch.Tensor, score_threshold: float = 0.5
 ) -> list[Detections]:

@@ -12,11 +12,8 @@ from utils.boxes import suppress_nested
 
 
 def species_and_call(name: str) -> tuple[str, str]:
-    """Etiqueta del `LabelSet` -> columnas Species/Call type de Raven.
-
-    `'lw/cc'` -> `('LW', 'CC')`, pero una etiqueta sin barra (`'other'`, o cualquier
-    `LABEL_BY` que no sea `species/call_type`) es válida y sale con el tipo vacío.
-    """
+    # Etiqueta del `LabelSet` a las columnas de Raven: 'lw/cc' -> ('LW', 'CC'). Una
+    # etiqueta sin barra es válida y sale con el tipo vacío.
     species, _, call_type = name.partition("/")
     return species.upper(), call_type.upper()
 

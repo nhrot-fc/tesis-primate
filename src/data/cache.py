@@ -11,7 +11,7 @@ def split_path(split: str) -> Path:
     return settings.processed_dir / f"{split}.pt"
 
 
-def _read(name: str) -> dict:
+def read_json(name: str) -> dict:
     path = settings.processed_dir / name
     if not path.exists():
         raise FileNotFoundError(
@@ -21,11 +21,11 @@ def _read(name: str) -> dict:
 
 
 def meta() -> dict:
-    return _read("meta.json")
+    return read_json("meta.json")
 
 
 def labels() -> LabelSet:
-    return LabelSet(_read("labels.json").values())
+    return LabelSet(read_json("labels.json").values())
 
 
 def db_range() -> tuple[float, float]:

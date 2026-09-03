@@ -3,56 +3,61 @@ from torch import nn
 from torch.nn import functional as F
 
 
-def init_logit_tensor(n_mels: int, p: float) -> torch.Tensor:
-    return torch.full((1, 1, n_mels, 1), p).logit()
+def logit_initializer(n_mels: int, value: float) -> torch.Tensor:
+    return torch.full((1, 1, n_mels, 1), value).logit()
 
 
-def init_inverse_softplus(n_mels: int, y: float) -> torch.Tensor:
-    return torch.full((1, 1, n_mels, 1), y).expm1().log()
+def inverse_softplus_initializer(n_mels: int, value: float) -> torch.Tensor:
+    return torch.full((1, 1, n_mels, 1), value).expm1().log()
 
 
 class TrainablePCEN(nn.Module):
     def __init__(
         self,
         n_mels: int = 128,
-        s_init: float = 0.025,
-        alpha_init: float = 0.98,
-        delta_init: float = 2.0,
-        r_init: float = 0.5,
+        smoothing_init: float = 0.025,
+        gain_exponent_init: float = 0.98,
+        bias_init: float = 2.0,
+        compression_init: float = 0.5,
         eps: float = 1e-6,
     ):
         super().__init__()
         self.eps = eps
+        # Se guardan sin restringir y `forward` los lleva a su rango válido, una fila por
+        # banda mel. Los nombres `*_raw` son claves del state_dict.
+        self.s_raw = nn.Parameter(logit_initializer(n_mels, smoothing_init))
+        self.alpha_raw = nn.Parameter(logit_initializer(n_mels, gain_exponent_init))
+        self.delta_raw = nn.Parameter(inverse_softplus_initializer(n_mels, bias_init))
+        self.r_raw = nn.Parameter(logit_initializer(n_mels, compression_init))
 
-        self.s_raw = nn.Parameter(init_logit_tensor(n_mels, s_init))
-        self.alpha_raw = nn.Parameter(init_logit_tensor(n_mels, alpha_init))
-        self.delta_raw = nn.Parameter(init_inverse_softplus(n_mels, delta_init))
-        self.r_raw = nn.Parameter(init_logit_tensor(n_mels, r_init))
+    def smoothed_energy(self, mel: torch.Tensor, smoothing: torch.Tensor) -> torch.Tensor:
+        decay = (1 - smoothing).clamp_min(self.eps)
+        log_decay = decay.log()
+        log_smoothing = smoothing.clamp_min(self.eps).log()
+        log_mel = mel.clamp_min(self.eps).log()
+        frame = torch.arange(mel.shape[-1], device=mel.device, dtype=mel.dtype).view(1, 1, 1, -1)
 
-    def log_smoothing(self, x: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
-        a = (1 - s).clamp_min(self.eps)
-        log_a = a.log()  # (1, 1, n_mels, 1), <= 0
+        # El filtro recursivo M_k = (1-s)*M_{k-1} + s*x_k tiene forma cerrada como suma
+        # acumulada, M_k = decay^k * sum_{j<=k} s*x_j/decay^j, y la suma se hace en log
+        # para que decay^-j no desborde. El primer frame no mezcla: M_0 = x_0, sin `s`.
+        log_terms = torch.where(frame == 0, log_mel, log_smoothing + log_mel - frame * log_decay)
+        return (frame * log_decay + torch.logcumsumexp(log_terms, dim=-1)).exp()
 
-        T = x.shape[-1]
-        k = torch.arange(T, device=x.device, dtype=x.dtype).view(1, 1, 1, T)
-        log_x = x.clamp_min(self.eps).log()
-        log_s = s.clamp_min(self.eps).log()
+    def forward(self, mel: torch.Tensor) -> torch.Tensor:
+        smoothing = self.s_raw.sigmoid()
+        gain_exponent = self.alpha_raw.sigmoid()
+        bias = F.softplus(self.delta_raw)
+        compression = self.r_raw.sigmoid()
 
-        # z_k = log(coeficiente_k) + log(x_k) - k*log(a); coeficiente_0 = 1 (no `s`),
-        # porque `M_0 = x_0` sin mezclar con el frame anterior.
-        z_first_frame = log_x  # válido sólo en k=0, donde k*log_a = 0
-        z_rest = log_s + log_x - k * log_a
-        z = torch.where(k == 0, z_first_frame, z_rest)
+        energy = self.eps + self.smoothed_energy(mel, smoothing)
+        gain_controlled = mel / torch.pow(energy, gain_exponent)
+        return torch.pow(gain_controlled + bias, compression) - torch.pow(bias, compression)
 
-        log_M = k * log_a + torch.logcumsumexp(z, dim=-1)
-        return log_M.exp()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        s = self.s_raw.sigmoid()
-        alpha = self.alpha_raw.sigmoid()
-        delta = F.softplus(self.delta_raw)
-        r = self.r_raw.sigmoid()
+class LogMelFrontend(nn.Module):
+    def __init__(self, eps: float = 1e-6) -> None:
+        super().__init__()
+        self.eps = eps
 
-        M = self.log_smoothing(x, s)
-        agc = x / torch.pow(self.eps + M, alpha)
-        return torch.pow(agc + delta, r) - torch.pow(delta, r)
+    def forward(self, mel: torch.Tensor) -> torch.Tensor:
+        return torch.log(mel.clamp_min(0) + self.eps)

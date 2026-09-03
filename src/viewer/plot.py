@@ -78,7 +78,7 @@ class SpectrogramView(pg.PlotWidget):
         self.playhead.hide()
         self.vb.addItem(self.playhead, ignoreBounds=True)
         if self.sceneObj is not None:
-            self.sceneObj.sigMouseMoved.connect(self._on_move)
+            self.sceneObj.sigMouseMoved.connect(self.on_move)
 
         self.waveform: Waveform | None = None
         self.sr = 1
@@ -91,7 +91,7 @@ class SpectrogramView(pg.PlotWidget):
         self.pool: list[tuple[QGraphicsRectItem, pg.TextItem]] = []
 
         self.renderer = Latest()
-        self.renderer.done.connect(self._on_render)
+        self.renderer.done.connect(self.on_render)
 
     def set_colormap(self, name: str) -> None:
         colormap = pg.colormap.getFromMatplotlib(name)
@@ -112,7 +112,7 @@ class SpectrogramView(pg.PlotWidget):
             return
         self.levels = (brightness, contrast)
         self.vb.setXRange(start, start + span, padding=0)
-        if self._covers(start, span, n_fft, hop):
+        if self.covers(start, span, n_fft, hop):
             self.image.setLevels(db_levels(self.baseline, *self.levels))
             return
 
@@ -133,14 +133,14 @@ class SpectrogramView(pg.PlotWidget):
             )
         )
 
-    def _covers(self, start: float, span: float, n_fft: int, hop: int) -> bool:
+    def covers(self, start: float, span: float, n_fft: int, hop: int) -> bool:
         if self.band is None:
             return False
         band_start, band_span, band_n_fft, band_hop = self.band
         inside = band_start <= start and start + span <= band_start + band_span + 1e-6
         return inside and (n_fft, hop) == (band_n_fft, band_hop)
 
-    def _on_render(self, job_id: int, result) -> None:
+    def on_render(self, job_id: int, result) -> None:
         if job_id != self.job or result is None or self.pending is None:
             return
         image, baseline = result
@@ -153,7 +153,7 @@ class SpectrogramView(pg.PlotWidget):
         self.image.setRect(QRectF(band_start, 0.0, band_span, self.sr / 2))
         self.image.setLevels(db_levels(self.baseline, *self.levels))
 
-    def _slot(self, index: int) -> tuple[QGraphicsRectItem, pg.TextItem]:
+    def box_slot(self, index: int) -> tuple[QGraphicsRectItem, pg.TextItem]:
         while len(self.pool) <= index:
             rect = QGraphicsRectItem()
             # Fondo translucido: sin el, el verde sobre magma claro es ilegible.
@@ -164,7 +164,7 @@ class SpectrogramView(pg.PlotWidget):
         return self.pool[index]
 
     def draw_boxes(self, tables: list, start: float, stop: float, score: float) -> list[int]:
-        """Reusa los items ya creados: redibujar al mover la barra no construye nada."""
+        # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
         for table, color, above in tables:
             if table is None or table.empty:
@@ -176,7 +176,7 @@ class SpectrogramView(pg.PlotWidget):
             counts.append(len(visible))
             pen = pg.mkPen(color, width=2)
             for _, row in visible.iterrows():
-                rect, text = self._slot(used)
+                rect, text = self.box_slot(used)
                 x0, y0 = row["Begin Time (s)"], row["Low Freq (Hz)"]
                 height = row["High Freq (Hz)"] - y0
                 rect.setRect(QRectF(x0, y0, row["End Time (s)"] - x0, height))
@@ -209,7 +209,7 @@ class SpectrogramView(pg.PlotWidget):
     def close_renderer(self) -> None:
         self.renderer.close()
 
-    def _on_move(self, position) -> None:
+    def on_move(self, position) -> None:
         point = self.vb.mapSceneToView(position)
         self.moved.emit(point.x(), point.y())
 

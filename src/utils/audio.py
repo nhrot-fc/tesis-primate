@@ -15,10 +15,7 @@ from core.config import SEED, P, Parameters
 FloatArray = npt.NDArray[np.float64]
 
 
-# --- Del .wav a las ventanas ----------------------------------------------------
-
-
-def _pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
+def pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
     missing = params.clip_len_samples - waveform.numel()
     if missing <= 0:
         return waveform[: params.clip_len_samples]
@@ -44,7 +41,7 @@ def read_clip(
     waveform = torch.from_numpy(frames.mean(axis=1))
     if source_sample_rate != params.target_sr:
         waveform = torchaudio.functional.resample(waveform, source_sample_rate, params.target_sr)
-    return _pad_to_clip(waveform, params)
+    return pad_to_clip(waveform, params)
 
 
 def load_clip(audio_path: Path | str, clip_start_s: float, params: Parameters = P) -> Tensor:
@@ -67,9 +64,6 @@ def window_starts(duration_s: float, params: Parameters) -> FloatArray:
     return np.arange(n_hops + 1, dtype=np.float64) * params.clip_hop_s
 
 
-# --- Eje de frecuencia: Hz <-> `y` normalizado de la caja ------------------------
-
-
 def hz_to_mel(hz: FloatArray | float, params: Parameters) -> FloatArray:
     # Escala mel (HTK): m(f) = q·log10(1 + f/f_break), q = 2595 y f_break = 700 Hz. Comprime
     # los agudos igual que el banco de filtros, y es el eje donde vive la caja.
@@ -89,9 +83,6 @@ def y_to_hz(y: FloatArray, params: Parameters) -> FloatArray:
     low, high = hz_to_mel(params.f_min, params), hz_to_mel(params.f_max, params)
     mel_value = low + np.clip(y, 0.0, 1.0) * (high - low)
     return params.mel_break_hz * (10.0 ** (mel_value / params.mel_scale_q) - 1.0)
-
-
-# --- Mel: potencia -> dB -> gris -------------------------------------------------
 
 
 def mel_spectrogram(params: Parameters = P) -> nn.Module:

@@ -59,8 +59,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def check_export() -> dict:
-    """El dataset de YOLO es una reexportación del caché: si el caché se regeneró (otras
-    clases, otro split), entrenar contra el export viejo invalida la comparación."""
+    # El dataset de YOLO es una reexportación del caché: si el caché se regeneró, entrenar
+    # contra el export viejo invalida la comparación.
     data_yaml = settings.yolo_dir / "dataset.yaml"
     if not data_yaml.exists():
         raise FileNotFoundError(
@@ -76,11 +76,8 @@ def check_export() -> dict:
 
 
 def export_checkpoint(run_dir: Path, weights: Path, meta: dict, config: dict) -> Path:
-    """Reempaqueta el `best.pt` de Ultralytics al formato del registro.
-
-    Ultralytics guarda el modelo pickleado; el registro guarda arquitectura,
-    hiperparámetros y `state_dict`, que es lo que `src/evaluate.py` y el viewer abren.
-    """
+    # Ultralytics guarda el modelo pickleado; el registro guarda arquitectura,
+    # hiperparámetros y `state_dict`, que es lo que `evaluate.py` y el viewer abren.
     labels = cache.labels()
     hparams = {
         "model": Path(config["model"]).stem,

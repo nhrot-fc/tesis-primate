@@ -14,16 +14,6 @@ class Detections(NamedTuple):
     labels: Tensor  # (K,) id de clase en `data.species.LabelSet`
 
 
-def _min_area_iou(boxes_xyxy: Tensor) -> Tensor:
-    # Intersección sobre el área de la caja más chica: vale 1 si una está contenida en otra,
-    # donde el IoU clásico baja con la diferencia de tamaño y deja pasar el duplicado.
-    top_left = torch.max(boxes_xyxy[:, None, :2], boxes_xyxy[None, :, :2])
-    bottom_right = torch.min(boxes_xyxy[:, None, 2:], boxes_xyxy[None, :, 2:])
-    intersection = (bottom_right - top_left).clamp(min=0).prod(-1)
-    area = box_area(boxes_xyxy)
-    return intersection / torch.min(area[:, None], area[None]).clamp(min=1e-6)
-
-
 def suppress_nested(
     boxes_xyxy: Tensor,
     scores: Tensor,
@@ -31,12 +21,21 @@ def suppress_nested(
     nms_iou: float,
     iomin_threshold: float = 0.8,
 ) -> Tensor:
-    # El NMS saca los solapes parciales; el IoMin, la caja anidada en otra de más score.
-    keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)
-    kept_labels = labels[keep]
-    overlap = _min_area_iou(boxes_xyxy[keep]).triu(diagonal=1)  # `keep` viene por score
+    keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)  # saca los solapes parciales
+    kept, kept_labels = boxes_xyxy[keep], labels[keep]
+
+    # Intersección sobre el área de la caja más chica: vale 1 si una está contenida en la
+    # otra, donde el IoU clásico baja con la diferencia de tamaño y deja pasar el duplicado.
+    top_left = torch.max(kept[:, None, :2], kept[None, :, :2])
+    bottom_right = torch.min(kept[:, None, 2:], kept[None, :, 2:])
+    intersection = (bottom_right - top_left).clamp(min=0).prod(-1)
+    area = box_area(kept)
+    iomin = intersection / torch.min(area[:, None], area[None]).clamp(min=1e-6)
+
+    # `keep` viene ordenado por score, así que la triangular superior deja sólo las cajas
+    # anidadas en otra mejor.
     same_class = kept_labels[:, None] == kept_labels[None, :]
-    nested = ((overlap > iomin_threshold) & same_class).any(dim=0)
+    nested = ((iomin.triu(diagonal=1) > iomin_threshold) & same_class).any(dim=0)
     return keep[~nested]
 
 

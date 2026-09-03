@@ -351,7 +351,7 @@ class Viewer(QMainWindow):
     # --- Recorrido --------------------------------------------------------------
 
     def rescale(self) -> None:
-        """Reajusta la barra de tiempo al ancho de ventana, conservando el instante actual."""
+        # Conserva el instante actual al cambiar el ancho de ventana.
         start = self.timebar.value() * TIME_STEP
         span = self.span()
         self.timebar.blockSignals(True)
@@ -379,12 +379,9 @@ class Viewer(QMainWindow):
         self.plot.set_playhead(seconds)
 
     def jump(self, direction: int) -> None:
-        """Centra la ventana en la primera deteccion que aun no esta en pantalla.
-
-        La referencia es el borde de la ventana y no su centro: al principio y al final
-        del audio la barra no puede centrar la caja, y con el centro la misma deteccion
-        volvia a salir elegida una y otra vez.
-        """
+        # Centra la ventana en la primera detección que no esté en pantalla. La referencia
+        # es el borde y no el centro: al principio y al final del audio la barra no puede
+        # centrar la caja, y con el centro la misma detección volvía a salir elegida.
         table = self.visible_detections()
         if table is None or table.empty:
             return

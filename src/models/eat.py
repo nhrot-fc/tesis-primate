@@ -29,12 +29,6 @@ def local_eat_dir(checkpoint: str = EAT_CHECKPOINT) -> Path:
 
 
 def load_eat_weights(checkpoint: str = EAT_CHECKPOINT) -> dict[str, Tensor]:
-    """Pesos del EAT preentrenado, con copia local como caché (igual que el AST).
-
-    El repo publica un `safetensors` plano --un ViT-B/16 con nombres de timm--, así que se
-    lee directo en vez de pasar por `trust_remote_code`: `EATEncoder` reproduce ese módulo
-    y las claves coinciden una a una.
-    """
     from huggingface_hub import hf_hub_download
     from safetensors.torch import load_file
 
@@ -46,7 +40,7 @@ def load_eat_weights(checkpoint: str = EAT_CHECKPOINT) -> dict[str, Tensor]:
         logger.info("Backbone EAT guardado en %s", path)
 
     # `fixed_positional_encoder.positions` es sincos determinista sobre la rejilla del
-    # preentrenamiento (768 x 8 parches); acá se regenera para la rejilla propia.
+    # preentrenamiento (768 x 8 parches); `EATBackbone` la regenera para la rejilla propia.
     return {
         key.removeprefix("model."): value
         for key, value in load_file(path).items()
@@ -60,14 +54,11 @@ def sincos_1d(dim: int, positions: Tensor) -> Tensor:
     return torch.cat([angles.sin(), angles.cos()], dim=1)
 
 
-def sincos_2d(dim: int, rows: Tensor, cols: Tensor) -> Tensor:
-    """Codificación posicional 2D fija del EAT, en orden por filas.
-
-    La primera mitad de los canales codifica la columna y la segunda la fila: ése es el
-    orden con el que se preentrenó, y cambiarlo invalida los pesos.
-    """
-    row_grid, col_grid = torch.meshgrid(rows, cols, indexing="ij")
-    return torch.cat([sincos_1d(dim // 2, col_grid), sincos_1d(dim // 2, row_grid)], dim=1)
+def sincos_2d(dim: int, rows: Tensor, columns: Tensor) -> Tensor:
+    # La primera mitad de los canales codifica la columna y la segunda la fila: ése es el
+    # orden con el que se preentrenó, y cambiarlo invalida los pesos.
+    row_grid, column_grid = torch.meshgrid(rows, columns, indexing="ij")
+    return torch.cat([sincos_1d(dim // 2, column_grid), sincos_1d(dim // 2, row_grid)], dim=1)
 
 
 class PatchEmbed(nn.Module):
@@ -75,8 +66,8 @@ class PatchEmbed(nn.Module):
         super().__init__()
         self.proj = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=stride)
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self.proj(x).flatten(2).transpose(1, 2)
+    def forward(self, spectrogram: Tensor) -> Tensor:
+        return self.proj(spectrogram).flatten(2).transpose(1, 2)
 
 
 class Mlp(nn.Module):
@@ -86,8 +77,8 @@ class Mlp(nn.Module):
         self.act = nn.GELU()
         self.fc2 = nn.Linear(hidden, dim)
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self.fc2(self.act(self.fc1(x)))
+    def forward(self, tokens: Tensor) -> Tensor:
+        return self.fc2(self.act(self.fc1(tokens)))
 
 
 class Attention(nn.Module):
@@ -97,21 +88,16 @@ class Attention(nn.Module):
         self.qkv = nn.Linear(dim, dim * 3)
         self.proj = nn.Linear(dim, dim)
 
-    def forward(self, x: Tensor) -> Tensor:
-        B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.n_heads, C // self.n_heads).permute(2, 0, 3, 1, 4)
-        out = F.scaled_dot_product_attention(qkv[0], qkv[1], qkv[2])
-        return self.proj(out.transpose(1, 2).reshape(B, N, C))
+    def forward(self, tokens: Tensor) -> Tensor:
+        batch_size, n_tokens, channels = tokens.shape
+        head_dim = channels // self.n_heads
+        projected = self.qkv(tokens).reshape(batch_size, n_tokens, 3, self.n_heads, head_dim)
+        queries, keys, values = projected.permute(2, 0, 3, 1, 4)
+        attended = F.scaled_dot_product_attention(queries, keys, values)
+        return self.proj(attended.transpose(1, 2).reshape(batch_size, n_tokens, channels))
 
 
 class Block(nn.Module):
-    """Bloque del EAT: el `AltBlock` de data2vec con `layer_norm_first=False`.
-
-    No es el pre-norm habitual de un ViT: la normalización va después de cada residual y
-    la del MLP se aplica sobre la suma. Se reproduce tal cual porque los pesos
-    preentrenados asumen ese orden.
-    """
-
     def __init__(self, dim: int, n_heads: int, mlp_ratio: float, eps: float) -> None:
         super().__init__()
         self.norm1 = nn.LayerNorm(dim, eps=eps)
@@ -119,10 +105,13 @@ class Block(nn.Module):
         self.norm2 = nn.LayerNorm(dim, eps=eps)
         self.mlp = Mlp(dim, int(dim * mlp_ratio))
 
-    def forward(self, x: Tensor) -> Tensor:
-        x = x + self.attn(x)
-        residual = x = self.norm1(x)
-        return self.norm2(residual + self.mlp(x))
+    def forward(self, tokens: Tensor) -> Tensor:
+        # El `AltBlock` de data2vec con `layer_norm_first=False`: no es el pre-norm habitual
+        # de un ViT, normaliza después de cada residual y la del MLP va sobre la suma. Los
+        # pesos preentrenados asumen ese orden.
+        tokens = tokens + self.attn(tokens)
+        residual = tokens = self.norm1(tokens)
+        return self.norm2(residual + self.mlp(tokens))
 
 
 class EATEncoder(nn.Module):
@@ -135,23 +124,17 @@ class EATEncoder(nn.Module):
         )
         self.pre_norm = nn.LayerNorm(EMBED_DIM, eps=NORM_EPS)
 
-    def forward(self, x: Tensor, pos_embed: Tensor) -> Tensor:
+    def forward(self, spectrogram: Tensor, position_embedding: Tensor) -> Tensor:
         # La posición se suma a los parches y recién después entra el CLS, que no la lleva.
-        tokens = self.local_encoder(x) + pos_embed
-        tokens = torch.cat([self.extra_tokens.expand(tokens.shape[0], -1, -1), tokens], dim=1)
-        tokens = self.pre_norm(tokens)
+        tokens = self.local_encoder(spectrogram) + position_embedding
+        cls_token = self.extra_tokens.expand(tokens.shape[0], -1, -1)
+        tokens = self.pre_norm(torch.cat([cls_token, tokens], dim=1))
         for block in self.blocks:
             tokens = block(tokens)
         return tokens
 
 
 class EATBackbone(nn.Module):
-    """EAT (ViT-B/16 autosupervisado sobre AudioSet) como extractor de parches.
-
-    Devuelve los tokens en el mismo orden que `ASTBackbone` --frecuencia primero--, así
-    los dos entran igual a `DetectionHead`.
-    """
-
     def __init__(
         self,
         n_frames: int | None = None,
@@ -168,7 +151,7 @@ class EATBackbone(nn.Module):
 
         self.model = EATEncoder(time_stride=time_stride)
         self.model.load_state_dict(load_eat_weights(checkpoint))
-        self.register_buffer("pos_embed", self._pos_embed(), persistent=False)
+        self.register_buffer("pos_embed", self.sincos_position_embedding(), persistent=False)
 
         if freeze:
             for name, param in self.model.named_parameters():
@@ -190,18 +173,14 @@ class EATBackbone(nn.Module):
     def n_mels(self) -> int:
         return N_MELS
 
-    def _pos_embed(self) -> Tensor:
-        """Sincos 2D sobre la rejilla de parches propia, en unidades de parche.
-
-        El preentrenamiento usó paso 16 en los dos ejes, así que la posición de un token es
-        su desplazamiento medido en parches: con paso `s` el token `t` arranca en `t*s/16`.
-        Al ser una función continua no hay nada que interpolar, y alargar el clip es pedir
-        más filas de la rejilla --que es cómo el paper salva la diferencia de duración
-        entre AudioSet y sus grabaciones--.
-        """
+    def sincos_position_embedding(self) -> Tensor:
+        # El preentrenamiento usó paso 16 en los dos ejes, así que la posición de un token
+        # es su desplazamiento medido en parches: con paso `s`, el token `t` arranca en
+        # `t*s/16`. Al ser una función continua no hay nada que interpolar, y alargar el
+        # clip es pedir más filas de la rejilla.
         rows = torch.arange(self.time_out, dtype=torch.float32) * (self.time_stride / PATCH_SIZE)
-        cols = torch.arange(self.freq_out, dtype=torch.float32) * (FREQ_STRIDE / PATCH_SIZE)
-        return sincos_2d(EMBED_DIM, rows, cols)[None]  # (1, time_out*freq_out, C)
+        columns = torch.arange(self.freq_out, dtype=torch.float32) * (FREQ_STRIDE / PATCH_SIZE)
+        return sincos_2d(EMBED_DIM, rows, columns)[None]
 
     def train(self, mode: bool = True) -> "EATBackbone":
         super().train(mode)
@@ -209,13 +188,14 @@ class EATBackbone(nn.Module):
             self.model.eval()
         return self
 
-    def forward(self, x: Tensor) -> Tensor:
-        # x: (B, 1, n_mels, n_frames). El EAT parchea sobre (tiempo, frecuencia), al revés
-        # que el AST, así que la entrada va transpuesta y los tokens vuelven reordenados.
-        if x.shape[-2:] != (N_MELS, self.n_frames):
+    def forward(self, mel: Tensor) -> Tensor:
+        if mel.shape[-2:] != (N_MELS, self.n_frames):
             raise ValueError(
                 f"el EAT se armó para mel de ({N_MELS}, {self.n_frames}) y llegó "
-                f"{tuple(x.shape[-2:])}; la codificación posicional es de esa rejilla."
+                f"{tuple(mel.shape[-2:])}; la codificación posicional es de esa rejilla."
             )
-        tokens = self.model(x.transpose(2, 3), self.pos_embed)[:, 1:]  # sin CLS
+        # EAT parchea sobre (tiempo, frecuencia), al revés que el AST: la entrada va
+        # transpuesta y los tokens vuelven reordenados a frecuencia primero, que es lo que
+        # espera `DetectionHead`.
+        tokens = self.model(mel.transpose(2, 3), self.pos_embed)[:, 1:]  # sin CLS
         return tokens.unflatten(1, (self.time_out, self.freq_out)).transpose(1, 2).flatten(1, 2)

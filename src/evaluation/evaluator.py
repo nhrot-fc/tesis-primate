@@ -36,7 +36,7 @@ def collect_detections(
     nms_iou: float | None = 0.3,
     desc: str = "detectando",
 ) -> tuple[Boxes, Boxes]:
-    """-> (predicciones ordenadas por score descendente, verdad de terreno)."""
+    # -> (predicciones ordenadas por score descendente, verdad de terreno).
     predicted: list[Boxes] = []
     truth: list[Boxes] = []
     image_id = 0

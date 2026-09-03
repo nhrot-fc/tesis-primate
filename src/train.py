@@ -103,11 +103,8 @@ def detector_hparams(args: argparse.Namespace, frontend: str, stride: int) -> di
 
 
 def variants(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
-    """Las combinaciones a correr, como (nombre de la corrida, hiperparámetros del modelo).
-
-    Los hiperparámetros son los que rearman el grafo: viajan en el checkpoint y con ellos
-    `load_checkpoint` reconstruye el modelo sin más contexto.
-    """
+    # Los hiperparámetros son los que rearman el grafo: viajan en el checkpoint y con
+    # ellos `load_checkpoint` reconstruye el modelo sin más contexto.
     if args.arch == "frcnn":
         db_low, db_high = cache.db_range()
         name = args.name or f"frcnn_{'scratch' if args.scratch else 'coco'}"

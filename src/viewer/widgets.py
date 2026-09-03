@@ -36,7 +36,7 @@ class Worker(QThread):
     progress = pyqtSignal(int, int)
 
     def __init__(self, task, reports: bool = False) -> None:
-        """Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso."""
+        # Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso.
         super().__init__()
         self.task = task
         self.reports = reports
@@ -49,10 +49,9 @@ class Worker(QThread):
             self.error.emit(f"{type(exc).__name__}: {exc}")
 
 
+# Hilo de un solo trabajo a la vez: si llega otro mientras calcula, el que esperaba se
+# descarta. Es lo que mantiene fluido el scroll del espectrograma.
 class Latest(QThread):
-    """Hilo de un solo trabajo a la vez: si llega otro mientras calcula, el que
-    esperaba se descarta. Es lo que mantiene fluido el scroll del espectrograma."""
-
     done = pyqtSignal(int, object)
 
     def __init__(self) -> None:
@@ -123,9 +122,9 @@ class Choice(QWidget):
         layout.addWidget(name)
         layout.addWidget(self.slider, 1)
         layout.addWidget(self.readout)
-        self.slider.valueChanged.connect(self._on_change)
+        self.slider.valueChanged.connect(self.on_change)
 
-    def _on_change(self) -> None:
+    def on_change(self) -> None:
         self.readout.setText(self.fmt.format(self.value()))
         self.changed.emit()
 
@@ -133,7 +132,7 @@ class Choice(QWidget):
         return self.values[self.slider.value()]
 
     def set_value(self, value) -> None:
-        """Mueve el slider al valor disponible más cercano."""
+        # Al valor disponible más cercano.
         nearest = min(range(len(self.values)), key=lambda i: abs(self.values[i] - value))
         self.slider.setValue(nearest)
 
@@ -170,9 +169,8 @@ class Dropdown(QWidget):
         )
 
 
+# Leyenda con interruptor: identifica el origen de cada caja y lo oculta.
 class Layers(QWidget):
-    """Leyenda con interruptor: identifica el origen de cada caja y lo oculta."""
-
     changed = pyqtSignal()
 
     def __init__(self, entries: list[tuple[str, str]]) -> None:
@@ -206,9 +204,8 @@ class Layers(QWidget):
         self.boxes[text].setText(f"{text}  {shown}/{total}" if total else text)
 
 
+# Transporte de reproducción sobre el audio mono ya cargado en memoria.
 class AudioPlayer(QWidget):
-    """Transporte de reproduccion sobre el audio mono ya cargado en memoria."""
-
     moved = pyqtSignal(float)
     stopped = pyqtSignal()
     failed = pyqtSignal(str)
@@ -244,7 +241,7 @@ class AudioPlayer(QWidget):
 
         self.timer = QTimer(self)
         self.timer.setInterval(TICK_MS)
-        self.timer.timeout.connect(self._tick)
+        self.timer.timeout.connect(self.tick)
 
     def set_audio(self, pcm: bytes, sr: int) -> None:
         self.stop()
@@ -253,12 +250,12 @@ class AudioPlayer(QWidget):
         self.set_origin(0.0)
 
     def set_origin(self, seconds: float) -> None:
-        """Mueve el punto de arranque; se ignora mientras suena el audio."""
+        # Se ignora mientras suena el audio.
         if self.sink is None:
             self.origin = max(seconds, 0.0)
-            self._show(self.origin)
+            self.display_time(self.origin)
 
-    def _show(self, seconds: float) -> None:
+    def display_time(self, seconds: float) -> None:
         self.clock.setText(f"{seconds:.2f} / {self.duration():.2f} s")
 
     def duration(self) -> float:
@@ -324,7 +321,7 @@ class AudioPlayer(QWidget):
     def toggle(self) -> None:
         self.pause() if self.playing() else self.play()
 
-    def _tick(self) -> None:
+    def tick(self) -> None:
         if self.sink is None:
             return
         seconds = self.origin + self.sink.processedUSecs() / 1_000_000
@@ -333,5 +330,5 @@ class AudioPlayer(QWidget):
             self.stop()
             return
 
-        self._show(seconds)
+        self.display_time(seconds)
         self.moved.emit(seconds)

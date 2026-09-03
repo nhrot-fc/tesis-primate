@@ -22,7 +22,7 @@ def pcm16(waveform: Waveform) -> bytes:
     return (np.clip(waveform, -1.0, 1.0) * 32767.0).astype(np.int16).tobytes()
 
 
-def _frames(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.float32]:
+def sliding_frames(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.float32]:
     padded = np.pad(waveform, n_fft // 2, mode="reflect")
     count = (padded.size - n_fft) // hop_length + 1
     stride = padded.strides[0]
@@ -35,7 +35,7 @@ def stft_db(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.f
     if waveform.size < n_fft:
         waveform = np.pad(waveform, (0, n_fft - waveform.size))
     window = np.hanning(n_fft + 1)[:-1]  # periodica, como torch.hann_window
-    spectrum = np.fft.rfft(_frames(waveform, n_fft, hop_length) * window, axis=-1)
+    spectrum = np.fft.rfft(sliding_frames(waveform, n_fft, hop_length) * window, axis=-1)
     power = spectrum.real**2 + spectrum.imag**2
     return (10.0 * np.log10(power.T + EPS)).astype(np.float32)
 

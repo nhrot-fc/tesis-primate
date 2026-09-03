@@ -110,12 +110,8 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
 def average_precision_per_class(
     predictions: Boxes, truth: Boxes, n_classes: int
 ) -> dict[float, dict[int, float | None]]:
-    """AP por umbral de IoU y por clase, al estilo COCO.
-
-    Cada clase se mide sobre sus propias cajas: una predicción sólo puede acertarle a un
-    GT de la misma clase, y las clases sin cajas anotadas quedan en `None` para que no
-    entren al promedio. `predictions` tiene que venir ordenado por score descendente.
-    """
+    # Una predicción sólo puede acertarle a un GT de su misma clase, y las clases sin
+    # anotaciones quedan en `None` para no entrar al promedio (COCO).
     per_threshold: dict[float, dict[int, float | None]] = {t: {} for t in MAP_THRESHOLDS}
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
@@ -132,7 +128,7 @@ def average_precision_per_class(
 
 
 def mean_average_precision(ap_per_class: dict[int, float | None]) -> float | None:
-    """Promedio sobre las clases que tienen cajas anotadas; las demás no puntúan."""
+    # Sólo promedian las clases con cajas anotadas; las demás no puntúan.
     values = [ap for ap in ap_per_class.values() if ap is not None]
     return sum(values) / len(values) if values else None
 
@@ -145,7 +141,7 @@ def detection_metrics(
     score_threshold: float = 0.5,
     beta: float = BETA,
 ) -> DetectionMetrics:
-    """`predictions` tiene que venir ordenado por score descendente (`sort_by_score`)."""
+    # `predictions` tiene que venir ordenado por score descendente (`sort_by_score`).
     n_gt = len(truth.boxes)
     n_predictions = len(predictions.boxes)
     # `k` = detecciones sobre el punto de operación; como están ordenadas por score, son

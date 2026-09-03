@@ -92,7 +92,7 @@ class Trainer:
             hparams,
         )
 
-    def _train_epoch(self, desc: str) -> dict[str, float]:
+    def train_epoch(self, desc: str) -> dict[str, float]:
         self.model.train()
         totals: dict[str, float] = {}
 
@@ -118,27 +118,36 @@ class Trainer:
         n = max(len(self.train_loader), 1)
         return {key.removeprefix("loss_"): value / n for key, value in totals.items()}
 
-    def _validate(self, desc: str) -> DetectionMetrics:
-        return evaluate(
-            self.detect,
-            self.val_loader,
-            n_classes=len(self.labels),
-            device=self.device,
-            iou_threshold=self.config.iou_threshold,
-            score_threshold=self.config.score_threshold,
-            nms_iou=self.config.nms_iou,
-            beta=self.config.beta,
-            desc=desc,
-        )
+    def validate(self, desc: str) -> DetectionMetrics:
+        # `detect` corre el modelo en el modo en que esté, así que el modo es de quien
+        # llama: validar en `train()` deja el dropout activo y la BatchNorm midiendo --y
+        # actualizando sus running stats-- con los datos de validación.
+        self.model.eval()
+        try:
+            return evaluate(
+                self.detect,
+                self.val_loader,
+                n_classes=len(self.labels),
+                device=self.device,
+                iou_threshold=self.config.iou_threshold,
+                score_threshold=self.config.score_threshold,
+                nms_iou=self.config.nms_iou,
+                beta=self.config.beta,
+                desc=desc,
+            )
+        finally:
+            self.model.train()
 
-    def _record(
+    def record_epoch(
         self, epoch: int, lr: float, losses: dict[str, float], val: DetectionMetrics
     ) -> None:
         with (self.run_dir / "metrics.jsonl").open("a", encoding="utf-8") as handle:
             record = {"epoch": epoch + 1, "lr": lr, "train": losses, "val": val._asdict()}
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    def _save(self, name: str, epoch: int, val: DetectionMetrics, **resumable: Any) -> None:
+    def save_checkpoint(
+        self, name: str, epoch: int, val: DetectionMetrics, **resumable: Any
+    ) -> None:
         checkpoint.save(
             self.run_dir / name,
             architecture=self.name,
@@ -165,20 +174,20 @@ class Trainer:
             progress = f"{epoch + 1}/{self.config.epochs}"
             learning_rate = self.optimizer.param_groups[0]["lr"]
 
-            losses = self._train_epoch(f"train {progress}")
-            val = self._validate(f"val {progress}")
+            losses = self.train_epoch(f"train {progress}")
+            val = self.validate(f"val {progress}")
             score = 0.0 if val.f_beta is None else val.f_beta
 
             logger.info("[%4s] loss=%.3f %s", progress, losses["total"], format_line(val))
-            self._record(epoch, learning_rate, losses, val)
+            self.record_epoch(epoch, learning_rate, losses, val)
 
             # `best.pt` primero: si el proceso muere entre los dos, `last.pt` no queda
             # afirmando un mejor score que en disco no existe.
             if score > best_score:
                 best_score, best = score, val
-                self._save(checkpoint.BEST, epoch, val)
+                self.save_checkpoint(checkpoint.BEST, epoch, val)
                 logger.info("nuevo mejor F%g=%.3f", self.config.beta, score)
-            self._save(
+            self.save_checkpoint(
                 checkpoint.LAST,
                 epoch,
                 val,

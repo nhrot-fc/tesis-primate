@@ -47,7 +47,7 @@ class ASTBackbone(nn.Module):
         self.n_frames = n_frames if n_frames is not None else P.n_frames
         self.time_stride = time_stride
         self.freeze = freeze
-        self._interpolate_time_pos_embed(self.n_frames, time_stride)
+        self.interpolate_position_embeddings(self.n_frames, time_stride)
 
         if freeze:
             for name, param in self.model.named_parameters():
@@ -61,26 +61,33 @@ class ASTBackbone(nn.Module):
     def n_mels(self) -> int:
         return int(self.model.config.num_mel_bins)
 
-    def _interpolate_time_pos_embed(self, n_frames: int, time_stride: int) -> None:
+    def interpolate_position_embeddings(self, n_frames: int, time_stride: int) -> None:
         config = self.model.config
         patch_size = (
             config.patch_size if isinstance(config.patch_size, int) else config.patch_size[0]
         )
-        freq_out = (config.num_mel_bins - patch_size) // config.frequency_stride + 1
-        # stride original del checkpoint (10): hay que leerlo antes de pisar config.time_stride
-        time_out_old = (config.max_length - patch_size) // config.time_stride + 1
-        self.freq_out = freq_out
+        self.freq_out = (config.num_mel_bins - patch_size) // config.frequency_stride + 1
+        # El paso del checkpoint hay que leerlo antes de pisar `config.time_stride`.
+        pretrained_time_out = (config.max_length - patch_size) // config.time_stride + 1
         self.time_out = (n_frames - patch_size) // time_stride + 1
 
-        pos_embed = self.model.embeddings.position_embeddings  # (1, 2+freq_out*time_out_old, C)
-        special, patches = pos_embed[:, :2], pos_embed[:, 2:]
-        patches = patches.reshape(1, freq_out, time_out_old, -1).permute(0, 3, 1, 2)
-        patches = F.interpolate(
-            patches, size=(freq_out, self.time_out), mode="bilinear", align_corners=False
+        position_embeddings = self.model.embeddings.position_embeddings
+        special_tokens = position_embeddings[:, :2]
+        patch_positions = position_embeddings[:, 2:]
+        patch_positions = patch_positions.reshape(
+            1, self.freq_out, pretrained_time_out, -1
+        ).permute(0, 3, 1, 2)
+        patch_positions = F.interpolate(
+            patch_positions,
+            size=(self.freq_out, self.time_out),
+            mode="bilinear",
+            align_corners=False,
         )
-        patches = patches.permute(0, 2, 3, 1).reshape(1, freq_out * self.time_out, -1)
+        patch_positions = patch_positions.permute(0, 2, 3, 1).reshape(
+            1, self.freq_out * self.time_out, -1
+        )
         self.model.embeddings.position_embeddings = nn.Parameter(
-            torch.cat([special, patches], dim=1)
+            torch.cat([special_tokens, patch_positions], dim=1)
         )
 
         self.model.embeddings.patch_embeddings.projection.stride = (
@@ -91,7 +98,7 @@ class ASTBackbone(nn.Module):
         config.max_length = n_frames
         logger.info(
             "AST: %d x %d tokens | time_stride=%d | %s",
-            freq_out,
+            self.freq_out,
             self.time_out,
             time_stride,
             "congelado" if self.freeze else "fine-tune",
@@ -103,14 +110,11 @@ class ASTBackbone(nn.Module):
             self.model.eval()
         return self
 
-    def forward(self, x: Tensor) -> Tensor:
-        # x: (B, 1, n_mels, n_frames) -> AST espera (B, n_frames, n_mels)
-        # Sin `no_grad` aunque esté congelado: `requires_grad_(False)` sobre los pesos ya
-        # evita que se acumulen gradientes en ellos, y si nada aguas arriba requiere
-        # gradiente autograd no construye grafo igual. Un `no_grad` acá cortaría la cadena
-        # hacia lo que sí es entrenable antes del backbone (el PCEN de `ASTDeformableDETR`).
-        input_values = x.squeeze(1).transpose(1, 2)
-        return self.model(input_values=input_values).last_hidden_state[:, 2:]  # sin CLS+dist
+    def forward(self, mel: Tensor) -> Tensor:
+        # Sin `no_grad` aunque esté congelado: cortaría la cadena hacia el PCEN, que sí
+        # entrena y va aguas arriba del backbone.
+        input_values = mel.squeeze(1).transpose(1, 2)  # (B,1,n_mels,T) -> (B,T,n_mels)
+        return self.model(input_values=input_values).last_hidden_state[:, 2:]
 
 
 class MultiScalePyramid(nn.Module):
@@ -139,10 +143,9 @@ class MultiScalePyramid(nn.Module):
         self.downsamples = n_levels >= 3
 
     def check_input_size(self, height: int, width: int) -> None:
-        """El nivel 1/2x es `Conv2d(kernel=2, stride=2)`: con una dimensión impar tira la
-        última fila/columna, así que ese nivel cubre menos extensión física que los otros.
-        `grid_sample` mapea [-1,1] al mapa entero, sin enterarse, y los niveles quedan
-        desalineados entre sí sin dar error."""
+        # Con una dimensión impar el nivel 1/2x tira la última fila o columna y pasa a
+        # cubrir menos extensión física que los otros; `grid_sample` normaliza a [-1,1]
+        # sobre el mapa entero y los niveles quedan desalineados sin dar error.
         if self.downsamples and (height % 2 or width % 2):
             raise ValueError(
                 f"la pirámide con downsampling necesita dimensiones pares, no ({height}, {width}); "

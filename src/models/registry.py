@@ -11,6 +11,8 @@ from data.datasets import FasterRCNNDataset, SpectrogramDataset
 from data.species import LabelSet
 from utils.boxes import Detections
 
+# Corre el modelo en el modo en que esté y postprocesa. Ponerlo en `eval()` es de quien
+# llama: `load_checkpoint` lo hace al cargar y `Trainer` alrededor de la validación.
 Detect = Callable[[nn.Module, Tensor, float], list[Detections]]
 
 logger = logging.getLogger(__name__)
@@ -29,14 +31,12 @@ ARCHITECTURES: dict[str, Architecture] = {
         "models.deformable_detr",
         "ASTDeformableDETR",
         clip_grad=0.1,
-        # el AST congelado se lee de la copia local y el criterio se rearma solo
         provided=("backbone.model.", "criterion."),
     ),
     "eat_dino": Architecture(
         "models.dino",
         "EATDINO",
         clip_grad=0.1,
-        # el EAT congelado se lee de la copia local y el criterio se rearma solo
         provided=("backbone.model.", "criterion."),
     ),
     "faster_rcnn": Architecture(
@@ -62,15 +62,11 @@ def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> nn.Module
 
 
 def savable_state_dict(model: nn.Module, name: str) -> dict[str, Tensor]:
-    """Todos los pesos menos los que la arquitectura repone sola al construirse.
-
-    No sirve filtrar sólo por `requires_grad`: las capas congeladas de Faster R-CNN son
-    pesos de COCO que nadie vuelve a poner, y sin ellas el checkpoint carga medio ResNet
-    al azar. La excepción va al revés: dentro de un prefijo `provided`, lo que sí recibió
-    gradiente ya no es el preentrenado y hay que guardarlo --si no, una corrida con el
-    AST descongelado guardaría un checkpoint que al cargarse vuelve a los pesos de
-    AudioSet y pierde el fine-tuning entero.
-    """
+    # Se guarda todo menos lo que la arquitectura repone sola al construirse. Filtrar por
+    # `requires_grad` no alcanza: las capas congeladas de Faster R-CNN son pesos de COCO que
+    # nadie vuelve a poner. Y dentro de un prefijo `provided`, lo que sí recibió gradiente ya
+    # no es el preentrenado y hay que guardarlo, o una corrida con el backbone descongelado
+    # guardaría un checkpoint que al cargarse vuelve a AudioSet y pierde el fine-tuning.
     provided = architecture(name).provided
     trained = {key for key, param in model.named_parameters() if param.requires_grad}
     return {
@@ -81,8 +77,8 @@ def savable_state_dict(model: nn.Module, name: str) -> dict[str, Tensor]:
 
 
 def load_state_dict(model: nn.Module, name: str, state_dict: dict[str, Tensor]) -> None:
-    """Faltar claves de `provided` es normal; cualquier otra ausencia o sobra es un
-    checkpoint incompatible, y cargarlo a medias da un modelo que no protesta."""
+    # Faltar claves de `provided` es normal; cualquier otra ausencia o sobra es un checkpoint
+    # incompatible, y cargarlo a medias da un modelo que no protesta.
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     provided = architecture(name).provided
     broken = list(unexpected) + [key for key in missing if not key.startswith(provided)]
@@ -107,9 +103,7 @@ def operating_point(config: dict[str, Any]) -> tuple[float, float]:
     return float(config.get("score_threshold", 0.5)), float(config.get("nms_iou", 0.3))
 
 
-def _load_ultralytics(path: Path, checkpoint: Any, device: str) -> LoadedModel:
-    """El `best.pt` que deja Ultralytics, que no salió de acá pero es el resultado natural
-    de `src/train_yolo.py`; cualquier otro se rechaza diciendo qué archivo hace falta."""
+def load_ultralytics_model(path: Path, checkpoint: Any, device: str) -> LoadedModel:
     yolo = import_module("models.yolo")
     if not yolo.is_ultralytics_checkpoint(checkpoint):
         raise ValueError(
@@ -127,7 +121,7 @@ def _load_ultralytics(path: Path, checkpoint: Any, device: str) -> LoadedModel:
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
-        return _load_ultralytics(Path(path), checkpoint, str(device))
+        return load_ultralytics_model(Path(path), checkpoint, str(device))
 
     name = checkpoint["architecture"]
     labels = LabelSet(checkpoint["labels"])

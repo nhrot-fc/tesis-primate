@@ -22,7 +22,7 @@ class ClipWindow(NamedTuple):
     labels: IntArray  # (N,) id de clase en el `LabelSet`
 
 
-def _boxes_in_window(
+def boxes_in_window(
     group: pd.DataFrame, class_ids: IntArray, clip_start_s: float, params: Parameters
 ) -> tuple[FloatArray, IntArray, bool]:
     # -> (cajas, clases, si se descartó alguna llamada que sí caía en la ventana).
@@ -70,7 +70,7 @@ def build_manifest(
 
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.int64)
         for clip_start_s in window_starts(duration_s, params):
-            boxes, ids, incomplete = _boxes_in_window(group, class_ids, float(clip_start_s), params)
+            boxes, ids, incomplete = boxes_in_window(group, class_ids, float(clip_start_s), params)
             window = ClipWindow(str(audio_path), float(clip_start_s), boxes, ids)
             if len(boxes):
                 positive.append(window)
