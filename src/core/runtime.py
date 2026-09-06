@@ -30,5 +30,7 @@ def set_seed(seed: int = SEED) -> None:
 
 
 def resolve_device(requested: str | None = None) -> str:
-    # Para elegir GPU: `CUDA_VISIBLE_DEVICES=2 python src/train.py ...`
-    return requested or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = requested or ("cuda" if torch.cuda.is_available() else "cpu")
+    if device.startswith("cuda"):
+        torch.cuda.set_device(device)
+    return device
