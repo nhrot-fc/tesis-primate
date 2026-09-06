@@ -25,7 +25,7 @@ NORM_EPS = 1e-6
 
 
 def local_eat_dir(checkpoint: str = EAT_CHECKPOINT) -> Path:
-    return settings.checkpoints_dir / "hf" / checkpoint.replace("/", "__")
+    return settings.hf_dir / checkpoint.replace("/", "__")
 
 
 def load_eat_weights(checkpoint: str = EAT_CHECKPOINT) -> dict[str, Tensor]:

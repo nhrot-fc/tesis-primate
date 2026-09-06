@@ -14,7 +14,7 @@ AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 
 def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
-    return settings.checkpoints_dir / "hf" / checkpoint.replace("/", "__")
+    return settings.hf_dir / checkpoint.replace("/", "__")
 
 
 def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:

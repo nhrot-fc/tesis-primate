@@ -12,13 +12,12 @@ class Settings(BaseSettings):
 
     HF_TOKEN: SecretStr | None = None
     PROJECT_DIR: Path = Path.cwd()
-    CHECKPOINTS_DIR: Path | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
-    def checkpoints_dir(self) -> Path:
-        return self.CHECKPOINTS_DIR or self.PROJECT_DIR / "checkpoints"
+    def hf_dir(self) -> Path:
+        return self.PROJECT_DIR / "hf"
 
     @property
     def data_dir(self) -> Path:
