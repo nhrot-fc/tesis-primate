@@ -1,20 +1,21 @@
+import math
 from pathlib import Path
 from typing import override
 
-import pandas as pd
 import pyqtgraph as pg
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtWidgets import QGraphicsRectItem
 from pyqtgraph.exporters import ImageExporter
 
+from viewer.session import BEGIN, END, HIGH, LOW, label
 from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
-from viewer.widgets import Latest
+from viewer.tasks import Latest
 
-BOX_COLUMNS = ["Begin Time (s)", "End Time (s)", "Low Freq (Hz)", "High Freq (Hz)"]
-ANNOTATION_COLOR = "#00d8ff"
-DETECTION_COLOR = "#8cff3d"
+COLORMAP = "magma"
 PLAYHEAD_COLOR = "#ffffff"
+HIGHLIGHT_COLOR = "#ffffff"
+HIGHLIGHT_MARGIN = 0.012
 AXIS_PAD = 12
 AXIS_SAMPLE = "00000"
 EXPORT_WIDTH = 2400
@@ -22,23 +23,15 @@ EXPORT_WIDTH = 2400
 # de ella, moverse no cuesta ni una FFT.
 BAND = 4.0
 
-COLORMAPS = ["magma", "inferno", "viridis", "cividis", "gray", "gray_r"]
+# n_fft = 8 * hop en todas: el solape fija la resolucion en frecuencia.
 RESOLUTIONS = [(512, 64), (1024, 128), (2048, 256), (4096, 512), (8192, 1024)]
+COLUMNS_ON_SCREEN = 900
 
 
-def read_boxes(path: Path) -> pd.DataFrame:
-    table = pd.read_csv(path, sep="\t")
-    missing = [column for column in BOX_COLUMNS if column not in table.columns]
-    if missing:
-        raise ValueError(f"'{path.name}' no tiene las columnas: {', '.join(missing)}")
-    return table
-
-
-def box_label(row: pd.Series) -> str:
-    text = "/".join(str(row[c]) for c in ("Species", "Call type") if c in row.index)
-    if "Score" in row.index:
-        text = f"{text} {row['Score']:.2f}".strip()
-    return text
+def resolution(span: float, sr: int) -> tuple[int, int]:
+    # El hop que deja ~900 columnas en pantalla, redondeado en octavas a las de la lista.
+    hop = span * sr / COLUMNS_ON_SCREEN
+    return min(RESOLUTIONS, key=lambda pair: abs(math.log2(pair[1] / hop)))
 
 
 class SpectrogramView(pg.PlotWidget):
@@ -70,13 +63,20 @@ class SpectrogramView(pg.PlotWidget):
         self.vb.setMouseEnabled(x=False, y=False)
         self.vb.setDefaultPadding(0.0)
         self.image = pg.ImageItem()
-        self.set_colormap(COLORMAPS[0])
+        colormap = pg.colormap.getFromMatplotlib(COLORMAP)
+        if colormap is not None:
+            self.image.setColorMap(colormap)
         self.vb.addItem(self.image)
         self.playhead = pg.InfiniteLine(angle=90, movable=False)
         self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=2))
         self.playhead.setZValue(20)
         self.playhead.hide()
         self.vb.addItem(self.playhead, ignoreBounds=True)
+        self.highlight = QGraphicsRectItem()
+        self.highlight.setPen(pg.mkPen(HIGHLIGHT_COLOR, width=2, style=Qt.PenStyle.DashLine))
+        self.highlight.setZValue(15)
+        self.highlight.setVisible(False)
+        self.vb.addItem(self.highlight)
         if self.sceneObj is not None:
             self.sceneObj.sigMouseMoved.connect(self.on_move)
 
@@ -93,23 +93,18 @@ class SpectrogramView(pg.PlotWidget):
         self.renderer = Latest()
         self.renderer.done.connect(self.on_render)
 
-    def set_colormap(self, name: str) -> None:
-        colormap = pg.colormap.getFromMatplotlib(name)
-        if colormap is not None:
-            self.image.setColorMap(colormap)
-
     def set_waveform(self, waveform: Waveform, sr: int) -> None:
         self.waveform = waveform
         self.sr = sr
         self.baseline_n_fft = 0
         self.band = None
+        self.set_highlight(None)
         self.vb.setYRange(0.0, sr / 2, padding=0)
 
-    def draw(
-        self, start: float, span: float, n_fft: int, hop: int, brightness: float, contrast: float
-    ) -> None:
+    def draw(self, start: float, span: float, brightness: float, contrast: float) -> None:
         if self.waveform is None:
             return
+        n_fft, hop = resolution(span, self.sr)
         self.levels = (brightness, contrast)
         self.vb.setXRange(start, start + span, padding=0)
         if self.covers(start, span, n_fft, hop):
@@ -163,26 +158,27 @@ class SpectrogramView(pg.PlotWidget):
             self.pool.append((rect, text))
         return self.pool[index]
 
-    def draw_boxes(self, tables: list, start: float, stop: float, score: float) -> list[int]:
+    def draw_boxes(self, layers: list, start: float, stop: float) -> list[int]:
         # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
-        for table, color, above in tables:
+        for table, color, above in layers:
             if table is None or table.empty:
                 counts.append(0)
                 continue
-            visible = table[(table["End Time (s)"] > start) & (table["Begin Time (s)"] < stop)]
-            if "Score" in visible.columns:
-                visible = visible[visible["Score"] >= score]
+            visible = table[(table[END] > start) & (table[BEGIN] < stop)]
             counts.append(len(visible))
             pen = pg.mkPen(color, width=2)
             for _, row in visible.iterrows():
                 rect, text = self.box_slot(used)
-                x0, y0 = row["Begin Time (s)"], row["Low Freq (Hz)"]
-                height = row["High Freq (Hz)"] - y0
-                rect.setRect(QRectF(x0, y0, row["End Time (s)"] - x0, height))
+                x0, y0 = row[BEGIN], row[LOW]
+                height = row[HIGH] - y0
+                rect.setRect(QRectF(x0, y0, row[END] - x0, height))
                 rect.setPen(pen)
                 rect.setVisible(True)
-                text.setText(box_label(row), color=color)
+                caption = label(row)
+                if "Score" in row.index:
+                    caption = f"{caption} {row['Score']:.2f}".strip()
+                text.setText(caption, color=color)
                 # Cada capa rotula a un lado del borde superior --una afuera y otra
                 # adentro-- para que una deteccion encima de su anotacion no la tape.
                 text.setAnchor((0, 1) if above else (0, 0))
@@ -194,10 +190,17 @@ class SpectrogramView(pg.PlotWidget):
             text.setVisible(False)
         return counts
 
-    def export_png(self, path: Path) -> None:
-        exporter = ImageExporter(self.getPlotItem())
-        exporter.parameters()["width"] = EXPORT_WIDTH
-        exporter.export(str(path))
+    def set_highlight(self, box: tuple[float, float, float, float] | None) -> None:
+        if box is None:
+            self.highlight.setVisible(False)
+            return
+        begin, end, low, high = box
+        # El marco se separa un poco del borde: encima de la caja sus lineas se confunden.
+        (x0, x1), (y0, y1) = self.vb.viewRange()
+        dx, dy = HIGHLIGHT_MARGIN * (x1 - x0), HIGHLIGHT_MARGIN * (y1 - y0)
+        rect = QRectF(begin - dx, low - dy, end - begin + 2 * dx, high - low + 2 * dy)
+        self.highlight.setRect(rect)
+        self.highlight.setVisible(True)
 
     def set_playhead(self, seconds: float | None) -> None:
         if seconds is None:
@@ -205,6 +208,11 @@ class SpectrogramView(pg.PlotWidget):
         else:
             self.playhead.setPos(seconds)
             self.playhead.show()
+
+    def export_png(self, path: Path) -> None:
+        exporter = ImageExporter(self.getPlotItem())
+        exporter.parameters()["width"] = EXPORT_WIDTH
+        exporter.export(str(path))
 
     def close_renderer(self) -> None:
         self.renderer.close()
