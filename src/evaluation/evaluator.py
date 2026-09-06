@@ -1,4 +1,7 @@
-from collections.abc import Callable
+import logging
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import NamedTuple
 
 import torch
 from torch import Tensor
@@ -9,6 +12,7 @@ from tqdm.auto import tqdm
 from evaluation.metrics import (
     BETA,
     MATCH_IOU,
+    SCORE_FLOOR,
     Boxes,
     DetectionMetrics,
     concat,
@@ -17,8 +21,38 @@ from evaluation.metrics import (
 )
 from utils.boxes import Detections, suppress_nested
 
+logger = logging.getLogger(__name__)
+
 BoundDetect = Callable[[Tensor, float], list[Detections]]
-MIN_SCORE = 0.001
+SUFFIX = "_predictions.pt"
+VAL, TEST = "val", "test"
+
+
+class RawPredictions(NamedTuple):
+    model: str
+    architecture: str
+    split: str
+    labels: list[str]
+    predictions: Boxes
+    truth: Boxes
+    n_images: int
+    recordings: Tensor
+    recording_names: list[str]
+    nms_iou: float | None
+    score_floor: float = SCORE_FLOOR
+
+    @property
+    def detections_per_window(self) -> float:
+        return len(self.predictions.boxes) / max(self.n_images, 1)
+
+    def save(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(self._asdict(), path)
+        return path
+
+    @classmethod
+    def load(cls, path: Path) -> "RawPredictions":
+        return cls(**torch.load(path, map_location="cpu", weights_only=False))
 
 
 @torch.no_grad()
@@ -30,18 +64,15 @@ def collect_detections(
     max_detections: int | None = None,
     desc: str = "detectando",
 ) -> tuple[Boxes, Boxes, int]:
-    # -> (predicciones ordenadas por score descendente, verdad de terreno, ventanas).
     predicted: list[Boxes] = []
     truth: list[Boxes] = []
     image_id = 0
 
     for images, targets in tqdm(loader, desc=desc, unit="batch", leave=False):
-        detections = detect(images.to(device), MIN_SCORE)
+        detections = detect(images.to(device), SCORE_FLOOR)
         for detection, target in zip(detections, targets, strict=True):
-            boxes, scores, labels = (t.cpu() for t in detection)
+            boxes, scores, labels = (tensor.cpu() for tensor in detection)
             if nms_iou is not None and len(boxes):
-                # el DETR lo necesita (sus queries se pisan entre sí) y en los demás
-                # saca cajas anidadas, que acá son duplicados de una misma llamada
                 keep = suppress_nested(
                     box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou
                 )
@@ -51,13 +82,13 @@ def collect_detections(
                 boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
 
             predicted.append(Boxes(boxes, torch.full((len(boxes),), image_id), labels, scores))
-            n_target = len(target["labels"])
+            n_truth = len(target["labels"])
             truth.append(
                 Boxes(
                     target["boxes"].cpu(),
-                    torch.full((n_target,), image_id),
+                    torch.full((n_truth,), image_id),
                     target["labels"].cpu(),
-                    torch.ones(n_target),
+                    torch.ones(n_truth),
                 )
             )
             image_id += 1
@@ -89,3 +120,30 @@ def evaluate(
         score_threshold=score_threshold,
         beta=beta,
     )
+
+
+def path_for(directory: Path, model: str, split: str) -> Path:
+    return directory / f"{model}_{split}{SUFFIX}"
+
+
+def load_pairs(paths: Sequence[Path]) -> list[tuple[RawPredictions, RawPredictions]]:
+    by_model: dict[str, dict[str, RawPredictions]] = {}
+    for path in paths:
+        dump = RawPredictions.load(path)
+        by_model.setdefault(dump.model, {})[dump.split] = dump
+        logger.info(
+            "%s %s: %d ventanas, %.1f detecciones por ventana, %d grabaciones",
+            dump.model,
+            dump.split,
+            dump.n_images,
+            dump.detections_per_window,
+            len(dump.recording_names),
+        )
+
+    incomplete = {model: sorted(splits) for model, splits in by_model.items() if len(splits) < 2}
+    if incomplete:
+        raise ValueError(
+            f"faltan volcados: {incomplete}. Cada modelo necesita {VAL} (elige el umbral) y "
+            f"{TEST} (lo mide)."
+        )
+    return [(splits[VAL], splits[TEST]) for splits in by_model.values()]

@@ -209,7 +209,7 @@ def main() -> None:
 
     setup_logging()
     logger.info("resumen:\n  %s", "\n  ".join(summary))
-    logger.info("evaluá con: python src/evaluate.py --run %s --split test", runs[0][0])
+    logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", runs[0][0])
 
 
 if __name__ == "__main__":

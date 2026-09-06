@@ -2460,7 +2460,7 @@ La consecuencia inmediata es que \textbf{ninguna longitud de ventana única sirv
 demasiado gruesa para resolver un chirrido de 34\,ms. La
 sección~\ref{sec:ventaneo} documenta el compromiso adoptado y lo que cuesta.
 
-La Figura~\ref{fig:class-geometry} sitúa cada clase en duración y en banda de
+La Tabla~\ref{tab:class-geometry} sitúa cada clase en duración y en banda de
 frecuencia, y hace visibles dos efectos a la vez.
 Las \textbf{especies se separan en buena medida por banda}: AS ocupa
 aproximadamente entre 25 y 1\,410\,Hz (percentiles 1 y 99), mientras que
@@ -2469,17 +2469,56 @@ aproximadamente entre 25 y 1\,410\,Hz (percentiles 1 y 99), mientras que
 trinos junto con \texttt{vc} y \texttt{cs} comparten banda y duración casi por
 completo.
 
-\begin{figure}[htbp]
+\begin{table}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{figures/class_geometry.png}
-    \caption[Geometría de las clases]{Dónde vive cada clase en tiempo y en frecuencia. Las especies
-        ocupan bandas distintas; los tipos de llamada de una misma especie se
-        solapan casi por completo. La figura abarca los pares del vocabulario
-        curado con suficientes anotaciones para caracterizarlos, un conjunto algo
-        más amplio que las veinticinco clases del experimento
-        (Tabla~\ref{tab:clases-experimento}).}
-    \label{fig:class-geometry}
-\end{figure}
+    \begin{threeparttable}
+        \caption[Geometría de las clases]{Duración, banda de frecuencia y ancho de banda de cada
+            clase, ordenadas por duración mediana descendente}
+        \label{tab:class-geometry}
+        \footnotesize
+        \begin{tabular}{@{}L{1.7cm}L{3.4cm}L{3.3cm}R{2.0cm}@{}}
+            \toprule
+            \textbf{Clase} & \thead[l]{Duración\\mediana (s)} & \thead[l]{Banda de\\frecuencia (Hz)} & \thead[l]{Ancho de\\banda (Hz)} \\
+            \midrule
+            \texttt{as/hc}    & 11,0\,s [7,1--15,9]   & 48--769\,Hz          & 727\,Hz    \\
+            \texttt{pt/dc}    & 6,7\,s [4,8--9,5]     & 25--1\,474\,Hz       & 1\,409\,Hz \\
+            \texttt{ac/chc}   & 1,2\,s [0,86--1,6]    & 192--3\,363\,Hz      & 3\,178\,Hz \\
+            \texttt{ac/sc}    & 1,2\,s [0,87--1,4]    & 2\,640--10\,726\,Hz  & 8\,135\,Hz \\
+            \texttt{ac/gc}    & 1,0\,s [0,66--1,9]    & 198--1\,465\,Hz      & 1\,276\,Hz \\
+            \texttt{lw/sqc}   & 0,81\,s [0,60--1,0]   & 5\,035--12\,912\,Hz  & 7\,728\,Hz \\
+            \texttt{sb/pcc}   & 0,73\,s [0,50--1,1]   & 6\,531--11\,749\,Hz  & 4\,961\,Hz \\
+            \texttt{sm/sc}    & 0,59\,s [0,37--0,82]  & 3\,387--10\,678\,Hz  & 6\,878\,Hz \\
+            \texttt{sm/pc}    & 0,55\,s [0,40--0,82]  & 2\,806--4\,435\,Hz   & 1\,542\,Hz \\
+            \texttt{lw/trino} & 0,53\,s [0,35--0,73]  & 5\,740--11\,126\,Hz  & 5\,455\,Hz \\
+            \texttt{lw/cs}    & 0,43\,s [0,34--0,50]  & 8\,037--10\,215\,Hz  & 2\,101\,Hz \\
+            \texttt{sb/sc}    & 0,43\,s [0,35--0,58]  & 2\,534--15\,464\,Hz  & 13\,243\,Hz \\
+            \texttt{lw/ta}    & 0,42\,s [0,31--0,55]  & 1\,545--6\,883\,Hz   & 5\,152\,Hz \\
+            \texttt{lw/vc}    & 0,42\,s [0,33--0,49]  & 5\,338--8\,808\,Hz   & 3\,497\,Hz \\
+            \texttt{ac/bc}    & 0,35\,s [0,24--0,50]  & 374--2\,616\,Hz      & 2\,235\,Hz \\
+            \texttt{as/bc}    & 0,32\,s [0,26--0,40]  & 105--668\,Hz         & 567\,Hz    \\
+            \texttt{pt/sqc}   & 0,27\,s [0,24--0,31]  & 4\,338--5\,083\,Hz   & 666\,Hz    \\
+            \texttt{sm/hic}   & 0,27\,s [0,19--0,36]  & 249--4\,927\,Hz      & 4\,649\,Hz \\
+            \texttt{aa/sc}    & 0,23\,s [0,21--0,27]  & 107--13\,147\,Hz     & 12\,792\,Hz \\
+            \texttt{aa/hm}    & 0,23\,s [0,19--0,27]  & 66--529\,Hz          & 452\,Hz    \\
+            \texttt{sb/ppc}   & 0,20\,s [0,14--0,29]  & 7\,010--11\,251\,Hz  & 3\,924\,Hz \\
+            \texttt{sm/fs}    & 0,19\,s [0,15--0,26]  & 1\,210--2\,438\,Hz   & 1\,292\,Hz \\
+            \texttt{sb/spc}   & 0,16\,s [0,13--0,22]  & 248--15\,933\,Hz     & 15\,602\,Hz \\
+            \texttt{aa/gc}    & 0,09\,s [0,08--0,12]  & 97--3\,076\,Hz       & 2\,859\,Hz \\
+            \texttt{sm/cc}    & 0,08\,s [0,06--0,11]  & 523--3\,606\,Hz      & 3\,066\,Hz \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item RIC: rango intercuartílico (percentiles 25--75) de la duración.
+            La banda de frecuencia es [mediana de $f_{\min}$, mediana de
+            $f_{\max}$] por clase; el ancho de banda es la mediana de
+            $f_{\max} - f_{\min}$ calculada anotación por anotación, no la resta
+            de las medianas de la columna anterior. Calculado sobre las 17\,605
+            anotaciones del subconjunto de experimento (Tabla~\ref{tab:clases-experimento})
+            con \texttt{notebooks/dataset\_report.ipynb}.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
 
 Esa disociación tiene una consecuencia metodológica directa, y es la que sostiene
 el protocolo de evaluación del Capítulo~\ref{cap:deteccion}: si la geometría
@@ -2937,7 +2976,11 @@ propuesta (sección~\ref{sec:arquitectura}). La ablación que la compara contra 
 compresión logarítmica fija está implementada en el repositorio, pero todavía no
 medida. La columna de justificación registra qué falla con el
 ajuste alternativo, que es la información que permite revisar un parámetro sin
-repetir el experimento que lo fijó.
+repetir el experimento que lo fijó. La tabla reúne los once parámetros que
+fijan el espectrograma de principio a fin —del remuestreo de la señal a la
+compresión logarítmica final—, de modo que reproducirlo no exige leer el
+código: basta con \texttt{torchaudio.transforms.MelSpectrogram} instanciada con
+estos valores (\texttt{src/core/config.py} y \texttt{src/utils/audio.py}).
 
 \begin{table}[htbp]
     \centering
@@ -2948,6 +2991,11 @@ repetir el experimento que lo fijó.
         \toprule
         \textbf{Parámetro}       & \textbf{Valor}        & \textbf{Justificación} \\
         \midrule
+        Frecuencia de muestreo   & 44\,100\,Hz           &
+        Igual a la de las grabaciones primarias, de modo que esta etapa no
+        remuestrea; su mitad --22\,050\,Hz-- es el techo de Nyquist que fija el
+        límite superior del rango de frecuencia más abajo                        \\
+        \addlinespace
         Ventana / salto          & 3,0\,s / 1,5\,s       &
         Contiene entera a 23 de las 25 clases; el costo es la fragmentación de
         las dos largas (Tabla~\ref{tab:ventaneo-largos})                          \\
@@ -2961,6 +3009,10 @@ repetir el experimento que lo fijó.
         Más corta que los eventos más breves: 34\,ms el mínimo, 81\,ms la mediana
         de \texttt{sm/cc}                                                         \\
         \addlinespace
+        Función de ventana       & Hann                  &
+        Valor por defecto de \texttt{torchaudio}; no se exploró una alternativa
+        porque ninguna clase mostró fuga espectral atribuible a la ventana       \\
+        \addlinespace
         Puntos de la FFT         & 4\,096                &
         Relleno con ceros: densifica la rejilla de frecuencia sin tocar la
         resolución temporal                                                       \\
@@ -2971,9 +3023,18 @@ repetir el experimento que lo fijó.
         Bandas mel               & 128                   &
         Lo que espera el extractor preentrenado; 256 no dio ganancia medible      \\
         \addlinespace
+        Escala mel               & HTK ($q=2\,595$,\newline $f_\text{quiebre}=700$\,Hz) &
+        Convención por defecto de \texttt{torchaudio} frente a la alternativa
+        Slaney; es la misma fórmula que fija el eje de la
+        sección~\ref{sec:representacion}, $m(f) = q \log_{10}(1 + f / f_\text{quiebre})$ \\
+        \addlinespace
         Rango de frecuencia      & 25\,Hz -- 22\,050\,Hz &
         Un techo de 16\,kHz truncaba la mitad de las cajas de \texttt{sb/spc},
         cuya frecuencia superior media es 16\,110\,Hz                             \\
+        \addlinespace
+        Compresión               & $10 \log_{10}(\text{mel} + \epsilon)$,\newline $\epsilon = 10^{-6}$ &
+        Espectrograma de potencia ($|\cdot|^2$, no magnitud), de ahí el factor
+        10 y no 20; $\epsilon$ evita $-\infty$ en las celdas sin energía         \\
         \bottomrule
     \end{tabular}
 \end{table}

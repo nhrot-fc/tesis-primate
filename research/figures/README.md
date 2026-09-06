@@ -7,7 +7,15 @@ llevan títulos ni subtítulos dentro del PNG: el nombre de la figura lo pone el
 | Cuaderno | Qué produce |
 |---|---|
 | `notebooks/thesis_figures.ipynb` | Diagramas (árbol de problemas, arquitectura, pipelines), figuras de datos (galería de llamadas, anidamiento, PCEN) y figuras de resultados (barrido de score, recall por clase, matriz de confusión, ejemplos cualitativos) |
-| `notebooks/dataset_report.ipynb` | Las figuras del conjunto: `annotations_per_pair`, `class_geometry`, `class_geometry_facets`, `boxes_per_split`, `boxes_per_window`, `window_example` |
+| `notebooks/dataset_report.ipynb` | Las figuras del conjunto: `annotations_per_pair`, `class_geometry_facets`, `boxes_per_split`, `boxes_per_window`, `window_example` |
+
+`class_geometry` sigue generándose (panel de duración y banda de frecuencia por
+clase), pero ya no ilustra `main.tex`: la celda siguiente en el mismo cuaderno
+calcula las mismas tres cantidades por clase — duración, banda de frecuencia y
+ancho de banda — y las imprime como filas listas para pegar en la
+Tabla~\ref{tab:class-geometry}, que reemplazó a la figura porque veinticinco
+cajas y bigotes uno junto a otro se leen peor que veinticinco filas con la
+cifra.
 
 ## `data/`: las series, aparte del PNG
 
@@ -17,6 +25,9 @@ cuaderno, y para citar una cifra sin leerla del gráfico. Hoy lo escriben doce:
 `annotations_per_pair`, `class_geometry`, `boxes_per_split`, `boxes_per_window`,
 `recorded_vs_annotated`, `mel_axis`, `multiscale_pyramid`, `score_sweep`,
 `recall_per_class`, `confusion_matrix`, `iou_distribution` y `ablation_progression`.
+`class_geometry_table.json` guarda, en la misma carpeta, los números de la
+Tabla~\ref{tab:class-geometry}: no acompaña a un PNG porque no hay figura detrás,
+solo la tabla de `main.tex`.
 
 ## Qué hace falta para regenerarlas
 

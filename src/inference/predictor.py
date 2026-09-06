@@ -12,8 +12,6 @@ from utils.boxes import suppress_nested
 
 
 def species_and_call(name: str) -> tuple[str, str]:
-    # Etiqueta del `LabelSet` a las columnas de Raven: 'lw/cc' -> ('LW', 'CC'). Una
-    # etiqueta sin barra es válida y sale con el tipo vacío.
     species, _, call_type = name.partition("/")
     return species.upper(), call_type.upper()
 
@@ -47,10 +45,6 @@ def predict(
 
         for clip_start, det in zip(chunk, detections, strict=True):
             cx, cy, w, h = det.boxes.T.cpu()
-            # Tiempo en unidades de clip (no en segundos) y frecuencia en el eje mel
-            # normalizado: es el mismo espacio en el que el modelo predice y en el que
-            # `evaluation_pipeline` mide IoU, así que el NMS de acá suprime exactamente
-            # lo mismo que la evaluación da por suprimido.
             offset = float(clip_start) / params.clip_len_s
             x0.append(offset + cx - w / 2)
             x1.append(offset + cx + w / 2)
@@ -68,13 +62,10 @@ def predict(
     keep = suppress_nested(torch.stack([x0, y0, x1, y1], dim=-1), score, label, nms_iou)
     order = keep[x0[keep].argsort()]
 
-    # La caja de una query puede salirse del clip (y la última ventana se pasa del final
-    # del audio): sin recortar, la tabla sale con tiempos negativos o más allá del
-    # archivo, que Raven no acepta. Lo que queda sin duración se descarta.
     begin = (x0[order] * params.clip_len_s).clamp(0.0, duration_s)
     end = (x1[order] * params.clip_len_s).clamp(0.0, duration_s)
-    inside = end > begin
-    order, begin, end = order[inside], begin[inside], end[inside]
+    has_duration = end > begin
+    order, begin, end = order[has_duration], begin[has_duration], end[has_duration]
 
     low = torch.from_numpy(y_to_hz(y0[order].numpy(), params)).float()
     high = torch.from_numpy(y_to_hz(y1[order].numpy(), params)).float()

@@ -38,11 +38,11 @@ igual para las tres arquitecturas:
 | mAP reportadas | 0.3, 0.5 y 0.5:0.95 | `MAP_THRESHOLDS` |
 | Selección de checkpoint | F-beta con beta=2 | `BETA` |
 | Ruido reportado | falsos positivos por hora | `fp_per_hour` |
-| Score mínimo al detectar | 0.001 | `MIN_SCORE` |
-| Tope de detecciones por clip | 64 | `MAX_DETECTIONS` |
+| Score mínimo al detectar | 0.001 | `SCORE_FLOOR` |
+| Tope de detecciones por clip | 64, sólo al comparar | `EQUALIZED_MAX_DET` |
 
-`evaluate.py` evalúa cualquier checkpoint desde `data/processed/*.pt`, incluido el
-de YOLO: su adaptador rehace el PNG en memoria con la misma función que usó el
+`dump_predictions.py` evalúa cualquier checkpoint desde `data/processed/*.pt`, incluido
+el de YOLO: su adaptador rehace el PNG en memoria con la misma función que usó el
 exportador. Verificado que las imágenes salen idénticas salvo 6 píxeles por millón que
 difieren en un nivel de gris (redondeo float32 contra float64).
 
@@ -105,10 +105,12 @@ que baje de 0.05. Con el default, la cola de la curva de precisión-recall de Fa
 quedaba cortada mientras el DETR y YOLO reportaban hasta 0.001, y su AP salía
 subestimado por un default heredado. No subir ese valor de vuelta.
 
-**`MAX_DETECTIONS = 64`.** El DETR no puede emitir más cajas que sus queries (64);
+**`EQUALIZED_MAX_DET = 64`.** El DETR no puede emitir más cajas que sus queries (64);
 torchvision corta en 100 y ultralytics en 300. Sin un techo común, los dos últimos
 consiguen una cola de AP más larga por diseño y no por mérito. Ninguna ventana del
-dataset tiene más de 9 cajas anotadas, así que el recorte no pierde nada real.
+dataset tiene más de 9 cajas anotadas, así que el recorte no pierde nada real. Lo aplica
+`protocol.equalize` al comparar, no `dump_predictions.py`: el volcado guarda todo y el
+recorte es una decisión de la comparación.
 
 ## 2. Diferencias arquitectónicas inherentes
 
@@ -170,8 +172,8 @@ Si en algún momento se quiere cerrar esa brecha, hay dos caminos:
 1. Un callback `on_fit_epoch_end` en `train_yolo.py` que evalúe con
    `src/evaluation/evaluator.py` y guarde por F-beta. Correcto, pero agrega una pasada de
    validación por época.
-2. Entrenar con `save_period=1` y elegir después, offline, con `evaluate.py`. Cuesta
-   unos 2 GB de checkpoints y una evaluación por época.
+2. Entrenar con `save_period=1` y elegir después, offline, volcando cada época con
+   `dump_predictions.py`. Cuesta unos 2 GB de checkpoints y una evaluación por época.
 
 ### El umbral fijo de 0.5 no es el mismo punto de operación para los tres
 
@@ -201,7 +203,7 @@ de calibración y cuanto más alto el beta más la domina.
 **El cierre correcto es elegir el umbral por modelo sobre validación** --el que maximiza
 F-beta, o el que la maximiza sujeto a un presupuesto de `fp_per_hour`-- y reportar test en
 ese punto. Recién ahí el beta mide preferencia ecológica y no calibración. La fila a
-umbral 0.5 fijo se puede conservar como secundaria.
+umbral 0.5 fijo se puede conservar como secundaria. Eso es lo que hace la sección 4.
 
 ### La segunda: regularización asimétrica
 
@@ -212,7 +214,94 @@ La asimetría va en las dos direcciones, así que no favorece obviamente a nadie
   (`BoxJitter`: ±15% de escala y ±10% de corrimiento en los dos ejes, `min_size=0.02`), un
   regularizador sobre las etiquetas que ultralytics no expone.
 
-## 4. Reproducir la comparación
+## 4. El protocolo de comparación
+
+Las secciones anteriores describen cómo se evalúa **un** modelo. Ponerlos a todos en la
+misma tabla es otro problema, y evaluar cada corrida por separado no lo resuelve: cada una
+escribe sus métricas con el tope de detecciones de su framework y su propio umbral, y después las
+cifras se comparan como si fueran el mismo experimento. No lo son.
+
+La medición que lo muestra, sobre las exportaciones que hay hoy en `checkpoints/`:
+
+| modelo | det/ventana | cajas >= 0.5 | TP | cajas por TP | IoU de la evaluación |
+|---|---|---|---|---|---|
+| FRCNN | **22.0** | 12 447 | 6 211 | 2.00 | 0.5 |
+| DETR ts5 | 8.0 | 10 733 | 5 549 | 1.93 | 0.5 |
+| DETR ts10 | 6.0 | 10 914 | 5 446 | 2.00 | 0.5 |
+| EAT+DINO t16 | 13.1 | 5 811 | 4 678 | 1.24 | **0.3** |
+| EAT+DINO t2 | 3.9 | 5 808 | 4 757 | 1.22 | **0.3** |
+| YOLO26 | **3.1** | 6 123 | 5 021 | 1.22 | **0.3** |
+
+El presupuesto de detecciones va de 3.1 a 22.0 por ventana --un factor 7-- y el IoU de
+evaluación cambia entre grupos. Con eso, el mAP de YOLO está subestimado y el de Faster
+R-CNN inflado por construcción, y las seis filas no pertenecen a la misma tabla.
+
+### Los seis pasos
+
+**1. Se vuelcan predicciones crudas, no métricas.** `dump_predictions.py` guarda por
+ventana `{boxes, scores, labels}` con `score >= 0.001` y **sin tope**, para val y para
+test. Todas las cifras de la tesis salen después de un único script sobre esos volcados,
+así que cualquier número se puede auditar hasta la caja que lo produjo.
+
+**2. Mismo presupuesto para todos.** `equalize` recorta a `EQUALIZED_MAX_DET = 64`. Es el
+tope más bajo de los tres frameworks: el DETR no puede emitir más de 64 cajas ni queriendo,
+así que cualquier tope mayor le regala cola de curva PR a los otros dos sin que hayan
+detectado nada más. Ninguna ventana del dataset tiene más de 9 cajas anotadas.
+
+**3. Un solo IoU primario.** 0.3 como principal (la justificación está en la sección 1) y
+0.5 y 0.5:0.95 al lado, en la misma fila y para todos los modelos.
+
+**4. El umbral se elige en val, con cuatro criterios.** Barrerlo sobre test y reportar el
+mejor es ajustar un hiperparámetro contra el conjunto de reporte. Los cuatro criterios
+responden preguntas distintas y por eso se reportan los cuatro: `precision >= 0.70` (el
+objetivo declarado), `precision >= 0.50` (donde opera hoy el Faster R-CNN), `FP/h <= 100`
+(el presupuesto de quien revisa) y `max F-beta` (con el que se eligieron los checkpoints).
+Entre los umbrales que cumplen se toma el de mayor recall, no el más bajo: la precisión no
+es monótona en el umbral y "el más bajo que cumple" premia el ruido de un punto aislado.
+
+**5. IC 95% por bootstrap sobre grabaciones, no sobre ventanas.** Con ventanas de 3 s y
+salto de 1.5 s, dos vecinas comparten la mitad del audio y suelen contener la misma
+vocalización; además la calidad de la grabación (SNR, distancia, viento) es de la grabación
+entera. Remuestrear ventanas da intervalos falsamente angostos: sobre datos sintéticos con
+esa correlación adentro, un 49% más angostos (`[0.420, 0.492]` contra `[0.385, 0.527]`).
+El mapa ventana -> grabación lo escribe `prepare_data.py` junto con el caché
+(`data/processed/<split>_sources.json`). Si falta, `python src/prepare_data.py
+--sources-only` lo reescribe sin recalcular un solo mel: el manifiesto es determinista
+--misma selección de clases, mismo `SEED`, mismo `split_manifest`-- y lo caro es el
+espectrograma, no los encabezados de los audios.
+
+**6. Lo que no es detección se reporta aparte.** `as/hc` y `pt/dc` tienen medianas de 11.0 s
+y 6.7 s en ventanas de 3 s, así que su caja mediana ocupa el clip entero (ancho 1.000
+contra 0.49 de la siguiente clase). Detectarlas es clasificar la ventana, no localizar un
+evento. Van en su propio bloque y no entran al macro; la columna `mAP todas` conserva el
+número viejo para poder comparar con las tablas anteriores.
+
+### La tabla que sale
+
+```bash
+python src/dump_predictions.py --run <corrida>          # val y test, predicciones crudas
+python src/compare_models.py checkpoints/*_predictions.pt
+```
+
+`compare_models.py` escribe un `.txt` legible y un `.json` con las mismas cifras, en cuatro
+bloques que responden cuatro preguntas distintas:
+
+- **libre de umbral** (mAP@0.3, mAP@0.5, mAP@0.5:0.95): cuál modelo detecta mejor.
+- **puntos pareados**, uno por criterio: cuál conviene usar, y con qué IC.
+- **descomposición** (`evaluation/decomposition.py`): AP agnóstico de clase, IoU por eje
+  sobre lo emparejado, top-1 y acierto de género, y cuánto mAP recupera un oráculo de
+  etiquetas y uno de cajas. Responde por qué falla, que las otras dos no.
+- **clases de ventana**: recall y precisión de ventana para `as/hc` y `pt/dc`.
+
+### Lo que este protocolo no arregla
+
+Sigue en pie lo de la sección 3: el checkpoint de YOLO se eligió con `fitness` de
+ultralytics (mAP@0.5:0.95 puro) y los otros con F-beta al punto de operación. Igualar el
+umbral **no** iguala eso, porque la diferencia está en qué época se guardó. Y las recetas
+de entrenamiento siguen siendo las de cada framework. Las dos cosas se declaran al
+reportar; ninguna se puede leer como "detecta peor".
+
+## 5. Reproducir la comparación
 
 ```bash
 python src/prepare_data.py                         # data/processed/*.pt (fuente única)
@@ -223,7 +312,8 @@ python src/train.py --arch dino                    # EAT + DINO (docs/eat_dino.m
 python src/train.py --arch frcnn --device cuda:0   # Faster R-CNN
 python src/train_yolo.py --device 0                # YOLO26
 
-python src/evaluate.py --run <corrida> --split test   # los cuatro, mismo comando
+python src/dump_predictions.py --run <corrida>      # los cuatro, mismo comando
+python src/compare_models.py checkpoints/*_predictions.pt
 ```
 
 Cada corrida vive en `runs/<corrida>/`: `config.json` con todo lo que la definió,
@@ -232,20 +322,22 @@ mejor F-beta, y `last.pt`, que además lleva optimizador y scheduler--. Relanzar
 comando retoma la corrida donde se cortó; el barrido de la ablación se pide en un solo
 comando, p. ej. `python src/train.py --time-stride 10 5 2`.
 
-`evaluate.py` escribe un `.txt` legible y un `.json` con las mismas cifras, al lado del
-checkpoint. Las métricas son las mismas para todos: recall y precisión al punto de
-operación, la F-beta que elige el checkpoint, `fp_per_hour`, y mAP@0.3, mAP@0.5 y
-mAP@0.5:0.95.
+Un solo script corre el modelo y uno solo reporta. `dump_predictions.py` guarda las cajas
+crudas de val y de test al lado del checkpoint; `compare_models.py` escribe un `.txt`
+legible y un `.json` con las mismas cifras, a partir de esos volcados y sin volver a mirar
+un espectrograma. Todo lo que se reporta --el umbral por modelo, el presupuesto de
+detecciones, los intervalos, la tabla por clase-- sale del protocolo de la sección 4, y
+cualquier número se puede auditar hasta la caja que lo produjo.
 
-Para elegir el umbral por modelo (sección 3), barrerlo sobre **val** y fijar el ganador
-antes de tocar test:
+Con un solo modelo el reporte sale igual: es el mismo protocolo, sin nadie con quien
+compararlo.
 
 ```bash
-for t in 0.1 0.2 0.3 0.4 0.5 0.6 0.7; do
-  python src/evaluate.py --run <corrida> --split val --score-threshold $t
-done
+python src/dump_predictions.py --run <corrida>            # una vez por modelo, con GPU
+python src/compare_models.py checkpoints/*_predictions.pt # una vez, con todos, en CPU
 ```
 
 > Los `checkpoints/*_metrics.txt` y `.json` que están en el repo son del protocolo
-> anterior (beta=3, IoU de acierto 0.5, sin `fp_per_hour`). Hay que regenerarlos con
-> `evaluate.py` antes de usarlos en ninguna tabla.
+> anterior (beta=3, IoU de acierto 0.5, sin `fp_per_hour`) y los dejó un `evaluate.py` que
+> ya no existe. Hay que regenerarlos con los dos comandos de arriba antes de usarlos en
+> ninguna tabla.

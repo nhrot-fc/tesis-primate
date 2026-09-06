@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from core.config import SEED, P, Parameters, settings
 from core.runtime import setup_logging
+from data import cache
 from data.annotations import load_annotations
 from data.manifest import ClipWindow, build_manifest, split_manifest
 from data.species import LabelSet
@@ -23,6 +24,7 @@ MIN_PAIR_COUNT = 100
 # `JOINED_PAIRS` y `MIN_PAIR_COUNT`. `None` las conserva todas.
 MAX_CLASSES: int | None = None
 EMPTY_RATIO = 0.25
+SPLIT_RATIOS = (0.6, 0.225, 0.175)  # train / val / test, por archivo de audio
 LABEL_BY = "species/call_type"
 LABEL_COLUMN = {
     "call": lambda df: "call",
@@ -121,20 +123,31 @@ def main() -> None:
         action="store_true",
         help="regenera aunque ya haya un caché (la reconstrucción es destructiva)",
     )
+    parser.add_argument(
+        "--sources-only",
+        action="store_true",
+        help="reescribe sólo el mapa ventana -> grabación, sin recalcular un solo mel",
+    )
     args = parser.parse_args()
 
     setup_logging()
     cache_dir = settings.processed_dir
-    if (cache_dir / "meta.json").exists() and not args.force:
+    if (cache_dir / "meta.json").exists() and not (args.force or args.sources_only):
         raise SystemExit(f"ya hay un caché en {cache_dir}; pasá --force para regenerarlo.")
 
     experiment_df, labels = select_experiment()
     manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
     train_m, val_m, test_m = split_manifest(
-        manifest, n_classes=len(labels), seed=SEED, ratios=(0.6, 0.225, 0.175)
+        manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS
     )
 
     cache_dir.mkdir(parents=True, exist_ok=True)
+    if args.sources_only:
+        for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
+            cache.write_sources(name, split)
+            logger.info("%s: %d ventanas -> %s", name, len(split), cache.sources_path(name))
+        return
+
     (cache_dir / "meta.json").unlink(missing_ok=True)
     (cache_dir / "labels.json").write_text(
         json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False)
@@ -144,6 +157,7 @@ def main() -> None:
     db_range: list[float] = []
     for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
         logger.info("%s: materializando %d ventanas...", name, len(split))
+        cache.write_sources(name, split)  # ventana -> grabación, para el IC por grabación
         windows = build_dataset(split)
         images: torch.Tensor = windows["images"]
         if name == "train":

@@ -77,7 +77,7 @@ def check_export() -> dict:
 
 def export_checkpoint(run_dir: Path, weights: Path, meta: dict, config: dict) -> Path:
     # Ultralytics guarda el modelo pickleado; el registro guarda arquitectura,
-    # hiperparámetros y `state_dict`, que es lo que `evaluate.py` y el viewer abren.
+    # hiperparámetros y `state_dict`, que es lo que `dump_predictions.py` y el viewer abren.
     labels = cache.labels()
     hparams = {
         "model": Path(config["model"]).stem,
@@ -97,7 +97,7 @@ def export_checkpoint(run_dir: Path, weights: Path, meta: dict, config: dict) ->
         labels=labels,
         config=config,
         epoch=config["epochs"] - 1,
-        metrics={},  # las de Ultralytics están en results.csv; las comparables salen de evaluate.py
+        metrics={},  # las de Ultralytics están en results.csv; las comparables, de compare_models.py
     )
     return path
 
@@ -155,7 +155,7 @@ def main() -> None:
     }
     checkpoint = export_checkpoint(run_dir, run_dir / "weights" / "best.pt", meta, config)
     logger.info("checkpoint -> %s", checkpoint)
-    logger.info("evaluá con: python src/evaluate.py --run %s --split test", name)
+    logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", name)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from typing import NamedTuple
 
 import torch
@@ -7,17 +8,16 @@ from torchvision.ops import box_convert, box_iou
 
 from core.config import P
 
-Overlaps = list[tuple[list[int], Tensor]]  # por clip: (filas de predictions, matriz P x G)
-
 MATCH_IOU = 0.3
 COCO_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
 MAP_THRESHOLDS: tuple[float, ...] = (MATCH_IOU, *COCO_THRESHOLDS)
 BETA = 2.0
+SCORE_FLOOR = 0.001
 
 
 class Boxes(NamedTuple):
-    boxes: Tensor  # (N, 4) cxcywh normalizado
-    image_ids: Tensor  # (N,) id del clip, no de la posición en el batch
+    boxes: Tensor
+    image_ids: Tensor
     labels: Tensor
     scores: Tensor
 
@@ -25,16 +25,24 @@ class Boxes(NamedTuple):
         return Boxes(*(field[index] for field in self))
 
 
+class ImageOverlap(NamedTuple):
+    prediction_rows: list[int]
+    truth_rows: list[int]
+    iou: Tensor
+
+
+Overlaps = list[ImageOverlap]
+PerClassAP = dict[int, float | None]
+
+
 class DetectionMetrics(NamedTuple):
-    recall: float | None  # agnóstico de clase, al punto de operación
+    recall: float | None
     precision: float | None
     f_beta: float | None
-    fp_per_hour: float | None  # cuánto ruido cuesta ese recall, en unidades revisables
-    map_30: float | None  # mAP por clase con IoU >= `MATCH_IOU`
-    map_50: float | None  # la misma, con IoU >= 0.5
-    map_50_95: float | None  # promediada sobre `COCO_THRESHOLDS`
-    recall_per_class: dict[int, float | None]
-    ap_per_class: dict[int, float | None]  # a `MATCH_IOU`, igual que el recall
+    fp_per_hour: float | None
+    map_30: float | None
+    map_50: float | None
+    map_50_95: float | None
     n_gt: int
     n_predictions: int
     n_above_threshold: int
@@ -47,16 +55,12 @@ def f_beta(precision: float | None, recall: float | None, beta: float = BETA) ->
 
 
 def false_positives_per_hour(false_positives: int, n_images: int) -> float | None:
-    # Por hora de audio procesado: cada ventana son `clip_len_s` que el modelo miró. No es
-    # la tasa de campo --el split lleva un 25% de ventanas vacías y una grabación real
-    # tiene muchísimas más--, pero es la misma vara para los tres detectores y está en la
-    # unidad en la que se decide: cuántos recortes tiene que descartar alguien por hora.
     hours = n_images * P.clip_len_s / 3600
     return false_positives / hours if hours else None
 
 
 def concat(chunks: list[Boxes]) -> Boxes:
-    if not chunks:  # loader vacío: métricas indefinidas, no un TypeError
+    if not chunks:
         return Boxes(torch.zeros(0, 4), *(torch.zeros(0) for _ in range(3)))
     return Boxes(*(torch.cat(fields).cpu() for fields in zip(*chunks, strict=True)))
 
@@ -80,32 +84,42 @@ def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool = False) -> Ove
     truth_xyxy = box_convert(truth.boxes, "cxcywh", "xyxy")
     truth_rows = rows_by_image(truth.image_ids)
 
-    matrices: Overlaps = []
+    per_image: Overlaps = []
     for image_id, rows in rows_by_image(predictions.image_ids).items():
         columns = truth_rows.get(image_id)
         if columns is None:
             continue
-        matrix = box_iou(predicted_xyxy[rows], truth_xyxy[columns])
+        iou = box_iou(predicted_xyxy[rows], truth_xyxy[columns])
         if class_aware:
-            same = predictions.labels[rows][:, None] == truth.labels[columns][None, :]
-            matrix = matrix.masked_fill(~same, -1.0)
-        matrices.append((rows, matrix))
-    return matrices
+            same_class = predictions.labels[rows][:, None] == truth.labels[columns][None, :]
+            iou = iou.masked_fill(~same_class, -1.0)
+        per_image.append(ImageOverlap(rows, columns, iou))
+    return per_image
 
 
-def hits(matrices: Overlaps, n_predictions: int, iou_threshold: float) -> Tensor:
-    found = torch.zeros(n_predictions)
-    for rows, matrix in matrices:
-        available = matrix.masked_fill(matrix < iou_threshold, -1.0)
+def assignments(per_image: Overlaps, iou_threshold: float) -> list[tuple[int, int]]:
+    pairs: list[tuple[int, int]] = []
+    for overlap in per_image:
+        available = overlap.iou.masked_fill(overlap.iou < iou_threshold, -1.0)
         for _ in range(available.shape[1]):
             best = available.max(dim=1)
             candidates = best.values >= iou_threshold
             if not candidates.any():
                 break
-            row = int(candidates.to(torch.uint8).argmax())  # la de mayor score
-            found[rows[row]] = 1.0
-            available[row] = -1.0  # una predicción cuenta por un solo GT
-            available[:, int(best.indices[row])] = -1.0  # y un GT se consume una vez
+            highest_scoring = int(candidates.to(torch.uint8).argmax())
+            claimed_truth = int(best.indices[highest_scoring])
+            pairs.append(
+                (overlap.prediction_rows[highest_scoring], overlap.truth_rows[claimed_truth])
+            )
+            available[highest_scoring] = -1.0
+            available[:, claimed_truth] = -1.0
+    return pairs
+
+
+def hits(per_image: Overlaps, n_predictions: int, iou_threshold: float) -> Tensor:
+    found = torch.zeros(n_predictions)
+    for prediction_row, _ in assignments(per_image, iou_threshold):
+        found[prediction_row] = 1.0
     return found
 
 
@@ -116,33 +130,54 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
         return 0.0
     recall = found.cumsum(0) / n_gt
     precision = found.cumsum(0) / torch.arange(1, len(found) + 1)
-    return float(((recall - torch.cat([recall.new_zeros(1), recall[:-1]])) * precision).sum())
+    previous_recall = torch.cat([recall.new_zeros(1), recall[:-1]])
+    return float(((recall - previous_recall) * precision).sum())
+
+
+def class_average_precision(predictions: Boxes, truth: Boxes, class_id: int) -> float | None:
+    class_predictions = predictions.select(predictions.labels == class_id)
+    class_truth = truth.select(truth.labels == class_id)
+    return average_precision(
+        hits(overlaps(class_predictions, class_truth), len(class_predictions.boxes), MATCH_IOU),
+        len(class_truth.boxes),
+    )
 
 
 def average_precision_per_class(
     predictions: Boxes, truth: Boxes, n_classes: int
-) -> dict[float, dict[int, float | None]]:
-    # Una predicción sólo puede acertarle a un GT de su misma clase, y las clases sin
-    # anotaciones quedan en `None` para no entrar al promedio (COCO).
-    per_threshold: dict[float, dict[int, float | None]] = {t: {} for t in MAP_THRESHOLDS}
+) -> dict[float, PerClassAP]:
+    per_threshold: dict[float, PerClassAP] = {t: {} for t in MAP_THRESHOLDS}
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
         class_truth = truth.select(truth.labels == class_id)
-        # El solape se calcula una vez por clase y se reusa en los diez umbrales.
-        matrices = overlaps(class_predictions, class_truth)
-        n_gt = len(class_truth.boxes)
-        n_predictions = len(class_predictions.boxes)
+        per_image = overlaps(class_predictions, class_truth)
         for threshold in MAP_THRESHOLDS:
             per_threshold[threshold][class_id] = average_precision(
-                hits(matrices, n_predictions, threshold), n_gt
+                hits(per_image, len(class_predictions.boxes), threshold), len(class_truth.boxes)
             )
     return per_threshold
 
 
-def mean_average_precision(ap_per_class: dict[int, float | None]) -> float | None:
-    # Sólo promedian las clases con cajas anotadas; las demás no puntúan.
-    values = [ap for ap in ap_per_class.values() if ap is not None]
-    return sum(values) / len(values) if values else None
+def mean_average_precision(
+    ap_per_class: PerClassAP, classes: Iterable[int] | None = None
+) -> float | None:
+    selected = ap_per_class if classes is None else {c: ap_per_class[c] for c in classes}
+    scored = [ap for ap in selected.values() if ap is not None]
+    return sum(scored) / len(scored) if scored else None
+
+
+def mean_average_precision_over(
+    ap: dict[float, PerClassAP],
+    thresholds: Iterable[float],
+    classes: Iterable[int] | None = None,
+) -> float | None:
+    classes = None if classes is None else list(classes)
+    scored = [
+        value
+        for value in (mean_average_precision(ap[threshold], classes) for threshold in thresholds)
+        if value is not None
+    ]
+    return sum(scored) / len(scored) if scored else None
 
 
 def detection_metrics(
@@ -154,45 +189,25 @@ def detection_metrics(
     score_threshold: float = 0.5,
     beta: float = BETA,
 ) -> DetectionMetrics:
-    # `predictions` tiene que venir ordenado por score descendente (`sort_by_score`).
     n_gt = len(truth.boxes)
     n_predictions = len(predictions.boxes)
-    # `k` = detecciones sobre el punto de operación; como están ordenadas por score, son
-    # las primeras k y `found[:k]` es su resultado sin necesidad de rehacer el greedy.
-    k = int((predictions.scores >= score_threshold).sum())
+    n_above_threshold = int((predictions.scores >= score_threshold).sum())
 
-    tp = int(hits(overlaps(predictions, truth), n_predictions, iou_threshold)[:k].sum())
-    recall = tp / n_gt if n_gt else None
-    precision = tp / k if k else None
-
-    class_hits = hits(overlaps(predictions, truth, class_aware=True), n_predictions, iou_threshold)
-    predicted_labels = predictions.labels[:k]
-    recall_per_class: dict[int, float | None] = {}
-    for class_id in range(n_classes):
-        class_gt = int((truth.labels == class_id).sum())
-        recall_per_class[class_id] = (
-            float(class_hits[:k][predicted_labels == class_id].sum()) / class_gt
-            if class_gt
-            else None
-        )
+    found = hits(overlaps(predictions, truth), n_predictions, iou_threshold)
+    true_positives = int(found[:n_above_threshold].sum())
+    recall = true_positives / n_gt if n_gt else None
+    precision = true_positives / n_above_threshold if n_above_threshold else None
 
     ap = average_precision_per_class(predictions, truth, n_classes)
-    # La mAP50-95 promedia sólo los umbrales de COCO: `MATCH_IOU` es un punto aparte, no
-    # el primero de esa escalera.
-    per_threshold = [mean_average_precision(ap[threshold]) for threshold in COCO_THRESHOLDS]
-    scored = [value for value in per_threshold if value is not None]
-
     return DetectionMetrics(
         recall=recall,
         precision=precision,
         f_beta=f_beta(precision, recall, beta),
-        fp_per_hour=false_positives_per_hour(k - tp, n_images),
+        fp_per_hour=false_positives_per_hour(n_above_threshold - true_positives, n_images),
         map_30=mean_average_precision(ap[MATCH_IOU]),
         map_50=mean_average_precision(ap[0.5]),
-        map_50_95=sum(scored) / len(scored) if scored else None,
-        recall_per_class=recall_per_class,
-        ap_per_class=ap[MATCH_IOU],
+        map_50_95=mean_average_precision_over(ap, COCO_THRESHOLDS),
         n_gt=n_gt,
         n_predictions=n_predictions,
-        n_above_threshold=k,
+        n_above_threshold=n_above_threshold,
     )

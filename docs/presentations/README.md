@@ -9,9 +9,14 @@ Estructura: conjunto y tarea · desbalance por clase · tabla de las cuatro
 arquitecturas · resultados duros (val y test) · frontera de Pareto
 recall--precisión · limitaciones de cada enfoque.
 
-Las cifras **no se escriben a mano**: salen de los `.json` que deja `src/evaluate.py`
-al lado de cada checkpoint. Si se reevalúa un modelo, se vuelve a correr el script y
-se recompila.
+Las cifras **no se escriben a mano**: salen de los `.json` de evaluación. Si se reevalúa
+un modelo, se vuelve a correr el script y se recompila.
+
+> **Pendiente.** `make_figures.py` todavía lee `checkpoints/*_{val,test}_metrics.json`,
+> que los dejaba `src/evaluate.py`. Ese script ya no existe: ahora hay un solo reporte,
+> `comparacion_modelos.json` de `src/compare_models.py`, con las mismas métricas más el
+> punto pareado, los IC y la tabla por clase. Hay que repuntar `make_figures.py` a ese
+> `.json` antes de regenerar las figuras.
 
 ```bash
 python docs/presentations/make_figures.py            # desde la raíz del repo
