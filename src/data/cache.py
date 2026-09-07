@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import NamedTuple
 
 from core.config import settings
-from data.datasets import WindowCache
 from data.manifest import ClipWindow
 from data.species import LabelSet
 
@@ -40,6 +39,7 @@ def db_range() -> tuple[float, float]:
 class Sources(NamedTuple):
     recordings: list[str]
     recording_of_window: list[int]
+    clip_start_s: list[float]
 
 
 def sources_path(split: str) -> Path:
@@ -50,24 +50,29 @@ def write_sources(split: str, manifest: Sequence[ClipWindow]) -> Sources:
     names: dict[str, int] = {}
     for window in manifest:
         names.setdefault(window.audio_path, len(names))
-    found = Sources(list(names), [names[window.audio_path] for window in manifest])
+    found = Sources(
+        list(names),
+        [names[window.audio_path] for window in manifest],
+        [window.clip_start_s for window in manifest],
+    )
     sources_path(split).write_text(json.dumps(found._asdict(), indent=2, ensure_ascii=False))
     return found
 
 
-def sources(split: str, windows: WindowCache) -> Sources:
+def sources(split: str, n_windows: int) -> Sources:
     path = sources_path(split)
-    if not path.exists():
-        raise FileNotFoundError(
-            f"falta {path}. Corré `python src/prepare_data.py --sources-only`, que lo reescribe "
-            "sin recalcular un solo mel."
-        )
-
-    found = Sources(**json.loads(path.read_text()))
-    if len(found.recording_of_window) != len(windows.boxes):
+    stored = json.loads(path.read_text()) if path.exists() else {}
+    if sorted(stored) != sorted(Sources._fields) or len(stored["recording_of_window"]) != n_windows:
         raise RuntimeError(
-            f"{path} tiene {len(found.recording_of_window)} ventanas y {split_path(split)} tiene "
-            f"{len(windows.boxes)}: son de versiones distintas de prepare_data.py. Reescribilo con "
-            "`python src/prepare_data.py --sources-only`."
+            f"{path} no describe las {n_windows} ventanas de {split_path(split)}; reescribilo con "
+            "`python src/prepare_data.py --sources-only`, que no recalcula un solo mel."
         )
-    return found
+    return Sources(**stored)
+
+
+def clips(split: str, n_windows: int) -> list[tuple[str, float]]:
+    found = sources(split, n_windows)
+    return [
+        (found.recordings[recording], start)
+        for recording, start in zip(found.recording_of_window, found.clip_start_s, strict=True)
+    ]

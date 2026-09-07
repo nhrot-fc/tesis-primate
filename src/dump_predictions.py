@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
 
 def load_split(split: str, limit: int | None) -> tuple[SpectrogramDataset, cache.Sources]:
     dataset = SpectrogramDataset(cache.split_path(split))
-    sources = cache.sources(split, dataset)
+    sources = cache.sources(split, len(dataset.boxes))
     if limit:
         dataset.images = dataset.images[:limit]
     return dataset, sources
@@ -57,14 +57,24 @@ def main() -> None:
 
     for split in args.splits:
         dataset, sources = load_split(split, args.limit)
-        predictions, truth, n_images = collect_detections(
-            loaded.detect,
-            make_loader(dataset, args.batch_size),
-            device,
-            nms_iou=nms_iou,
-            max_detections=None,
-            desc=split,
-        )
+        batch_size = args.batch_size
+        while True:
+            try:
+                predictions, truth, n_images = collect_detections(
+                    loaded.detect,
+                    make_loader(dataset, batch_size),
+                    device,
+                    nms_iou=nms_iou,
+                    max_detections=None,
+                    desc=split,
+                )
+                break
+            except torch.OutOfMemoryError:
+                if batch_size == 1:
+                    raise
+                batch_size //= 2
+                logger.warning("%s %s: sin VRAM, reintento con batch %d", name, split, batch_size)
+            torch.cuda.empty_cache()  # fuera del `except`: recién ahí se soltó el traceback
         present, recordings = torch.unique(
             torch.tensor(sources.recording_of_window[:n_images]), return_inverse=True
         )

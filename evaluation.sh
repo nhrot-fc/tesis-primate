@@ -48,9 +48,10 @@ for name in "${names[@]}"; do
 
   # Un volcado más viejo que su checkpoint quedó de un entrenamiento anterior.
   pending=()
+  paths=()
   for split in "${SPLITS[@]}"; do
     dump="$RUNS_DIR/$name/${name}_${split}_predictions.pt"
-    dumps+=("$dump")
+    paths+=("$dump")
     if [ -n "${FORCE:-}" ] || [ ! -f "$dump" ] || [ "$checkpoint" -nt "$dump" ]; then
       pending+=("$split")
     fi
@@ -60,8 +61,13 @@ for name in "${names[@]}"; do
     printf 'volcados al día: %s\n' "$name"
   else
     printf '\n== volcando %s (%s) ==\n' "$name" "${pending[*]}"
-    "$UV" run python src/dump_predictions.py --run "$name" --splits "${pending[@]}" "${extra[@]}"
+    # Que una corrida se caiga no puede dejar sin comparación a las que sí volcaron.
+    if ! "$UV" run python src/dump_predictions.py --run "$name" --splits "${pending[@]}" "${extra[@]}"; then
+      printf 'salto %s: el volcado falló\n' "$name" >&2
+      continue
+    fi
   fi
+  dumps+=("${paths[@]}")
 done
 
 if [ ${#dumps[@]} -eq 0 ]; then

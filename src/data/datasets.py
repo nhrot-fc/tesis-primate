@@ -6,6 +6,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
+from data import cache
+from data.augment import AugmentConfig, Augmenter
 from utils.audio import mel_to_gray
 from utils.boxes import Target, to_pixel_xyxy
 
@@ -53,32 +55,45 @@ def jitter_boxes(boxes: Tensor, jitter: BoxJitter) -> Tensor:
 
 
 class WindowCache(Dataset):
-    def __init__(self, path: Path, jitter: BoxJitter | None = None):
-        cache = torch.load(path, weights_only=False)
-        self.images: Tensor = cache["images"]
-        self.boxes: list[Tensor] = cache["boxes"]
-        self.labels: list[Tensor] = cache["labels"]
+    def __init__(
+        self,
+        path: Path,
+        jitter: BoxJitter | None = None,
+        augment: AugmentConfig | None = None,
+    ):
+        stored = torch.load(path, weights_only=False)
+        self.images: Tensor = stored["images"]
+        self.boxes: list[Tensor] = stored["boxes"]
+        self.labels: list[Tensor] = stored["labels"]
         self.jitter = jitter  # sólo en train: validar contra cajas perturbadas no sirve
+        self.augmenter = None
+        if augment is not None:
+            clips = cache.clips(path.stem, len(self.boxes))
+            self.augmenter = Augmenter(self.images, self.boxes, self.labels, clips, augment)
 
     def __len__(self) -> int:
         return len(self.images)
 
-    def target(self, index: int) -> Target:
-        boxes = self.boxes[index]
+    def window(self, index: int) -> tuple[Tensor, Target]:
+        if self.augmenter is None:
+            image = self.images[index]
+            target: Target = {"boxes": self.boxes[index], "labels": self.labels[index]}
+        else:
+            image, target = self.augmenter(index)
         if self.jitter is not None:
-            boxes = jitter_boxes(boxes, self.jitter)
-        return {"boxes": boxes, "labels": self.labels[index]}
+            target["boxes"] = jitter_boxes(target["boxes"], self.jitter)
+        return image, target
 
 
 class SpectrogramDataset(WindowCache):
     def __getitem__(self, index: int) -> tuple[Tensor, Target]:
-        return self.images[index], self.target(index)
+        return self.window(index)
 
 
 class FasterRCNNDataset(SpectrogramDataset):
     def __getitem__(self, index: int) -> tuple[Tensor, Target]:
-        target = self.target(index)
-        return self.images[index], {
+        image, target = self.window(index)
+        return image, {
             "boxes": to_pixel_xyxy(target["boxes"]),
             "labels": target["labels"].to(torch.int64) + 1,  # la 0 es el fondo
         }
@@ -90,8 +105,8 @@ class YOLODataset(WindowCache):
         self.db_low, self.db_high, self.image_size = db_low, db_high, image_size
 
     def __getitem__(self, index: int) -> tuple[np.ndarray, list[str]]:
-        image = mel_to_gray(self.images[index][0], self.db_low, self.db_high, self.image_size)
-        target = self.target(index)
+        mel, target = self.window(index)
+        image = mel_to_gray(mel[0], self.db_low, self.db_high, self.image_size)
         lines = []
         for (cx, cy, w, h), class_id in zip(
             target["boxes"].tolist(), target["labels"].tolist(), strict=True

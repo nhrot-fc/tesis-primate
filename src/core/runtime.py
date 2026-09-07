@@ -32,5 +32,5 @@ def set_seed(seed: int = SEED) -> None:
 def resolve_device(requested: str | None = None) -> str:
     device = requested or ("cuda" if torch.cuda.is_available() else "cpu")
     if device.startswith("cuda"):
-        torch.cuda.set_device(device)
+        torch.cuda.set_device(torch.device(device).index or 0)
     return device

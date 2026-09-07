@@ -58,6 +58,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default=None, help="'cuda', 'cuda:1', 'cpu'")
     parser.add_argument("--limit", type=int, default=None, help="usa sólo N ventanas (pruebas)")
     parser.add_argument(
+        "--no-augment", action="store_true", help="entrena sin aumentación del mel (ablación)"
+    )
+    parser.add_argument(
         "--name", default=None, help="nombre de la corrida; por defecto, la ablación"
     )
 
@@ -152,7 +155,9 @@ def train_one(
 
     # Train va en el formato que consume el modelo; val siempre en el canónico, que es el
     # espacio en el que se miden las métricas y en el que los tres son comparables.
-    train_set = architecture(arch).dataset(cache.split_path("train"), jitter=config.jitter)
+    train_set = architecture(arch).dataset(
+        cache.split_path("train"), jitter=config.jitter, augment=config.augment
+    )
     val_set = SpectrogramDataset(cache.split_path("val"))
     if args.limit:
         train_set = Subset(train_set, range(min(args.limit, len(train_set))))
@@ -190,6 +195,8 @@ def main() -> None:
         "workers": args.workers,
     }
     config = replace(config, **{k: v for k, v in overrides.items() if v is not None})
+    if args.no_augment:
+        config = replace(config, augment=None)
 
     runs = variants(args)
     logger.info("device: %s | %d corrida(s): %s", device, len(runs), [name for name, _ in runs])

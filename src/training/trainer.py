@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from core.config import SEED
+from data.augment import AugmentConfig
 from data.datasets import BoxJitter, to_device
 from data.species import LabelSet
 from evaluation.evaluator import evaluate
@@ -36,6 +37,7 @@ class TrainConfig:
     nms_iou: float = 0.3
     beta: float = BETA  # el de la F-beta que elige el checkpoint
     jitter: BoxJitter | None = BoxJitter()  # aumentación de cajas, sólo en train
+    augment: AugmentConfig | None = AugmentConfig()
 
 
 # Todo detector devuelve pérdidas con `model(imágenes, targets)` y cajas con su `detect`,
@@ -119,9 +121,6 @@ class Trainer:
         return {key.removeprefix("loss_"): value / n for key, value in totals.items()}
 
     def validate(self, desc: str) -> DetectionMetrics:
-        # `detect` corre el modelo en el modo en que esté, así que el modo es de quien
-        # llama: validar en `train()` deja el dropout activo y la BatchNorm midiendo --y
-        # actualizando sus running stats-- con los datos de validación.
         self.model.eval()
         try:
             return evaluate(
@@ -180,9 +179,6 @@ class Trainer:
 
             logger.info("[%4s] loss=%.3f %s", progress, losses["total"], format_line(val))
             self.record_epoch(epoch, learning_rate, losses, val)
-
-            # `best.pt` primero: si el proceso muere entre los dos, `last.pt` no queda
-            # afirmando un mejor score que en disco no existe.
             if score > best_score:
                 best_score, best = score, val
                 self.save_checkpoint(checkpoint.BEST, epoch, val)
