@@ -1,88 +1,76 @@
 import numpy as np
 import pandas as pd
 
-from clod.cluster import clusters, corners
-from clod.quality import quality, reduce
+from clod.cluster import BOX_COLUMNS, corners, single_linkage
+from clod.quality import multilabel, quality
 
-IOU = 0.5  # umbral de agrupamiento, el que el paper reporta como mejor
-CATEGORY = "Species"
-SINGLE_CLASS = "objeto"  # deteccion agnostica: todo cae en una sola clase
+IOU_THRESHOLD = 0.5
+TOP = 0.05
+CATEGORY, SCORE = "species", "score"
 
 SOURCE, ANNOTATION, PREDICTION = "Origen", "anotación", "modelo"
-ISSUE, QUALITY = "Hallazgo", "Calidad"
-
-# Los cuatro errores del paper, en el orden en que se deciden.
-ISSUES = {
-    "spurious": "caja anotada que el modelo no ve",
-    "missing": "caja que el modelo ve y no está anotada",
-    "location": "caja mal ubicada",
-    "label": "etiqueta cambiada",
-}
+ISSUE, QUALITY, CLUSTER = "Hallazgo", "Calidad", "Grupo"
+SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 
 
 def scan(
     annotations: pd.DataFrame,
     predictions: pd.DataFrame,
-    iou: float = IOU,
-    threshold: float = 1.0,
-    top_n: int | None = None,
-    group: str | None = None,
+    group: str,
+    iou_threshold: float = IOU_THRESHOLD,
     category: str = CATEGORY,
 ) -> pd.DataFrame:
     boxes = pd.concat(
-        [annotations.assign(**{SOURCE: ANNOTATION}), predictions.assign(**{SOURCE: PREDICTION})],
+        [
+            annotations.assign(**{SOURCE: ANNOTATION, SCORE: 0.0}),
+            predictions.assign(**{SOURCE: PREDICTION}),
+        ],
         ignore_index=True,
     )
+    absent = [name for name in [*BOX_COLUMNS, category, group] if name not in boxes]
+    if absent:
+        raise KeyError(f"faltan columnas: {absent}")
+    incomplete = [name for name in (category, SCORE) if boxes[name].isna().any()]
+    if incomplete:
+        raise ValueError(f"hay cajas sin {incomplete}")
+
     annotated = (boxes[SOURCE] == ANNOTATION).to_numpy()
-    scores = (
-        boxes["Score"].to_numpy(dtype=float)
-        if "Score" in boxes.columns
-        else np.full(len(boxes), np.nan)
+    class_of_box, classes = pd.factorize(boxes[category])
+
+    within_group = np.zeros(len(boxes), dtype=np.int64)
+    for _, rows in boxes.groupby(group, sort=False):
+        within_group[rows.index] = single_linkage(corners(rows), iou_threshold)
+    cluster_of_box = pd.factorize(pd.MultiIndex.from_arrays([boxes[group], within_group]))[0]
+
+    labelled, predicted = multilabel(
+        cluster_of_box, class_of_box, boxes[SCORE].to_numpy(), len(classes), annotated
     )
-    scores = np.where(annotated, np.nan, scores)
-    names = (
-        boxes[category] if category in boxes.columns else pd.Series(SINGLE_CLASS, index=boxes.index)
-    )
+    n_clusters = len(labelled)
 
-    # El paper exige que las clases predichas esten entre las anotadas; aqui basta con
-    # darle columna propia a cada clase, que da lo mismo cuando esa condicion se cumple.
-    classes, categories = np.unique(names.to_numpy(dtype=str), return_inverse=True)
+    has_annotation, has_prediction = np.zeros(n_clusters, bool), np.zeros(n_clusters, bool)
+    np.logical_or.at(has_annotation, cluster_of_box, annotated)
+    np.logical_or.at(has_prediction, cluster_of_box, ~annotated)
+    class_present = np.zeros((n_clusters, len(classes)), bool)
+    np.logical_or.at(class_present, (cluster_of_box, class_of_box), True)
 
-    # 1. Agrupamiento por IoU, cada grabacion por separado.
-    keys = boxes[group] if group is not None else pd.Series(0, index=boxes.index)
-    groups = np.zeros(len(boxes), dtype=np.int64)
-    offset = 0
-    for _, rows in boxes.groupby(keys, sort=False):
-        local = clusters(corners(rows), iou)
-        groups[rows.index] = local + offset
-        offset += int(local.max()) + 1 if len(local) else 0
-
-    # 2. Reduccion a multietiqueta y calidad por grupo (confident learning).
-    truth, probs = reduce(groups, categories, scores, len(classes))
-    scored = quality(truth, probs)
-
-    # 3. Que clase de error es cada grupo. Un grupo con anotacion y prediccion esta mal
-    # ubicado si todas sus cajas comparten clase, y mal etiquetado si no.
-    n = len(scored)
-    with_annotations, with_predictions = np.zeros(n, bool), np.zeros(n, bool)
-    np.logical_or.at(with_annotations, groups, annotated)
-    np.logical_or.at(with_predictions, groups, ~annotated)
-    present = np.zeros((n, len(classes)), bool)
-    np.logical_or.at(present, (groups, categories), True)
-    issue = np.where(
-        ~with_predictions,
-        "spurious",
-        np.where(
-            ~with_annotations, "missing", np.where(present.sum(axis=1) <= 1, "location", "label")
-        ),
+    issue_of_cluster = np.select(
+        [~has_prediction, ~has_annotation, class_present.sum(axis=1) > 1],
+        [SPURIOUS, MISSING, LABEL],
+        default=LOCATION,
     )
 
-    # 4. De cada grupo sospechoso se marca la caja que hay que corregir: la anotacion,
-    # salvo cuando falta, que ahi lo unico que existe es la prediccion.
-    boxes[QUALITY] = scored[groups]
-    boxes[ISSUE] = issue[groups]
-    keep = (boxes[QUALITY] <= threshold) & np.where(
-        issue[groups] == "missing", ~annotated, annotated
-    )
-    found = boxes.loc[keep].sort_values(QUALITY, kind="mergesort").reset_index(drop=True)
-    return found if top_n is None else found.head(top_n)
+    boxes[CLUSTER] = cluster_of_box
+    boxes[QUALITY] = quality(labelled, predicted)[cluster_of_box]
+    boxes[ISSUE] = issue_of_cluster[cluster_of_box]
+
+    proposal = boxes.loc[~annotated].groupby(CLUSTER)[SCORE].idxmax()
+    keep = annotated | (boxes[ISSUE].eq(MISSING) & boxes.index.isin(proposal))
+    return boxes[keep].sort_values(QUALITY, kind="mergesort").reset_index(drop=True)
+
+
+def rank(found: pd.DataFrame, top: float = TOP, category: str = CATEGORY) -> pd.DataFrame:
+    one_per_cluster = found.drop_duplicates(subset=[CLUSTER, category])
+    issues = one_per_cluster[ISSUE]
+    position = one_per_cluster.groupby(ISSUE).cumcount()
+    quota = np.maximum(1, np.round(top * issues.map(issues.value_counts())))
+    return one_per_cluster[position < quota]
