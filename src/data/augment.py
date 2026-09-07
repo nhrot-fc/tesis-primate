@@ -10,6 +10,8 @@ from utils.audio import load_clip, mel_spectrogram
 from utils.boxes import Target, to_pixel_xyxy, to_unit_cxcywh
 
 MIN_EVENT_FRAMES = 2
+FLOOR_QUANTILE = 0.25
+FLOOR_CHUNK = 256
 
 
 @dataclass(frozen=True)
@@ -17,24 +19,22 @@ class AugmentConfig:
     p_gain: float = 0.8
     gain_db: tuple[float, float] = (-6.0, 6.0)
 
-    p_mix: float = 0.25
-    mix_range: tuple[float, float] = (0.3, 0.7)
-
     p_background: float = 0.5
-    snr_db: tuple[float, float] = (3.0, 20.0)
+    snr_db: tuple[float, float] = (6.0, 24.0)
 
     p_shift: float = 0.5
-    max_shift: float = 0.25
+    max_shift: float = 0.10
     min_overlap: float = 0.5
 
     p_paste: float = 0.5
     max_events: int = 3
     max_event_area: float = 0.25
-    paste_gain_db: tuple[float, float] = (-6.0, 3.0)
+    paste_jitter_db: tuple[float, float] = (-3.0, 3.0)
     paste_max_iou: float = 0.3
 
-    p_mask: float = 0.4
-    mask_event_frac: float = 0.25
+
+def band_floor(mel: Tensor) -> Tensor:
+    return mel.quantile(FLOOR_QUANTILE, dim=-1, keepdim=True)
 
 
 class EventBank:
@@ -53,23 +53,29 @@ class EventBank:
             corners[:, 2:].ceil().to(torch.int64), torch.tensor([n_frames, n_mels])
         )
         duration, bandwidth = (high - low).unbind(1)
+
+        by_band = torch.cat([band_floor(chunk) for chunk in images.split(FLOOR_CHUNK)])[:, 0, :, 0]
+        cumulative = torch.cat([by_band.new_zeros(len(by_band), 1), by_band.cumsum(1)], dim=1)
+        spanned = cumulative[window_of_box, high[:, 1]] - cumulative[window_of_box, low[:, 1]]
+        floors = spanned / bandwidth.clamp_min(1)
+
         pasteable = (
             (duration >= MIN_EVENT_FRAMES)
             & (duration < n_frames)
             & (bandwidth > 0)
+            & (floors > 0)
             & (every_box[:, 2] * every_box[:, 3] <= max_area)
         )
 
+        window = window_of_box[pasteable].tolist()
+        starts = low[pasteable].tolist()
+        ends = high[pasteable].tolist()
         self.patches = [
             images[index, 0, f0:f1, t0:t1]
-            for index, (t0, f0), (t1, f1) in zip(
-                window_of_box[pasteable].tolist(),
-                low[pasteable].tolist(),
-                high[pasteable].tolist(),
-                strict=True,
-            )
+            for index, (t0, f0), (t1, f1) in zip(window, starts, ends, strict=True)
         ]
-        self.rows = low[pasteable, 1].tolist()
+        self.rows = [f0 for _, f0 in starts]
+        self.floors = floors[pasteable]
         self.labels = torch.cat(labels)[pasteable]
         weights = 1 / self.labels.bincount()[self.labels]
         self.probs = weights / weights.sum()
@@ -79,20 +85,23 @@ def shift_boxes(
     boxes: Tensor, labels: Tensor, delta: float, min_overlap: float
 ) -> tuple[Tensor, Tensor]:
     widths = boxes[:, 2:3]
-    laps = boxes.new_tensor([-1.0, 0.0, 1.0])
-    starts = boxes[:, :1] - widths / 2 + delta + laps
+    starts = boxes[:, :1] - widths / 2 + delta
     low, high = starts.clamp(0.0, 1.0), (starts + widths).clamp(0.0, 1.0)
 
-    keep = (high - low) >= min_overlap * widths
-    origin = keep.nonzero()[:, 0]
-    low, high = low[keep], high[keep]
-    moved = torch.stack([(low + high) / 2, boxes[origin, 1], high - low, boxes[origin, 3]], dim=1)
-    return moved, labels[origin]
+    keep = ((high - low) >= min_overlap * widths).flatten()
+    moved = torch.cat([(low + high) / 2, boxes[:, 1:2], high - low, boxes[:, 3:4]], dim=1)
+    return moved[keep], labels[keep]
 
 
 def copy_paste(
-    mel: Tensor, boxes: Tensor, labels: Tensor, bank: EventBank, config: AugmentConfig
+    mel: Tensor,
+    floor: Tensor,
+    boxes: Tensor,
+    labels: Tensor,
+    bank: EventBank,
+    config: AugmentConfig,
 ) -> tuple[Tensor, Tensor]:
+    ceiling = mel.max()
     n_events = random.randint(1, config.max_events)
     for index in torch.multinomial(bank.probs, n_events, replacement=True).tolist():
         patch = bank.patches[index]
@@ -105,8 +114,10 @@ def copy_paste(
         if (box_iou(corners[:1], corners[1:]) > config.paste_max_iou).any():
             continue
 
-        power_gain = 10 ** (random.uniform(*config.paste_gain_db) / 10)
-        mel[..., row : row + height, column : column + width] += patch * power_gain
+        jitter = 10 ** (random.uniform(*config.paste_jitter_db) / 10)
+        matched = floor[0, row : row + height].mean() / bank.floors[index]
+        gain = torch.minimum(matched * jitter, ceiling / patch.max())
+        mel[..., row : row + height, column : column + width] += patch * gain
         boxes = torch.cat([boxes, pasted])
         labels = torch.cat([labels, bank.labels[index].reshape(1)])
     return boxes, labels
@@ -136,12 +147,6 @@ class Augmenter:
         if random.random() < config.p_gain:
             amplitude = 10 ** (random.uniform(*config.gain_db) / 20)
             wave = wave * amplitude
-        if random.random() < config.p_mix:
-            other = random.randrange(len(self.clips))
-            weight = random.uniform(*config.mix_range)
-            wave = weight * wave + (1 - weight) * load_clip(*self.clips[other])
-            boxes = torch.cat([boxes, self.boxes[other]])
-            labels = torch.cat([labels, self.labels[other]])
         if self.background_clips and random.random() < config.p_background:
             background = load_clip(*random.choice(self.background_clips))
             signal_power = wave.square().mean()
@@ -150,21 +155,17 @@ class Augmenter:
             wave = wave + background * (signal_power / background_power / snr).sqrt()
 
         mel = self.to_mel(wave)[None]
-        n_mels, n_frames = mel.shape[-2:]
+        n_frames = mel.shape[-1]
+        floor = band_floor(mel)
 
         if random.random() < config.p_shift:
             span = int(config.max_shift * n_frames)
             frames = random.randint(-span, span)
-            mel = mel.roll(frames, dims=-1)
+            edge = floor.expand(-1, -1, span)
+            padded = torch.cat([edge, mel, edge], dim=-1)
+            mel = padded[..., span - frames : span - frames + n_frames]
             boxes, labels = shift_boxes(boxes, labels, frames / n_frames, config.min_overlap)
-        if random.random() < config.p_paste:
-            boxes, labels = copy_paste(mel, boxes, labels, self.bank, config)
-        if random.random() < config.p_mask:
-            fill = mel.mean()
-            smallest = torch.cat([boxes[:, 2:], mel.new_ones(1, 2)]).amin(0)
-            for dim, size, event in ((-1, n_frames, smallest[0]), (-2, n_mels, smallest[1])):
-                span = random.randint(1, max(1, int(event * size * config.mask_event_frac)))
-                start = random.randrange(size - span + 1)
-                mel.movedim(dim, -1)[..., start : start + span] = fill
+        if len(boxes) and random.random() < config.p_paste:
+            boxes, labels = copy_paste(mel, floor, boxes, labels, self.bank, config)
 
         return mel, {"boxes": boxes, "labels": labels}
