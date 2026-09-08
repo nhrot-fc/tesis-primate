@@ -1,5 +1,6 @@
 import logging
 import random
+import resource
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,13 @@ def setup_logging(level: str | None = None, log_file: Path | None = None) -> Non
         handlers=handlers,
         force=True,
     )
+
+
+def share_tensors_by_file() -> None:
+    torch.multiprocessing.set_sharing_strategy("file_system")
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if soft < hard:  # el límite blando suele venir en 1024 aunque el duro sea mucho mayor
+        resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
 
 
 def set_seed(seed: int = SEED) -> None:

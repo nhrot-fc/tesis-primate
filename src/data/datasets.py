@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
+from core.runtime import share_tensors_by_file
 from data import cache
 from data.augment import AugmentConfig, Augmenter
 from utils.audio import mel_to_gray
@@ -82,7 +83,7 @@ class WindowCache(Dataset):
             image, target = self.augmenter(index)
         if self.jitter is not None:
             target["boxes"] = jitter_boxes(target["boxes"], self.jitter)
-        return image, target
+        return image, {"boxes": target["boxes"].clone(), "labels": target["labels"].clone()}
 
 
 class SpectrogramDataset(WindowCache):
@@ -126,8 +127,8 @@ def collate_fn(batch: list[tuple[Tensor, Target]]) -> Batch:
 def make_loader(
     dataset: Dataset, batch_size: int, workers: int = 0, shuffle: bool = False
 ) -> DataLoader:
-    # Con `persistent_workers` los procesos no se rearman en cada época ni en cada pasada de
-    # validación, que es la mitad de los arranques de una corrida.
+    if workers > 0:
+        share_tensors_by_file()
     return DataLoader(
         dataset,
         batch_size=batch_size,
