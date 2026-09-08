@@ -63,6 +63,20 @@ class AudioPlayer(QWidget):
         if resume:
             self.play()
 
+    # Cambiar el volumen rehace el PCM: se conserva el punto y, si sonaba, sigue sonando.
+    def set_pcm(self, pcm: bytes) -> None:
+        at, resume = self.elapsed(), self.playing()
+        self.stop()
+        self.pcm = QByteArray(pcm)
+        self.set_origin(at)
+        if resume:
+            self.play()
+
+    def elapsed(self) -> float:
+        if self.sink is None:
+            return self.origin
+        return self.origin + self.sink.processedUSecs() / 1_000_000
+
     def display_time(self, seconds: float) -> None:
         self.clock.setText(f"{seconds:.2f} / {self.duration():.2f} s")
 
@@ -132,7 +146,7 @@ class AudioPlayer(QWidget):
     def tick(self) -> None:
         if self.sink is None:
             return
-        seconds = self.origin + self.sink.processedUSecs() / 1_000_000
+        seconds = self.elapsed()
         if math.isclose(seconds, self.duration(), abs_tol=1e-3) or seconds > self.duration():
             self.stop()
             return

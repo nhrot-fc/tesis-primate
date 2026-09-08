@@ -25,11 +25,29 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from clod.issues import ISSUE, QUALITY
 from core.config import P
 from viewer.controls import Layers, Slider
 from viewer.inference import detect, preload
 from viewer.plot import SpectrogramView
-from viewer.session import ANNOTATIONS, BEGIN, COLORS, DETECTIONS, SOURCES, Session, read_boxes
+from viewer.session import (
+    ACCEPTED,
+    ANNOTATIONS,
+    BEGIN,
+    COLORS,
+    DETECTIONS,
+    END,
+    FINDINGS,
+    HIGH,
+    LOW,
+    RECORDING,
+    REJECTED,
+    SOURCES,
+    VERDICT,
+    Session,
+    label,
+    read_table,
+)
 from viewer.spectrogram import load_audio
 from viewer.table import BoxTable
 from viewer.tasks import Worker
@@ -38,6 +56,7 @@ from viewer.transport import Transport
 BASE_TITLE = "Visor de espectrogramas"
 BATCH_SIZE = 8
 CONTROL_WIDTH = 300
+HELP_WIDTH = 560
 
 AUDIO = "*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3"
 TABLES = "*.txt *.csv"
@@ -45,13 +64,43 @@ MODELS = "*.pth *.pt"
 # Qué se abre, con qué atajo y con qué filtro de archivos.
 OPEN = {
     "audio": ("Audio…", "Ctrl+O", f"Audio ({AUDIO})"),
-    "table": ("Anotaciones…", "Ctrl+T", f"Raven ({TABLES})"),
+    "table": ("Anotaciones o hallazgos…", "Ctrl+T", f"Tablas ({TABLES})"),
     "model": ("Modelo…", "Ctrl+M", f"Checkpoint ({MODELS})"),
 }
 SUFFIXES = {
     **dict.fromkeys((".wav", ".flac", ".mp3"), "audio"),
     **dict.fromkeys((".txt", ".csv"), "table"),
     **dict.fromkeys((".pth", ".pt"), "model"),
+}
+HELP = {
+    "Ver": [
+        ("Rueda", "recorre el audio"),
+        ("Ctrl + rueda", "ancho de la ventana, de 0,25 a 30 s"),
+        ("Shift + rueda", "acerca en frecuencia, alrededor del puntero"),
+        ("Casillas Hz", "los extremos de la banda visible, escritos a mano"),
+        ("↑ ↓", "sube y baja la banda visible"),
+        ("F", "vuelve a la banda entera"),
+        ("", "el ancho de ventana y la banda sólo cambian si los cambias tú"),
+        ("Brillo, Contraste", "qué tan oscuro se dibuja el espectrograma"),
+    ],
+    "Oír": [
+        ("Espacio", "reproduce o pausa"),
+        ("Clic", "lleva el cabezal a ese punto"),
+        ("Volumen", "0 dB es la grabación llevada a su pico; súbelo para las llamadas lejanas"),
+    ],
+    "Moverse": [
+        ("← →", "avanza y retrocede"),
+        ("Re Pág / Av Pág", "una ventana entera"),
+        ("Inicio / Fin", "principio y final del audio"),
+        ("N / P", "detección siguiente y anterior"),
+    ],
+    "Revisar los hallazgos de CLOD": [
+        (". / ,", "hallazgo siguiente y anterior; abre su grabación sin tocar tu zoom"),
+        ("A", "aceptar: añade la caja propuesta o borra la anotación sobrante"),
+        ("R", "rechazar: la anotación se queda como está"),
+        ("1 2 3", "muestra u oculta cada capa de cajas"),
+        ("Ctrl+E", "tabla de revisión"),
+    ],
 }
 
 
@@ -65,6 +114,8 @@ class Viewer(QMainWindow):
 
         self.session = Session()
         self.worker: Worker | None = None
+        self.reviewing = -1  # posición en la cola de hallazgos, ordenada por Calidad
+        self.pending: pd.Series | None = None  # hallazgo esperando a que cargue su audio
 
         self.plot = SpectrogramView()
         self.plot.moved.connect(self.track)
@@ -76,6 +127,10 @@ class Viewer(QMainWindow):
         self.transport.failed.connect(self.say)
         self.plot.clicked.connect(self.transport.seek)
         self.plot.zoomed.connect(self.transport.zoom)
+        self.plot.banded.connect(self.transport.band.set_values)
+        self.transport.band.changed.connect(
+            lambda: self.plot.set_band(*self.transport.band.values())
+        )
 
         self.table = BoxTable(self.session)
         self.table.picked.connect(self.focus)
@@ -136,6 +191,11 @@ class Viewer(QMainWindow):
         export.setMenu(export_menu)
         export.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
 
+        self.help_action = QAction("Ayuda", self)
+        self.help_action.setShortcut(QKeySequence("F1"))
+        self.help_action.setToolTip("Qué hace cada control (F1)")
+        self.help_action.triggered.connect(self.show_help)
+
         review = self.table.toggleViewAction()
         if review is not None:
             review.setText("Revisión")
@@ -154,6 +214,7 @@ class Viewer(QMainWindow):
         toolbar.addWidget(spacer)
         if review is not None:
             toolbar.addAction(review)
+        toolbar.addAction(self.help_action)
         self.addToolBar(toolbar)
         # Los atajos del menu solo llegan si sus acciones cuelgan de la ventana.
         for action in (*self.open_actions.values(), self.image_action, *self.save_actions.values()):
@@ -174,11 +235,23 @@ class Viewer(QMainWindow):
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             button.clicked.connect(lambda _, step=direction: self.jump(step))
 
+        self.back_button = QPushButton("◀ Hallazgo")
+        self.forward_button = QPushButton("Hallazgo ▶")
+        self.back_button.setToolTip("Hallazgo anterior de la cola (,)")
+        self.forward_button.setToolTip("Hallazgo siguiente de la cola (.)")
+        for button, direction in ((self.back_button, -1), (self.forward_button, 1)):
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _, step=direction: self.walk(step))
+        self.queue = QLabel("")
+
         row = QHBoxLayout()
         row.setSpacing(16)
         row.addWidget(self.score)
         row.addWidget(self.layers)
         row.addStretch(1)
+        row.addWidget(self.queue)
+        row.addWidget(self.back_button)
+        row.addWidget(self.forward_button)
         row.addWidget(self.prev_button)
         row.addWidget(self.next_button)
         return row
@@ -189,13 +262,37 @@ class Viewer(QMainWindow):
         for control in (self.brightness, self.contrast):
             control.setMaximumWidth(CONTROL_WIDTH)
             control.changed.connect(self.draw_spectrogram)
+        # 0 dB es la grabación llevada a su pico; por encima recorta, que es lo que
+        # hace audible una llamada lejana.
+        self.volume = Slider("Volumen (dB)", list(range(-20, 31, 2)), 10, "{:+g}")
+        self.volume.setMaximumWidth(CONTROL_WIDTH)
+        self.volume.setToolTip("0 dB es la grabación llevada a su pico; por encima recorta")
+        self.volume.changed.connect(lambda: self.transport.set_gain(self.volume.value()))
 
         row = QHBoxLayout()
         row.setSpacing(24)
         row.addWidget(self.brightness)
         row.addWidget(self.contrast)
+        row.addWidget(self.volume)
         row.addStretch(1)
         return row
+
+    def show_help(self) -> None:
+        rows = "".join(
+            f"<tr><td colspan='2' style='padding-top:12px'><b>{section}</b></td></tr>"
+            + "".join(
+                f"<tr><td style='padding-right:20px'><tt>{keys}</tt></td><td>{what}</td></tr>"
+                for keys, what in entries
+            )
+            for section, entries in HELP.items()
+        )
+        box = QMessageBox(self)
+        box.setWindowTitle("Controles del visor")
+        box.setTextFormat(Qt.TextFormat.RichText)
+        # QMessageBox se ajusta al texto: sin un mínimo, las frases se parten en dos.
+        box.setStyleSheet(f"QLabel {{ min-width: {HELP_WIDTH}px; }}")
+        box.setText(f"<table>{rows}</table>")
+        box.exec()
 
     def build_status_bar(self) -> None:
         self.progress = QProgressBar()
@@ -245,10 +342,12 @@ class Viewer(QMainWindow):
         self.image_action.setEnabled(not busy and loaded)
         for source, action in self.save_actions.items():
             action.setEnabled(not busy and self.session.tables[source] is not None)
-        for widget in (self.transport, self.brightness, self.contrast):
+        for widget in (self.transport, self.brightness, self.contrast, self.volume):
             widget.setEnabled(loaded)
         for widget in (self.score, self.prev_button, self.next_button):
             widget.setEnabled(detections)
+        for widget in (self.back_button, self.forward_button):
+            widget.setEnabled(not busy and self.session.tables[FINDINGS] is not None)
 
     def on_changed(self) -> None:
         self.draw_boxes()
@@ -301,9 +400,7 @@ class Viewer(QMainWindow):
                 f"Cargando {path.name}...",
             )
         elif kind == "table":
-            self.start(
-                lambda: read_boxes(path), self.annotations_loaded, f"Cargando {path.name}..."
-            )
+            self.start(lambda: read_table(path), self.table_loaded, f"Cargando {path.name}...")
         elif kind == "model":
             self.session.model_path = path
             self.run_action.setToolTip(f"{path.name} (Ctrl+R)")
@@ -327,10 +424,25 @@ class Viewer(QMainWindow):
         self.setWindowTitle(f"{path.name} - {BASE_TITLE}")
         self.plot.set_waveform(waveform, P.target_sr)
         self.transport.set_audio(waveform, P.target_sr)
+        # El Raven de la grabación vive junto al wav: revisando se quiere siempre.
+        sidecar = path.with_suffix(".txt")
+        if sidecar.is_file():
+            self.session.set_table(*read_table(sidecar))
+        if self.pending is not None:
+            self.show_finding(self.pending)
+            self.pending = None
 
-    def annotations_loaded(self, table: pd.DataFrame) -> None:
-        self.session.set_table(ANNOTATIONS, table)
-        self.say(f"{len(table)} anotaciones cargadas.")
+    def table_loaded(self, loaded: tuple[str, pd.DataFrame]) -> None:
+        source, table = loaded
+        self.session.set_table(source, table)
+        if source != FINDINGS:
+            self.say(f"{len(table)} anotaciones cargadas.")
+            return
+        self.reviewing = -1
+        self.say(
+            f"{len(table)} hallazgos en {table[RECORDING].nunique()} grabaciones."
+            "   ('.' para el primero)"
+        )
 
     def detections_ready(self, table: pd.DataFrame) -> None:
         # El slider arranca en el punto de operación con el que se eligió el checkpoint:
@@ -358,6 +470,50 @@ class Viewer(QMainWindow):
             return
         target = float(candidates[0] if direction > 0 else candidates[-1])
         self.transport.center(target)
+
+    # La cola recorre los hallazgos por Calidad, peores primero, y abre el audio de cada uno.
+    def walk(self, direction: int) -> None:
+        table = self.session.tables[FINDINGS]
+        if table is None or table.empty:
+            return
+        self.reviewing = (self.reviewing + direction) % len(table)
+        row = table.iloc[self.reviewing]
+        path = Path(row[RECORDING])
+        if path == self.session.audio_path:
+            self.show_finding(row)
+        elif path.is_file():
+            self.pending = row
+            self.load("audio", path)
+        else:
+            self.say(f"No encontré {path.name}, el audio del hallazgo.")
+
+    def show_finding(self, row: pd.Series) -> None:
+        table = self.session.tables[FINDINGS]
+        # El encuadre es del usuario: sólo se desplaza si la caja quedó fuera de pantalla,
+        # igual que al elegirla en la tabla. La banda y el ancho de ventana no se tocan.
+        start, stop = self.transport.time_window()
+        if not (start <= row[BEGIN] and row[END] <= stop):
+            self.transport.center(0.5 * (row[BEGIN] + row[END]))
+        self.plot.set_highlight((row[BEGIN], row[END], row[LOW], row[HIGH]))
+        self.queue.setText(
+            f"{self.reviewing + 1}/{0 if table is None else len(table)} · {row[ISSUE]} · "
+            f"Calidad {row[QUALITY]:.3f} · {row[VERDICT] or 'sin veredicto'}"
+        )
+        # Dice dónde cae la caja en vez de ir hasta ella: si esta fuera de la banda, se ve
+        # en qué frecuencias hay que mirar.
+        self.say(
+            f"{Path(row[RECORDING]).name} · {label(row)} · "
+            f"{row[BEGIN]:.2f}–{row[END]:.2f} s · {row[LOW]:,.0f}–{row[HIGH]:,.0f} Hz"
+            "   (A aceptar / R rechazar)"
+        )
+
+    def decide(self, verdict: str) -> None:
+        table = self.session.tables[FINDINGS]
+        if table is None or not 0 <= self.reviewing < len(table):
+            return
+        done = self.session.judge(table.index[self.reviewing], verdict)
+        self.show_finding(table.iloc[self.reviewing])
+        self.say(f"{done}.   ('.' para el siguiente)")
 
     def focus(self, row) -> None:
         if row is None:
@@ -426,16 +582,20 @@ class Viewer(QMainWindow):
             self.say(f"Imagen guardada en {path.name}")
 
     def export_table(self, source: str) -> None:
-        table = self.session.visible(source)
+        # Los veredictos son de todo el dataset; las cajas, sólo del audio abierto.
+        if source == FINDINGS:
+            table = self.session.tables[FINDINGS]
+            suffix, file_filter = "_veredictos.csv", "CSV (*.csv)"
+        else:
+            table = self.session.visible(source)
+            suffix = f".{'detections' if source == DETECTIONS else 'annotations'}.txt"
+            file_filter = "Raven (*.txt);;CSV (*.csv)"
         if table is None:
             return
         table = table.copy()
-        table["Selection"] = range(1, len(table) + 1)
-        path = self.save_path(
-            f"Guardar {source.lower()}",
-            f".{'detections' if source == DETECTIONS else 'annotations'}.txt",
-            "Raven (*.txt);;CSV (*.csv)",
-        )
+        if source != FINDINGS:
+            table["Selection"] = range(1, len(table) + 1)
+        path = self.save_path(f"Guardar {source.lower()}", suffix, file_filter)
         if path is None:
             return
         try:
@@ -484,12 +644,24 @@ class Viewer(QMainWindow):
             self.transport.page(1)
         elif key in (Qt.Key.Key_Home, Qt.Key.Key_End):
             self.transport.to_edge(key == Qt.Key.Key_End)
+        elif key in (Qt.Key.Key_Up, Qt.Key.Key_Down):
+            self.plot.pan_band(1 if key == Qt.Key.Key_Up else -1)
+        elif key == Qt.Key.Key_F:
+            self.plot.set_band(0.0, P.target_sr / 2)
         elif key == Qt.Key.Key_N:
             self.jump(1)
         elif key == Qt.Key.Key_P:
             self.jump(-1)
-        elif key in (Qt.Key.Key_1, Qt.Key.Key_2):
+        elif key in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3):
             self.layers.toggle(SOURCES[key - Qt.Key.Key_1])
+        elif key == Qt.Key.Key_Comma:
+            self.walk(-1)
+        elif key == Qt.Key.Key_Period:
+            self.walk(1)
+        elif key == Qt.Key.Key_A:
+            self.decide(ACCEPTED)
+        elif key == Qt.Key.Key_R:
+            self.decide(REJECTED)
         else:
             super().keyPressEvent(a0)
 

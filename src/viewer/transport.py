@@ -1,15 +1,17 @@
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QScrollBar, QWidget
 
+from viewer.controls import Band
 from viewer.player import AudioPlayer
 from viewer.spectrogram import Waveform, pcm16
 
 TIME_STEP = 0.05
-SPANS = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
+# La mediana de los hallazgos dura 0,2 s: por debajo de 1 s también hace falta ventana.
+SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
 
 
-# Eje de tiempo: que tramo se ve, donde esta el cabezal y que suena.
+# Qué tramo se ve --en tiempo y en frecuencia--, dónde está el cabezal y qué suena.
 class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga
@@ -18,6 +20,8 @@ class Transport(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.duration = 0.0
+        self.waveform: Waveform | None = None
+        self.gain = 1.0
 
         self.player = AudioPlayer()
         self.player.moved.connect(self.follow)
@@ -36,16 +40,24 @@ class Transport(QWidget):
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
 
+        self.band = Band("Hz")
+        self.band.setToolTip(
+            "Banda visible: escribe los extremos, o Shift + rueda para acercar (F la abre entera)"
+        )
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
         layout.addWidget(self.player)
         layout.addWidget(self.bar, 1)
         layout.addWidget(self.spans)
+        layout.addWidget(self.band)
 
     def set_audio(self, waveform: Waveform, sr: int) -> None:
         self.duration = waveform.size / sr
-        self.player.set_audio(pcm16(waveform), sr)
+        self.waveform = waveform
+        self.band.set_limits(sr // 2)
+        self.player.set_audio(pcm16(waveform, self.gain), sr)
         self.bar.blockSignals(True)
         self.bar.setValue(0)
         self.bar.blockSignals(False)
@@ -86,6 +98,11 @@ class Transport(QWidget):
     def zoom(self, delta: int) -> None:
         index = self.spans.currentIndex() + delta
         self.spans.setCurrentIndex(min(max(index, 0), self.spans.count() - 1))
+
+    def set_gain(self, db: float) -> None:
+        self.gain = 10.0 ** (db / 20.0)
+        if self.waveform is not None:
+            self.player.set_pcm(pcm16(self.waveform, self.gain))
 
     def center(self, seconds: float) -> None:
         self.bar.setValue(int(max(seconds - self.span() / 2, 0.0) / TIME_STEP))

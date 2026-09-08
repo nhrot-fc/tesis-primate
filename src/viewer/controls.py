@@ -1,9 +1,11 @@
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSlider, QWidget
+from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSlider, QSpinBox, QWidget
 
 LABEL_WIDTH = 78
 READOUT_WIDTH = 46
 SWATCH_WIDTH = 10
+HZ_WIDTH = 72
+HZ_STEP = 500
 
 
 class Slider(QWidget):
@@ -77,3 +79,44 @@ class Layers(QWidget):
 
     def set_count(self, text: str, shown: int, total: int) -> None:
         self.boxes[text].setText(f"{text}  {shown}/{total}" if total else text)
+
+
+# Los dos extremos de la banda visible. Se escriben a mano y el zoom los reescribe.
+class Band(QWidget):
+    changed = pyqtSignal()
+
+    def __init__(self, text: str) -> None:
+        super().__init__()
+        self.low = QSpinBox()
+        self.high = QSpinBox()
+        for box in (self.low, self.high):
+            box.setSingleStep(HZ_STEP)
+            box.setGroupSeparatorShown(True)
+            box.setFixedWidth(HZ_WIDTH)
+            box.valueChanged.connect(lambda _: self.changed.emit())
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(QLabel(text))
+        layout.addWidget(self.low)
+        layout.addWidget(QLabel("–"))
+        layout.addWidget(self.high)
+
+    # Sólo se reabre entera cuando el tope cambia: si no, se respeta lo que haya puesto.
+    def set_limits(self, top: int) -> None:
+        if top == self.high.maximum():
+            return
+        for box in (self.low, self.high):
+            box.setRange(0, top)
+        self.set_values(0, top)
+
+    def values(self) -> tuple[float, float]:
+        return float(self.low.value()), float(self.high.value())
+
+    # Lo que escribe el zoom no debe rebotar como si lo hubiera tecleado alguien.
+    def set_values(self, low: float, high: float) -> None:
+        for box, value in ((self.low, low), (self.high, high)):
+            box.blockSignals(True)
+            box.setValue(int(round(value)))
+            box.blockSignals(False)

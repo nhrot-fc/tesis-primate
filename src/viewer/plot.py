@@ -27,6 +27,12 @@ BAND = 4.0
 RESOLUTIONS = [(512, 64), (1024, 128), (2048, 256), (4096, 512), (8192, 1024)]
 COLUMNS_ON_SCREEN = 900
 
+# Zoom del eje de frecuencia. La caja mediana de un hallazgo mide 2,7 kHz sobre los
+# 22 kHz del eje completo: sin acotar la banda ocupa un octavo de la pantalla.
+MIN_BAND_HZ = 200.0
+BAND_STEP = 1.25
+PAN_FRACTION = 0.25
+
 
 def resolution(span: float, sr: int) -> tuple[int, int]:
     # El hop que deja ~900 columnas en pantalla, redondeado en octavas a las de la lista.
@@ -39,6 +45,7 @@ class SpectrogramView(pg.PlotWidget):
     zoomed = pyqtSignal(int)
     moved = pyqtSignal(float, float)
     clicked = pyqtSignal(float)
+    banded = pyqtSignal(float, float)
 
     def __init__(self) -> None:
         super().__init__()
@@ -94,12 +101,15 @@ class SpectrogramView(pg.PlotWidget):
         self.renderer.done.connect(self.on_render)
 
     def set_waveform(self, waveform: Waveform, sr: int) -> None:
+        previous = self.sr
         self.waveform = waveform
         self.sr = sr
         self.baseline_n_fft = 0
         self.band = None
         self.set_highlight(None)
-        self.vb.setYRange(0.0, sr / 2, padding=0)
+        # La banda elegida se conserva de una grabación a otra: moverla es cosa del usuario.
+        if sr != previous:
+            self.set_band(0.0, sr / 2)
 
     def draw(self, start: float, span: float, brightness: float, contrast: float) -> None:
         if self.waveform is None:
@@ -127,6 +137,19 @@ class SpectrogramView(pg.PlotWidget):
                 db_baseline(whole, sr, n_fft) if whole is not None else None,
             )
         )
+
+    # La banda visible se acota a [0, Nyquist], que es todo lo que hay dibujado.
+    def set_band(self, low: float, high: float) -> None:
+        top = self.sr / 2
+        span = min(max(high - low, MIN_BAND_HZ), top)
+        center = min(max(0.5 * (low + high), span / 2), top - span / 2)
+        self.vb.setYRange(center - span / 2, center + span / 2, padding=0)
+        self.banded.emit(center - span / 2, center + span / 2)
+
+    def pan_band(self, direction: int) -> None:
+        low, high = self.vb.viewRange()[1]
+        step = direction * PAN_FRACTION * (high - low)
+        self.set_band(low + step, high + step)
 
     def covers(self, start: float, span: float, n_fft: int, hop: int) -> bool:
         if self.band is None:
@@ -232,7 +255,14 @@ class SpectrogramView(pg.PlotWidget):
         if ev is None:
             return
         direction = -1 if ev.angleDelta().y() > 0 else 1
-        if ev.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        modifiers = ev.modifiers()
+        if modifiers & Qt.KeyboardModifier.ShiftModifier:
+            # Alrededor del puntero: se apunta a la caja y se acerca sin perderla.
+            hz = self.vb.mapSceneToView(ev.position()).y()
+            low, high = self.vb.viewRange()[1]
+            factor = BAND_STEP**direction
+            self.set_band(hz + (low - hz) * factor, hz + (high - hz) * factor)
+        elif modifiers & Qt.KeyboardModifier.ControlModifier:
             self.zoomed.emit(direction)
         else:
             self.scrolled.emit(direction)

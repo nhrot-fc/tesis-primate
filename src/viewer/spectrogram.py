@@ -18,8 +18,11 @@ def load_audio(path: Path, target_sr: int) -> Waveform:
     return np.ascontiguousarray(waveform, dtype=np.float32)
 
 
-def pcm16(waveform: Waveform) -> bytes:
-    return (np.clip(waveform, -1.0, 1.0) * 32767.0).astype(np.int16).tobytes()
+# Las grabaciones de campo llegan a -45 dBFS RMS: sin llevarlas al pico no se oyen.
+def pcm16(waveform: Waveform, gain: float = 1.0) -> bytes:
+    peak = float(np.abs(waveform).max(initial=0.0))
+    scaled = waveform * (gain / peak) if peak > 0.0 else waveform
+    return (np.clip(scaled, -1.0, 1.0) * 32767.0).astype(np.int16).tobytes()
 
 
 def sliding_frames(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.float32]:

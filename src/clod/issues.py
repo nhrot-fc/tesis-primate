@@ -10,6 +10,13 @@ CATEGORY, SCORE = "species", "score"
 
 SOURCE, ANNOTATION, PREDICTION = "Origen", "anotación", "modelo"
 ISSUE, QUALITY, CLUSTER = "Hallazgo", "Calidad", "Grupo"
+# Cada grupo de cajas encadenadas por IoU dentro de una grabación cae en un hallazgo,
+# según qué lo compone. `np.select` los prueba en este orden, así que los dos primeros
+# --donde falta un lado entero-- ganan sobre los otros dos:
+#   spurious  sólo anotación: el modelo no vio nada ahí y la caja probablemente sobra.
+#   missing   sólo predicción: falta la anotación, y se propone la caja de más score.
+#   label     ambos lados, pero con más de una clase en el grupo: discrepan en la etiqueta.
+#   location  ambos lados y una sola clase: coinciden en qué es, lo dudoso es dónde cae.
 SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 
 
