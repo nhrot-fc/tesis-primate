@@ -1,7 +1,6 @@
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QScrollBar, QWidget
 
-from viewer.controls import Band
 from viewer.player import AudioPlayer
 from viewer.spectrogram import Waveform, pcm16
 
@@ -11,7 +10,8 @@ SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
 
 
-# Qué tramo se ve --en tiempo y en frecuencia--, dónde está el cabezal y qué suena.
+# Qué tramo del tiempo se ve, dónde está el cabezal y qué suena. La banda de frecuencia
+# se ajusta una vez y vive en el panel de vista, no acá.
 class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga
@@ -40,23 +40,16 @@ class Transport(QWidget):
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
 
-        self.band = Band("Hz")
-        self.band.setToolTip(
-            "Banda visible: escribe los extremos, o Shift + rueda para acercar (F la abre entera)"
-        )
-
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(12)
         layout.addWidget(self.player)
         layout.addWidget(self.bar, 1)
         layout.addWidget(self.spans)
-        layout.addWidget(self.band)
 
     def set_audio(self, waveform: Waveform, sr: int) -> None:
         self.duration = waveform.size / sr
         self.waveform = waveform
-        self.band.set_limits(sr // 2)
         self.player.set_audio(pcm16(waveform, self.gain), sr)
         self.bar.blockSignals(True)
         self.bar.setValue(0)

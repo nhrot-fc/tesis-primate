@@ -1,10 +1,11 @@
 import math
 from pathlib import Path
-from typing import override
+from typing import NamedTuple, override
 
+import pandas as pd
 import pyqtgraph as pg
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QFontMetrics
+from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import QGraphicsRectItem
 from pyqtgraph.exporters import ImageExporter
 
@@ -13,9 +14,15 @@ from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
 from viewer.tasks import Latest
 
 COLORMAP = "magma"
-PLAYHEAD_COLOR = "#ffffff"
+PLAYHEAD_COLOR = "#19ff8f"
 HIGHLIGHT_COLOR = "#ffffff"
 HIGHLIGHT_MARGIN = 0.012
+# Un relleno tenue: la caja se lee como region aunque su borde cruce una zona clara.
+FILL_ALPHA = 34
+CAPTION_ALPHA = 165
+CAPTION_POINT_SIZE = 8
+# Debajo de este ancho la etiqueta mide mas que su caja y solo tapa: no se dibuja.
+MIN_CAPTION_PX = 30
 AXIS_PAD = 12
 AXIS_SAMPLE = "00000"
 EXPORT_WIDTH = 2400
@@ -32,6 +39,15 @@ COLUMNS_ON_SCREEN = 900
 MIN_BAND_HZ = 200.0
 BAND_STEP = 1.25
 PAN_FRACTION = 0.25
+
+
+class Layer(NamedTuple):
+    table: pd.DataFrame | None  # None cuando la capa esta apagada: ni se dibuja ni se cuenta
+    color: str
+    style: Qt.PenStyle
+    width: int
+    above: bool  # rotula afuera del borde superior en vez de adentro
+    captions: bool  # False cuando todas las cajas dicen lo mismo y lo dice la leyenda
 
 
 def resolution(span: float, sr: int) -> tuple[int, int]:
@@ -80,7 +96,7 @@ class SpectrogramView(pg.PlotWidget):
         self.playhead.hide()
         self.vb.addItem(self.playhead, ignoreBounds=True)
         self.highlight = QGraphicsRectItem()
-        self.highlight.setPen(pg.mkPen(HIGHLIGHT_COLOR, width=2, style=Qt.PenStyle.DashLine))
+        self.highlight.setPen(pg.mkPen(HIGHLIGHT_COLOR, width=3, style=Qt.PenStyle.DashLine))
         self.highlight.setZValue(15)
         self.highlight.setVisible(False)
         self.vb.addItem(self.highlight)
@@ -174,39 +190,59 @@ class SpectrogramView(pg.PlotWidget):
     def box_slot(self, index: int) -> tuple[QGraphicsRectItem, pg.TextItem]:
         while len(self.pool) <= index:
             rect = QGraphicsRectItem()
-            # Fondo translucido: sin el, el verde sobre magma claro es ilegible.
-            text = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(0, 0, 0, 150))
+            # Fondo translucido: sin el, el rotulo sobre una zona clara es ilegible.
+            text = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(0, 0, 0, CAPTION_ALPHA))
+            font = QFont(self.font())
+            font.setPointSize(CAPTION_POINT_SIZE)
+            text.setFont(font)
             self.vb.addItem(rect)
             self.vb.addItem(text)
             self.pool.append((rect, text))
         return self.pool[index]
 
-    def draw_boxes(self, layers: list, start: float, stop: float) -> list[int]:
+    # El ancho en segundos que ocupa un rotulo corto: por debajo de eso no se dibuja.
+    def caption_floor(self) -> float:
+        (x0, x1), _ = self.vb.viewRange()
+        return MIN_CAPTION_PX * (x1 - x0) / max(self.vb.width(), 1)
+
+    def draw_boxes(self, layers: list[Layer], start: float, stop: float) -> list[int]:
         # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
-        for table, color, above in layers:
+        floor = self.caption_floor()
+        for layer in layers:
+            table = layer.table
             if table is None or table.empty:
                 counts.append(0)
                 continue
             visible = table[(table[END] > start) & (table[BEGIN] < stop)]
             counts.append(len(visible))
-            pen = pg.mkPen(color, width=2)
+            pen = pg.mkPen(layer.color, width=layer.width, style=layer.style)
+            tint = QColor(layer.color)
+            tint.setAlpha(FILL_ALPHA)
+            brush = pg.mkBrush(tint)
+            scored = "Score" in table.columns
             for _, row in visible.iterrows():
                 rect, text = self.box_slot(used)
                 x0, y0 = row[BEGIN], row[LOW]
-                height = row[HIGH] - y0
-                rect.setRect(QRectF(x0, y0, row[END] - x0, height))
+                width, height = row[END] - x0, row[HIGH] - y0
+                rect.setRect(QRectF(x0, y0, width, height))
                 rect.setPen(pen)
+                rect.setBrush(brush)
                 rect.setVisible(True)
-                caption = label(row)
-                if "Score" in row.index:
+                # La etiqueta comun de la capa ya esta en la leyenda; aca solo va lo que
+                # cambia de una caja a otra, y solo si la caja da el ancho para leerlo.
+                caption = label(row) if layer.captions else ""
+                if scored:
                     caption = f"{caption} {row['Score']:.2f}".strip()
-                text.setText(caption, color=color)
-                # Cada capa rotula a un lado del borde superior --una afuera y otra
-                # adentro-- para que una deteccion encima de su anotacion no la tape.
-                text.setAnchor((0, 1) if above else (0, 0))
-                text.setPos(x0, y0 + height)
-                text.setVisible(True)
+                if caption and width >= floor:
+                    text.setText(caption, color=layer.color)
+                    # Cada capa rotula a un lado del borde superior --una afuera y otra
+                    # adentro-- para que una deteccion encima de su anotacion no la tape.
+                    text.setAnchor((0, 1) if layer.above else (0, 0))
+                    text.setPos(x0, y0 + height)
+                    text.setVisible(True)
+                else:
+                    text.setVisible(False)
                 used += 1
         for rect, text in self.pool[used:]:
             rect.setVisible(False)

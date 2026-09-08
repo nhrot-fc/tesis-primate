@@ -2,10 +2,10 @@ import math
 
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QTimer, pyqtSignal
 from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QStyle, QToolButton, QWidget
 
 TICK_MS = 30
-CLOCK_WIDTH = 118
+CLOCK_WIDTH = 132
 
 
 # Reproduccion del audio mono ya cargado en memoria.
@@ -23,13 +23,26 @@ class AudioPlayer(QWidget):
         self.origin = 0.0
         self.paused = False
 
+        # Los iconos del tema en vez de glifos de texto: el triangulo y la pausa se leen
+        # igual en cualquier tipografia y a cualquier tamaño.
+        style = self.style()
+        self.icons = (
+            (
+                style.standardIcon(QStyle.StandardPixmap.SP_MediaPlay),
+                style.standardIcon(QStyle.StandardPixmap.SP_MediaPause),
+            )
+            if style is not None
+            else None
+        )
+
         self.button = QToolButton()
-        self.button.setText("▶")
         self.button.setToolTip("Reproducir / pausar (Espacio)")
-        self.button.setFixedWidth(32)
+        self.button.setFixedWidth(34)
         self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.button.clicked.connect(self.toggle)
+        self.show_playing(False)
         self.clock = QLabel("0.00 / 0.00 s")
+        self.clock.setObjectName("clock")
         self.clock.setFixedWidth(CLOCK_WIDTH)
         self.clock.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
@@ -42,6 +55,12 @@ class AudioPlayer(QWidget):
         self.timer = QTimer(self)
         self.timer.setInterval(TICK_MS)
         self.timer.timeout.connect(self.tick)
+
+    def show_playing(self, playing: bool) -> None:
+        if self.icons is None:
+            self.button.setText("❚❚" if playing else "▶")
+        else:
+            self.button.setIcon(self.icons[playing])
 
     def set_audio(self, pcm: bytes, sr: int) -> None:
         self.stop()
@@ -92,7 +111,7 @@ class AudioPlayer(QWidget):
                 self.paused = False
                 self.sink.resume()
                 self.timer.start()
-                self.button.setText("‖")
+                self.show_playing(True)
             return
         if self.pcm.isEmpty():
             return
@@ -119,7 +138,7 @@ class AudioPlayer(QWidget):
         self.sink = QAudioSink(device, fmt, self)
         self.sink.start(self.buffer)
         self.timer.start()
-        self.button.setText("‖")
+        self.show_playing(True)
 
     def pause(self) -> None:
         if self.sink is None or self.paused:
@@ -127,7 +146,7 @@ class AudioPlayer(QWidget):
         self.paused = True
         self.timer.stop()
         self.sink.suspend()
-        self.button.setText("▶")
+        self.show_playing(False)
 
     def stop(self) -> None:
         self.timer.stop()
@@ -137,7 +156,7 @@ class AudioPlayer(QWidget):
             self.sink = None
         self.buffer.close()
         self.paused = False
-        self.button.setText("▶")
+        self.show_playing(False)
         self.stopped.emit()
 
     def toggle(self) -> None:

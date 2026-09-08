@@ -4,17 +4,26 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
 from clod.cluster import BOX_COLUMNS as CLOD_BOXES
-from clod.issues import ISSUE, MISSING, QUALITY, SPURIOUS
+from clod.issues import ISSUE, LABEL, LOCATION, MISSING, QUALITY, SPURIOUS
 from viewer.spectrogram import Waveform
 
 ANNOTATIONS = "Anotaciones"
 DETECTIONS = "Modelo"
 FINDINGS = "Hallazgos"
 SOURCES = (ANNOTATIONS, DETECTIONS, FINDINGS)
-COLORS = {ANNOTATIONS: "#00d8ff", DETECTIONS: "#8cff3d", FINDINGS: "#ff4d6d"}
+# Sobre un espectrograma en grises el color es sólo de las cajas. Azul y naranja es el par
+# que mejor se separa sin distinguir colores, y el trazo lo confirma: la verdad va entera,
+# el modelo a rayas. Los hallazgos, que son la excepción, van en magenta y más gruesos.
+COLORS = {ANNOTATIONS: "#00a8ff", DETECTIONS: "#ff7a18", FINDINGS: "#ff2d78"}
+STYLES = {
+    ANNOTATIONS: Qt.PenStyle.SolidLine,
+    DETECTIONS: Qt.PenStyle.DashLine,
+    FINDINGS: Qt.PenStyle.SolidLine,
+}
+WIDTHS = {ANNOTATIONS: 2, DETECTIONS: 2, FINDINGS: 3}
 
 BEGIN, END, LOW, HIGH = "Begin Time (s)", "End Time (s)", "Low Freq (Hz)", "High Freq (Hz)"
 BOX_COLUMNS = [BEGIN, END, LOW, HIGH]
@@ -45,9 +54,27 @@ def read_table(path: Path) -> tuple[str, pd.DataFrame]:
     return ANNOTATIONS, table
 
 
+# CLOD nombra sus hallazgos en ingles; en pantalla van como el resto de la ventana.
+ISSUES = {MISSING: "falta", SPURIOUS: "sobra", LOCATION: "posición", LABEL: "etiqueta"}
+
+
+def issue(value: str) -> str:
+    return ISSUES.get(value, value)
+
+
 def label(row: pd.Series) -> str:
     name = "/".join(str(row[c]) for c in (SPECIES, CALL) if c in row.index)
-    return f"{row[ISSUE]} {name}" if ISSUE in row.index else name
+    return f"{issue(row[ISSUE])} {name}" if ISSUE in row.index else name
+
+
+# La etiqueta que comparten todas las cajas de una tabla, o "" si hay mas de una. Cuando es
+# una sola se dice en la leyenda, en vez de repetirla encima de cada caja.
+def common_label(table: pd.DataFrame) -> str:
+    columns = [name for name in (ISSUE, SPECIES, CALL) if name in table.columns]
+    if not columns or table.empty:
+        return ""
+    unique = table[columns].drop_duplicates()
+    return label(unique.iloc[0]) if len(unique) == 1 else ""
 
 
 @dataclass(frozen=True)
