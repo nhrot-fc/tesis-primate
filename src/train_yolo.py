@@ -5,9 +5,10 @@ from pathlib import Path
 
 from ultralytics import YOLO
 
-from core.config import SEED, settings
+from core.config import SEED, WORKERS, settings
 from core.runtime import setup_logging
 from data import cache
+from models.registry import architecture
 from models.yolo import SpectrogramYOLO, load_ultralytics_weights
 from training.checkpoint import BEST, save
 from training.trainer import TrainConfig
@@ -15,7 +16,7 @@ from training.trainer import TrainConfig
 logger = logging.getLogger("train_yolo")
 
 MODEL = "yolo26s"  # n < s < m < l < x
-EPOCHS, BATCH_SIZE, IMAGE_SIZE, WORKERS = 50, 32, 512, 8
+EPOCHS, BATCH_SIZE, IMAGE_SIZE = 50, 32, 512
 PATIENCE = 30
 CLS_POWER_WEIGHT = 0.0  # 1.0 pondera las clases por frecuencia inversa
 
@@ -150,7 +151,7 @@ def main() -> None:
         "cls_pw": CLS_POWER_WEIGHT,
         "augmentation": AUGMENTATION,
         "score_threshold": defaults.score_threshold,
-        "nms_iou": defaults.nms_iou,
+        "nms_iou": architecture("yolo").nms_iou,
         "dataset": meta["dataset"],
     }
     checkpoint = export_checkpoint(run_dir, run_dir / "weights" / "best.pt", meta, config)

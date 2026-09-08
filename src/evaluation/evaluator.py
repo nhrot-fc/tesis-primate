@@ -11,7 +11,6 @@ from tqdm.auto import tqdm
 
 from evaluation.metrics import (
     BETA,
-    MATCH_IOU,
     SCORE_FLOOR,
     Boxes,
     DetectionMetrics,
@@ -59,7 +58,7 @@ class RawPredictions(NamedTuple):
 def collect_detections(
     detect: BoundDetect,
     loader: DataLoader,
-    device: str | torch.device = "cpu",
+    device: str | torch.device,
     nms_iou: float | None = 0.3,
     max_detections: int | None = None,
     desc: str = "detectando",
@@ -101,7 +100,6 @@ def evaluate(
     loader: DataLoader,
     n_classes: int,
     device: str | torch.device = "cpu",
-    iou_threshold: float = MATCH_IOU,
     score_threshold: float = 0.5,
     nms_iou: float | None = 0.3,
     max_detections: int | None = None,
@@ -116,7 +114,6 @@ def evaluate(
         truth,
         n_classes=n_classes,
         n_images=n_images,
-        iou_threshold=iou_threshold,
         score_threshold=score_threshold,
         beta=beta,
     )

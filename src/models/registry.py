@@ -24,6 +24,12 @@ class Architecture(NamedTuple):
     dataset: type[SpectrogramDataset] = SpectrogramDataset  # formato de entrada que come
     clip_grad: float = 1.0
     provided: tuple[str, ...] = ()  # claves que el modelo repone solo al construirse
+    # NMS que hay que correrle encima al salir de `detect`. `None` para las arquitecturas de
+    # predicción de conjunto (DETR, DINO): el matching húngaro es uno a uno y el costo ya
+    # castiga los duplicados durante el entrenamiento, así que suprimir después sólo puede
+    # borrar cajas legítimas —dos vocalizaciones simultáneas se solapan de verdad en el
+    # espectrograma—. Faster R-CNN y YOLO sí traen duplicados: sus cabezas son densas.
+    nms_iou: float | None = 0.3
 
 
 ARCHITECTURES: dict[str, Architecture] = {
@@ -32,12 +38,14 @@ ARCHITECTURES: dict[str, Architecture] = {
         "ASTDeformableDETR",
         clip_grad=0.1,
         provided=("backbone.model.", "criterion."),
+        nms_iou=None,
     ),
     "eat_dino": Architecture(
         "models.dino",
         "EATDINO",
         clip_grad=0.1,
         provided=("backbone.model.", "criterion."),
+        nms_iou=None,
     ),
     "faster_rcnn": Architecture(
         "models.faster_rcnn", "SpectrogramFasterRCNN", FasterRCNNDataset, clip_grad=10.0
@@ -62,11 +70,6 @@ def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> nn.Module
 
 
 def savable_state_dict(model: nn.Module, name: str) -> dict[str, Tensor]:
-    # Se guarda todo menos lo que la arquitectura repone sola al construirse. Filtrar por
-    # `requires_grad` no alcanza: las capas congeladas de Faster R-CNN son pesos de COCO que
-    # nadie vuelve a poner. Y dentro de un prefijo `provided`, lo que sí recibió gradiente ya
-    # no es el preentrenado y hay que guardarlo, o una corrida con el backbone descongelado
-    # guardaría un checkpoint que al cargarse vuelve a AudioSet y pierde el fine-tuning.
     provided = architecture(name).provided
     trained = {key for key, param in model.named_parameters() if param.requires_grad}
     return {
@@ -97,8 +100,8 @@ class LoadedModel(NamedTuple):
         return float(self.config.get("score_threshold", 0.5))
 
     @property
-    def nms_iou(self) -> float:
-        return float(self.config.get("nms_iou", 0.3))
+    def nms_iou(self) -> float | None:  # lo fija la arquitectura, no la corrida
+        return architecture(self.architecture).nms_iou
 
     def detect(self, images: Tensor, score_threshold: float | None = None) -> list[Detections]:
         threshold = self.score_threshold if score_threshold is None else score_threshold

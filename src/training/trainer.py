@@ -11,13 +11,13 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from core.config import SEED
+from core.config import SEED, WORKERS
 from data import cache
 from data.augment import AugmentConfig
 from data.datasets import BoxJitter, to_device
 from data.species import LabelSet
 from evaluation.evaluator import evaluate
-from evaluation.metrics import BETA, MATCH_IOU, DetectionMetrics
+from evaluation.metrics import BETA, MATCH_IOU, MAX_DETECTIONS, DetectionMetrics
 from evaluation.report import format_line
 from models.registry import architecture, detector
 from training import checkpoint
@@ -31,18 +31,17 @@ class TrainConfig:
     batch_size: int = 16
     learning_rate: float = 2e-4
     weight_decay: float = 1e-4
-    workers: int = 0
+    workers: int = WORKERS
     seed: int = SEED
-    iou_threshold: float = MATCH_IOU  # con el que una detección cuenta como acierto
-    score_threshold: float = 0.5  # punto de operación que reportan recall y precisión
-    nms_iou: float = 0.3
-    beta: float = BETA  # el de la F-beta que elige el checkpoint
+    # El checkpoint se elige por mAP@`MATCH_IOU`, que no depende de ningún umbral de score.
+    # Estos dos sólo fijan el punto de operación que se loguea para mirar la corrida; el
+    # definitivo lo busca `evaluation.protocol` sobre val al comparar los modelos.
+    score_threshold: float = 0.5
+    beta: float = BETA
     jitter: BoxJitter | None = BoxJitter()  # aumentación de cajas, sólo en train
     augment: AugmentConfig | None = AugmentConfig()
 
 
-# Todo detector devuelve pérdidas con `model(imágenes, targets)` y cajas con su `detect`,
-# así que acá no hay una rama por arquitectura.
 class Trainer:
     def __init__(
         self,
@@ -65,12 +64,15 @@ class Trainer:
         self.run_dir = run_dir
         self.config = config
         self.device = device
-        self.clip_grad = architecture(name).clip_grad
+        self.spec = architecture(name)
+        self.clip_grad = self.spec.clip_grad
         self.detect = partial(detector(name), model)
         self.run_config = {
             "architecture": name,
             "hparams": hparams,
             "dataset": cache.meta(),
+            "match_iou": MATCH_IOU,
+            "nms_iou": self.spec.nms_iou,
             **asdict(config),
         }
 
@@ -128,9 +130,11 @@ class Trainer:
                 self.val_loader,
                 n_classes=len(self.labels),
                 device=self.device,
-                iou_threshold=self.config.iou_threshold,
                 score_threshold=self.config.score_threshold,
-                nms_iou=self.config.nms_iou,
+                nms_iou=self.spec.nms_iou,
+                # El mismo tope que `protocol.equalize` en la comparación final: si acá se
+                # midiera sin límite, el mAP que elige `best.pt` no sería el de la tabla.
+                max_detections=MAX_DETECTIONS,
                 beta=self.config.beta,
                 desc=desc,
             )
@@ -174,14 +178,14 @@ class Trainer:
 
             losses = self.train_epoch(f"train {progress}")
             val = self.validate(f"val {progress}")
-            score = 0.0 if val.f_beta is None else val.f_beta
+            score = 0.0 if val.map_30 is None else val.map_30
 
             logger.info("[%4s] loss=%.3f %s", progress, losses["total"], format_line(val))
             self.record_epoch(epoch, learning_rate, losses, val)
             if score > best_score:
                 best_score = score
                 self.save_checkpoint(checkpoint.BEST, epoch, val)
-                logger.info("nuevo mejor F%g=%.3f", self.config.beta, score)
+                logger.info("nuevo mejor mAP%.0f=%.3f", MATCH_IOU * 100, score)
             self.save_checkpoint(
                 checkpoint.LAST,
                 epoch,
@@ -191,12 +195,10 @@ class Trainer:
                 best_score=best_score,
             )
 
-        # `best_score` sale de `resume`, así que vale también cuando esta corrida no mejoró
-        # nada o no tenía épocas pendientes.
         logger.info(
-            "épocas nuevas: %d | mejor F%g=%.3f | %s",
+            "épocas nuevas: %d | mejor mAP%.0f=%.3f | %s",
             self.config.epochs - start,
-            self.config.beta,
+            MATCH_IOU * 100,
             best_score,
             self.run_dir,
         )

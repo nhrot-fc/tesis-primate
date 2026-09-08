@@ -10,6 +10,7 @@ from evaluation.metrics import (
     BETA,
     COCO_THRESHOLDS,
     MATCH_IOU,
+    MAX_DETECTIONS,
     SCORE_FLOOR,
     Boxes,
     PerClassAP,
@@ -20,14 +21,13 @@ from evaluation.metrics import (
     mean_average_precision,
     mean_average_precision_over,
     overlaps,
+    saturated_classes,
 )
 
-EQUALIZED_MAX_DET = 64
 THRESHOLD_GRID = torch.arange(0.01, 1.0, 0.01)
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
 TARGET_PRECISION = 0.70
-WINDOW_CLASS_WIDTH = 0.99
 
 CriterionKind = Literal["precision", "fp_per_hour", "f_beta"]
 
@@ -146,7 +146,7 @@ def as_json(value: Any) -> Any:
 
 
 def equalize(
-    predictions: Boxes, max_det: int = EQUALIZED_MAX_DET, score_floor: float = SCORE_FLOOR
+    predictions: Boxes, max_det: int = MAX_DETECTIONS, score_floor: float = SCORE_FLOOR
 ) -> Boxes:
     # Deja las `max_det` mejores de cada ventana sin ordenar por ventana: `kept` ya viene en
     # orden de score, así que la posición dentro de su grupo es el ranking, y el `.sort()`
@@ -257,7 +257,8 @@ def bootstrap(
         * precision
         * recall
         / (beta**2 * precision + recall).clamp(min=1e-9),
-        "fp_per_hour": (predicted - tp) / (windows * P.clip_len_s / 3600).clamp(min=1e-9),
+        # `clip_hop_s`, no `clip_len_s`: las ventanas se solapan (ver `metrics.audio_hours`).
+        "fp_per_hour": (predicted - tp) / (windows * P.clip_hop_s / 3600).clamp(min=1e-9),
     }
     low, high = (1 - CONFIDENCE) / 2, (1 + CONFIDENCE) / 2
     return {
@@ -272,15 +273,6 @@ def max_recall_at_precision(matched: Matched, target: float = TARGET_PRECISION) 
     tp = matched.found.cumsum(0)
     feasible = tp / torch.arange(1, len(tp) + 1) >= target
     return float((tp[feasible] / matched.n_gt).max()) if feasible.any() else 0.0
-
-
-def saturated_classes(truth: Boxes, n_classes: int) -> list[int]:
-    widths = [truth.boxes[truth.labels == class_id][:, 2] for class_id in range(n_classes)]
-    return [
-        class_id
-        for class_id, width in enumerate(widths)
-        if len(width) and float(width.median()) >= WINDOW_CLASS_WIDTH
-    ]
 
 
 def window_level(
@@ -378,7 +370,7 @@ def paired_points(
 def compare(
     models: list[tuple[RawPredictions, RawPredictions]],
     criteria: tuple[Criterion, ...] = DEFAULT_CRITERIA,
-    max_det: int = EQUALIZED_MAX_DET,
+    max_det: int = MAX_DETECTIONS,
     beta: float = BETA,
     n_boot: int = N_BOOTSTRAP,
 ) -> Comparison:

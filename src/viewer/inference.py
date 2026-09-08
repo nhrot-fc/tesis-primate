@@ -31,7 +31,7 @@ def detect(
 ) -> pd.DataFrame:
     import torch
 
-    from inference.predictor import predict
+    from inference.predictor import MERGE_IOU, predict
     from models.registry import load_checkpoint
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -45,7 +45,7 @@ def detect(
         audio_path,
         device,
         score_threshold=min(score_threshold, loaded.score_threshold),
-        nms_iou=loaded.nms_iou if nms_iou is None else nms_iou,
+        nms_iou=MERGE_IOU if nms_iou is None else nms_iou,
         batch_size=batch_size,
         on_progress=on_progress,
     )

@@ -31,7 +31,7 @@ class Detector(NamedTuple):
 DETECTORS: dict[str, Detector] = {
     "detr": Detector(
         "ast_deformable_detr",
-        TrainConfig(epochs=30, batch_size=16, learning_rate=2e-4, workers=0),
+        TrainConfig(epochs=30, batch_size=16, learning_rate=2e-4),
         {
             "n_frames": P.n_frames,
             "frontend": "pcen",
@@ -46,7 +46,7 @@ DETECTORS: dict[str, Detector] = {
     # tasa de aprendizaje de su paper (1e-4) en vez de la del DETR de acá.
     "dino": Detector(
         "eat_dino",
-        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=0),
+        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4),
         {
             "n_frames": P.n_frames,
             "frontend": "pcen",
@@ -61,7 +61,7 @@ DETECTORS: dict[str, Detector] = {
     ),
     "frcnn": Detector(
         "faster_rcnn",
-        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=4),
+        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4),
         {
             "min_size": MIN_SIZE,
             "max_size": MAX_SIZE,

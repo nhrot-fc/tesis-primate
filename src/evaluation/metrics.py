@@ -13,6 +13,8 @@ COCO_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step 
 MAP_THRESHOLDS: tuple[float, ...] = (MATCH_IOU, *COCO_THRESHOLDS)
 BETA = 2.0
 SCORE_FLOOR = 0.001
+MAX_DETECTIONS = 100
+WINDOW_CLASS_WIDTH = 0.95
 
 
 class Boxes(NamedTuple):
@@ -54,8 +56,15 @@ def f_beta(precision: float | None, recall: float | None, beta: float = BETA) ->
     return (1 + beta**2) * precision * recall / (beta**2 * precision + recall)
 
 
+def audio_hours(n_images: int) -> float:
+    # Las ventanas se cortan cada `clip_hop_s` y duran `clip_len_s`, así que se solapan (3 s
+    # cada 1.5 s). El tiempo que cubren es el hop por ventana, no la duración: contarlas por
+    # duración duplica las horas y deja la tasa de falsos positivos a la mitad.
+    return n_images * P.clip_hop_s / 3600
+
+
 def false_positives_per_hour(false_positives: int, n_images: int) -> float | None:
-    hours = n_images * P.clip_len_s / 3600
+    hours = audio_hours(n_images)
     return false_positives / hours if hours else None
 
 
@@ -130,15 +139,15 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
         return 0.0
     recall = found.cumsum(0) / n_gt
     precision = found.cumsum(0) / torch.arange(1, len(found) + 1)
+    envelope = precision.flip(0).cummax(0).values.flip(0)
     previous_recall = torch.cat([recall.new_zeros(1), recall[:-1]])
-    return float(((recall - previous_recall) * precision).sum())
+    return float(((recall - previous_recall) * envelope).sum())
 
 
 def class_average_precision(predictions: Boxes, truth: Boxes, class_id: int) -> float | None:
     class_predictions = predictions.select(predictions.labels == class_id)
     class_truth = truth.select(truth.labels == class_id)
     return average_precision(
-        # Ya está filtrado a una clase, así que enmascarar por clase no cambiaría nada.
         hits(
             overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), MATCH_IOU
         ),
@@ -183,35 +192,47 @@ def mean_average_precision_over(
     return sum(scored) / len(scored) if scored else None
 
 
+def saturated_classes(truth: Boxes, n_classes: int) -> list[int]:
+    widths = [truth.boxes[truth.labels == class_id][:, 2] for class_id in range(n_classes)]
+    return [
+        class_id
+        for class_id, width in enumerate(widths)
+        if len(width) and float(width.median()) >= WINDOW_CLASS_WIDTH
+    ]
+
+
+def detection_classes(truth: Boxes, n_classes: int) -> list[int]:
+    saturated = set(saturated_classes(truth, n_classes))
+    return [class_id for class_id in range(n_classes) if class_id not in saturated]
+
+
 def detection_metrics(
     predictions: Boxes,
     truth: Boxes,
     n_classes: int,
     n_images: int = 0,
-    iou_threshold: float = MATCH_IOU,
     score_threshold: float = 0.5,
     beta: float = BETA,
 ) -> DetectionMetrics:
-    # `predictions` viene ordenado por score descendente (`sort_by_score`): de ahí que las
-    # que superan el umbral sean exactamente las primeras `n_above_threshold` filas.
     n_gt = len(truth.boxes)
     n_predictions = len(predictions.boxes)
     n_above_threshold = int((predictions.scores >= score_threshold).sum())
 
-    found = hits(overlaps(predictions, truth, class_aware=True), n_predictions, iou_threshold)
+    found = hits(overlaps(predictions, truth, class_aware=True), n_predictions, MATCH_IOU)
     true_positives = int(found[:n_above_threshold].sum())
     recall = true_positives / n_gt if n_gt else None
     precision = true_positives / n_above_threshold if n_above_threshold else None
 
     ap = average_precision_per_class(predictions, truth, n_classes)
+    classes = detection_classes(truth, n_classes)
     return DetectionMetrics(
         recall=recall,
         precision=precision,
         f_beta=f_beta(precision, recall, beta),
         fp_per_hour=false_positives_per_hour(n_above_threshold - true_positives, n_images),
-        map_30=mean_average_precision(ap[MATCH_IOU]),
-        map_50=mean_average_precision(ap[0.5]),
-        map_50_95=mean_average_precision_over(ap, COCO_THRESHOLDS),
+        map_30=mean_average_precision(ap[MATCH_IOU], classes),
+        map_50=mean_average_precision(ap[0.5], classes),
+        map_50_95=mean_average_precision_over(ap, COCO_THRESHOLDS, classes),
         n_gt=n_gt,
         n_predictions=n_predictions,
         n_above_threshold=n_above_threshold,

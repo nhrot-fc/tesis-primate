@@ -6,7 +6,7 @@ from pathlib import Path
 from core.runtime import setup_logging
 from evaluation.evaluator import load_pairs
 from evaluation.metrics import BETA
-from evaluation.protocol import EQUALIZED_MAX_DET, N_BOOTSTRAP, Criterion, as_json, compare
+from evaluation.protocol import MAX_DETECTIONS, N_BOOTSTRAP, Criterion, as_json, compare
 from evaluation.report import format_comparison
 
 logger = logging.getLogger("compare_models")
@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("dumps", nargs="+", type=Path, help="los *_predictions.pt, val y test")
     parser.add_argument("--output", type=Path, help="sin extensión; se escriben .txt y .json")
-    parser.add_argument("--max-det", type=int, default=EQUALIZED_MAX_DET, help="tope común")
+    parser.add_argument("--max-det", type=int, default=MAX_DETECTIONS, help="tope común")
     parser.add_argument("--beta", type=float, default=BETA, help="la F-beta del último criterio")
     parser.add_argument(
         "--precision", nargs="*", type=float, default=[0.70, 0.50], help="puntos a precisión fija"

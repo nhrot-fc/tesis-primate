@@ -80,7 +80,6 @@ def audited(name: str, epochs: int) -> Audited:
             learning_rate=stored["learning_rate"],
             weight_decay=stored["weight_decay"],
             workers=stored["workers"],
-            nms_iou=stored["nms_iou"],
             jitter=BoxJitter(**stored["jitter"]) if stored.get("jitter") else None,
             augment=None,
         ),

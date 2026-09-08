@@ -126,6 +126,8 @@ def collate_fn(batch: list[tuple[Tensor, Target]]) -> Batch:
 def make_loader(
     dataset: Dataset, batch_size: int, workers: int = 0, shuffle: bool = False
 ) -> DataLoader:
+    # Con `persistent_workers` los procesos no se rearman en cada época ni en cada pasada de
+    # validación, que es la mitad de los arranques de una corrida.
     return DataLoader(
         dataset,
         batch_size=batch_size,
@@ -133,6 +135,8 @@ def make_loader(
         num_workers=workers,
         collate_fn=collate_fn,
         pin_memory=True,
+        persistent_workers=workers > 0,
+        prefetch_factor=4 if workers > 0 else None,
     )
 
 

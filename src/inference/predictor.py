@@ -10,6 +10,11 @@ from models.registry import LoadedModel
 from utils.audio import load_clips, mel_spectrogram, window_starts, y_to_hz
 from utils.boxes import suppress_nested
 
+# IoU con el que se funden las detecciones repetidas por el solape entre ventanas (3 s cada
+# 1.5 s: cada vocalización cae en dos). No es la NMS de `Architecture.nms_iou`, que saca los
+# duplicados *dentro* de una ventana y que DETR y DINO no necesitan: ésta corre para todos.
+MERGE_IOU = 0.3
+
 
 def species_and_call(name: str) -> tuple[str, str]:
     species, _, call_type = name.partition("/")
@@ -22,7 +27,7 @@ def predict(
     audio_path: str | Path,
     device: str | torch.device = "cpu",
     score_threshold: float = 0.5,
-    nms_iou: float = 0.3,
+    nms_iou: float = MERGE_IOU,
     batch_size: int = 16,
     on_progress: Callable[[int, int], None] | None = None,
     params: Parameters = P,

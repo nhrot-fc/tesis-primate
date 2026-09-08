@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -5,6 +6,9 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SEED = 42
+# `num_workers` de `DataLoader` tiene que ser >= 0: -1 no significa "todos", tira ValueError.
+# Ocho es el techo útil acá; más procesos compiten por la GPU y por la RAM del caché de mel.
+WORKERS = min(8, os.cpu_count() or 1)
 
 
 class Settings(BaseSettings):
