@@ -69,7 +69,7 @@ def decompose(
     predictions: Boxes, truth: Boxes, class_names: list[str], classes: list[int]
 ) -> Decomposition:
     truth = truth.select(torch.isin(truth.labels, torch.tensor(classes, dtype=truth.labels.dtype)))
-    agnostic = overlaps(predictions, truth)
+    agnostic = overlaps(predictions, truth, class_aware=False)
     pairs = assignments(agnostic, MATCH_IOU)
     ap_agnostic = average_precision(
         hits(agnostic, len(predictions.boxes), MATCH_IOU), len(truth.boxes)

@@ -140,7 +140,11 @@ def load_pairs(paths: Sequence[Path]) -> list[tuple[RawPredictions, RawPredictio
             len(dump.recording_names),
         )
 
-    incomplete = {model: sorted(splits) for model, splits in by_model.items() if len(splits) < 2}
+    incomplete = {
+        model: sorted(splits)
+        for model, splits in by_model.items()
+        if not {VAL, TEST} <= splits.keys()
+    }
     if incomplete:
         raise ValueError(
             f"faltan volcados: {incomplete}. Cada modelo necesita {VAL} (elige el umbral) y "

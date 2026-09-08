@@ -178,7 +178,6 @@ def cross_validate(
                 run_dir,
                 reference.config,
                 device,
-                dataset_meta=cache.meta(),
             ).fit()
 
         train_set.jitter = None

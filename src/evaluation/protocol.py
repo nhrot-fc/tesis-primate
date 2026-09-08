@@ -1,4 +1,4 @@
-from typing import Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import torch
 from torch import Tensor
@@ -135,7 +135,7 @@ class Comparison(NamedTuple):
     models: list[ModelComparison]
 
 
-def as_json(value):
+def as_json(value: Any) -> Any:
     if hasattr(value, "_asdict"):
         return {key: as_json(item) for key, item in value._asdict().items()}
     if isinstance(value, dict):
@@ -148,6 +148,9 @@ def as_json(value):
 def equalize(
     predictions: Boxes, max_det: int = EQUALIZED_MAX_DET, score_floor: float = SCORE_FLOOR
 ) -> Boxes:
+    # Deja las `max_det` mejores de cada ventana sin ordenar por ventana: `kept` ya viene en
+    # orden de score, así que la posición dentro de su grupo es el ranking, y el `.sort()`
+    # final devuelve las filas al orden de score global que el resto del módulo asume.
     kept = predictions.select(predictions.scores >= score_floor)
     if not len(kept.boxes):
         return kept

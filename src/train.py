@@ -1,8 +1,8 @@
 import argparse
+import json
 import logging
 from dataclasses import replace
-from itertools import product
-from typing import Any
+from typing import Any, NamedTuple
 
 from torch.utils.data import Subset
 
@@ -10,152 +10,122 @@ from core.config import P, settings
 from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
-from evaluation.report import format_line
 from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE
 from models.registry import architecture, build_model
 from training.trainer import TrainConfig, Trainer
 
 logger = logging.getLogger("train")
 
-# Cada detector entrenable: su nombre en el registro y los valores del baseline. Las
-# ablaciones se barren pasando varios `--frontend` y `--time-stride` en un solo comando.
-TRAINERS: dict[str, tuple[str, TrainConfig]] = {
-    "detr": (
+
+class Detector(NamedTuple):
+    arch: str  # clave en `models.registry.ARCHITECTURES`
+    config: TrainConfig
+    # Los hiperparámetros son los que rearman el grafo: viajan en el checkpoint y con ellos
+    # `load_checkpoint` reconstruye el modelo sin más contexto.
+    hparams: dict[str, Any]
+
+
+# El AST parchea con solape (time_stride 2) y el EAT, como en su preentrenamiento, sin
+# solape (16 x 16). La geometría del DINO es la de la literatura (Zhu & Sato, DCASE 2025):
+# 100 queries de 256 dimensiones y pirámide de cuatro niveles {1/32, 1/16, 1/8, 1/4}.
+DETECTORS: dict[str, Detector] = {
+    "detr": Detector(
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=16, learning_rate=2e-4, workers=0),
+        {
+            "n_frames": P.n_frames,
+            "frontend": "pcen",
+            "freeze": True,
+            "time_stride": 2,
+            "dim": 128,
+            "n_queries": 100,
+            "n_levels": 4,
+        },
     ),
     # DINO trae encoder deformable además del decodificador: entra menos lote y va con la
     # tasa de aprendizaje de su paper (1e-4) en vez de la del DETR de acá.
-    "dino": (
+    "dino": Detector(
         "eat_dino",
         TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=0),
+        {
+            "n_frames": P.n_frames,
+            "frontend": "pcen",
+            "freeze": True,
+            "time_stride": 16,
+            "dim": 256,
+            "n_queries": 100,
+            "n_levels": 4,
+            "n_encoder_layers": 6,  # bajarlo es lo primero si falta VRAM
+            "dn_queries": 100,
+        },
     ),
-    "frcnn": (
+    "frcnn": Detector(
         "faster_rcnn",
         TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4, workers=4),
+        {
+            "min_size": MIN_SIZE,
+            "max_size": MAX_SIZE,
+            "anchor_ratios": ANCHOR_RATIOS,
+            "trainable_layers": 3,  # de 5; congelar las primeras ahorra memoria y sobreajuste
+            "pretrained": True,
+        },
     ),
 }
-
-MODEL_DIM, N_QUERIES, N_LEVELS = 128, 100, 4
-# EAT + DINO va con la geometría de la literatura (Zhu & Sato, DCASE 2025): 100 queries de
-# 256 dimensiones y pirámide de cuatro niveles {1/32, 1/16, 1/8, 1/4}.
-DINO_DIM, DINO_QUERIES, DINO_LEVELS, DINO_DN_QUERIES = 256, 100, 4, 100
-# Paso temporal por defecto: el AST parchea con solape y el EAT, como en su
-# preentrenamiento, sin solape (16 x 16).
-DEFAULT_TIME_STRIDE = {"detr": 2, "dino": 16}
-TRAINABLE_BACKBONE_LAYERS = 3  # de 5; congelar las primeras ahorra memoria y sobreajuste
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Entrena un detector sobre las ventanas cacheadas."
+        description="Entrena un detector sobre las ventanas cacheadas.",
+        epilog="ablaciones: --hp frontend=logmel time_stride=4 freeze=false pretrained=false",
     )
-    parser.add_argument("--arch", choices=tuple(TRAINERS), default="detr")
-    parser.add_argument("--epochs", type=int, default=None)
-    parser.add_argument("--batch", type=int, default=None)
-    parser.add_argument("--lr", type=float, default=None)
-    parser.add_argument("--workers", type=int, default=None)
-    parser.add_argument("--device", default=None, help="'cuda', 'cuda:1', 'cpu'")
-    parser.add_argument("--limit", type=int, default=None, help="usa sólo N ventanas (pruebas)")
+    parser.add_argument("--arch", choices=tuple(DETECTORS), default="detr")
+    parser.add_argument("--name", help="nombre de la corrida; por defecto, la ablación")
+    parser.add_argument("--device", help="'cuda', 'cuda:1', 'cpu'")
+    parser.add_argument("--limit", type=int, help="usa sólo N ventanas (pruebas)")
     parser.add_argument(
-        "--no-augment", action="store_true", help="entrena sin aumentación del mel (ablación)"
+        "--hp", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `Detector.hparams`"
     )
     parser.add_argument(
-        "--name", default=None, help="nombre de la corrida; por defecto, la ablación"
+        "--cfg", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `TrainConfig`"
     )
-
-    detr = parser.add_argument_group("Deformable-DETR y DINO")
-    detr.add_argument("--frontend", nargs="+", choices=("pcen", "logmel"), default=["pcen"])
-    detr.add_argument(
-        "--time-stride",
-        type=int,
-        nargs="+",
-        default=None,
-        help="paso temporal del parcheo del backbone; menos paso, más tokens y más VRAM "
-        f"(por defecto {DEFAULT_TIME_STRIDE})",
-    )
-    detr.add_argument("--unfreeze", action="store_true", help="fine-tunea el backbone entero")
-    detr.add_argument(
-        "--enc-layers",
-        type=int,
-        default=6,
-        help="capas del encoder deformable de DINO; bajarlo es lo primero si falta VRAM",
-    )
-
-    frcnn = parser.add_argument_group("Faster R-CNN")
-    frcnn.add_argument("--scratch", action="store_true", help="sin los pesos de COCO")
     return parser.parse_args()
 
 
-def detector_hparams(args: argparse.Namespace, frontend: str, stride: int) -> dict[str, Any]:
-    shared = {
-        "n_frames": P.n_frames,
-        "frontend": frontend,
-        "time_stride": stride,
-        "freeze": not args.unfreeze,
-    }
-    if args.arch == "dino":
-        return shared | {
-            "dim": DINO_DIM,
-            "n_queries": DINO_QUERIES,
-            "n_levels": DINO_LEVELS,
-            "n_encoder_layers": args.enc_layers,
-            "dn_queries": DINO_DN_QUERIES,
-        }
-    return shared | {"dim": MODEL_DIM, "n_queries": N_QUERIES, "n_levels": N_LEVELS}
+def overrides(pairs: list[str]) -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    for pair in pairs:
+        key, sep, value = pair.partition("=")
+        if not sep:
+            raise SystemExit(f"esperaba clave=valor, no {pair!r}")
+        try:
+            parsed[key] = json.loads(value)
+        except ValueError:
+            parsed[key] = value
+    return parsed
 
 
-def variants(args: argparse.Namespace) -> list[tuple[str, dict[str, Any]]]:
-    # Los hiperparámetros son los que rearman el grafo: viajan en el checkpoint y con
-    # ellos `load_checkpoint` reconstruye el modelo sin más contexto.
+def main() -> None:
+    args = parse_args()
+    detector = DETECTORS[args.arch]
+    ablation = overrides(args.hp)
+    hparams = detector.hparams | ablation
     if args.arch == "frcnn":
-        db_low, db_high = cache.db_range()
-        name = args.name or f"frcnn_{'scratch' if args.scratch else 'coco'}"
-        return [
-            (
-                name,
-                {
-                    "db_low": db_low,
-                    "db_high": db_high,
-                    "min_size": MIN_SIZE,
-                    "max_size": MAX_SIZE,
-                    "anchor_ratios": ANCHOR_RATIOS,
-                    "trainable_layers": TRAINABLE_BACKBONE_LAYERS,
-                    "pretrained": not args.scratch,
-                },
-            )
-        ]
+        # Único que pinta el mel como imagen: necesita el rango en dB con el que se cacheó.
+        hparams["db_low"], hparams["db_high"] = cache.db_range()
 
-    state = "ft" if args.unfreeze else "frozen"
-    strides = args.time_stride or [DEFAULT_TIME_STRIDE[args.arch]]
-    combinations = list(product(args.frontend, strides))
-    if args.name and len(combinations) > 1:
-        # Con un solo nombre las corridas se pisarían la carpeta y los checkpoints.
-        raise SystemExit("--name sólo vale para una combinación; sacalo para barrer varias.")
-    return [
-        (
-            args.name or f"{args.arch}_{frontend}_ts{stride}_{state}",
-            detector_hparams(args, frontend, stride),
-        )
-        for frontend, stride in combinations
-    ]
-
-
-def train_one(
-    name: str, hparams: dict[str, Any], args: argparse.Namespace, config: TrainConfig, device: str
-) -> str:
+    name = args.name or "_".join([args.arch, *(f"{k}-{v}" for k, v in sorted(ablation.items()))])
     run_dir = settings.runs_dir / name
     setup_logging(log_file=run_dir / "train.log")
     logger.info("===== %s =====", name)
 
-    labels = cache.labels()
+    config = replace(detector.config, **overrides(args.cfg))
+    device = resolve_device(args.device)
     set_seed(config.seed)
-    arch, _ = TRAINERS[args.arch]
-    model = build_model(arch, len(labels), hparams).to(device)
 
-    # Train va en el formato que consume el modelo; val siempre en el canónico, que es el
-    # espacio en el que se miden las métricas y en el que los tres son comparables.
-    train_set = architecture(arch).dataset(
+    labels = cache.labels()
+    model = build_model(detector.arch, len(labels), hparams).to(device)
+
+    train_set = architecture(detector.arch).dataset(
         cache.split_path("train"), jitter=config.jitter, augment=config.augment
     )
     val_set = SpectrogramDataset(cache.split_path("val"))
@@ -163,9 +133,9 @@ def train_one(
         train_set = Subset(train_set, range(min(args.limit, len(train_set))))
         val_set = Subset(val_set, range(min(args.limit, len(val_set))))
 
-    best = Trainer(
+    Trainer(
         model,
-        arch,
+        detector.arch,
         hparams,
         labels,
         make_loader(train_set, config.batch_size, config.workers, shuffle=True),
@@ -173,50 +143,9 @@ def train_one(
         run_dir,
         config,
         device,
-        dataset_meta=cache.meta(),
     ).fit()
 
-    if best is None:  # no corrió ninguna época: `last.pt` ya estaba en la última
-        return "ya completa"
-    logger.info("mejor época -> %s", format_line(best))
-    return format_line(best)
-
-
-def main() -> None:
-    args = parse_args()
-    setup_logging()
-    device = resolve_device(args.device)
-
-    config = TRAINERS[args.arch][1]
-    overrides = {
-        "epochs": args.epochs,
-        "batch_size": args.batch,
-        "learning_rate": args.lr,
-        "workers": args.workers,
-    }
-    config = replace(config, **{k: v for k, v in overrides.items() if v is not None})
-    if args.no_augment:
-        config = replace(config, augment=None)
-
-    runs = variants(args)
-    logger.info("device: %s | %d corrida(s): %s", device, len(runs), [name for name, _ in runs])
-
-    summary: list[str] = []
-    for name, hparams in runs:
-        try:
-            summary.append(f"{name}: {train_one(name, hparams, args, config, device)}")
-        except KeyboardInterrupt:
-            logger.warning("interrumpido durante %s; `last.pt` quedó guardado", name)
-            raise
-        except Exception as error:
-            # Que una combinación se caiga --típicamente por VRAM-- no puede llevarse
-            # puesto el resto del barrido.
-            logger.exception("%s falló", name)
-            summary.append(f"{name}: falló ({type(error).__name__}: {error})")
-
-    setup_logging()
-    logger.info("resumen:\n  %s", "\n  ".join(summary))
-    logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", runs[0][0])
+    logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", name)
 
 
 if __name__ == "__main__":

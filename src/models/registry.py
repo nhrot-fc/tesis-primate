@@ -90,17 +90,19 @@ class LoadedModel(NamedTuple):
     model: nn.Module
     architecture: str
     labels: LabelSet
-    score_threshold: float  # punto de operación con el que se eligió este checkpoint
-    nms_iou: float
-    config: dict
+    config: dict[str, Any]
+
+    @property
+    def score_threshold(self) -> float:  # punto de operación con el que se eligió el checkpoint
+        return float(self.config.get("score_threshold", 0.5))
+
+    @property
+    def nms_iou(self) -> float:
+        return float(self.config.get("nms_iou", 0.3))
 
     def detect(self, images: Tensor, score_threshold: float | None = None) -> list[Detections]:
         threshold = self.score_threshold if score_threshold is None else score_threshold
         return detector(self.architecture)(self.model, images, threshold)
-
-
-def operating_point(config: dict[str, Any]) -> tuple[float, float]:
-    return float(config.get("score_threshold", 0.5)), float(config.get("nms_iou", 0.3))
 
 
 def load_ultralytics_model(path: Path, checkpoint: Any, device: str) -> LoadedModel:
@@ -113,23 +115,21 @@ def load_ultralytics_model(path: Path, checkpoint: Any, device: str) -> LoadedMo
     adapted = yolo.load_ultralytics_checkpoint(path, checkpoint, device)
     adapted.model.eval()
     logger.info("yolo (Ultralytics) | %d clases | %s", len(adapted.labels), path)
-    return LoadedModel(
-        adapted.model, "yolo", adapted.labels, *operating_point(adapted.config), adapted.config
-    )
+    return LoadedModel(adapted.model, "yolo", adapted.labels, adapted.config)
 
 
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
+    path, device = Path(path), str(device)
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
-        return load_ultralytics_model(Path(path), checkpoint, str(device))
+        return load_ultralytics_model(path, checkpoint, device)
 
     name = checkpoint["architecture"]
     labels = LabelSet(checkpoint["labels"])
-    config = checkpoint.get("config", {})
 
     model = build_model(name, len(labels), checkpoint["hparams"]).to(device)
     load_state_dict(model, name, checkpoint["state_dict"])
     model.eval()
 
     logger.info("%s | %d clases | época %s | %s", name, len(labels), checkpoint.get("epoch"), path)
-    return LoadedModel(model, name, labels, *operating_point(config), config)
+    return LoadedModel(model, name, labels, checkpoint.get("config", {}))

@@ -38,7 +38,7 @@ JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
 
 
 def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
-    annotations = load_annotations(settings.data_dir / "cleaned")
+    annotations = load_annotations()
     excluded = annotations[["species", "call_type"]].apply(tuple, axis=1).isin(EXCLUDED_PAIRS)
     annotations = annotations[~excluded]
     annotations["low_freq_hz"] = annotations["low_freq_hz"].clip(lower=P.f_min)
@@ -137,13 +137,17 @@ def main() -> None:
 
     experiment_df, labels = select_experiment()
     manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
-    train_m, val_m, test_m = split_manifest(
-        manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS
+    splits = dict(
+        zip(
+            cache.SPLITS,
+            split_manifest(manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS),
+            strict=True,
+        )
     )
 
     cache_dir.mkdir(parents=True, exist_ok=True)
     if args.sources_only:
-        for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
+        for name, split in splits.items():
             cache.write_sources(name, split)
             logger.info("%s: %d ventanas -> %s", name, len(split), cache.sources_path(name))
         return
@@ -155,7 +159,7 @@ def main() -> None:
 
     normalization: dict[str, float] = {}
     db_range: list[float] = []
-    for name, split in [("train", train_m), ("val", val_m), ("test", test_m)]:
+    for name, split in splits.items():
         logger.info("%s: materializando %d ventanas...", name, len(split))
         cache.write_sources(name, split)  # ventana -> grabación, para el IC por grabación
         windows = build_dataset(split)

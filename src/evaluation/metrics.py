@@ -76,7 +76,7 @@ def rows_by_image(image_ids: Tensor) -> dict[int, list[int]]:
     return rows
 
 
-def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool = False) -> Overlaps:
+def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool) -> Overlaps:
     if not len(predictions.boxes) or not len(truth.boxes):
         return []
 
@@ -138,7 +138,10 @@ def class_average_precision(predictions: Boxes, truth: Boxes, class_id: int) -> 
     class_predictions = predictions.select(predictions.labels == class_id)
     class_truth = truth.select(truth.labels == class_id)
     return average_precision(
-        hits(overlaps(class_predictions, class_truth), len(class_predictions.boxes), MATCH_IOU),
+        # Ya está filtrado a una clase, así que enmascarar por clase no cambiaría nada.
+        hits(
+            overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), MATCH_IOU
+        ),
         len(class_truth.boxes),
     )
 
@@ -150,7 +153,7 @@ def average_precision_per_class(
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
         class_truth = truth.select(truth.labels == class_id)
-        per_image = overlaps(class_predictions, class_truth)
+        per_image = overlaps(class_predictions, class_truth, False)  # ya filtrado a una clase
         for threshold in MAP_THRESHOLDS:
             per_threshold[threshold][class_id] = average_precision(
                 hits(per_image, len(class_predictions.boxes), threshold), len(class_truth.boxes)
@@ -189,11 +192,13 @@ def detection_metrics(
     score_threshold: float = 0.5,
     beta: float = BETA,
 ) -> DetectionMetrics:
+    # `predictions` viene ordenado por score descendente (`sort_by_score`): de ahí que las
+    # que superan el umbral sean exactamente las primeras `n_above_threshold` filas.
     n_gt = len(truth.boxes)
     n_predictions = len(predictions.boxes)
     n_above_threshold = int((predictions.scores >= score_threshold).sum())
 
-    found = hits(overlaps(predictions, truth), n_predictions, iou_threshold)
+    found = hits(overlaps(predictions, truth, class_aware=True), n_predictions, iou_threshold)
     true_positives = int(found[:n_above_threshold].sum())
     recall = true_positives / n_gt if n_gt else None
     precision = true_positives / n_above_threshold if n_above_threshold else None

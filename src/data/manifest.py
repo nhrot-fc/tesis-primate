@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from typing import NamedTuple
 
@@ -9,6 +10,8 @@ import soundfile as sf
 from core.config import SEED, P, Parameters
 from data.species import LabelSet
 from utils.audio import FloatArray, hz_to_y, window_starts
+
+logger = logging.getLogger(__name__)
 
 IntArray = npt.NDArray[np.int64]
 
@@ -62,10 +65,12 @@ def build_manifest(
 
     positive: list[ClipWindow] = []
     empty: list[ClipWindow] = []
+    unreadable: list[str] = []
     for audio_path, group in df.groupby("audio_path"):
         try:
             duration_s = sf.info(str(audio_path)).duration
         except (RuntimeError, sf.LibsndfileError):
+            unreadable.append(str(audio_path))
             continue
 
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.int64)
@@ -76,6 +81,14 @@ def build_manifest(
                 positive.append(window)
             elif not incomplete:
                 empty.append(window)
+
+    if unreadable:
+        # Un audio que no abre se lleva puestas todas las anotaciones de esa grabación.
+        logger.warning(
+            "%d audios ilegibles, sus anotaciones quedan fuera:\n  %s",
+            len(unreadable),
+            "\n  ".join(unreadable),
+        )
 
     if empty_ratio <= 0.0 or not empty:
         return positive

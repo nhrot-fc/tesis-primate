@@ -11,12 +11,8 @@ from evaluation.protocol import (
 NAME_WIDTH = 24
 
 
-def format_metric(value: float | None) -> str:
-    return f"{value:.3f}" if value is not None else "n/a"
-
-
-def format_rate(value: float | None) -> str:
-    return f"{value:.0f}" if value is not None else "n/a"
+def format_metric(value: float | None, digits: int = 3) -> str:
+    return f"{value:.{digits}f}" if value is not None else "n/a"
 
 
 def format_interval(interval: dict[str, list[float]], key: str) -> str:
@@ -29,7 +25,7 @@ def format_line(metrics: DetectionMetrics) -> str:
         f"recall={format_metric(metrics.recall)} "
         f"precision={format_metric(metrics.precision)} "
         f"F{BETA:g}={format_metric(metrics.f_beta)} "
-        f"FP/h={format_rate(metrics.fp_per_hour)} "
+        f"FP/h={format_metric(metrics.fp_per_hour, 0)} "
         f"mAP{MATCH_IOU * 100:.0f}={format_metric(metrics.map_30)} "
         f"mAP50={format_metric(metrics.map_50)} "
         f"mAP50-95={format_metric(metrics.map_50_95)}"
@@ -100,7 +96,7 @@ def paired_row(model: ModelComparison, position: int) -> tuple:
         format_metric(row.test.recall),
         format_interval(row.interval, "recall"),
         format_metric(row.test.precision),
-        format_rate(row.test.fp_per_hour),
+        format_metric(row.test.fp_per_hour, 0),
         format_metric(row.test.boxes_per_tp),
         format_metric(row.agnostic_recall),
     )

@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from core.config import SEED
+from data import cache
 from data.augment import AugmentConfig
 from data.datasets import BoxJitter, to_device
 from data.species import LabelSet
@@ -54,7 +55,6 @@ class Trainer:
         run_dir: Path,
         config: TrainConfig,
         device: str,
-        dataset_meta: dict[str, Any],
     ) -> None:
         self.model = model
         self.name = name
@@ -70,13 +70,13 @@ class Trainer:
         self.run_config = {
             "architecture": name,
             "hparams": hparams,
-            "dataset": dataset_meta,
+            "dataset": cache.meta(),
             **asdict(config),
         }
 
-        trainable = [p for p in model.parameters() if p.requires_grad]
+        self.trainable = [p for p in model.parameters() if p.requires_grad]
         self.optimizer = torch.optim.AdamW(
-            trainable, lr=config.learning_rate, weight_decay=config.weight_decay
+            self.trainable, lr=config.learning_rate, weight_decay=config.weight_decay
         )
         self.scheduler = OneCycleLR(
             self.optimizer,
@@ -89,7 +89,7 @@ class Trainer:
             "%s | %.1fM parámetros (%.1fM entrenables) | %d clases | %s",
             name,
             sum(p.numel() for p in model.parameters()) / 1e6,
-            sum(p.numel() for p in trainable) / 1e6,
+            sum(p.numel() for p in self.trainable) / 1e6,
             len(labels),
             hparams,
         )
@@ -106,7 +106,7 @@ class Trainer:
 
             self.optimizer.zero_grad()
             total.backward()
-            nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad)
+            nn.utils.clip_grad_norm_(self.trainable, self.clip_grad)
             self.optimizer.step()
             self.scheduler.step()
 
@@ -159,7 +159,7 @@ class Trainer:
             **resumable,
         )
 
-    def fit(self) -> DetectionMetrics | None:
+    def fit(self) -> None:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         (self.run_dir / "config.json").write_text(
             json.dumps(self.run_config, indent=2, ensure_ascii=False, default=str)
@@ -167,7 +167,6 @@ class Trainer:
         start, best_score = checkpoint.resume(
             self.run_dir, self.name, self.model, self.optimizer, self.scheduler
         )
-        best: DetectionMetrics | None = None
 
         for epoch in range(start, self.config.epochs):
             progress = f"{epoch + 1}/{self.config.epochs}"
@@ -180,7 +179,7 @@ class Trainer:
             logger.info("[%4s] loss=%.3f %s", progress, losses["total"], format_line(val))
             self.record_epoch(epoch, learning_rate, losses, val)
             if score > best_score:
-                best_score, best = score, val
+                best_score = score
                 self.save_checkpoint(checkpoint.BEST, epoch, val)
                 logger.info("nuevo mejor F%g=%.3f", self.config.beta, score)
             self.save_checkpoint(
@@ -192,4 +191,12 @@ class Trainer:
                 best_score=best_score,
             )
 
-        return best
+        # `best_score` sale de `resume`, así que vale también cuando esta corrida no mejoró
+        # nada o no tenía épocas pendientes.
+        logger.info(
+            "épocas nuevas: %d | mejor F%g=%.3f | %s",
+            self.config.epochs - start,
+            self.config.beta,
+            best_score,
+            self.run_dir,
+        )

@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from slugify import slugify
 
+from core.config import settings
 from data.species import CALL_TYPES, VALID_PAIRS
 
 logger = logging.getLogger(__name__)
@@ -71,16 +72,35 @@ def species_of(wav_path: Path) -> str:
     return wav_path.parent.name.lower()
 
 
-def load_annotations(root: Path) -> pd.DataFrame:
+def load_annotations(
+    root: Path = settings.cleaned_dir, audio_root: Path = settings.raw_dir
+) -> pd.DataFrame:
+    # `prepare_annotations.py` nombró cada `.txt` como su `.wav`: la grabación es esta ruta.
     frames = []
-    for annotation_path in sorted(Path(root).rglob("*.txt")):
-        wav_path = annotation_path.with_suffix(".wav")
-        if not wav_path.exists():
+    without_audio: list[str] = []
+    for annotation_path in sorted(root.rglob("*.txt")):
+        relative = annotation_path.relative_to(root)
+        audio_path = (audio_root / relative).with_suffix(".wav")
+        if not audio_path.is_file():
+            without_audio.append(str(relative))
             continue
-        try:
-            frame = pd.read_csv(annotation_path, sep="\t")
-            frame["audio_path"] = str(wav_path)
-            frames.append(clean_annotations(frame, species_of(wav_path)))
-        except Exception as exc:
-            logger.warning("%s: %s", annotation_path.name, exc)
-    return pd.concat(frames, ignore_index=True)
+        frame = pd.read_csv(annotation_path, sep="\t")
+        frame["audio_path"] = str(audio_path)
+        frames.append(frame)
+
+    if not frames:
+        raise FileNotFoundError(
+            f"no hay anotaciones en {root}; generalas con `python src/prepare_annotations.py`"
+        )
+    if without_audio:
+        logger.warning(
+            "%d grabaciones sin .wav en %s, quedan fuera:%s",
+            len(without_audio),
+            audio_root,
+            "".join(f"\n  {line}" for line in without_audio),
+        )
+
+    annotations = pd.concat(frames, ignore_index=True)
+    annotations["duration_s"] = annotations["end_time_s"] - annotations["begin_time_s"]
+    annotations["bandwidth_hz"] = annotations["high_freq_hz"] - annotations["low_freq_hz"]
+    return annotations

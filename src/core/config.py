@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     HF_TOKEN: SecretStr | None = None
-    PROJECT_DIR: Path = Path.cwd()
+    # La raíz del repo, no el directorio desde el que se lanzó: de acá cuelga el caché, y
+    # buscarlo en el cwd deja `data/` vacío según desde dónde se corra el script.
+    PROJECT_DIR: Path = Path(__file__).resolve().parents[2]
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -22,6 +24,14 @@ class Settings(BaseSettings):
     @property
     def data_dir(self) -> Path:
         return self.PROJECT_DIR / "data"
+
+    @property
+    def raw_dir(self) -> Path:  # el audio vive acá y no se copia a ningún lado
+        return self.data_dir / "raw"
+
+    @property
+    def cleaned_dir(self) -> Path:  # sólo anotaciones normalizadas, una por grabación
+        return self.data_dir / "cleaned"
 
     @property
     def processed_dir(self) -> Path:
