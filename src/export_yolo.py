@@ -29,7 +29,7 @@ def export_split(split: str, db_low: float, db_high: float) -> dict[str, int]:
             stale.unlink()
 
     n_boxes = n_empty = 0
-    for index in tqdm(range(len(dataset)), desc=f"exportando {split}"):
+    for index in tqdm(range(len(dataset)), desc=f"exportando {split}", disable=None):
         image, lines = dataset[index]
         stem = f"{split}_{index:06d}"
         cv2.imwrite(

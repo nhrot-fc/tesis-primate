@@ -100,7 +100,7 @@ class Trainer:
         self.model.train()
         totals: dict[str, float] = {}
 
-        progress = tqdm(self.train_loader, desc=desc, unit="batch", leave=False)
+        progress = tqdm(self.train_loader, desc=desc, unit="batch", leave=False, disable=None)
         for step, batch in enumerate(progress, start=1):
             images, targets = to_device(batch, self.device)
             terms: dict[str, Tensor] = self.model(images, targets)

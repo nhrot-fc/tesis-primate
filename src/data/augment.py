@@ -165,7 +165,7 @@ class Augmenter:
             padded = torch.cat([edge, mel, edge], dim=-1)
             mel = padded[..., span - frames : span - frames + n_frames]
             boxes, labels = shift_boxes(boxes, labels, frames / n_frames, config.min_overlap)
-        if len(boxes) and random.random() < config.p_paste:
+        if random.random() < config.p_paste:
             boxes, labels = copy_paste(mel, floor, boxes, labels, self.bank, config)
 
         return mel, {"boxes": boxes, "labels": labels}

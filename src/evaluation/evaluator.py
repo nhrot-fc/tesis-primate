@@ -67,7 +67,7 @@ def collect_detections(
     truth: list[Boxes] = []
     image_id = 0
 
-    for images, targets in tqdm(loader, desc=desc, unit="batch", leave=False):
+    for images, targets in tqdm(loader, desc=desc, unit="batch", leave=False, disable=None):
         detections = detect(images.to(device), SCORE_FLOOR)
         for detection, target in zip(detections, targets, strict=True):
             boxes, scores, labels = (tensor.cpu() for tensor in detection)
@@ -84,9 +84,9 @@ def collect_detections(
             n_truth = len(target["labels"])
             truth.append(
                 Boxes(
-                    target["boxes"].cpu(),
+                    target["boxes"].detach().to("cpu", copy=True),
                     torch.full((n_truth,), image_id),
-                    target["labels"].cpu(),
+                    target["labels"].detach().to("cpu", copy=True),
                     torch.ones(n_truth),
                 )
             )

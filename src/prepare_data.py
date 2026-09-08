@@ -106,7 +106,7 @@ def build_dataset(manifest: list[ClipWindow], params: Parameters = P) -> dict[st
     images = torch.empty(len(manifest), 1, params.n_mels, params.n_frames, dtype=torch.float32)
     boxes: list[torch.Tensor] = []
     labels: list[torch.Tensor] = []
-    for index, window in enumerate(tqdm(manifest, desc="materializando")):
+    for index, window in enumerate(tqdm(manifest, desc="materializando", disable=None)):
         waveform = load_clip(window.audio_path, window.clip_start_s, params)
         images[index] = to_mel(waveform)
         boxes.append(torch.from_numpy(window.boxes.astype(np.float32)))
