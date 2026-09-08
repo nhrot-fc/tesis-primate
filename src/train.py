@@ -36,7 +36,7 @@ TRAINERS: dict[str, tuple[str, TrainConfig]] = {
     ),
 }
 
-MODEL_DIM, N_QUERIES, N_LEVELS = 128, 100, 3
+MODEL_DIM, N_QUERIES, N_LEVELS = 128, 100, 4
 # EAT + DINO va con la geometría de la literatura (Zhu & Sato, DCASE 2025): 100 queries de
 # 256 dimensiones y pirámide de cuatro niveles {1/32, 1/16, 1/8, 1/4}.
 DINO_DIM, DINO_QUERIES, DINO_LEVELS, DINO_DN_QUERIES = 256, 100, 4, 100
