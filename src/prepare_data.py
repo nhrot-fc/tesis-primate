@@ -34,6 +34,14 @@ LABEL_COLUMN = {
 EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs")}
 JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
     (("lw", "tr"), ("lw", "tj"), ("lw", "tt"), ("lw", "tf")): ("lw", "trino"),
+    # El etograma anota `pcc` como secuencia entera y `ppc` como llamadas sueltas, así que la
+    # misma sílaba aparece con dos convenciones de encuadre —0.68 s contra 0.19 s de mediana— y
+    # conviven en el 22 % de las ventanas de `pcc`. El detector proponía el peep individual
+    # dentro de la secuencia y lo etiquetaba `ppc`: acústicamente bien, contra la convención
+    # mal, y eso era el 23 % de las cajas de `pcc`. Unificadas, la distinción secuencia/suelta
+    # queda para un post-proceso de agrupamiento, no para la cabeza de clasificación.
+    # `lpc` entra acá: sola tenía 49 anotaciones y `MIN_PAIR_COUNT` la dejaba afuera.
+    (("sb", "pcc"), ("sb", "ppc"), ("sb", "lpc")): ("sb", "peep"),
 }
 
 

@@ -34,8 +34,12 @@ def format_line(metrics: DetectionMetrics) -> str:
 
 def cell(value: object, width: int) -> str:
     text = str(value)
-    if len(text) > abs(width):
-        text = text[: abs(width) - 1] + "…"
+    # Entre celdas no hay separador: lo que las separa es el relleno. En las columnas
+    # alineadas a la izquierda un texto que llena el ancho justo se pega con la siguiente,
+    # así que ahí el límite es uno menos.
+    limit = abs(width) - 1 if width < 0 else abs(width)
+    if len(text) > limit:
+        text = text[: limit - 1] + "…"
     alignment = "<" if width < 0 else ">"
     return f"{text:{alignment}{abs(width)}}"
 

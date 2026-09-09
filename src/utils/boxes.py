@@ -22,6 +22,7 @@ def suppress_nested(
     scores: Tensor,
     labels: Tensor,
     nms_iou: float,
+    iomin: float = IOMIN_THRESHOLD,
 ) -> Tensor:
     keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)  # saca los solapes parciales
     kept, kept_labels = boxes_xyxy[keep], labels[keep]
@@ -32,12 +33,12 @@ def suppress_nested(
     bottom_right = torch.min(kept[:, None, 2:], kept[None, :, 2:])
     intersection = (bottom_right - top_left).clamp(min=0).prod(-1)
     area = box_area(kept)
-    iomin = intersection / torch.min(area[:, None], area[None]).clamp(min=1e-6)
+    overlap = intersection / torch.min(area[:, None], area[None]).clamp(min=1e-6)
 
     # `keep` viene ordenado por score, así que la triangular superior deja sólo las cajas
     # anidadas en otra mejor.
     same_class = kept_labels[:, None] == kept_labels[None, :]
-    nested = ((iomin.triu(diagonal=1) > IOMIN_THRESHOLD) & same_class).any(dim=0)
+    nested = ((overlap.triu(diagonal=1) > iomin) & same_class).any(dim=0)
     return keep[~nested]
 
 
