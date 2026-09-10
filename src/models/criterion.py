@@ -127,18 +127,19 @@ class SetCriterion(nn.Module):
     def losses(
         self, outputs: Outputs, targets: list[Target], indices: Indices | None = None
     ) -> dict[str, Tensor]:
-        if indices is None:
-            indices = self.matcher(outputs, targets)
-        matched = self.matched_positions(indices)
+        # `matcher` es un `nn.Module` y su salida llega sin tipo, así que reasignar el
+        # parámetro no le saca el `None`: se estrecha en un local propio.
+        matched_indices: Indices = self.matcher(outputs, targets) if indices is None else indices
+        matched = self.matched_positions(matched_indices)
         # Se normaliza por lo emparejado y no por los targets: con denoising cada caja
         # aparece una vez por grupo y dividir por los targets inflaría la pérdida.
-        n_matched = max(sum(len(query_index) for query_index, _ in indices), 1)
+        n_matched = max(sum(len(query_index) for query_index, _ in matched_indices), 1)
 
         logits = outputs["pred_logits"]
         matched_labels = torch.cat(
             [
                 target["labels"][target_index]
-                for target, (_, target_index) in zip(targets, indices, strict=True)
+                for target, (_, target_index) in zip(targets, matched_indices, strict=True)
             ]
         )
         if self.focal:
@@ -161,7 +162,7 @@ class SetCriterion(nn.Module):
         matched_boxes = torch.cat(
             [
                 target["boxes"][target_index]
-                for target, (_, target_index) in zip(targets, indices, strict=True)
+                for target, (_, target_index) in zip(targets, matched_indices, strict=True)
             ]
         )
         loss_bbox = F.l1_loss(predicted_boxes, matched_boxes, reduction="sum") / n_matched

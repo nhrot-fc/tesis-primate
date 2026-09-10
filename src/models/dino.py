@@ -20,6 +20,9 @@ from utils.boxes import Detections, Target
 DN_LABEL_NOISE = 0.5
 DN_BOX_NOISE = 1.0
 PRIOR_PROB = 0.01  # p(objeto) con la que arranca la cabeza de clase
+
+# La forma de la pirámide más el dispositivo: lo único de lo que dependen las grillas.
+GridKey = tuple[tuple[tuple[int, int], ...], str]
 SINE_TEMPERATURE = 10000.0  # base de las frecuencias del embedding posicional (DAB-DETR)
 
 
@@ -196,7 +199,7 @@ class DINO(nn.Module):
         )
         self.class_head = nn.Linear(dim, n_classes)
         self.bbox_head = mlp(dim, dim, 4)
-        self.grid_cache: dict[tuple, tuple[Tensor, Tensor, Tensor]] = {}
+        self.grid_cache: dict[GridKey, tuple[Tensor, Tensor, Tensor]] = {}
         self.initialize_parameters()
 
     def initialize_parameters(self) -> None:
@@ -396,13 +399,10 @@ class EATDINO(nn.Module):
         return self.criterion(outputs, targets) | denoising_losses(self.criterion, outputs, targets)
 
 
-def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detections]:
+@torch.no_grad()
+def detect(model: nn.Module, images: Tensor, score_threshold: float = 0.5) -> list[Detections]:
+    outputs: Outputs = model(images)
     # Con focal no hay canal de no-objeto: cada logit es un sigmoide independiente y el
     # score de la query es el de su clase más probable.
     scores, labels = outputs["pred_logits"].sigmoid().max(-1)
     return detections_above_threshold(outputs["pred_boxes"], scores, labels, score_threshold)
-
-
-@torch.no_grad()
-def detect(model: nn.Module, images: Tensor, score_threshold: float = 0.5) -> list[Detections]:
-    return postprocess(model(images), score_threshold)  # type: ignore[arg-type]

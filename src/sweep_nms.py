@@ -38,6 +38,8 @@ from utils.boxes import suppress_nested
 
 logger = logging.getLogger("sweep_nms")
 
+Fila = dict[str, float | None]  # una celda de la rejilla, o un punto de su curva
+
 NMS_IOU = (0.1, 0.15, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0)  # 1.0 apaga la etapa
 IOMIN = (0.6, 0.8, 1.0)
 
@@ -81,7 +83,7 @@ def evaluate(
     windows: dict[str, list[Boxes]],
     nms_iou: float,
     iomin: float,
-) -> tuple[dict, list[dict]]:
+) -> tuple[Fila, list[Fila]]:
     boxes = {
         split: equalize(suppress(windows[split], nms_iou, iomin), MAX_DETECTIONS)
         for split in (VAL, TEST)

@@ -45,16 +45,17 @@ class SpectrogramFasterRCNN(nn.Module):
             max_size=max_size,
             box_score_thresh=score_thresh,
         )
-        box_features = model.roi_heads.box_predictor.cls_score.in_features
-        model.roi_heads.box_predictor = FastRCNNPredictor(box_features, n_classes + 1)
+        predictor = model.roi_heads.box_predictor
+        assert isinstance(predictor, FastRCNNPredictor)
+        model.roi_heads.box_predictor = FastRCNNPredictor(
+            predictor.cls_score.in_features, n_classes + 1
+        )
 
-        # Otros anchors son otra cantidad por posición: la cabeza del RPN se reconstruye y
-        # pierde COCO. El backbone y la cabeza de cajas, que son el grueso, se conservan.
         anchors = AnchorGenerator(ANCHOR_SIZES, (tuple(anchor_ratios),) * len(ANCHOR_SIZES))
         model.rpn.anchor_generator = anchors
-        model.rpn.head = RPNHead(
-            model.backbone.out_channels, anchors.num_anchors_per_location()[0], conv_depth=2
-        )
+        out_channels = model.backbone.out_channels
+        assert isinstance(out_channels, int)
+        model.rpn.head = RPNHead(out_channels, anchors.num_anchors_per_location()[0], conv_depth=2)
         self.model = model
 
     def to_images(self, mel: Tensor) -> list[Tensor]:
@@ -67,7 +68,11 @@ class SpectrogramFasterRCNN(nn.Module):
         return self.model(self.to_images(mel), targets)
 
 
-def postprocess(outputs: list[dict[str, Tensor]], score_threshold: float = 0.5) -> list[Detections]:
+@torch.no_grad()
+def detect(
+    model: SpectrogramFasterRCNN, images: Tensor, score_threshold: float = 0.5
+) -> list[Detections]:
+    outputs: list[dict[str, Tensor]] = model(images)
     detections = []
     for output in outputs:
         above_threshold = output["scores"] >= score_threshold
@@ -79,10 +84,3 @@ def postprocess(outputs: list[dict[str, Tensor]], score_threshold: float = 0.5) 
             )
         )
     return detections
-
-
-@torch.no_grad()
-def detect(
-    model: SpectrogramFasterRCNN, images: Tensor, score_threshold: float = 0.5
-) -> list[Detections]:
-    return postprocess(model(images), score_threshold)

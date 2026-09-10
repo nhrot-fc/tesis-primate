@@ -1,15 +1,3 @@
-"""Copia un volcado crudo aplicándole supresión, sin volver a pasar por la GPU.
-
-`dump_predictions.py` escribe las cajas de DETR y DINO tal como salen del modelo, porque
-`models.registry` los tiene con `nms_iou=None`. Esto deriva de ese volcado uno suprimido,
-para que `compare_models.py` mida las dos variantes en la misma tabla:
-
-    python src/apply_nms.py --run detr_unfreeze_ts5 --nms-iou 0.3 --name ts5_nms03
-
-Deja `<destino>/<nombre>_{val,test}_predictions.pt` con el mismo mapa ventana -> grabación,
-que es lo que `protocol.check_comparable` exige para poder compararlos.
-"""
-
 import argparse
 import logging
 from pathlib import Path
@@ -24,7 +12,7 @@ logger = logging.getLogger("apply_nms")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser()
     parser.add_argument("--run", required=True, help="corrida en runs/ con los volcados crudos")
     parser.add_argument("--nms-iou", type=float, required=True, help="1.0 no suprime nada")
     parser.add_argument("--iomin", type=float, default=IOMIN_THRESHOLD)

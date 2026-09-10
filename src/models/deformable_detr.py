@@ -8,6 +8,8 @@ from torch.nn.init import constant_, xavier_uniform_
 from models.criterion import Outputs
 from utils.boxes import Detections
 
+PRIOR_PROB = 0.01
+
 
 def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
     stack: list[nn.Module] = []
@@ -185,10 +187,10 @@ class DeformableDETR(nn.Module):
             DeformableDecoderLayer(dim, n_heads, n_points, n_levels)
             for _ in range(n_decoder_layers)
         )
-        # Cabezas por capa, para el refinamiento iterativo de caja. +1 clase: el no-objeto.
-        self.class_heads = nn.ModuleList(
-            nn.Linear(dim, n_classes + 1) for _ in range(n_decoder_layers)
-        )
+        class_heads = [nn.Linear(dim, n_classes) for _ in range(n_decoder_layers)]
+        for head in class_heads:
+            constant_(head.bias, -math.log((1 - PRIOR_PROB) / PRIOR_PROB))
+        self.class_heads = nn.ModuleList(class_heads)
         self.bbox_heads = nn.ModuleList(mlp(dim, dim, 4) for _ in range(n_decoder_layers))
 
     def forward(self, features: list[torch.Tensor]) -> Outputs:
@@ -258,7 +260,7 @@ class ASTDeformableDETR(nn.Module):
     ):
         super().__init__()
         from models.backbone import ASTBackbone
-        from models.criterion import SetCriterion
+        from models.criterion import HungarianMatcher, SetCriterion
         from models.pcen import LogMelFrontend, TrainablePCEN
 
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
@@ -284,7 +286,11 @@ class ASTDeformableDETR(nn.Module):
             dim=dim,
             n_levels=n_levels,
         )
-        self.criterion = SetCriterion(n_classes=n_classes)
+        self.criterion = SetCriterion(
+            n_classes=n_classes,
+            matcher=HungarianMatcher(cost_class=2.0, focal=True),
+            focal=True,
+        )
 
     def forward(
         self, mel: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
@@ -312,15 +318,13 @@ def detections_above_threshold(
     return detections
 
 
-def postprocess(outputs: Outputs, score_threshold: float = 0.5) -> list[Detections]:
-    # No sirve `1 - p(no-objeto)` como score: una query indecisa da 1 - 1/(C+1), que crece
-    # con el número de clases y pasa cualquier umbral.
-    scores, labels = outputs["pred_logits"].softmax(-1)[..., :-1].max(-1)
-    return detections_above_threshold(outputs["pred_boxes"], scores, labels, score_threshold)
-
-
 @torch.no_grad()
 def detect(
     model: nn.Module, images: torch.Tensor, score_threshold: float = 0.5
 ) -> list[Detections]:
-    return postprocess(model(images), score_threshold)  # type: ignore[arg-type]
+    outputs: Outputs = model(images)
+    # Con focal no hay canal de no-objeto: cada logit es un sigmoide independiente, así que
+    # el score ya no mezcla "hay algo" con "qué es". Bajo softmax, dos sílabas hermanas se
+    # repartían la masa y ninguna llegaba al umbral aunque la query estuviera segura.
+    scores, labels = outputs["pred_logits"].sigmoid().max(-1)
+    return detections_above_threshold(outputs["pred_boxes"], scores, labels, score_threshold)
