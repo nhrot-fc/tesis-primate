@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
 from data.species import LabelSet
-from models.registry import load_state_dict, savable_state_dict
+from models.registry import cpu_state_dict
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def save(
         "hparams": hparams,
         "labels": labels.names,
         "config": config,
-        "state_dict": savable_state_dict(model, architecture),
+        "state_dict": cpu_state_dict(model),
         "epoch": epoch,
         "metrics": metrics,
     }
@@ -51,11 +51,7 @@ def save(
 
 
 def resume(
-    run_dir: Path,
-    architecture: str,
-    model: nn.Module,
-    optimizer: Optimizer,
-    scheduler: LRScheduler,
+    run_dir: Path, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler
 ) -> tuple[int, float]:
     # -> (próxima época a correr, mejor score). Sin `last.pt`, empieza en 0.
     path = run_dir / LAST
@@ -63,7 +59,7 @@ def resume(
         return 0, float("-inf")
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    load_state_dict(model, architecture, checkpoint["state_dict"])
+    model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     scheduler.load_state_dict(checkpoint["scheduler"])
     torch.set_rng_state(checkpoint["rng"])

@@ -1,23 +1,15 @@
-import json
-import logging
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any
 
 import numpy as np
 import torch
 from torch import Tensor, nn
 
-from core.config import settings
-from data.species import LabelSet
 from utils.audio import mel_to_gray
 from utils.boxes import Detections
 
-logger = logging.getLogger(__name__)
-
 DEFAULT_MODEL = "yolo26s"
 DEFAULT_IMAGE_SIZE = 512
-# Ultralytics guarda el modelo pickleado y sus `train_args`, no un `state_dict` con labels.
-ULTRALYTICS_MARKERS = ("model", "train_args")
 
 
 class SpectrogramYOLO(nn.Module):
@@ -80,71 +72,10 @@ class SpectrogramYOLO(nn.Module):
         return detections
 
 
-class AdaptedYOLO(NamedTuple):
-    model: SpectrogramYOLO
-    labels: LabelSet
-    hparams: dict[str, Any]
-    config: dict[str, Any]
-
-
-def load_ultralytics_state(model: SpectrogramYOLO, checkpoint: dict) -> None:
-    trained = checkpoint["model"]
-    model.detector.load_state_dict({k: v.float() for k, v in trained.state_dict().items()})
-
-
 def load_ultralytics_weights(model: SpectrogramYOLO, weights: Path) -> None:
-    load_ultralytics_state(model, torch.load(weights, weights_only=False))
-
-
-def is_ultralytics_checkpoint(checkpoint: object) -> bool:
-    return isinstance(checkpoint, dict) and all(key in checkpoint for key in ULTRALYTICS_MARKERS)
-
-
-def find_dataset_meta(checkpoint: dict, weights: Path) -> tuple[Path, dict]:
-    # El rango de dB y los nombres con barra no están en el `.pt` de Ultralytics sino en el
-    # `meta.json` del export: primero donde se entrenó, si no, el del proyecto.
-    candidates = []
-    data = (checkpoint.get("train_args") or {}).get("data")
-    if data:
-        candidates.append(Path(data).parent / "meta.json")
-    candidates.append(settings.yolo_dir / "meta.json")
-
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate, json.loads(candidate.read_text())
-    raise FileNotFoundError(
-        f"{weights} es un checkpoint de Ultralytics, pero no encuentro el `meta.json` del "
-        f"export de YOLO (busqué en {', '.join(str(c) for c in candidates)}). Sin él no se "
-        "sabe con qué rango de dB se generaron las imágenes ni cómo se llamaban las clases. "
-        "Corré `python src/export_yolo.py`, o cargá el `best.pt` que `train_yolo.py` "
-        "deja en runs/<corrida>/."
-    )
-
-
-def load_ultralytics_checkpoint(weights: Path, checkpoint: dict, device: str) -> AdaptedYOLO:
-    meta_path, meta = find_dataset_meta(checkpoint, weights)
-    labels = LabelSet(meta["names_original"])
-
-    trained_classes = int(getattr(checkpoint["model"], "nc", len(labels)))
-    if trained_classes != len(labels):
-        raise ValueError(
-            f"{weights} se entrenó con {trained_classes} clases y {meta_path} describe "
-            f"{len(labels)}: el export se regeneró después de entrenar. Volvé a correr "
-            "`python src/export_yolo.py` y `python src/train_yolo.py`."
-        )
-
-    train_args = checkpoint.get("train_args") or {}
-    hparams: dict[str, Any] = {
-        "model": Path(str(train_args.get("model", DEFAULT_MODEL))).stem,
-        "imgsz": meta["image_size"],
-        "db_low": meta["db_range"]["low"],
-        "db_high": meta["db_range"]["high"],
-    }
-    model = SpectrogramYOLO(n_classes=len(labels), **hparams)
-    load_ultralytics_state(model, checkpoint)
-
-    logger.info("checkpoint de Ultralytics adaptado con %s", meta_path)
-    return AdaptedYOLO(model.to(device), labels, hparams, {})
+    # Ultralytics guarda el modelo pickleado (en fp16); acá sólo interesan sus pesos.
+    trained = torch.load(weights, weights_only=False)["model"]
+    model.detector.load_state_dict({k: v.float() for k, v in trained.state_dict().items()})
 
 
 def detect(

@@ -11,7 +11,8 @@ from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
 from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE
-from models.registry import architecture, build_model
+from models.registry import build_model
+from training import yolo
 from training.trainer import TrainConfig, Trainer
 
 logger = logging.getLogger("train")
@@ -25,43 +26,20 @@ class Detector(NamedTuple):
     hparams: dict[str, Any]
 
 
-# El AST parchea con solape (time_stride 2) y el EAT, como en su preentrenamiento, sin
-# solape (16 x 16). La geometría del DINO es la de la literatura (Zhu & Sato, DCASE 2025):
-# 100 queries de 256 dimensiones y pirámide de cuatro niveles {1/32, 1/16, 1/8, 1/4}.
+# Una configuración por detector: la que ganó en runs/comparacion_nms/.
 DETECTORS: dict[str, Detector] = {
+    # AST afinado entero con paso temporal 10 (12 x 32 tokens; el paso 5 duplica el costo sin
+    # separar), 100 queries de 128 dimensiones, pirámide de cuatro niveles.
     "detr": Detector(
         "ast_deformable_detr",
-        TrainConfig(epochs=30, batch_size=16, learning_rate=2e-4),
-        {
-            "n_frames": P.n_frames,
-            "frontend": "pcen",
-            "freeze": True,
-            "time_stride": 2,
-            "dim": 128,
-            "n_queries": 100,
-            "n_levels": 4,
-        },
+        TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
+        {"n_frames": P.n_frames, "time_stride": 10, "dim": 128, "n_queries": 100},
     ),
-    # DINO trae encoder deformable además del decodificador: entra menos lote y va con la
-    # tasa de aprendizaje de su paper (1e-4) en vez de la del DETR de acá.
-    "dino": Detector(
-        "eat_dino",
-        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4),
-        {
-            "n_frames": P.n_frames,
-            "frontend": "pcen",
-            "freeze": True,
-            "time_stride": 16,
-            "dim": 256,
-            "n_queries": 100,
-            "n_levels": 4,
-            "n_encoder_layers": 6,  # bajarlo es lo primero si falta VRAM
-            "dn_queries": 100,
-        },
-    ),
+    # El mejor checkpoint salió con lote 4 y en la época 4 de 30: de ahí en más sobreajustaba.
+    # Con 12 épocas el OneCycle recorta la tasa antes en vez de gastar 26 épocas memorizando.
     "frcnn": Detector(
         "faster_rcnn",
-        TrainConfig(epochs=30, batch_size=8, learning_rate=1e-4),
+        TrainConfig(epochs=12, batch_size=4, learning_rate=1e-4),
         {
             "min_size": MIN_SIZE,
             "max_size": MAX_SIZE,
@@ -70,13 +48,18 @@ DETECTORS: dict[str, Detector] = {
             "pretrained": True,
         },
     ),
+    # Ultralytics entrena solo (`training.yolo`): de `TrainConfig` usa épocas, lote,
+    # workers y semilla. A 50 épocas su mejor época fue la 21 y después sólo sobreajustó.
+    "yolo": Detector(
+        "yolo", TrainConfig(epochs=30, batch_size=32), {"model": "yolo26s", "imgsz": 512}
+    ),
 }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Entrena un detector sobre las ventanas cacheadas.",
-        epilog="ablaciones: --hp frontend=logmel time_stride=4 freeze=false pretrained=false",
+        description="Entrena un detector sobre las ventanas cacheadas (YOLO: sobre el export).",
+        epilog="p. ej. --arch yolo --hp model=yolo26m | --arch detr --cfg epochs=20 batch_size=4",
     )
     parser.add_argument("--arch", choices=tuple(DETECTORS), default="detr")
     parser.add_argument("--name", help="nombre de la corrida; por defecto, la ablación")
@@ -122,10 +105,15 @@ def main() -> None:
     device = resolve_device(args.device)
     set_seed(config.seed)
 
+    if detector.arch == "yolo":
+        yolo.fit(run_dir, hparams, config, device, limit=args.limit)
+        logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", name)
+        return
+
     labels = cache.labels()
     model = build_model(detector.arch, len(labels), hparams).to(device)
 
-    train_set = architecture(detector.arch).dataset(
+    train_set = SpectrogramDataset(
         cache.split_path("train"), jitter=config.jitter, augment=config.augment
     )
     val_set = SpectrogramDataset(cache.split_path("val"))

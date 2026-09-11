@@ -98,6 +98,38 @@ def build_manifest(
     return positive + [empty[i] for i in keep_idx]
 
 
+def event_windows(df: pd.DataFrame, params: Parameters = P) -> list[ClipWindow]:
+    # Ventanas sin cajas de las grabaciones de fondo, sólo las que pisan algún evento anotado:
+    # el resto de ese audio es silencio y no enseña nada que las ventanas vacías propias no
+    # enseñen. Son las que le muestran al detector un sonido parecido que no debe proponer.
+    windows: list[ClipWindow] = []
+    no_boxes = np.empty((0, 4))
+    no_labels = np.empty(0, dtype=np.int64)
+    for audio_path, group in df.groupby("audio_path"):
+        try:
+            duration_s = sf.info(str(audio_path)).duration
+        except (RuntimeError, sf.LibsndfileError):
+            logger.warning("audio de fondo ilegible, queda fuera: %s", audio_path)
+            continue
+        begin = group["begin_time_s"].to_numpy()
+        end = group["end_time_s"].to_numpy()
+        for clip_start_s in window_starts(duration_s, params):
+            overlap = np.minimum(end, clip_start_s + params.clip_len_s) - np.maximum(
+                begin, clip_start_s
+            )
+            if (overlap > 0).any():
+                windows.append(
+                    ClipWindow(str(audio_path), float(clip_start_s), no_boxes, no_labels)
+                )
+    return windows
+
+
+def sample_windows(windows: list[ClipWindow], n: int, seed: int = SEED) -> list[ClipWindow]:
+    n = min(len(windows), n)
+    keep = np.random.default_rng(seed).choice(len(windows), size=n, replace=False)
+    return [windows[i] for i in sorted(keep)]
+
+
 def split_manifest(
     manifest: list[ClipWindow],
     n_classes: int,

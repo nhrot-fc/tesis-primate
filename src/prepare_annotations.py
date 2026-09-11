@@ -1,5 +1,7 @@
 import argparse
 import logging
+import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -14,9 +16,21 @@ logger = logging.getLogger("prepare_annotations")
 COLUMNS = ["species", "call_type", "begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
 
 
+def annotation_tables(root: Path) -> list[Path]:
+    # `Path.rglob` no entra en carpetas enlazadas (PteroSet vive en /data y `raw/birds__AV`
+    # es un symlink); `os.walk` sí.
+    return sorted(
+        Path(directory) / name
+        for directory, _, names in os.walk(root, followlinks=True)
+        for name in names
+        if name.endswith(".txt")
+    )
+
+
 def audio_for(annotation: Path) -> Path | None:
-    # El `.txt` a veces trae un espacio de más, o el `.selections` que le agrega Raven.
-    stem = annotation.name.removesuffix(".txt").strip().removesuffix(".selections")
+    # El `.txt` a veces trae un espacio de más, o el `.Table.1.selections` que le agrega Raven
+    # (PteroSet viene así).
+    stem = re.sub(r"(\.Table\.\d+)?\.selections$", "", annotation.name.removesuffix(".txt").strip())
     audio = annotation.with_name(f"{stem}.wav")
     return audio if audio.is_file() else None
 
@@ -40,7 +54,7 @@ def main() -> None:
     empty = 0
     without_audio: list[str] = []
     failed: list[str] = []
-    for annotation in sorted(args.raw.rglob("*.txt")):
+    for annotation in annotation_tables(args.raw):
         relative = annotation.relative_to(args.raw)
         audio = audio_for(annotation)
         if audio is None:

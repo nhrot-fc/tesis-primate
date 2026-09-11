@@ -11,6 +11,7 @@ class Species(Enum):
     PT = "toppins_titi_monkey"  # Plecturocebus toppini
     SB = "bolivian_squirrel_monkey"  # Saimiri boliviensis peruviensis
     SM = "large_headed_capuchin"  # Sapajus macrocephalus
+    AV = "bird"  # PteroSet (Ruiz et al. 2026): aves neotropicales, sólo como fondo
 
 
 # Tipos de llamada válidos por especie: código en la anotación -> nombre legible.
@@ -67,7 +68,12 @@ CALL_TYPES: dict[Species, dict[str, str]] = {
         "fc": "food_call",
         "fs": "food_syllable",
     },
+    Species.AV: {"voc": "bird_vocalization"},
 }
+
+# Especies que no son clase: sus cajas marcan qué ventanas tienen un sonido que el detector
+# tiene que aprender a ignorar, y entran al caché como ventanas sin cajas.
+BACKGROUND_SPECIES: frozenset[str] = frozenset({Species.AV.name.lower()})
 
 
 # Pares (especie, tipo) admitidos, en minúsculas como vienen del `.txt` limpio.

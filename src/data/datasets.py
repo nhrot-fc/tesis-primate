@@ -10,7 +10,7 @@ from core.runtime import share_tensors_by_file
 from data import cache
 from data.augment import AugmentConfig, Augmenter
 from utils.audio import mel_to_gray
-from utils.boxes import Target, to_pixel_xyxy
+from utils.boxes import Target
 
 Batch = tuple[Tensor, list[Target]]
 
@@ -89,15 +89,6 @@ class WindowCache(Dataset):
 class SpectrogramDataset(WindowCache):
     def __getitem__(self, index: int) -> tuple[Tensor, Target]:
         return self.window(index)
-
-
-class FasterRCNNDataset(SpectrogramDataset):
-    def __getitem__(self, index: int) -> tuple[Tensor, Target]:
-        image, target = self.window(index)
-        return image, {
-            "boxes": to_pixel_xyxy(target["boxes"]),
-            "labels": target["labels"].to(torch.int64) + 1,  # la 0 es el fondo
-        }
 
 
 class YOLODataset(WindowCache):

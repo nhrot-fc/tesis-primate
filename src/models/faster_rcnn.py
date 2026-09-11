@@ -8,7 +8,7 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead
 
 from utils.audio import mel_to_unit
-from utils.boxes import Detections, to_unit_cxcywh
+from utils.boxes import Detections, Target, to_pixel_xyxy, to_unit_cxcywh
 
 # El alto/ancho real de las cajas va de 0.05 a 9 (p1, p95=6.2): con los (0.5, 1, 2) de
 # fábrica el RPN se pierde los tonos angostos y las bandas largas.
@@ -62,10 +62,35 @@ class SpectrogramFasterRCNN(nn.Module):
         unit_scaled = mel_to_unit(mel, self.db_low, self.db_high)
         return list(unit_scaled.expand(-1, 3, -1, -1))
 
+    @staticmethod
+    def to_torchvision(targets: list[Target]) -> list[Target]:
+        # Las cajas del proyecto son cxcywh en [0,1]; torchvision quiere píxeles xyxy y
+        # reserva la clase 0 para el fondo.
+        return [
+            {
+                "boxes": to_pixel_xyxy(target["boxes"]),
+                "labels": target["labels"].to(torch.int64) + 1,
+            }
+            for target in targets
+        ]
+
     def forward(
-        self, mel: Tensor, targets: list[dict[str, Tensor]] | None = None
+        self, mel: Tensor, targets: list[Target] | None = None
     ) -> dict[str, Tensor] | list[dict[str, Tensor]]:
-        return self.model(self.to_images(mel), targets)
+        images = self.to_images(mel)
+        if targets is None:
+            return self.model(images)
+        targets = self.to_torchvision(targets)
+        if self.training:
+            return self.model(images, targets)
+        # torchvision sólo devuelve las pérdidas en modo train; para la pérdida de val se
+        # fuerza el modo en las tres cabezas sin tocar las BatchNorm congeladas.
+        for module in (self.model, self.model.rpn, self.model.roi_heads):
+            module.training = True
+        try:
+            return self.model(images, targets)
+        finally:
+            self.model.eval()
 
 
 @torch.no_grad()

@@ -26,7 +26,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from clod.issues import ISSUE, QUALITY
 from core.config import P
 from viewer.controls import Layers, Popup, Slider, ViewPanel
 from viewer.inference import detect, preload
@@ -40,7 +39,9 @@ from viewer.session import (
     END,
     FINDINGS,
     HIGH,
+    ISSUE,
     LOW,
+    QUALITY,
     RECORDING,
     REJECTED,
     SOURCES,

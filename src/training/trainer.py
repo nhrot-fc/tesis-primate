@@ -16,7 +16,7 @@ from data import cache
 from data.augment import AugmentConfig
 from data.datasets import BoxJitter, to_device
 from data.species import LabelSet
-from evaluation.evaluator import evaluate
+from evaluation.evaluator import average_loss, evaluate
 from evaluation.metrics import BETA, MATCH_IOU, MAX_DETECTIONS, DetectionMetrics
 from evaluation.report import format_line
 from models.registry import architecture, detector
@@ -142,10 +142,21 @@ class Trainer:
             self.model.train()
 
     def record_epoch(
-        self, epoch: int, lr: float, losses: dict[str, float], val: DetectionMetrics
+        self,
+        epoch: int,
+        lr: float,
+        losses: dict[str, float],
+        val: DetectionMetrics,
+        val_losses: dict[str, float],
     ) -> None:
         with (self.run_dir / "metrics.jsonl").open("a", encoding="utf-8") as handle:
-            record = {"epoch": epoch + 1, "lr": lr, "train": losses, "val": val._asdict()}
+            record = {
+                "epoch": epoch + 1,
+                "lr": lr,
+                "train": losses,
+                "val": val._asdict(),
+                "val_loss": val_losses,  # mismos términos que `train`
+            }
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     def save_checkpoint(
@@ -169,7 +180,7 @@ class Trainer:
             json.dumps(self.run_config, indent=2, ensure_ascii=False, default=str)
         )
         start, best_score = checkpoint.resume(
-            self.run_dir, self.name, self.model, self.optimizer, self.scheduler
+            self.run_dir, self.model, self.optimizer, self.scheduler
         )
 
         for epoch in range(start, self.config.epochs):
@@ -178,10 +189,21 @@ class Trainer:
 
             losses = self.train_epoch(f"train {progress}")
             val = self.validate(f"val {progress}")
+            # Sin la pérdida de val, un mAP que se aplana no distingue sobreajuste de un
+            # scheduler que llegó a cero: las dos curvas se ven igual.
+            val_losses = average_loss(
+                self.model, self.val_loader, self.device, f"val loss {progress}"
+            )
             score = 0.0 if val.map_30 is None else val.map_30
 
-            logger.info("[%4s] loss=%.3f %s", progress, losses["total"], format_line(val))
-            self.record_epoch(epoch, learning_rate, losses, val)
+            logger.info(
+                "[%4s] loss=%.3f val_loss=%.3f %s",
+                progress,
+                losses["total"],
+                val_losses["total"],
+                format_line(val),
+            )
+            self.record_epoch(epoch, learning_rate, losses, val, val_losses)
             if score > best_score:
                 best_score = score
                 self.save_checkpoint(checkpoint.BEST, epoch, val)

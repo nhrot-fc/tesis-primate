@@ -16,11 +16,14 @@ from utils.boxes import Target
 Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
 Indices = list[tuple[Tensor, Tensor]]
 
+# Los logits son `n_classes` sigmoides independientes, sin canal de no-objeto: el score no
+# mezcla "hay algo" con "qué es", y una query sin emparejar tiene todos los objetivos en cero.
+FOCAL_ALPHA, FOCAL_GAMMA = 0.25, 2.0
+
 
 def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
-    # Con focal no hay canal de no-objeto cuya probabilidad sirva de costo, así que
-    # asignar una clase cuesta su pérdida focal positiva menos la negativa que se ahorra
-    # (Zhu et al. 2021).
+    # Sin canal de no-objeto cuya probabilidad sirva de costo, asignar una clase cuesta su
+    # pérdida focal positiva menos la negativa que se ahorra (Zhu et al. 2021).
     positive = alpha * (1 - probabilities) ** gamma * -(probabilities + 1e-8).log()
     negative = (1 - alpha) * probabilities**gamma * -(1 - probabilities + 1e-8).log()
     return positive - negative
@@ -28,21 +31,12 @@ def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
 
 class HungarianMatcher(nn.Module):
     def __init__(
-        self,
-        cost_class: float = 1.0,
-        cost_bbox: float = 5.0,
-        cost_iou: float = 2.0,
-        focal: bool = False,
-        focal_alpha: float = 0.25,
-        focal_gamma: float = 2.0,
+        self, cost_class: float = 2.0, cost_bbox: float = 5.0, cost_iou: float = 2.0
     ) -> None:
         super().__init__()
         self.cost_class = cost_class
         self.cost_bbox = cost_bbox
         self.cost_iou = cost_iou
-        self.focal = focal
-        self.focal_alpha = focal_alpha
-        self.focal_gamma = focal_gamma
 
     @torch.no_grad()
     def forward(self, outputs: Outputs, targets: list[Target]) -> Indices:
@@ -54,11 +48,7 @@ class HungarianMatcher(nn.Module):
         target_labels = torch.cat([target["labels"] for target in targets])
         target_boxes = torch.cat([target["boxes"] for target in targets])
 
-        if self.focal:
-            per_class_cost = focal_cost(logits.sigmoid(), self.focal_alpha, self.focal_gamma)
-            class_cost = per_class_cost[:, target_labels]
-        else:
-            class_cost = -logits.softmax(-1)[:, target_labels]
+        class_cost = focal_cost(logits.sigmoid(), FOCAL_ALPHA, FOCAL_GAMMA)[:, target_labels]
         box_cost = torch.cdist(predicted_boxes, target_boxes, p=1)
         iou_cost = -generalized_box_iou(
             box_convert(predicted_boxes, "cxcywh", "xyxy"),
@@ -85,36 +75,18 @@ class HungarianMatcher(nn.Module):
 
 
 class SetCriterion(nn.Module):
-    empty_weight: Tensor
-
     def __init__(
         self,
-        n_classes: int = 1,
         matcher: nn.Module | None = None,
-        eos_coef: float = 0.1,
         weight_class: float = 1.0,
         weight_bbox: float = 5.0,
         weight_iou: float = 2.0,
-        focal: bool = False,
-        focal_alpha: float = 0.25,
-        focal_gamma: float = 2.0,
     ) -> None:
         super().__init__()
-        self.n_classes = n_classes
-        self.background_id = n_classes
         self.matcher = matcher or HungarianMatcher()
         self.weight_class = weight_class
         self.weight_bbox = weight_bbox
         self.weight_iou = weight_iou
-        # Con `focal` los logits son `n_classes` sigmoides independientes, sin canal de
-        # no-objeto, y una query sin emparejar tiene todos los objetivos en cero (DINO).
-        self.focal = focal
-        self.focal_alpha = focal_alpha
-        self.focal_gamma = focal_gamma
-
-        empty_weight = torch.ones(n_classes + 1)
-        empty_weight[self.background_id] = eos_coef
-        self.register_buffer("empty_weight", empty_weight)
 
     @staticmethod
     def matched_positions(indices: Indices) -> tuple[Tensor, Tensor]:
@@ -124,15 +96,10 @@ class SetCriterion(nn.Module):
         query_index = torch.cat([query_index for query_index, _ in indices])
         return batch_index, query_index
 
-    def losses(
-        self, outputs: Outputs, targets: list[Target], indices: Indices | None = None
-    ) -> dict[str, Tensor]:
-        # `matcher` es un `nn.Module` y su salida llega sin tipo, así que reasignar el
-        # parámetro no le saca el `None`: se estrecha en un local propio.
-        matched_indices: Indices = self.matcher(outputs, targets) if indices is None else indices
+    def losses(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
+        # `matcher` es un `nn.Module` y su salida llega sin tipo: se estrecha en un local.
+        matched_indices: Indices = self.matcher(outputs, targets)
         matched = self.matched_positions(matched_indices)
-        # Se normaliza por lo emparejado y no por los targets: con denoising cada caja
-        # aparece una vez por grupo y dividir por los targets inflaría la pérdida.
         n_matched = max(sum(len(query_index) for query_index, _ in matched_indices), 1)
 
         logits = outputs["pred_logits"]
@@ -142,21 +109,12 @@ class SetCriterion(nn.Module):
                 for target, (_, target_index) in zip(targets, matched_indices, strict=True)
             ]
         )
-        if self.focal:
-            target_scores = torch.zeros_like(logits)
-            target_scores[matched[0], matched[1], matched_labels] = 1.0
-            loss_class = (
-                sigmoid_focal_loss(
-                    logits, target_scores, self.focal_alpha, self.focal_gamma, reduction="sum"
-                )
-                / n_matched
-            )
-        else:
-            target_classes = torch.full(
-                logits.shape[:2], self.background_id, dtype=torch.int64, device=logits.device
-            )
-            target_classes[matched] = matched_labels
-            loss_class = F.cross_entropy(logits.transpose(1, 2), target_classes, self.empty_weight)
+        target_scores = torch.zeros_like(logits)
+        target_scores[matched[0], matched[1], matched_labels] = 1.0
+        loss_class = (
+            sigmoid_focal_loss(logits, target_scores, FOCAL_ALPHA, FOCAL_GAMMA, reduction="sum")
+            / n_matched
+        )
 
         predicted_boxes = outputs["pred_boxes"][matched]
         matched_boxes = torch.cat(

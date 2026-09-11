@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
+from models.backbone import N_LEVELS
 from models.criterion import Outputs
 from utils.boxes import Detections
 
@@ -174,7 +175,6 @@ class DeformableDETR(nn.Module):
         n_decoder_layers: int = 6,
         n_heads: int = 8,
         n_points: int = 4,
-        n_levels: int = 3,
     ):
         super().__init__()
         self.n_queries = n_queries
@@ -184,7 +184,7 @@ class DeformableDETR(nn.Module):
         self.ref_point_head = nn.Linear(dim, 2)
 
         self.layers = nn.ModuleList(
-            DeformableDecoderLayer(dim, n_heads, n_points, n_levels)
+            DeformableDecoderLayer(dim, n_heads, n_points, N_LEVELS)
             for _ in range(n_decoder_layers)
         )
         class_heads = [nn.Linear(dim, n_classes) for _ in range(n_decoder_layers)]
@@ -225,14 +225,13 @@ class DetectionHead(nn.Module):
         freq_out: int,
         time_out: int,
         dim: int = 256,
-        n_levels: int = 3,
     ):
         super().__init__()
         from models.backbone import MultiScalePyramid
 
         self.freq_out, self.time_out = freq_out, time_out
         self.proj = nn.Linear(token_dim, dim)
-        self.pyramid = MultiScalePyramid(dim, n_levels=n_levels)
+        self.pyramid = MultiScalePyramid(dim)
         self.pyramid.check_input_size(freq_out, time_out)
         self.detr = detr
 
@@ -248,49 +247,28 @@ class DetectionHead(nn.Module):
 class ASTDeformableDETR(nn.Module):
     def __init__(
         self,
-        dim: int = 256,
-        n_queries: int = 50,
-        n_classes: int = 1,
-        freeze: bool = True,
+        n_classes: int,
         n_frames: int | None = None,
-        time_stride: int = 2,
-        n_levels: int = 3,
-        n_mels: int = 128,
-        frontend: str = "pcen",
+        time_stride: int = 10,
+        dim: int = 128,
+        n_queries: int = 100,
     ):
         super().__init__()
         from models.backbone import ASTBackbone
-        from models.criterion import HungarianMatcher, SetCriterion
-        from models.pcen import LogMelFrontend, TrainablePCEN
+        from models.criterion import SetCriterion
+        from models.pcen import TrainablePCEN
 
-        self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride, freeze=freeze)
-        if n_mels != self.backbone.n_mels:
-            raise ValueError(
-                f"n_mels={n_mels} no coincide con las {self.backbone.n_mels} bandas del "
-                "checkpoint del AST; el pos-embed sólo se re-interpola en el eje temporal."
-            )
-        if frontend not in ("pcen", "logmel"):
-            raise ValueError(f"frontend desconocido: {frontend!r}; hay 'pcen' y 'logmel'")
-
-        self.frontend = frontend
-        # El atributo se llama `pcen` con las dos ramas: es la clave con la que los
-        # checkpoints ya guardados nombran esta capa.
-        self.pcen = TrainablePCEN(n_mels=n_mels) if frontend == "pcen" else LogMelFrontend()
+        self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride)
+        self.pcen = TrainablePCEN(n_mels=self.backbone.n_mels)
         self.pcen_norm = nn.BatchNorm2d(1, affine=False)
-
         self.head = DetectionHead(
-            DeformableDETR(dim, n_queries, n_classes, n_levels=n_levels),
+            DeformableDETR(dim, n_queries, n_classes),
             token_dim=self.backbone.hidden_size,
             freq_out=self.backbone.freq_out,
             time_out=self.backbone.time_out,
             dim=dim,
-            n_levels=n_levels,
         )
-        self.criterion = SetCriterion(
-            n_classes=n_classes,
-            matcher=HungarianMatcher(cost_class=2.0, focal=True),
-            focal=True,
-        )
+        self.criterion = SetCriterion()
 
     def forward(
         self, mel: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None

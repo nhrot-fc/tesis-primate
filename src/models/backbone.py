@@ -11,6 +11,8 @@ from core.config import P, settings
 logger = logging.getLogger(__name__)
 
 AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
+# Pirámide {4x, 2x, 1x, 1/2x} sobre el mapa de tokens del AST, como en ViTDet.
+N_LEVELS = 4
 
 
 def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
@@ -35,23 +37,19 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
 
 
 class ASTBackbone(nn.Module):
+    # Se afina entero y a la misma tasa que la cabeza: congelarlo, darle un LR propio o
+    # subirle el dropout fueron ablaciones que no separaron o empeoraron (runs/comparacion_nms).
     def __init__(
         self,
         n_frames: int | None = None,
-        time_stride: int = 5,
+        time_stride: int = 10,
         checkpoint: str = AST_CHECKPOINT,
-        freeze: bool = True,
     ) -> None:
         super().__init__()
         self.model = load_ast_model(checkpoint)
         self.n_frames = n_frames if n_frames is not None else P.n_frames
         self.time_stride = time_stride
-        self.freeze = freeze
         self.interpolate_position_embeddings(self.n_frames, time_stride)
-
-        if freeze:
-            for name, param in self.model.named_parameters():
-                param.requires_grad_(name.startswith("embeddings.patch_embeddings.projection"))
 
     @property
     def hidden_size(self) -> int:
@@ -97,59 +95,41 @@ class ASTBackbone(nn.Module):
         config.time_stride = time_stride
         config.max_length = n_frames
         logger.info(
-            "AST: %d x %d tokens | time_stride=%d | %s",
-            self.freq_out,
-            self.time_out,
-            time_stride,
-            "congelado" if self.freeze else "fine-tune",
+            "AST: %d x %d tokens | time_stride=%d", self.freq_out, self.time_out, time_stride
         )
 
-    def train(self, mode: bool = True) -> "ASTBackbone":
-        super().train(mode)
-        if self.freeze:
-            self.model.eval()
-        return self
-
     def forward(self, mel: Tensor) -> Tensor:
-        # Sin `no_grad` aunque esté congelado: cortaría la cadena hacia el PCEN, que sí
-        # entrena y va aguas arriba del backbone.
         input_values = mel.squeeze(1).transpose(1, 2)  # (B,1,n_mels,T) -> (B,T,n_mels)
         return self.model(input_values=input_values).last_hidden_state[:, 2:]
 
 
 class MultiScalePyramid(nn.Module):
-    def __init__(self, dim: int = 256, n_levels: int = 3, num_groups: int = 8) -> None:
+    def __init__(self, dim: int = 256, num_groups: int = 8) -> None:
         super().__init__()
-        if not 2 <= n_levels <= 4:
-            raise ValueError(f"n_levels debe estar entre 2 y 4, no {n_levels}")
-
-        blocks: list[nn.Module] = []
-        if n_levels == 4:
-            blocks.append(
+        self.blocks = nn.ModuleList(
+            [
                 nn.Sequential(
                     nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
                     nn.GroupNorm(num_groups, dim),
                     nn.GELU(),
                     nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
-                )
-            )
-        blocks.append(nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2))
-        blocks.append(nn.Identity())
-        if n_levels >= 3:
-            blocks.append(nn.Conv2d(dim, dim, kernel_size=2, stride=2))
+                ),
+                nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
+                nn.Identity(),
+                nn.Conv2d(dim, dim, kernel_size=2, stride=2),
+            ]
+        )
+        assert len(self.blocks) == N_LEVELS
 
-        self.blocks = nn.ModuleList(blocks)
-        self.n_levels = len(blocks)
-        self.downsamples = n_levels >= 3
-
-    def check_input_size(self, height: int, width: int) -> None:
+    @staticmethod
+    def check_input_size(height: int, width: int) -> None:
         # Con una dimensión impar el nivel 1/2x tira la última fila o columna y pasa a
         # cubrir menos extensión física que los otros; `grid_sample` normaliza a [-1,1]
         # sobre el mapa entero y los niveles quedan desalineados sin dar error.
-        if self.downsamples and (height % 2 or width % 2):
+        if height % 2 or width % 2:
             raise ValueError(
-                f"la pirámide con downsampling necesita dimensiones pares, no ({height}, {width}); "
-                "ajustá `time_stride` (o `n_levels=2`) para que `time_out` y `freq_out` lo sean."
+                f"la pirámide necesita dimensiones pares, no ({height}, {width}); ajustá "
+                "`time_stride` para que `time_out` y `freq_out` lo sean."
             )
 
     def forward(self, features: Tensor) -> list[Tensor]:

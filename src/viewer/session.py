@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
-from clod.cluster import BOX_COLUMNS as CLOD_BOXES
-from clod.issues import ISSUE, LABEL, LOCATION, MISSING, QUALITY, SPURIOUS
 from viewer.spectrogram import Waveform
 
 ANNOTATIONS = "Anotaciones"
@@ -31,6 +29,11 @@ SPECIES, CALL = "Species", "Call type"
 
 RECORDING, VERDICT = "recording", "Veredicto"
 ACCEPTED, REJECTED = "aceptado", "rechazado"
+# Formato de las tablas de hallazgos de la auditoría CLOD (runs/comparacion_nms/*.csv): cajas
+# con las columnas de `cleaned/`, un hallazgo por fila y su calidad.
+CLOD_BOXES = ["begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
+ISSUE, QUALITY = "Hallazgo", "Calidad"
+SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 # La caja de CLOD y la del Raven fuente sólo difieren en el redondeo del archivo.
 TOLERANCE_S = 1e-3
 

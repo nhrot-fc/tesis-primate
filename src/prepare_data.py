@@ -13,40 +13,34 @@ from core.config import SEED, P, Parameters, settings
 from core.runtime import setup_logging
 from data import cache
 from data.annotations import load_annotations
-from data.manifest import ClipWindow, build_manifest, split_manifest
-from data.species import LabelSet
+from data.manifest import ClipWindow, build_manifest, event_windows, sample_windows, split_manifest
+from data.species import BACKGROUND_SPECIES, LabelSet
 from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
 logger = logging.getLogger("prepare_data")
 
 MIN_PAIR_COUNT = 100
-# Se queda con las N clases más frecuentes de las que sobreviven a `EXCLUDED_PAIRS`,
-# `JOINED_PAIRS` y `MIN_PAIR_COUNT`. `None` las conserva todas.
-MAX_CLASSES: int | None = None
-EMPTY_RATIO = 0.25
+EMPTY_RATIO = 0.25  # ventanas vacías de las grabaciones propias, sobre el total
+# Ventanas de fondo con un evento de `BACKGROUND_SPECIES` (aves de PteroSet), en fracción de
+# las ventanas positivas. Van sin cajas: el detector aprende que ese sonido no se propone, y
+# el augmentador las usa además de fondo para mezclar. Como el split es por grabación,
+# también caen en val y test, donde sólo pueden sumar falsos positivos.
+BACKGROUND_RATIO = 0.25
 SPLIT_RATIOS = (0.6, 0.225, 0.175)  # train / val / test, por archivo de audio
-LABEL_BY = "species/call_type"
-LABEL_COLUMN = {
-    "call": lambda df: "call",
-    "species": lambda df: df["species"],
-    "species/call_type": lambda df: df["species"] + "/" + df["call_type"],
-}
 EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs")}
 JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
     (("lw", "tr"), ("lw", "tj"), ("lw", "tt"), ("lw", "tf")): ("lw", "trino"),
-    # El etograma anota `pcc` como secuencia entera y `ppc` como llamadas sueltas, así que la
-    # misma sílaba aparece con dos convenciones de encuadre —0.68 s contra 0.19 s de mediana— y
-    # conviven en el 22 % de las ventanas de `pcc`. El detector proponía el peep individual
-    # dentro de la secuencia y lo etiquetaba `ppc`: acústicamente bien, contra la convención
-    # mal, y eso era el 23 % de las cajas de `pcc`. Unificadas, la distinción secuencia/suelta
-    # queda para un post-proceso de agrupamiento, no para la cabeza de clasificación.
-    # `lpc` entra acá: sola tenía 49 anotaciones y `MIN_PAIR_COUNT` la dejaba afuera.
-    (("sb", "pcc"), ("sb", "ppc"), ("sb", "lpc")): ("sb", "peep"),
+    # `lpc` sola tenía 49 anotaciones y `MIN_PAIR_COUNT` la dejaba afuera; es el peep largo de
+    # la misma sílaba que `ppc`. `pcc` queda aparte: el etograma la anota como secuencia entera.
+    (("sb", "ppc"), ("sb", "lpc")): ("sb", "ppc"),
 }
 
 
-def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
-    annotations = load_annotations()
+def select_experiment(
+    annotations: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, LabelSet]:
+    annotations = load_annotations() if annotations is None else annotations
+    annotations = annotations[~annotations["species"].isin(BACKGROUND_SPECIES)]
     excluded = annotations[["species", "call_type"]].apply(tuple, axis=1).isin(EXCLUDED_PAIRS)
     annotations = annotations[~excluded]
     annotations["low_freq_hz"] = annotations["low_freq_hz"].clip(lower=P.f_min)
@@ -62,28 +56,15 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
     pair_counts = pairs.value_counts()  # ya ordenado de mayor a menor
     frequent = pair_counts[pair_counts >= MIN_PAIR_COUNT]
     logger.info(
-        "%d/%d pares species/call_type con >= %d anotaciones",
+        "%d/%d pares species/call_type con >= %d anotaciones: %s",
         len(frequent),
         len(pair_counts),
         MIN_PAIR_COUNT,
-    )
-    if MAX_CLASSES is not None and len(frequent) > MAX_CLASSES:
-        dropped = frequent.iloc[MAX_CLASSES:]
-        frequent = frequent.iloc[:MAX_CLASSES]
-        logger.info(
-            "recorte a las %d más frecuentes; quedan fuera %s",
-            MAX_CLASSES,
-            ", ".join(f"{sp}/{ct} ({n})" for (sp, ct), n in dropped.items()),
-        )
-
-    valid_pairs = frequent.index
-    logger.info(
-        "pares seleccionados: %s",
-        ", ".join(f"{species}/{call_type}" for species, call_type in valid_pairs),
+        ", ".join(f"{species}/{call_type}" for species, call_type in frequent.index),
     )
 
-    experiment_df = annotations[pairs.isin(valid_pairs)].copy()
-    experiment_df["label"] = LABEL_COLUMN[LABEL_BY](experiment_df)
+    experiment_df = annotations[pairs.isin(frequent.index)].copy()
+    experiment_df["label"] = experiment_df["species"] + "/" + experiment_df["call_type"]
 
     labels = LabelSet(experiment_df["label"])
     logger.info(
@@ -93,6 +74,17 @@ def select_experiment() -> tuple[pd.DataFrame, LabelSet]:
         ", ".join(labels.names),
     )
     return experiment_df, labels
+
+
+def select_background(annotations: pd.DataFrame) -> pd.DataFrame:
+    background = annotations[annotations["species"].isin(BACKGROUND_SPECIES)]
+    logger.info(
+        "%d eventos de fondo (%s) en %d grabaciones",
+        len(background),
+        ", ".join(sorted(BACKGROUND_SPECIES)),
+        background["audio_path"].nunique(),
+    )
+    return background
 
 
 def compute_mel_statistics(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
@@ -143,8 +135,21 @@ def main() -> None:
     if (cache_dir / "meta.json").exists() and not (args.force or args.sources_only):
         raise SystemExit(f"ya hay un caché en {cache_dir}; pasá --force para regenerarlo.")
 
-    experiment_df, labels = select_experiment()
+    annotations = load_annotations()
+    experiment_df, labels = select_experiment(annotations)
     manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
+    background = select_background(annotations)
+    if len(background):
+        n_positive = sum(len(window.boxes) > 0 for window in manifest)
+        hard_negatives = event_windows(background)
+        sampled = sample_windows(hard_negatives, round(n_positive * BACKGROUND_RATIO), SEED)
+        manifest += sampled
+        logger.info(
+            "%d ventanas positivas | %d ventanas de fondo con evento, entran %d",
+            n_positive,
+            len(hard_negatives),
+            len(sampled),
+        )
     splits = dict(
         zip(
             cache.SPLITS,
@@ -185,10 +190,14 @@ def main() -> None:
             {
                 "seed": SEED,
                 "min_pair_count": MIN_PAIR_COUNT,
-                "max_classes": MAX_CLASSES,
                 "empty_ratio": EMPTY_RATIO,
-                "label_by": LABEL_BY,
+                "background_species": sorted(BACKGROUND_SPECIES),
+                "background_ratio": BACKGROUND_RATIO,
                 "excluded_pairs": sorted(EXCLUDED_PAIRS),
+                "joined_pairs": {
+                    "/".join(new): ["/".join(old) for old in olds]
+                    for olds, new in JOINED_PAIRS.items()
+                },
                 "normalization": normalization,
                 "db_range": db_range,
                 "params": asdict(P),

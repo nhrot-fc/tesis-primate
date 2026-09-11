@@ -7,7 +7,6 @@ from typing import Any, NamedTuple
 import torch
 from torch import Tensor, nn
 
-from data.datasets import FasterRCNNDataset, SpectrogramDataset
 from data.species import LabelSet
 from utils.boxes import Detections
 
@@ -21,35 +20,20 @@ logger = logging.getLogger(__name__)
 class Architecture(NamedTuple):
     module: str  # expone la clase `model` y una función `detect(modelo, mel, umbral)`
     model: str
-    dataset: type[SpectrogramDataset] = SpectrogramDataset  # formato de entrada que come
     clip_grad: float = 1.0
-    provided: tuple[str, ...] = ()  # claves que el modelo repone solo al construirse
-    # NMS que hay que correrle encima al salir de `detect`. `None` para las arquitecturas de
-    # predicción de conjunto (DETR, DINO): el matching húngaro es uno a uno y el costo ya
-    # castiga los duplicados durante el entrenamiento, así que suprimir después sólo puede
-    # borrar cajas legítimas —dos vocalizaciones simultáneas se solapan de verdad en el
-    # espectrograma—. Faster R-CNN y YOLO sí traen duplicados: sus cabezas son densas.
+    # NMS que hay que correrle encima al salir de `detect`. `None` para el DETR: el matching
+    # húngaro es uno a uno y el costo ya castiga los duplicados durante el entrenamiento, así
+    # que suprimir después sólo puede borrar cajas legítimas —dos vocalizaciones simultáneas
+    # se solapan de verdad en el espectrograma—. Faster R-CNN y YOLO sí traen duplicados:
+    # sus cabezas son densas.
     nms_iou: float | None = 0.3
 
 
 ARCHITECTURES: dict[str, Architecture] = {
     "ast_deformable_detr": Architecture(
-        "models.deformable_detr",
-        "ASTDeformableDETR",
-        clip_grad=0.1,
-        provided=("backbone.model.", "criterion."),
-        nms_iou=None,
+        "models.deformable_detr", "ASTDeformableDETR", clip_grad=0.1, nms_iou=None
     ),
-    "eat_dino": Architecture(
-        "models.dino",
-        "EATDINO",
-        clip_grad=0.1,
-        provided=("backbone.model.", "criterion."),
-        nms_iou=None,
-    ),
-    "faster_rcnn": Architecture(
-        "models.faster_rcnn", "SpectrogramFasterRCNN", FasterRCNNDataset, clip_grad=10.0
-    ),
+    "faster_rcnn": Architecture("models.faster_rcnn", "SpectrogramFasterRCNN", clip_grad=10.0),
     "yolo": Architecture("models.yolo", "SpectrogramYOLO"),
 }
 
@@ -69,24 +53,8 @@ def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> nn.Module
     return getattr(import_module(spec.module), spec.model)(n_classes=n_classes, **hparams)
 
 
-def savable_state_dict(model: nn.Module, name: str) -> dict[str, Tensor]:
-    provided = architecture(name).provided
-    trained = {key for key, param in model.named_parameters() if param.requires_grad}
-    return {
-        key: value.detach().cpu()
-        for key, value in model.state_dict().items()
-        if not key.startswith(provided) or key in trained
-    }
-
-
-def load_state_dict(model: nn.Module, name: str, state_dict: dict[str, Tensor]) -> None:
-    # Faltar claves de `provided` es normal; cualquier otra ausencia o sobra es un checkpoint
-    # incompatible, y cargarlo a medias da un modelo que no protesta.
-    missing, unexpected = model.load_state_dict(state_dict, strict=False)
-    provided = architecture(name).provided
-    broken = list(unexpected) + [key for key in missing if not key.startswith(provided)]
-    if broken:
-        raise RuntimeError(f"checkpoint incompatible con {name}: {sorted(broken)}")
+def cpu_state_dict(model: nn.Module) -> dict[str, Tensor]:
+    return {key: value.detach().cpu() for key, value in model.state_dict().items()}
 
 
 class LoadedModel(NamedTuple):
@@ -108,30 +76,22 @@ class LoadedModel(NamedTuple):
         return detector(self.architecture)(self.model, images, threshold)
 
 
-def load_ultralytics_model(path: Path, checkpoint: Any, device: str) -> LoadedModel:
-    yolo = import_module("models.yolo")
-    if not yolo.is_ultralytics_checkpoint(checkpoint):
-        raise ValueError(
-            f"{path} no es un checkpoint de este proyecto: no tiene 'state_dict' ni 'labels'. "
-            "Los válidos son los `best.pt` que dejan las corridas en runs/<corrida>/."
-        )
-    adapted = yolo.load_ultralytics_checkpoint(path, checkpoint, device)
-    adapted.model.eval()
-    logger.info("yolo (Ultralytics) | %d clases | %s", len(adapted.labels), path)
-    return LoadedModel(adapted.model, "yolo", adapted.labels, adapted.config)
-
-
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
     path, device = Path(path), str(device)
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
-        return load_ultralytics_model(path, checkpoint, device)
+        raise ValueError(
+            f"{path} no es un checkpoint de este proyecto: no tiene 'state_dict' ni 'labels'. "
+            "Los válidos son los `best.pt` que dejan las corridas en runs/<corrida>/ "
+            "(`train.py --arch yolo` exporta el de Ultralytics a ese formato al terminar)."
+        )
 
     name = checkpoint["architecture"]
     labels = LabelSet(checkpoint["labels"])
-
     model = build_model(name, len(labels), checkpoint["hparams"]).to(device)
-    load_state_dict(model, name, checkpoint["state_dict"])
+    # Estricto: un checkpoint con claves de más o de menos es de otra versión del grafo, y
+    # cargarlo a medias da un modelo que no protesta.
+    model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
     logger.info("%s | %d clases | época %s | %s", name, len(labels), checkpoint.get("epoch"), path)

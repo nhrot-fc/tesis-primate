@@ -16,6 +16,7 @@ MIN_DURATION_S = 0.01
 DROP_COLUMNS = ["selection", "view", "channel", "reference", "begin_file", "file_offset_s"]
 MANUAL_SYNONYMS = {
     "noises": NOISE,
+    "avevoc": "voc",  # PteroSet: `ID` es siempre AVEVOC (vocalización de ave)
     "cs_a": "cs",
     "whinnie": "whc",
     "tca": "ta",
@@ -40,6 +41,9 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     df = df.copy()
     df.columns = [slugify(col, separator="_") for col in df.columns]
     df = df.drop(columns=DROP_COLUMNS, errors="ignore")
+    if "call_type" not in df and "id" in df:
+        # Tablas de PteroSet: `Tipo` (BIO) e `ID` (AVEVOC) en lugar de `Species`/`Call type`.
+        df["call_type"] = df["id"]
 
     df["call_type"] = (
         df["call_type"]

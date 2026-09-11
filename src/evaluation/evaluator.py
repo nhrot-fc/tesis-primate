@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import NamedTuple
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 from torch.utils.data import DataLoader
 from torchvision.ops import box_convert
 from tqdm.auto import tqdm
 
+from data.datasets import to_device
 from evaluation.metrics import (
     BETA,
     SCORE_FLOOR,
@@ -117,6 +118,27 @@ def evaluate(
         score_threshold=score_threshold,
         beta=beta,
     )
+
+
+@torch.no_grad()
+def average_loss(
+    model: nn.Module, loader: DataLoader, device: str | torch.device, desc: str = "loss"
+) -> dict[str, float]:
+    was_training = model.training
+    model.eval()
+    totals: dict[str, float] = {}
+    try:
+        for batch in tqdm(loader, desc=desc, unit="batch", leave=False, disable=None):
+            images, targets = to_device(batch, device)
+            terms: dict[str, Tensor] = model(images, targets)
+            losses = {"total": torch.stack(list(terms.values())).sum(), **terms}
+            for key, value in losses.items():
+                totals[key] = totals.get(key, 0.0) + value.item()
+    finally:
+        model.train(was_training)
+
+    batch_count = max(len(loader), 1)
+    return {key.removeprefix("loss_"): value / batch_count for key, value in totals.items()}
 
 
 def path_for(directory: Path, model: str, split: str) -> Path:

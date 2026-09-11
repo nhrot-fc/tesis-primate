@@ -32,7 +32,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, help="directorio; por defecto, el del checkpoint")
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--device", default=None)
-    parser.add_argument("--nms-iou", type=float, help="por defecto, el del checkpoint")
     parser.add_argument("--limit", type=int, help="usa sólo las primeras N ventanas")
     return parser.parse_args()
 
@@ -52,7 +51,7 @@ def main() -> None:
 
     path = args.checkpoint or settings.runs_dir / args.run / BEST
     loaded = load_checkpoint(path, device)
-    nms_iou = args.nms_iou if args.nms_iou is not None else loaded.nms_iou
+    nms_iou = loaded.nms_iou
     name = args.name or args.run or path.stem
 
     for split in args.splits:
