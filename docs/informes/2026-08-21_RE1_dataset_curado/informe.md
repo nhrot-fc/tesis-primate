@@ -15,13 +15,13 @@ tiempo--frecuencia.
 **Medios de verificación.** El código de `src/domain/annotations.py`,
 `src/domain/species.py`, `src/domain/dataset.py`, `src/utils/audio.py`,
 `src/core/config.py` y `src/create_dataset.py`; los artefactos de `data/processed/`; el
-cuaderno `notebooks/re1_dataset_figures.ipynb` y el archivo `docs/re1_stats.json` que
+cuaderno `notebooks/re1_dataset_figures.ipynb` y el archivo `re1_stats.json` que
 ese cuaderno escribe.
 
 **Estado.** Todas las cifras de este documento corresponden al conjunto materializado el
 20 de agosto de 2026 en `data/processed/`, y fueron recalculadas desde los `.txt` de
 Raven por el mismo camino de código que usa `src/create_dataset.py`. No hay ningún
-número transcrito a mano: cada uno sale de `docs/re1_stats.json`.
+número transcrito a mano: cada uno sale de `re1_stats.json`.
 
 ---
 
@@ -101,7 +101,7 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/re1_dataset_figure
 El cuaderno recalcula el embudo de curación con un contador en cada regla, reconstruye
 el manifiesto y la partición con la misma semilla, compara el resultado contra lo que hay
 en `data/processed/`, escribe las cinco figuras `re1_*.png` en `research/figures/` y
-vuelca todas las cifras en `docs/re1_stats.json`.
+vuelca todas las cifras en `re1_stats.json`.
 
 Un segundo cuaderno, `notebooks/dataset_report.ipynb`, produce las figuras de composición
 y geometría del conjunto (`annotations_per_pair`, `class_geometry`,
@@ -304,7 +304,7 @@ especie renunciaría al tipo de llamada, que es justamente lo que el analista ne
 Las cuatro primeras filas son RE1.1 propiamente dicho: sanean la tabla cruda. Las dos
 últimas no corrigen datos, recortan el alcance del experimento.
 
-![Embudo de curación: de 20 075 filas de Raven a 17 605 anotaciones de experimento](../research/figures/re1_curation_funnel.png)
+![Embudo de curación: de 20 075 filas de Raven a 17 605 anotaciones de experimento](../../../research/figures/re1_curation_funnel.png)
 
 **Figura 1.** Embudo de curación. Cada barra es lo que sobrevive a la regla de su fila;
 en rojo, lo que la regla retira y por qué.
@@ -396,7 +396,7 @@ está *dentro* de un evento. De las 45 097 cajas del conjunto, el **40,6 % toca 
 temporal** de su ventana y el **24,6 % ocupa los 3 s completos**; en `as/hc` esas
 proporciones son 99,6 % y 77,4 %.
 
-![Un evento largo entra recortado en cada ventana; porcentaje de cajas recortadas por clase](../research/figures/re1_long_events.png)
+![Un evento largo entra recortado en cada ventana; porcentaje de cajas recortadas por clase](../../../research/figures/re1_long_events.png)
 
 **Figura 2.** Izquierda: un evento de 20 s frente al ventaneo; 13 de las 19 ventanas
 reciben una caja. Derecha: fracción de las cajas de cada clase que toca un borde de su
@@ -502,7 +502,7 @@ y aporta un número variable de ambas. Los archivos con muchas cajas por ventana
 grabación de aullidos aporta cientos de cajas— tiran de la partición de entrenamiento
 hacia menos archivos y más contenido.
 
-![Composición de las particiones y desviación frente al objetivo](../research/figures/re1_split_composition.png)
+![Composición de las particiones y desviación frente al objetivo](../../../research/figures/re1_split_composition.png)
 
 **Figura 3.** Izquierda: de qué se compone cada partición. Derecha: desviación de la
 proporción lograda frente a la pedida, en puntos porcentuales.
@@ -548,7 +548,7 @@ Dos lecturas de esta tabla:
   mismas clases en número de anotaciones: el ventaneo amplifica el desbalance a favor de
   las clases de eventos largos.
 
-![Cajas por clase y partición](../research/figures/re1_boxes_per_class_split.png)
+![Cajas por clase y partición](../../../research/figures/re1_boxes_per_class_split.png)
 
 **Figura 4.** Cajas por clase y partición, con el número de anotaciones de origen y el
 factor de multiplicación que introduce el ventaneo.
@@ -809,7 +809,7 @@ No hay ningún otro aumento. En particular, **no** están implementados *pitch s
 | Área (fracción de la ventana) | 0,00036 | 0,033 | 0,675 |
 | Cajas por ventana positiva | 1 | 1 (media 1,53; p95 = 4) | 11 |
 
-![Tamaño y área de las cajas normalizadas](../research/figures/re1_box_geometry.png)
+![Tamaño y área de las cajas normalizadas](../../../research/figures/re1_box_geometry.png)
 
 **Figura 5.** Ancho contra alto de las 45 097 cajas, y distribución del área. La
 distribución del área es **bimodal**: un modo alrededor de 0,01 —los eventos breves, que

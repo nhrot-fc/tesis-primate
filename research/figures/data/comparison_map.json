@@ -1,0 +1,18 @@
+{
+ "modelo": [
+  "frcnn",
+  "yolo26s_coco"
+ ],
+ "map": [
+  0.6017905188643414,
+  0.5756820025651351
+ ],
+ "protocolo": {
+  "iou": 0.3,
+  "max_det": 100,
+  "score_floor": 0.001,
+  "n_bootstrap": 1000,
+  "confidence": 0.95,
+  "seed": 42
+ }
+}

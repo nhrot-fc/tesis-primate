@@ -11,7 +11,7 @@ from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
 from models.backbone import TIME_STRIDE
-from models.deformable_detr import DIM, N_QUERIES
+from models.deformable_detr import DIM, FRONTEND, N_QUERIES
 from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE, TRAINABLE_LAYERS
 from models.registry import ARCHITECTURES, build_model
 from models.yolo import DEFAULT_MODEL, IMAGE_SIZE
@@ -35,7 +35,13 @@ PRESETS: dict[str, Preset] = {
     "detr": Preset(
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
-        {"n_frames": P.n_frames, "time_stride": TIME_STRIDE, "dim": DIM, "n_queries": N_QUERIES},
+        {
+            "n_frames": P.n_frames,
+            "time_stride": TIME_STRIDE,
+            "dim": DIM,
+            "n_queries": N_QUERIES,
+            "frontend": FRONTEND,  # none | logmel | pcen
+        },
     ),
     # Faster R-CNN con ResNet50-FPN
     "frcnn": Preset(

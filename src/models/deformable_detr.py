@@ -9,10 +9,11 @@ from core.config import SCORE_THRESHOLD
 from models.backbone import N_LEVELS, TIME_STRIDE
 from models.base import Detector
 from models.criterion import Outputs
+from models.frontend import build_frontend
 from utils.boxes import Detections
 
 PRIOR_PROB = 0.01
-# Ancho del decodificador y sus queries; `ASTDeformableDETR` los recibe como hparams
+FRONTEND = "pcen"
 DIM = 128
 N_QUERIES = 100
 N_DECODER_LAYERS = 6
@@ -260,15 +261,16 @@ class ASTDeformableDETR(Detector):
         time_stride: int = TIME_STRIDE,
         dim: int = DIM,
         n_queries: int = N_QUERIES,
+        frontend: str = FRONTEND,
     ):
         super().__init__()
         from models.backbone import ASTBackbone
         from models.criterion import SetCriterion
-        from models.pcen import TrainablePCEN
 
         self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride)
-        self.pcen = TrainablePCEN(n_mels=self.backbone.n_mels)
-        self.pcen_norm = nn.BatchNorm2d(1, affine=False)
+        self.frontend = build_frontend(frontend, self.backbone.n_mels)
+        # Media 0 y varianza 1 por lote, a la mitad: el rango con el que el AST se preentrenó.
+        self.input_norm = nn.BatchNorm2d(1, affine=False)
         self.head = DetectionHead(
             DeformableDETR(dim, n_queries, n_classes),
             token_dim=self.backbone.hidden_size,
@@ -281,8 +283,8 @@ class ASTDeformableDETR(Detector):
     def forward(
         self, mel: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
     ) -> Outputs | dict[str, torch.Tensor]:
-        compressed = self.pcen_norm(self.pcen(mel)) / 2
-        outputs = self.head(self.backbone(compressed))
+        normalized = self.input_norm(self.frontend(mel)) / 2
+        outputs = self.head(self.backbone(normalized))
         return outputs if targets is None else self.criterion(outputs, targets)
 
     @torch.no_grad()

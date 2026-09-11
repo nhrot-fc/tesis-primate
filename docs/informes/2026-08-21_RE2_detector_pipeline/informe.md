@@ -72,7 +72,7 @@ mel de potencia (B, 1, 128, 331)
              aux_outputs: las 5 capas intermedias, con la misma forma
 ```
 
-![Arquitectura propuesta](../research/figures/architecture.png)
+![Arquitectura propuesta](../../../research/figures/architecture.png)
 
 **Figura 1.** Arquitectura. Solo los bloques marcados como entrenables reciben gradiente.
 
@@ -226,7 +226,7 @@ la de salida más las cinco auxiliares. Cada capa intermedia recibe así una se�
 que es lo que permite entrenar seis capas de decodificador sin que las primeras queden a
 ciegas.
 
-![Emparejamiento húngaro entre consultas y anotaciones](../research/figures/hungarian_matching.png)
+![Emparejamiento húngaro entre consultas y anotaciones](../../../research/figures/hungarian_matching.png)
 
 **Figura 2.** Emparejamiento húngaro. La asignación es uno a uno y las consultas sin
 pareja se entrenan contra el no-objeto.
@@ -380,7 +380,7 @@ traducción operativa del sesgo hacia el *recall*: entre dos modelos con la mism
 prefiere el que encuentra más vocalizaciones aunque el analista tenga que descartar más
 propuestas.
 
-![Pipeline de entrenamiento](../research/figures/training_pipeline.png)
+![Pipeline de entrenamiento](../../../research/figures/training_pipeline.png)
 
 **Figura 3.** Pipeline de entrenamiento. La partición de prueba no interviene en ninguna
 decisión.
@@ -445,7 +445,7 @@ checkpoint**, no valores fijos del script: si la inferencia filtrara con un umbr
 distinto del que seleccionó ese `.pth`, la relación entre falsos y verdaderos positivos
 que justificó elegirlo no diría nada sobre la tabla que sale del comando.
 
-![Pipeline de inferencia](../research/figures/inference_pipeline.png)
+![Pipeline de inferencia](../../../research/figures/inference_pipeline.png)
 
 **Figura 4.** Pipeline de inferencia y exportación a Raven.
 

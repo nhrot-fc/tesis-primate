@@ -1,50 +1,47 @@
 # Figuras de la tesis
 
-Las figuras de `main.tex` **no se editan a mano**: se generan desde los datos y desde el
-código, y se vuelven a generar cuando cualquiera de los dos cambia. Los cuadernos ya no
-llevan títulos ni subtítulos dentro del PNG: el nombre de la figura lo pone el `\caption`.
+Las figuras de `main.tex` **no se editan a mano**: las genera
+`notebooks/figuras_documento.ipynb`, con una sección por capítulo del documento en el mismo
+orden que `main.tex`. Los PNG no llevan título dentro: el nombre lo pone el `\caption`.
 
-| Cuaderno | Qué produce |
-|---|---|
-| `notebooks/thesis_figures.ipynb` | Diagramas (árbol de problemas, arquitectura, pipelines), figuras de datos (galería de llamadas, anidamiento, PCEN) y figuras de resultados (barrido de score, recall por clase, matriz de confusión, ejemplos cualitativos) |
-| `notebooks/dataset_report.ipynb` | Las figuras del conjunto: `annotations_per_pair`, `class_geometry_facets`, `boxes_per_split`, `boxes_per_window`, `window_example` |
-
-`class_geometry` sigue generándose (panel de duración y banda de frecuencia por
-clase), pero ya no ilustra `main.tex`: la celda siguiente en el mismo cuaderno
-calcula las mismas tres cantidades por clase — duración, banda de frecuencia y
-ancho de banda — y las imprime como filas listas para pegar en la
-Tabla~\ref{tab:class-geometry}, que reemplazó a la figura porque veinticinco
-cajas y bigotes uno junto a otro se leen peor que veinticinco filas con la
-cifra.
+| Sección del notebook | Capítulo de `main.tex` | Figuras |
+|---|---|---|
+| 1. Generalidades | Problemática, árbol de problemas, metodología | `recorded_vs_annotated`, `problem_tree`, `crisp_dm` |
+| 2. Marco referencial | Marco teórico y conceptual | `annotation_example`, `output_forms`, `signal_chain`, `stft_tradeoff`, `mel_axis`, `frontends`, `box_coordinates`, `iou_criterion` |
+| 3. Curación del conjunto (OE1) | Análisis, protocolo, particionado, ventaneo | `annotations_per_pair`, `class_geometry`, `class_geometry_facets`, `nesting_phrase`, `call_gallery`, `curation_pipeline`, `split_by_recording`, `boxes_per_split`, `windowing`, `boxes_per_window`, `window_example` |
+| 4. Detección y evaluación (OE2/OE3) | Arquitectura, pipeline, protocolo, resultados | `architecture`, `multiscale_pyramid`, `deformable_sampling`, `decoder_layer`, `hungarian_matching`, `training_pipeline`, `inference_pipeline`, `training_curves`, `comparison_map`, `comparison_paired`, `comparison_per_class`, `score_sweep` |
 
 ## `data/`: las series, aparte del PNG
 
-Las figuras que son series de datos y no diagramas escriben además su JSON en
-`figures/data/<nombre>.json`. Sirve para redibujarlas en pgfplots sin volver a correr el
-cuaderno, y para citar una cifra sin leerla del gráfico. Hoy lo escriben doce:
-`annotations_per_pair`, `class_geometry`, `boxes_per_split`, `boxes_per_window`,
-`recorded_vs_annotated`, `mel_axis`, `multiscale_pyramid`, `score_sweep`,
-`recall_per_class`, `confusion_matrix`, `iou_distribution` y `ablation_progression`.
-`class_geometry_table.json` guarda, en la misma carpeta, los números de la
-Tabla~\ref{tab:class-geometry}: no acompaña a un PNG porque no hay figura detrás,
-solo la tabla de `main.tex`.
+Las figuras que son series de datos escriben además `figures/data/<nombre>.json`: sirve
+para redibujarlas en pgfplots y para citar una cifra sin leerla del gráfico.
 
 ## Qué hace falta para regenerarlas
 
-- Diagramas y figuras del conjunto: sólo `data/cleaned/`.
-- Figuras de resultados: además un `.pth` en `checkpoints/` y el caché de
-  `data/processed/`. Sin ellos la sección se salta y avisa por consola. En CPU conviene
-  dejar `MAX_EVAL_WINDOWS` en unos cientos; **las cifras que se reportan en la tesis
-  tienen que salir de una corrida con `MAX_EVAL_WINDOWS = None`**.
+- Secciones 1–3: `data/cleaned/` (y `data/processed/` para `window_example` y `boxes_per_split`).
+- Sección 4: las corridas en `runs/` (`metrics.jsonl` para las curvas de entrenamiento,
+  `*_predictions.pt` y `runs/comparacion/*.json` para la comparación). Las figuras de
+  resultados que necesitan un checkpoint se saltan con aviso si no está.
 
-## Imágenes que no genera ningún cuaderno
+Cada celda del notebook es independiente después de la sección 0 (imports y estilo): se
+puede correr sólo la sección que cambió.
 
-`image3.png` … `image10.png` vienen del informe de avance E3, `wbs_tree.png` y
-`pucp-logo.png` de la portada, y `raven_table_preview.png` hay que capturarla a mano: es
-la prueba de que el archivo exportado abre en Raven sin conversión.
+## Imágenes que no genera el notebook
+
+`image3.png` … `image9.png` vienen del informe de avance E3; `wbs_tree.png` y
+`pucp-logo.png`, de la portada; `raven_table_preview.png` se captura a mano (es la prueba de
+que el archivo exportado abre en Raven sin conversión); `confusion_matrix`,
+`recall_per_class`, `iou_distribution`, `ablation_progression`, `qualitative_detections` y
+`detection_timeline` quedaron de la evaluación del DETR anterior (`checkpoint` perdido) y se
+regenerarán cuando haya una corrida DETR nueva en `runs/`.
 
 ## `boxes_per_split` se construye con `empty_ratio = 0`
 
-`dataset_report.ipynb` llama a `build_manifest` sin ventanas de fondo, mientras que la
-partición que se materializa en `data/processed/` lleva un 25 %. La figura describe el
-reparto de cajas por clase, que no cambia; el conteo de ventanas, sí.
+El notebook llama a `build_manifest` sin ventanas de fondo, mientras que la partición que se
+materializa en `data/processed/` lleva un 25 %. La figura describe el reparto de cajas por
+clase, que no cambia; el conteo de ventanas, sí.
+
+## `data/recording_durations.csv`
+
+Caché de la duración de cada `.wav` de `data/raw/` (leerlas todas tarda minutos). Borrarlo
+si cambia el material recibido; el notebook lo vuelve a construir.

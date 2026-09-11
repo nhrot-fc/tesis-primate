@@ -50,14 +50,14 @@ dev = [
 [tool.ruff]
 line-length = 100
 src = ["src"]
-exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache"]
+exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache", "notebooks/TF_Experimental_Training.ipynb"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B", "UP", "N", "SIM"]
 ignore = ["E501", "N812", "N803", "N806"]
 
 [tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["E402", "B018", "F401"]
+"*.ipynb" = ["E402", "B018", "F401", "B007", "B905"]
 
 [tool.ruff.format]
 quote-style = "double"

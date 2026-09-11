@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -51,3 +53,25 @@ class TrainablePCEN(nn.Module):
         energy = self.eps + self.smoothed_energy(mel, smoothing)
         gain_controlled = mel / torch.pow(energy, gain_exponent)
         return torch.pow(gain_controlled + bias, compression) - torch.pow(bias, compression)
+
+
+class LogMel(nn.Module):
+    def __init__(self, eps: float = P.eps) -> None:
+        super().__init__()
+        self.eps = eps
+
+    def forward(self, mel: torch.Tensor) -> torch.Tensor:
+        return torch.log(mel.clamp_min(0) + self.eps)
+
+
+FRONTENDS: dict[str, Callable[[int], nn.Module]] = {
+    "none": lambda n_mels: nn.Identity(),
+    "logmel": lambda n_mels: LogMel(),
+    "pcen": TrainablePCEN,
+}
+
+
+def build_frontend(name: str, n_mels: int) -> nn.Module:
+    if name not in FRONTENDS:
+        raise ValueError(f"front-end desconocido: {name!r}; hay {sorted(FRONTENDS)}")
+    return FRONTENDS[name](n_mels)

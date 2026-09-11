@@ -97,6 +97,8 @@ def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd
             without_audio.append(str(relative))
             continue
         frame = pd.read_csv(annotation_path, sep="\t")
+        if frame.empty:  # una grabación sin anotaciones; en el concat volvería object las columnas
+            continue
         frame["audio_path"] = str(audio_path)
         frames.append(frame)
 
@@ -113,6 +115,7 @@ def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd
         )
 
     annotations_df = pd.concat(frames, ignore_index=True)
+    annotations_df[CLEANED_BOX_COLUMNS] = annotations_df[CLEANED_BOX_COLUMNS].astype(float)
     annotations_df["duration_s"] = annotations_df["end_time_s"] - annotations_df["begin_time_s"]
     annotations_df["bandwidth_hz"] = annotations_df["high_freq_hz"] - annotations_df["low_freq_hz"]
     return annotations_df
