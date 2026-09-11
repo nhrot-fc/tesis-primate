@@ -8,12 +8,13 @@ import pandas as pd
 
 from core.config import CLEANED_DIR, RAW_DIR
 from core.runtime import setup_logging
-from data.annotations import clean_annotations, species_of
+from data.annotations import clean_annotations, cleaned, species_of
+from data.raven import CALL, CLEANED_BOX_COLUMNS, SPECIES
 
 logger = logging.getLogger("prepare_annotations")
 
 # Columnas de la tabla de anotaciones que se conservan en cleaned/
-COLUMNS = ["species", "call_type", "begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
+COLUMNS = [cleaned(SPECIES), cleaned(CALL), *CLEANED_BOX_COLUMNS]
 
 
 def list_annotation_files(root: Path) -> list[Path]:

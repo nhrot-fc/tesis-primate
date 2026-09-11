@@ -26,21 +26,18 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.config import P
+from core.config import SCORE_THRESHOLD, P, score_grid
+from data.raven import BEGIN, END, HIGH, LOW, renumber
 from viewer.controls import Layers, Popup, Slider, ViewPanel
-from viewer.inference import detect, preload
+from viewer.inference import DETECT_THRESHOLD, detect, preload
 from viewer.plot import Layer, SpectrogramView
 from viewer.session import (
     ACCEPTED,
     ANNOTATIONS,
-    BEGIN,
     COLORS,
     DETECTIONS,
-    END,
     FINDINGS,
-    HIGH,
     ISSUE,
-    LOW,
     QUALITY,
     RECORDING,
     REJECTED,
@@ -60,7 +57,6 @@ from viewer.tasks import Worker
 from viewer.transport import Transport
 
 BASE_TITLE = "Visor de espectrogramas"
-BATCH_SIZE = 8
 SCORE_WIDTH = 220
 HELP_WIDTH = 560
 CARET = "\u25be"
@@ -303,7 +299,11 @@ class Viewer(QMainWindow):
         self.layers = Layers([(s, COLORS[s], STYLES[s], WIDTHS[s]) for s in SOURCES])
         self.layers.changed.connect(self.draw_boxes)
 
-        self.score = Slider("Score ≥", [i / 100 for i in range(101)], 50, "{:.2f}", label_width=52)
+        # De lo que pide al modelo hasta 1, en el paso del protocolo; arranca en el umbral común.
+        thresholds = score_grid(DETECT_THRESHOLD, 1.0)
+        self.score = Slider(
+            "Score ≥", thresholds, thresholds.index(SCORE_THRESHOLD), "{:.2f}", label_width=52
+        )
         self.score.setFixedWidth(SCORE_WIDTH)
         self.score.changed.connect(lambda: self.session.set_score(self.score.value()))
         self.prev_button = self.chevron("◀", "Detección anterior (P)", lambda: self.jump(-1))
@@ -508,7 +508,7 @@ class Viewer(QMainWindow):
         if audio is None or model is None:
             return
         self.start(
-            lambda report: detect(audio, model, batch_size=BATCH_SIZE, on_progress=report),
+            lambda report: detect(audio, model, on_progress=report),
             self.detections_ready,
             f"Ejecutando '{model.name}'...",
             reports=True,
@@ -520,7 +520,7 @@ class Viewer(QMainWindow):
         self.setWindowTitle(f"{path.name} - {BASE_TITLE}")
         self.plot.set_waveform(waveform, P.target_sr)
         self.transport.set_audio(waveform, P.target_sr)
-        self.view.band.set_limits(P.target_sr // 2)
+        self.view.band.set_limits(int(P.nyquist_hz))
         # El Raven de la grabación vive junto al wav: revisando se quiere siempre.
         sidecar = path.with_suffix(".txt")
         if sidecar.is_file():
@@ -542,13 +542,16 @@ class Viewer(QMainWindow):
         self.say(f"{len(table)} hallazgos por revisar.")
 
     def detections_ready(self, table: pd.DataFrame) -> None:
-        # El slider arranca en el punto de operación con el que se eligió el checkpoint:
-        # es el umbral en el que su recall y su FP/TP fueron medidos.
-        operating = table.attrs.get("operating_score_threshold")
+        # Si la corrida pasó por `compare_models.py`, el slider arranca en el umbral que eligió
+        # en val (su `operating_point.json`); si no, se queda donde estaba.
+        operating = table.attrs.get("operating_point")
         if operating is not None:
             self.score.set_value(operating)
         self.session.set_table(DETECTIONS, table)
-        self.say(f"{len(table)} detecciones del modelo.")
+        self.say(
+            f"{len(table)} detecciones del modelo."
+            + ("" if operating is None else f"   Umbral de la comparación: {operating:.2f}")
+        )
 
     # --- Recorrido --------------------------------------------------------------
 
@@ -608,7 +611,7 @@ class Viewer(QMainWindow):
         table = self.session.tables[FINDINGS]
         if table is None or not 0 <= self.reviewing < len(table):
             return
-        done = self.session.judge(table.index[self.reviewing], verdict)
+        done = self.session.judge(self.reviewing, verdict)
         self.show_finding(table.iloc[self.reviewing])
         self.say(f"{done}.   ('.' para el siguiente)")
 
@@ -703,7 +706,7 @@ class Viewer(QMainWindow):
             return
         table = table.copy()
         if source != FINDINGS:
-            table["Selection"] = range(1, len(table) + 1)
+            table = renumber(table)
         path = self.save_path(f"Guardar {source.lower()}", suffix, file_filter)
         if path is None:
             return
@@ -756,7 +759,7 @@ class Viewer(QMainWindow):
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_Down):
             self.plot.pan_band(1 if key == Qt.Key.Key_Up else -1)
         elif key == Qt.Key.Key_F:
-            self.plot.set_band(0.0, P.target_sr / 2)
+            self.plot.set_band(0.0, P.nyquist_hz)
         elif key == Qt.Key.Key_N:
             self.jump(1)
         elif key == Qt.Key.Key_P:

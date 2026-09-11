@@ -13,9 +13,13 @@ from core.config import SEED, P, Parameters
 
 FloatArray = npt.NDArray[np.float64]
 
-# Rango de dB del mel: recorta el 1 % más callado y el 0.1 % más fuerte
+# Rango de dB del mel para normalizar la entrada de los modelos: recorta el 1 % más callado y
+# el 0.1 % más fuerte de 2000 ventanas de train. (El visor calibra su propio rango sobre el
+# STFT de cada grabación; ver `viewer.spectrogram.DISPLAY_PERCENTILES`.)
 DB_PERCENTILES = (1.0, 99.9)
 DB_RANGE_WINDOWS = 2000
+# Cuantil de |onda| que se toma como piso de ruido al rellenar un clip corto
+PAD_FLOOR_QUANTILE = 0.1
 
 
 def pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
@@ -23,11 +27,14 @@ def pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
     if missing <= 0:
         return waveform[: params.clip_len_samples]
     # Ruido al nivel del piso de la grabación: el silencio digital sería un escalón.
-    noise_floor = float(waveform.abs().quantile(0.1)) if waveform.numel() else 0.0
+    noise_floor = float(waveform.abs().quantile(PAD_FLOOR_QUANTILE)) if waveform.numel() else 0.0
     generator = torch.Generator().manual_seed(params.pad_seed)
     return torch.cat([waveform, torch.randn(missing, generator=generator) * noise_floor])
 
 
+# Lo que oye el modelo: mono y resampleado con torchaudio, igual que al construir el caché.
+# El visor tiene su propio lector sin torch (`viewer.spectrogram.load_audio`) porque tiene que
+# abrir audio aunque el motor de detección no cargue.
 def read_clip(
     audio_file: soundfile.SoundFile, clip_start_s: float, params: Parameters = P
 ) -> Tensor:
@@ -94,7 +101,9 @@ def mel_spectrogram(params: Parameters = P) -> nn.Module:
 
 
 def mel_to_db(mel: Tensor, params: Parameters = P) -> Tensor:
-    return 10.0 * torch.log10(mel + params.eps)  # 10 y no 20: el mel va en potencia
+    # 10 y no 20: el mel va en potencia. El visor repite la fórmula en numpy sobre su STFT
+    # (`viewer.spectrogram.stft_db`) con un piso más bajo, porque no pasa por el banco mel.
+    return 10.0 * torch.log10(mel + params.eps)
 
 
 def mel_db_range(mels: Tensor) -> tuple[float, float]:

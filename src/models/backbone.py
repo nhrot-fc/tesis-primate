@@ -1,16 +1,21 @@
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
-from transformers import ASTModel
 
 from core.config import HF_DIR, P
+
+if TYPE_CHECKING:
+    from transformers import ASTModel
 
 logger = logging.getLogger(__name__)
 
 AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
+# Paso temporal de los parches del AST (el checkpoint trae 10); con 331 cuadros deja 32 tokens
+TIME_STRIDE = 10
 # Pirámide {4x, 2x, 1x, 1/2x} sobre el mapa de tokens del AST, como en ViTDet.
 N_LEVELS = 4
 
@@ -19,7 +24,10 @@ def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
     return HF_DIR / checkpoint.replace("/", "__")
 
 
-def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
+def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> "ASTModel":
+    # `transformers` es el extra `detr`: sólo hace falta si se carga esta arquitectura.
+    from transformers import ASTModel
+
     local_dir = local_ast_dir(checkpoint)
     if local_dir.is_dir():
         try:
@@ -40,7 +48,7 @@ class ASTBackbone(nn.Module):
     def __init__(
         self,
         n_frames: int | None = None,
-        time_stride: int = 10,
+        time_stride: int = TIME_STRIDE,
         checkpoint: str = AST_CHECKPOINT,
     ) -> None:
         super().__init__()
@@ -102,7 +110,7 @@ class ASTBackbone(nn.Module):
 
 
 class MultiScalePyramid(nn.Module):
-    def __init__(self, dim: int = 256, num_groups: int = 8) -> None:
+    def __init__(self, dim: int, num_groups: int = 8) -> None:
         super().__init__()
         self.blocks = nn.ModuleList(
             [

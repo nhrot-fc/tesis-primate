@@ -5,11 +5,19 @@ import numpy.typing as npt
 import soundfile
 import soxr
 
+# Piso del log del STFT en pantalla. Más bajo que `P.eps` (el del mel del modelo) a propósito:
+# el STFT crudo no suma bandas y en una grabación silenciosa un 13 % de los bins queda bajo
+# -60 dB; con el piso del modelo se aplastarían.
 EPS = 1e-10
+# Rango en dB de una grabación para el contraste inicial (`utils.audio.DB_PERCENTILES` es el
+# del caché para normalizar la entrada de los modelos)
+DISPLAY_PERCENTILES = (5.0, 99.5)
 
 Waveform = npt.NDArray[np.float32]
 
 
+# Sin torch a propósito: el visor abre audio aunque el motor de detección no cargue. El mismo
+# paso (mono, resampleo) lo hace `utils.audio.read_clip` para el modelo, con torchaudio.
 def load_audio(path: Path, target_sr: int) -> Waveform:
     frames, source_sr = soundfile.read(str(path), dtype="float32", always_2d=True)
     waveform = frames.mean(axis=1)
@@ -45,7 +53,7 @@ def stft_db(waveform: Waveform, n_fft: int, hop_length: int) -> npt.NDArray[np.f
 
 def db_baseline(waveform: Waveform, sr: int, n_fft: int) -> tuple[float, float]:
     spec = stft_db(waveform, n_fft, max(sr // 10, waveform.size // 3000, 1))
-    lo, hi = np.percentile(spec, (5.0, 99.5))
+    lo, hi = np.percentile(spec, DISPLAY_PERCENTILES)
     return float(lo), float(hi)
 
 

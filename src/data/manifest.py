@@ -8,13 +8,15 @@ import pandas as pd
 import soundfile as sf
 
 from core.config import SEED, P, Parameters
+from data.annotations import MIN_DURATION_S
 from data.species import LabelSet
 from utils.audio import FloatArray, hz_to_y, window_starts
 
 logger = logging.getLogger(__name__)
 
 IntArray = npt.NDArray[np.int64]
-MIN_BOX_SIZE = 1e-3
+# Lado mínimo de una caja, en fracción del clip: la duración mínima de una anotación.
+MIN_BOX_SIZE = MIN_DURATION_S / P.clip_len_s
 
 
 class ClipWindow(NamedTuple):

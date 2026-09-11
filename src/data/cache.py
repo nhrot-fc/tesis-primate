@@ -7,7 +7,7 @@ from core.config import PROCESSED_DIR
 from data.manifest import ClipWindow
 from data.species import LabelSet
 
-SPLITS = ("train", "val", "test")
+TRAIN, VAL, TEST = SPLITS = ("train", "val", "test")
 
 
 def split_path(split: str) -> Path:

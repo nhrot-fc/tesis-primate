@@ -2,7 +2,6 @@ from typing import Any
 
 import torch
 import torch.nn.functional as F
-from scipy.optimize import linear_sum_assignment
 from torch import Tensor, nn
 from torchvision.ops import (
     box_convert,
@@ -19,6 +18,10 @@ Indices = list[tuple[Tensor, Tensor]]
 
 # Focal sigmoide por clase, sin canal de no-objeto
 FOCAL_ALPHA, FOCAL_GAMMA = 0.25, 2.0
+# Pesos de clase / L1 / GIoU. El matcher y la pérdida comparten los de caja; el de clase pesa
+# el doble al asignar que al entrenar (Zhu et al. 2021 usan 2 en los dos lados).
+COST_CLASS, COST_BBOX, COST_IOU = 2.0, 5.0, 2.0
+WEIGHT_CLASS, WEIGHT_BBOX, WEIGHT_IOU = 1.0, COST_BBOX, COST_IOU
 
 
 def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
@@ -30,7 +33,10 @@ def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
 
 class HungarianMatcher(nn.Module):
     def __init__(
-        self, cost_class: float = 2.0, cost_bbox: float = 5.0, cost_iou: float = 2.0
+        self,
+        cost_class: float = COST_CLASS,
+        cost_bbox: float = COST_BBOX,
+        cost_iou: float = COST_IOU,
     ) -> None:
         super().__init__()
         self.cost_class = cost_class
@@ -39,6 +45,8 @@ class HungarianMatcher(nn.Module):
 
     @torch.no_grad()
     def forward(self, outputs: Outputs, targets: list[Target]) -> Indices:
+        from scipy.optimize import linear_sum_assignment  # grupo `train`: sólo al entrenar
+
         batch_size, n_queries = outputs["pred_logits"].shape[:2]
         device = outputs["pred_logits"].device
 
@@ -77,9 +85,9 @@ class SetCriterion(nn.Module):
     def __init__(
         self,
         matcher: nn.Module | None = None,
-        weight_class: float = 1.0,
-        weight_bbox: float = 5.0,
-        weight_iou: float = 2.0,
+        weight_class: float = WEIGHT_CLASS,
+        weight_bbox: float = WEIGHT_BBOX,
+        weight_iou: float = WEIGHT_IOU,
     ) -> None:
         super().__init__()
         self.matcher = matcher or HungarianMatcher()

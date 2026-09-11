@@ -5,12 +5,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
-from models.backbone import N_LEVELS
+from core.config import SCORE_THRESHOLD
+from models.backbone import N_LEVELS, TIME_STRIDE
 from models.base import Detector
 from models.criterion import Outputs
 from utils.boxes import Detections
 
 PRIOR_PROB = 0.01
+# Ancho del decodificador y sus queries; `ASTDeformableDETR` los recibe como hparams
+DIM = 128
+N_QUERIES = 100
+N_DECODER_LAYERS = 6
+N_HEADS = 8
+N_POINTS = 4
+FFN = 1024
+DROPOUT = 0.1
 
 
 def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
@@ -31,11 +40,11 @@ def inverse_sigmoid(coordinates: torch.Tensor, eps: float = 1e-5) -> torch.Tenso
 class DeformableAttention(nn.Module):
     def __init__(
         self,
-        dim: int = 256,
-        n_heads: int = 8,
-        n_points: int = 4,
-        n_levels: int = 4,
-        dropout: float = 0.1,
+        dim: int,
+        n_heads: int = N_HEADS,
+        n_points: int = N_POINTS,
+        n_levels: int = N_LEVELS,
+        dropout: float = DROPOUT,
     ):
         super().__init__()
         self.n_heads, self.n_points, self.n_levels = n_heads, n_points, n_levels
@@ -125,12 +134,12 @@ class DeformableAttention(nn.Module):
 class DeformableDecoderLayer(nn.Module):
     def __init__(
         self,
-        dim: int = 256,
-        n_heads: int = 8,
-        n_points: int = 4,
-        n_levels: int = 4,
-        ffn: int = 1024,
-        dropout: float = 0.1,
+        dim: int,
+        n_heads: int = N_HEADS,
+        n_points: int = N_POINTS,
+        n_levels: int = N_LEVELS,
+        ffn: int = FFN,
+        dropout: float = DROPOUT,
     ):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(dim, n_heads, dropout=dropout, batch_first=True)
@@ -165,12 +174,12 @@ class DeformableDecoderLayer(nn.Module):
 class DeformableDETR(nn.Module):
     def __init__(
         self,
-        dim: int = 256,
-        n_queries: int = 50,
-        n_classes: int = 1,
-        n_decoder_layers: int = 6,
-        n_heads: int = 8,
-        n_points: int = 4,
+        dim: int,
+        n_queries: int,
+        n_classes: int,
+        n_decoder_layers: int = N_DECODER_LAYERS,
+        n_heads: int = N_HEADS,
+        n_points: int = N_POINTS,
     ):
         super().__init__()
         self.n_queries = n_queries
@@ -219,7 +228,7 @@ class DetectionHead(nn.Module):
         token_dim: int,
         freq_out: int,
         time_out: int,
-        dim: int = 256,
+        dim: int,
     ):
         super().__init__()
         from models.backbone import MultiScalePyramid
@@ -248,9 +257,9 @@ class ASTDeformableDETR(Detector):
         self,
         n_classes: int,
         n_frames: int | None = None,
-        time_stride: int = 10,
-        dim: int = 128,
-        n_queries: int = 100,
+        time_stride: int = TIME_STRIDE,
+        dim: int = DIM,
+        n_queries: int = N_QUERIES,
     ):
         super().__init__()
         from models.backbone import ASTBackbone
@@ -277,7 +286,9 @@ class ASTDeformableDETR(Detector):
         return outputs if targets is None else self.criterion(outputs, targets)
 
     @torch.no_grad()
-    def detect(self, mel: torch.Tensor, score_threshold: float = 0.5) -> list[Detections]:
+    def detect(
+        self, mel: torch.Tensor, score_threshold: float = SCORE_THRESHOLD
+    ) -> list[Detections]:
         outputs: Outputs = self(mel)
         # Sigmoides independientes por clase: el score no mezcla "hay algo" con "qué es".
         scores, labels = outputs["pred_logits"].sigmoid().max(-1)

@@ -2,15 +2,17 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from slugify import slugify
 
-from core.config import CLEANED_DIR, RAW_DIR
+from core.config import CLEANED_DIR, RAW_DIR, P
+from data.raven import BOX_COLUMNS, CLEANED_BOX_COLUMNS
 from data.species import CALL_TYPES, VALID_PAIRS
 
 logger = logging.getLogger(__name__)
 
 NOISE = "noise"
-MAX_FREQ_HZ = 22050.0
+# Por encima del tope del mel la anotación no se ve: se recorta ahí
+MAX_FREQ_HZ = P.f_max
+# Duración mínima de una anotación; el manifest y el jitter derivan de acá su caja mínima
 MIN_DURATION_S = 0.01
 
 DROP_COLUMNS = ["selection", "view", "channel", "reference", "begin_file", "file_offset_s"]
@@ -36,9 +38,19 @@ CALL_SYNONYMS: dict[str, dict[str, str]] = {
 }
 
 
+def cleaned(column: str) -> str:
+    # Nombre de la columna en `cleaned/`: el de Raven en snake_case.
+    from slugify import slugify  # grupo `train`: sólo al preparar datos
+
+    return slugify(column, separator="_")
+
+
 def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
+    from slugify import slugify
+
+    assert [cleaned(c) for c in BOX_COLUMNS] == CLEANED_BOX_COLUMNS
     df = df.copy()
-    df.columns = [slugify(col, separator="_") for col in df.columns]
+    df.columns = [cleaned(col) for col in df.columns]
     df = df.drop(columns=DROP_COLUMNS, errors="ignore")
     if "call_type" not in df and "id" in df:
         # PteroSet: `Tipo`/`ID` en vez de `Species`/`Call type`
@@ -76,7 +88,7 @@ def species_of(wav_path: Path) -> str:
 
 def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd.DataFrame:
     # Cada `.txt` de cleaned/ se llama como su `.wav` en raw/.
-    frames = []
+    frames: list[pd.DataFrame] = []
     without_audio: list[str] = []
     for annotation_path in sorted(root.rglob("*.txt")):
         relative = annotation_path.relative_to(root)
@@ -100,7 +112,7 @@ def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd
             "".join(f"\n  {line}" for line in without_audio),
         )
 
-    annotations = pd.concat(frames, ignore_index=True)
-    annotations["duration_s"] = annotations["end_time_s"] - annotations["begin_time_s"]
-    annotations["bandwidth_hz"] = annotations["high_freq_hz"] - annotations["low_freq_hz"]
-    return annotations
+    annotations_df = pd.concat(frames, ignore_index=True)
+    annotations_df["duration_s"] = annotations_df["end_time_s"] - annotations_df["begin_time_s"]
+    annotations_df["bandwidth_hz"] = annotations_df["high_freq_hz"] - annotations_df["low_freq_hz"]
+    return annotations_df

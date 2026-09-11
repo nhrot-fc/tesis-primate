@@ -25,7 +25,7 @@ class AugmentConfig:
 
     p_shift: float = 0.5  # corrimiento temporal, en fracción del clip
     max_shift: float = 0.10
-    min_overlap: float = 0.5
+    min_overlap: float = P.min_overlap  # el mismo criterio con el que entró al manifest
 
     p_paste: float = 0.5  # pega llamadas de otras ventanas (copy-paste)
     max_events: int = 3

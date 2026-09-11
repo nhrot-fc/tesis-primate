@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
+from core.config import SCORE_THRESHOLD
+from data.raven import BEGIN, BOX_COLUMNS, CALL, CLEANED_BOX_COLUMNS, END, SCORE, SPECIES
+from data.species import LABEL_SEPARATOR
 from viewer.spectrogram import Waveform
 
 ANNOTATIONS = "Anotaciones"
@@ -23,15 +26,10 @@ STYLES = {
 }
 WIDTHS = {ANNOTATIONS: 2, DETECTIONS: 2, FINDINGS: 3}
 
-BEGIN, END, LOW, HIGH = "Begin Time (s)", "End Time (s)", "Low Freq (Hz)", "High Freq (Hz)"
-BOX_COLUMNS = [BEGIN, END, LOW, HIGH]
-SPECIES, CALL = "Species", "Call type"
-
 RECORDING, VERDICT = "recording", "Veredicto"
 ACCEPTED, REJECTED = "aceptado", "rechazado"
 # Formato de las tablas de hallazgos de la auditoría CLOD (runs/comparacion_nms/*.csv): cajas
 # con las columnas de `cleaned/`, un hallazgo por fila y su calidad.
-CLOD_BOXES = ["begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
 ISSUE, QUALITY = "Hallazgo", "Calidad"
 SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 # La caja de CLOD y la del Raven fuente sólo difieren en el redondeo del archivo.
@@ -42,12 +40,16 @@ TOLERANCE_S = 1e-3
 def read_table(path: Path) -> tuple[str, pd.DataFrame]:
     table = pd.read_csv(path, sep=None, engine="python")
     if ISSUE in table.columns:
-        absent = [name for name in [*CLOD_BOXES, QUALITY, RECORDING] if name not in table.columns]
+        needed = [*CLEANED_BOX_COLUMNS, QUALITY, RECORDING]
+        absent = [name for name in needed if name not in table.columns]
         if absent:
             raise ValueError(f"'{path.name}' no trae las columnas: {', '.join(absent)}")
-        table = table.rename(columns=dict(zip(CLOD_BOXES, BOX_COLUMNS, strict=True)))
-        # CLOD pega especie y llamada en 'sm/fs'; el Raven fuente las trae aparte y en mayúscula.
-        table[[SPECIES, CALL]] = table["species"].str.upper().str.split("/", n=1, expand=True)
+        table = table.rename(columns=dict(zip(CLEANED_BOX_COLUMNS, BOX_COLUMNS, strict=True)))
+        # CLOD pega especie y llamada como el `LabelSet` ('sm/fs'); el Raven fuente las trae
+        # aparte y en mayúscula.
+        table[[SPECIES, CALL]] = (
+            table["species"].str.upper().str.split(LABEL_SEPARATOR, n=1, expand=True)
+        )
         table[VERDICT] = ""
         return FINDINGS, table.sort_values(QUALITY, kind="mergesort").reset_index(drop=True)
 
@@ -89,7 +91,7 @@ class Row:
     low: float
     high: float
     label: str
-    score: float  # NaN cuando la tabla no trae 'Score'
+    score: float  # NaN cuando la tabla no trae `SCORE`
 
 
 # Estado compartido entre el espectrograma y la tabla de revisión: quien mira las cajas
@@ -103,7 +105,7 @@ class Session(QObject):
         self.model_path: Path | None = None
         self.waveform: Waveform | None = None
         self.sr = 1
-        self.score = 0.5
+        self.score = SCORE_THRESHOLD
         self.tables: dict[str, pd.DataFrame | None] = dict.fromkeys(SOURCES)
 
     @property
@@ -135,9 +137,9 @@ class Session(QObject):
         # Los hallazgos son de todo el dataset; sobre el audio abierto van sólo los suyos.
         if RECORDING in table.columns:
             table = table.loc[table[RECORDING] == str(self.audio_path)]
-        if "Score" not in table.columns:
+        if SCORE not in table.columns:
             return table
-        return table.loc[table["Score"] >= self.score]
+        return table.loc[table[SCORE] >= self.score]
 
     def remove(self, targets: list[tuple[str, Hashable]]) -> None:
         for source in SOURCES:
@@ -147,12 +149,13 @@ class Session(QObject):
                 self.tables[source] = table.drop(index=indices)
         self.changed.emit()
 
-    def judge(self, index: Hashable, verdict: str) -> str:
+    # `position` es la fila en la cola de hallazgos, no la etiqueta del índice.
+    def judge(self, position: int, verdict: str) -> str:
         findings = self.tables[FINDINGS]
         if findings is None:
             return ""
-        findings.loc[index, VERDICT] = verdict
-        done = self.apply(findings.loc[index])
+        findings.at[findings.index[position], VERDICT] = verdict
+        done = self.apply(findings.iloc[position])
         self.changed.emit()
         return done
 
@@ -182,8 +185,8 @@ class Session(QObject):
             return []
         boxes = table[BOX_COLUMNS].to_numpy(dtype=float)
         scores = (
-            table["Score"].to_numpy(dtype=float)
-            if "Score" in table.columns
+            table[SCORE].to_numpy(dtype=float)
+            if SCORE in table.columns
             else np.full(len(table), float("nan"))
         )
         rows = [

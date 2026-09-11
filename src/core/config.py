@@ -21,6 +21,24 @@ PROCESSED_DIR = DATA_DIR / "processed"
 YOLO_DIR = DATA_DIR / "yolo"
 RUNS_DIR = PROJECT_DIR / "runs"
 
+# Detección: lo comparten los modelos, el protocolo de evaluación, la inferencia y el visor.
+# Umbral de score por defecto: el que loguea el entrenamiento y con el que arranca el visor
+SCORE_THRESHOLD = 0.5
+# Mínimo score que devuelve un modelo; los volcados y la comparación parten de acá
+SCORE_FLOOR = 0.001
+# Paso de la rejilla de umbrales (protocolo y slider del visor)
+SCORE_STEP = 0.01
+# IoU del NMS de las cabezas densas y de la fusión de ventanas solapadas en inferencia
+NMS_IOU = 0.3
+# Tope de detecciones por ventana
+MAX_DETECTIONS = 100
+
+
+def score_grid(start: float, stop: float) -> list[float]:
+    # Umbrales de `start` a `stop` inclusive, en pasos de SCORE_STEP y sin ruido de coma flotante.
+    n = round(1 / SCORE_STEP)
+    return [i / n for i in range(round(start * n), round(stop * n) + 1)]
+
 
 @dataclass
 class Parameters:
@@ -53,6 +71,10 @@ class Parameters:
     @property
     def n_frames(self) -> int:
         return self.clip_len_samples // self.hop_length + 1
+
+    @property
+    def nyquist_hz(self) -> float:
+        return self.target_sr / 2
 
 
 P = Parameters()

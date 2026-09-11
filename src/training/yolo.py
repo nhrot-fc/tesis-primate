@@ -3,7 +3,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from core.config import SEED, YOLO_DIR
+import pandas as pd
+
+from core.config import YOLO_DIR
 from data import cache
 from data.species import LabelSet
 from models.yolo import SpectrogramYOLO, load_ultralytics_weights
@@ -13,6 +15,13 @@ from training.trainer import TrainConfig
 logger = logging.getLogger(__name__)
 
 PATIENCE = 10
+# Lo que deja Ultralytics en la corrida. Coinciden con `checkpoint.BEST`/`LAST` por casualidad:
+# son sus nombres, no los del proyecto.
+ULTRALYTICS_BEST = Path("weights") / "best.pt"
+ULTRALYTICS_LAST = Path("weights") / "last.pt"
+RESULTS = "results.csv"
+# Fitness de Ultralytics: con ella elige `best.pt`
+FITNESS = {"metrics/mAP50(B)": 0.1, "metrics/mAP50-95(B)": 0.9}
 
 # Aumentaciones: espectrograma, no foto.
 AUGMENTATION = {
@@ -50,12 +59,24 @@ def check_export() -> dict:
     return meta
 
 
+def best_epoch(run_dir: Path) -> tuple[int, dict[str, float]]:
+    # -> (época de `best.pt`, desde 0, y sus métricas de Ultralytics). Con `patience` la corrida
+    # puede parar antes de `epochs`: la época real sale de results.csv, no de la config.
+    results = pd.read_csv(run_dir / RESULTS)
+    results.columns = [column.strip() for column in results.columns]
+    fitness = (results[list(FITNESS)] * pd.Series(FITNESS)).sum(axis=1)
+    best = results.iloc[int(fitness.idxmax())]
+    metrics = {c: float(best[c]) for c in results.columns if c.startswith(("metrics/", "val/"))}
+    return int(best["epoch"]) - 1, metrics
+
+
 def export_checkpoint(
-    run_dir: Path, weights: Path, labels: LabelSet, hparams: dict[str, Any], config: dict
+    run_dir: Path, labels: LabelSet, hparams: dict[str, Any], config: dict
 ) -> Path:
     # Al formato del proyecto, que es el que `load_checkpoint` abre.
     model = SpectrogramYOLO(n_classes=len(labels), **hparams)
-    load_ultralytics_weights(model, weights)
+    load_ultralytics_weights(model, run_dir / ULTRALYTICS_BEST)
+    epoch, metrics = best_epoch(run_dir)
     path = run_dir / checkpoint.BEST
     checkpoint.save(
         path,
@@ -64,15 +85,15 @@ def export_checkpoint(
         hparams=hparams,
         labels=labels,
         config=config,
-        epoch=config["epochs"] - 1,
-        metrics={},  # las de Ultralytics están en results.csv
+        epoch=epoch,
+        metrics=metrics,
     )
     return path
 
 
 def fit(
     run_dir: Path,
-    hparams: dict[str, Any],  # `model` (yolo26s, yolo26m...) e `imgsz`
+    hparams: dict[str, Any],  # `model` (yolo26s, yolo26m...), `imgsz`, `db_low`, `db_high`
     config: TrainConfig,
     device: str,
     limit: int | None = None,
@@ -87,12 +108,12 @@ def fit(
             f"el export es de {meta['image_size']} px y el modelo pide {hparams['imgsz']}"
         )
 
-    last = run_dir / "weights" / "last.pt"
+    last = run_dir / ULTRALYTICS_LAST
     resume = last.is_file()
     if resume:
         logger.info("retomando %s", last)
     trainer = YOLO(str(last) if resume else f"{stem}.pt")  # desde los pesos de COCO
-    n_train = meta["counts"]["train"]["windows"]
+    n_train = meta["counts"][cache.TRAIN]["windows"]
     results = trainer.train(
         data=str(YOLO_DIR / "dataset.yaml"),
         epochs=config.epochs,
@@ -117,12 +138,7 @@ def fit(
     if results is None:
         raise RuntimeError("Ultralytics no devolvió resultados de entrenamiento.")
 
-    full_hparams = {
-        "model": stem,
-        "imgsz": hparams["imgsz"],
-        "db_low": meta["db_range"]["low"],
-        "db_high": meta["db_range"]["high"],
-    }
+    full_hparams = {**hparams, "model": stem}
     run_config = {
         "architecture": "yolo",
         "hparams": full_hparams,
@@ -130,14 +146,12 @@ def fit(
         "nms_iou": SpectrogramYOLO.nms_iou,
         "epochs": config.epochs,
         "batch_size": config.batch_size,
-        "seed": SEED,
+        "seed": config.seed,
         "patience": PATIENCE,
         "augmentation": AUGMENTATION,
         "score_threshold": config.score_threshold,
     }
     (run_dir / "config.json").write_text(json.dumps(run_config, indent=2, ensure_ascii=False))
-    path = export_checkpoint(
-        run_dir, run_dir / "weights" / "best.pt", labels, full_hparams, run_config
-    )
+    path = export_checkpoint(run_dir, labels, full_hparams, run_config)
     logger.info("checkpoint -> %s", path)
     return path

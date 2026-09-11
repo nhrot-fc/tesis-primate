@@ -1,12 +1,17 @@
 import logging
 import random
 import resource
+from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
 
 from core.config import SEED
+
+if TYPE_CHECKING:
+    from tqdm.auto import tqdm
 
 
 def setup_logging(log_file: Path | None = None) -> None:
@@ -42,3 +47,10 @@ def resolve_device(requested: str | None = None) -> str:
     if device.startswith("cuda"):
         torch.cuda.set_device(torch.device(device).index or 0)
     return device
+
+
+def progress(loader: Iterable[Any], desc: str) -> "tqdm":
+    # Barra por lote de entrenamiento y evaluación; `disable=None` la apaga sin TTY.
+    from tqdm.auto import tqdm  # grupo `train`
+
+    return tqdm(loader, desc=desc, unit="batch", leave=False, disable=None)

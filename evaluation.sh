@@ -17,6 +17,10 @@ UV=${UV:-/home/fcandia/venv/bin/uv}
 
 RUNS_DIR=${RUNS_DIR:-runs}
 PROCESSED_DIR=${PROCESSED_DIR:-data/processed}
+# Espejo de nombres que fijan los scripts de Python: `training.checkpoint.BEST`,
+# `evaluation.evaluator.SUFFIX`, `compare_models.OUTPUT` y `data.cache.SPLITS`.
+BEST=best.pt
+DUMP_SUFFIX=_predictions.pt
 OUTPUT=${OUTPUT:-$RUNS_DIR/comparacion/comparacion_modelos}
 SPLITS=(val test)
 
@@ -40,9 +44,9 @@ done
 
 dumps=()
 for name in "${names[@]}"; do
-  checkpoint="$RUNS_DIR/$name/best.pt"
+  checkpoint="$RUNS_DIR/$name/$BEST"
   if [ ! -f "$checkpoint" ]; then
-    printf 'salto %s: no tiene best.pt\n' "$name" >&2
+    printf 'salto %s: no tiene %s\n' "$name" "$BEST" >&2
     continue
   fi
 
@@ -50,7 +54,7 @@ for name in "${names[@]}"; do
   pending=()
   paths=()
   for split in "${SPLITS[@]}"; do
-    dump="$RUNS_DIR/$name/${name}_${split}_predictions.pt"
+    dump="$RUNS_DIR/$name/${name}_${split}${DUMP_SUFFIX}"
     paths+=("$dump")
     if [ -n "${FORCE:-}" ] || [ ! -f "$dump" ] || [ "$checkpoint" -nt "$dump" ]; then
       pending+=("$split")
@@ -71,7 +75,7 @@ for name in "${names[@]}"; do
 done
 
 if [ ${#dumps[@]} -eq 0 ]; then
-  printf 'no hay corridas con best.pt en %s/\n' "$RUNS_DIR" >&2
+  printf 'no hay corridas con %s en %s/\n' "$BEST" "$RUNS_DIR" >&2
   exit 1
 fi
 

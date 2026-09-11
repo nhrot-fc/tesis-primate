@@ -12,10 +12,15 @@ Target = dict[str, Tensor]
 IOMIN_THRESHOLD = 0.8
 
 
+# La salida de un modelo sobre una ventana. `evaluation.metrics.Boxes` es la misma terna más
+# el id de ventana, para apilar muchas; `Boxes.of` hace la conversión.
 class Detections(NamedTuple):
     boxes: Tensor  # (K, 4) cxcywh en [0,1]
     scores: Tensor  # (K,)
     labels: Tensor  # (K,) id de clase en `LabelSet`
+
+    def select(self, index: Tensor) -> "Detections":
+        return Detections(*(field[index] for field in self))
 
 
 def suppress_nested(
@@ -39,6 +44,20 @@ def suppress_nested(
     same_class = kept_labels[:, None] == kept_labels[None, :]
     nested = ((overlap.triu(diagonal=1) > iomin) & same_class).any(dim=0)
     return keep[~nested]
+
+
+# Lo que se aplica a cada ventana tanto al evaluar como al inferir: el NMS propio del modelo
+# (`Detector.nms_iou`, None para el DETR) y el tope de detecciones del protocolo.
+def postprocess(
+    detections: Detections, nms_iou: float | None, max_detections: int | None
+) -> Detections:
+    boxes, scores, labels = detections
+    if nms_iou is not None and len(boxes):
+        keep = suppress_nested(box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou)
+        detections = detections.select(keep)
+    if max_detections is not None and len(detections.boxes) > max_detections:
+        detections = detections.select(detections.scores.topk(max_detections).indices)
+    return detections
 
 
 def to_pixel_xyxy(boxes: Tensor, params: Parameters = P) -> Tensor:

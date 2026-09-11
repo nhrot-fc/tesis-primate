@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from data.species import LabelSet
+from evaluation.protocol import read_operating_point
 from models.base import Detector
 from models.deformable_detr import ASTDeformableDETR
 from models.faster_rcnn import SpectrogramFasterRCNN
@@ -19,12 +20,22 @@ ARCHITECTURES: dict[str, type[Detector]] = {
     "faster_rcnn": SpectrogramFasterRCNN,
     "yolo": SpectrogramYOLO,
 }
+# Extra de `pyproject.toml` que trae las librerías de cada arquitectura; el Faster R-CNN va de base.
+EXTRAS = {"ast_deformable_detr": "detr", "yolo": "yolo"}
 
 
 def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> Detector:
     if name not in ARCHITECTURES:
         raise ValueError(f"arquitectura desconocida: {name!r}; hay {sorted(ARCHITECTURES)}")
-    return ARCHITECTURES[name](n_classes=n_classes, **hparams)
+    try:
+        return ARCHITECTURES[name](n_classes=n_classes, **hparams)
+    except ModuleNotFoundError as exc:
+        if name not in EXTRAS:
+            raise
+        raise ModuleNotFoundError(
+            f"{name!r} necesita el extra `{EXTRAS[name]}` (falta {exc.name}): "
+            f"uv sync --extra {EXTRAS[name]}"
+        ) from exc
 
 
 def cpu_state_dict(model: nn.Module) -> dict[str, Tensor]:
@@ -36,10 +47,8 @@ class LoadedModel(NamedTuple):
     architecture: str
     labels: LabelSet
     config: dict[str, Any]
-
-    @property
-    def score_threshold(self) -> float:
-        return float(self.config.get("score_threshold", 0.5))
+    # Umbral elegido en val por `compare_models.py`; None si la corrida no se comparó
+    operating_point: float | None
 
 
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
@@ -56,5 +65,13 @@ def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> Loa
     # Estricto: otra versión del grafo no carga a medias
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
-    logger.info("%s | %d clases | época %s | %s", name, len(labels), checkpoint.get("epoch"), path)
-    return LoadedModel(model, name, labels, checkpoint.get("config", {}))
+    operating_point = read_operating_point(path.parent)
+    logger.info(
+        "%s | %d clases | época %s | umbral %s | %s",
+        name,
+        len(labels),
+        checkpoint.get("epoch"),
+        "sin comparar" if operating_point is None else f"{operating_point:.2f}",
+        path,
+    )
+    return LoadedModel(model, name, labels, checkpoint.get("config", {}), operating_point)

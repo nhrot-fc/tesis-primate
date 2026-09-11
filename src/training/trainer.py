@@ -5,18 +5,18 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from torch import Tensor, nn
+from torch import nn
 from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 
-from core.config import SEED, WORKERS
+from core.config import MAX_DETECTIONS, SCORE_THRESHOLD, SEED, WORKERS
+from core.runtime import progress
 from data import cache
 from data.augment import AugmentConfig
-from data.datasets import BoxJitter, to_device
+from data.datasets import BoxJitter
 from data.species import LabelSet
-from evaluation.evaluator import average_loss, evaluate
-from evaluation.metrics import MATCH_IOU, MAX_DETECTIONS, DetectionMetrics
+from evaluation.evaluator import add_losses, average_loss, evaluate, loss_terms, mean_losses
+from evaluation.metrics import MATCH_IOU, DetectionMetrics
 from evaluation.report import format_line
 from models.base import Detector
 from training import checkpoint
@@ -30,10 +30,11 @@ class TrainConfig:
     batch_size: int = 16
     learning_rate: float = 2e-4
     weight_decay: float = 1e-4
+    warmup: float = 0.05  # fracción de pasos del OneCycle en subida
     workers: int = WORKERS
     seed: int = SEED
     # Umbral del recall/precisión que se loguea; `best.pt` se elige por mAP@0.3
-    score_threshold: float = 0.5
+    score_threshold: float = SCORE_THRESHOLD
     jitter: BoxJitter | None = BoxJitter()  # sólo en train
     augment: AugmentConfig | None = AugmentConfig()
 
@@ -77,7 +78,7 @@ class Trainer:
             self.optimizer,
             max_lr=config.learning_rate,
             total_steps=config.epochs * len(train_loader),
-            pct_start=0.05,
+            pct_start=config.warmup,
             anneal_strategy="cos",
         )
         logger.info(
@@ -92,25 +93,21 @@ class Trainer:
     def train_epoch(self, desc: str) -> dict[str, float]:
         self.model.train()
         totals: dict[str, float] = {}
-        progress = tqdm(self.train_loader, desc=desc, unit="batch", leave=False, disable=None)
-        for step, batch in enumerate(progress, start=1):
-            images, targets = to_device(batch, self.device)
-            terms: dict[str, Tensor] = self.model(images, targets)
-            total = torch.stack(list(terms.values())).sum()
+        batches = progress(self.train_loader, desc)
+        for step, batch in enumerate(batches, start=1):
+            losses = loss_terms(self.model, batch, self.device)
 
             self.optimizer.zero_grad()
-            total.backward()
+            losses["total"].backward()
             nn.utils.clip_grad_norm_(self.trainable, self.model.clip_grad)
             self.optimizer.step()
             self.scheduler.step()
 
-            for key, value in {"total": total, **terms}.items():
-                totals[key] = totals.get(key, 0.0) + value.item()
-            progress.set_postfix(
+            add_losses(totals, losses)
+            batches.set_postfix(
                 loss=totals["total"] / step, lr=self.optimizer.param_groups[0]["lr"]
             )
-        n = max(len(self.train_loader), 1)
-        return {key.removeprefix("loss_"): value / n for key, value in totals.items()}
+        return mean_losses(totals, len(self.train_loader))
 
     def validate(self, desc: str) -> DetectionMetrics:
         self.model.eval()

@@ -79,6 +79,18 @@ VALID_PAIRS: frozenset[tuple[str, str]] = frozenset(
     (species.name.lower(), code) for species, codes in CALL_TYPES.items() for code in codes
 )
 
+# Una etiqueta del `LabelSet` es `<especie>/<llamada>`, en minúscula: "lw/cs".
+LABEL_SEPARATOR = "/"
+
+
+def make_label(species: str, call_type: str) -> str:
+    return f"{species}{LABEL_SEPARATOR}{call_type}"
+
+
+def split_label(label: str) -> tuple[str, str]:
+    species, _, call_type = label.partition(LABEL_SEPARATOR)
+    return species, call_type
+
 
 class LabelSet:
     def __init__(self, names: Iterable[str]):

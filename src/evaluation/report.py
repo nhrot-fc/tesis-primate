@@ -93,50 +93,59 @@ def paired_block(models: list[ModelComparison], position: int) -> list[str]:
     return lines
 
 
+def wide_table(
+    first: dict[str, int],
+    models: list[ModelComparison],
+    subcolumns: dict[str, int],
+    rows: list[list],
+) -> list[str]:
+    # Una fila por clase
+    # Cada modelo agrega un grupo de subcolumnas a la derecha.
+    group = sum(subcolumns.values())
+    first_width = sum(abs(w) for w in first.values())
+    lines = [
+        " " * (first_width + 2) + "".join(cell(m.model, group) for m in models),
+        "  "
+        + "".join(cell(title, width) for title, width in first.items())
+        + "".join(cell(title, width) for _ in models for title, width in subcolumns.items()),
+    ]
+    widths = [*first.values(), *(list(subcolumns.values()) * len(models))]
+    return lines + [
+        "  " + "".join(cell(value, width) for value, width in zip(row, widths, strict=True))
+        for row in rows
+    ]
+
+
 def per_class_block(models: list[ModelComparison], protocol: Protocol) -> list[str]:
+    by_model = [{row.name: row for row in m.per_class} for m in models]
+    rows = []
+    for name, row in by_model[0].items():
+        rows.append([name, row.n_gt])
+        for per_class in by_model:
+            rows[-1] += [fmt(per_class[name].recall), fmt(per_class[name].ap)]
     return [
         f"POR CLASE: recall al primer punto de operación, AP@{protocol.iou:g} sobre toda la curva",
-        *table(
-            {
-                "modelo": -NAME_WIDTH,
-                "clase": -12,
-                "cajas GT": 9,
-                "recall": 8,
-                f"AP@{protocol.iou:g}": 9,
-            },
-            [
-                (m.model, r.name, r.n_gt, fmt(r.recall), fmt(r.ap))
-                for m in models
-                for r in m.per_class
-            ],
+        *wide_table(
+            {"clase": -12, "cajas GT": 9}, models, {"recall": 9, f"AP@{protocol.iou:g}": 9}, rows
         ),
     ]
 
 
 def window_block(models: list[ModelComparison]) -> list[str]:
+    by_model = [{row.name: row for row in m.window_level} for m in models]
+    rows = []
+    for name, row in by_model[0].items():
+        rows.append([name, row.windows_gt])
+        for window_level in by_model:
+            r = window_level[name]
+            rows[-1] += [r.windows_predicted, fmt(r.recall), fmt(r.precision)]
     return [
         "CLASES DE VENTANA: la llamada dura más que el clip; es clasificación de ventana",
-        *table(
-            {
-                "modelo": -NAME_WIDTH,
-                "clase": -10,
-                "ventanas GT": 12,
-                "predichas": 11,
-                "recall": 8,
-                "prec": 7,
-            },
-            [
-                (
-                    m.model,
-                    r.name,
-                    r.windows_gt,
-                    r.windows_predicted,
-                    fmt(r.recall),
-                    fmt(r.precision),
-                )
-                for m in models
-                for r in m.window_level
-            ],
+        *wide_table(
+            {"clase": -12, "ventanas GT": 12},
+            models,
+            {"predichas": 11, "recall": 9, "prec": 9},
+            rows,
         ),
     ]
 

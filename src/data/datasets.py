@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 from core.runtime import share_tensors_by_file
 from data import cache
 from data.augment import AugmentConfig, Augmenter
+from data.manifest import MIN_BOX_SIZE
 from utils.audio import mel_to_gray
 from utils.boxes import Target
 
@@ -24,7 +25,7 @@ class BoxJitter:
     freq_scale: float = 0.15  # ±% del ancho de banda
     time_shift: float = 0.10  # corrimiento, en fracción de la duración
     freq_shift: float = 0.10  # corrimiento, en fracción del ancho de banda
-    min_size: float = 0.02  # mínimo de cada eje, en fracción del clip
+    min_size: float = MIN_BOX_SIZE  # el mismo mínimo por eje que aceptó el manifest
 
 
 def jitter_boxes(boxes: Tensor, jitter: BoxJitter) -> Tensor:
@@ -82,7 +83,7 @@ class SpectrogramDataset(Dataset):
 
 # Una ventana como PNG en gris más sus líneas de etiqueta
 class YOLODataset:
-    def __init__(self, path: Path, db_low: float, db_high: float, image_size: int = 512):
+    def __init__(self, path: Path, db_low: float, db_high: float, image_size: int):
         self.windows = SpectrogramDataset(path)
         self.db_low, self.db_high, self.image_size = db_low, db_high, image_size
 

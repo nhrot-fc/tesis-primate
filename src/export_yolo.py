@@ -9,14 +9,14 @@ from core.config import YOLO_DIR
 from core.runtime import setup_logging
 from data import cache
 from data.datasets import YOLODataset
+from data.species import LABEL_SEPARATOR
+from models.yolo import IMAGE_SIZE
 
 logger = logging.getLogger("export_yolo")
 
-# Dimensión de la imagen cuadrada
-IMAGE_SIZE = 512
 # Nivel de compresión PNG (0-9)
 PNG_COMPRESSION = 1
-# Usar "/" rompe YOLO se reemplaza por "-" en dataset.yaml y meta.json
+# El "/" de las etiquetas rompe YOLO: en dataset.yaml y meta.json va "-"
 NAME_SEPARATOR = "-"
 
 
@@ -66,13 +66,12 @@ def main() -> None:
     counts = {split: export_split(split, db_low, db_high) for split in cache.SPLITS}
     logger.info("ventanas exportadas -> %s", counts)
 
-    names = [name.replace("/", NAME_SEPARATOR) for name in original_names]
+    names = [name.replace(LABEL_SEPARATOR, NAME_SEPARATOR) for name in original_names]
     write_dataset_yaml(names)
     (YOLO_DIR / "meta.json").write_text(
         json.dumps(
             {
                 "image_size": IMAGE_SIZE,
-                "db_range": {"low": db_low, "high": db_high},
                 "names": names,
                 "names_original": original_names,
                 "counts": counts,

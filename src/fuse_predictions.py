@@ -8,7 +8,8 @@ from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
 from core.runtime import setup_logging
-from evaluation.evaluator import TEST, VAL, RawPredictions, load_pairs, path_for
+from data.cache import TEST, VAL
+from evaluation.evaluator import RawPredictions, load_dumps, path_for
 from evaluation.metrics import MATCH_IOU, Boxes, hits, overlaps, rows_by_image, sort_by_score
 
 logger = logging.getLogger("fuse_predictions")
@@ -129,18 +130,18 @@ def fuse(models: list[RawPredictions], curves: list, iou: float, name: str) -> R
 def main() -> None:
     args = parse_args()
     setup_logging()
-    pairs = load_pairs(args.dumps)
-    curves = [calibrate(val) for val, _ in pairs]
-    for (val, _), (knots, values) in zip(pairs, curves, strict=True):
+    dumps = load_dumps(args.dumps)
+    curves = [calibrate(d.val) for d in dumps]
+    for d, (knots, values) in zip(dumps, curves, strict=True):
         logger.info(
             "%s: calibración isotónica con %d tramos, p en [%.3f, %.3f]",
-            val.model,
+            d.model,
             len(knots),
             values.min(),
             values.max(),
         )
-    for split, index in ((VAL, 0), (TEST, 1)):
-        fused = fuse([p[index] for p in pairs], curves, args.iou, args.name)
+    for split, models in ((VAL, [d.val for d in dumps]), (TEST, [d.test for d in dumps])):
+        fused = fuse(models, curves, args.iou, args.name)
         out = fused.save(path_for(args.output, args.name, split))
         logger.info("%s %s: %d cajas -> %s", args.name, split, len(fused.predictions.boxes), out)
 

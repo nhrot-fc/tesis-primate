@@ -6,25 +6,18 @@ from typing import NamedTuple
 import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
-from torchvision.ops import box_convert
-from tqdm.auto import tqdm
 
-from data.datasets import to_device
-from evaluation.metrics import (
-    SCORE_FLOOR,
-    Boxes,
-    DetectionMetrics,
-    concat,
-    detection_metrics,
-    sort_by_score,
-)
-from utils.boxes import Detections, suppress_nested
+from core.config import SCORE_FLOOR, SCORE_THRESHOLD
+from core.runtime import progress
+from data.cache import TEST, VAL
+from data.datasets import Batch, to_device
+from evaluation.metrics import Boxes, DetectionMetrics, concat, detection_metrics, sort_by_score
+from utils.boxes import Detections, postprocess
 
 logger = logging.getLogger(__name__)
 
 Detect = Callable[[Tensor, float], list[Detections]]
 SUFFIX = "_predictions.pt"
-VAL, TEST = "val", "test"
 
 
 # Volcado de un modelo sobre un split, hasta `SCORE_FLOOR`
@@ -61,28 +54,11 @@ def collect_detections(
     predicted: list[Boxes] = []
     truth: list[Boxes] = []
     image_id = 0
-    for images, targets in tqdm(loader, desc=desc, unit="batch", leave=False, disable=None):
+    for images, targets in progress(loader, desc):
         detections = detect(images.to(device), SCORE_FLOOR)
         for detection, target in zip(detections, targets, strict=True):
-            boxes, scores, labels = (tensor.cpu() for tensor in detection)
-            if nms_iou is not None and len(boxes):
-                keep = suppress_nested(
-                    box_convert(boxes, "cxcywh", "xyxy"), scores, labels, nms_iou
-                )
-                boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
-            if max_detections is not None and len(boxes) > max_detections:
-                keep = scores.topk(max_detections).indices
-                boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
-            predicted.append(Boxes(boxes, torch.full((len(boxes),), image_id), labels, scores))
-            n_truth = len(target["labels"])
-            truth.append(
-                Boxes(
-                    target["boxes"].detach().to("cpu", copy=True),
-                    torch.full((n_truth,), image_id),
-                    target["labels"].detach().to("cpu", copy=True),
-                    torch.ones(n_truth),
-                )
-            )
+            predicted.append(Boxes.of(postprocess(detection, nms_iou, max_detections), image_id))
+            truth.append(Boxes.truth(target, image_id))
             image_id += 1
     return sort_by_score(concat(predicted)), concat(truth), image_id
 
@@ -93,14 +69,31 @@ def evaluate(
     n_classes: int,
     device: str | torch.device,
     nms_iou: float | None,
-    score_threshold: float = 0.5,
+    score_threshold: float = SCORE_THRESHOLD,
     max_detections: int | None = None,
-    desc: str = "val",
+    desc: str = VAL,
 ) -> DetectionMetrics:
     predictions, truth, _ = collect_detections(
         detect, loader, device, nms_iou, max_detections, desc
     )
     return detection_metrics(predictions, truth, n_classes, score_threshold)
+
+
+# Los términos de pérdida de un lote más su suma, que es lo que se optimiza y se loguea.
+def loss_terms(model: nn.Module, batch: Batch, device: str | torch.device) -> dict[str, Tensor]:
+    images, targets = to_device(batch, device)
+    terms: dict[str, Tensor] = model(images, targets)
+    return {"total": torch.stack(list(terms.values())).sum(), **terms}
+
+
+def add_losses(totals: dict[str, float], losses: dict[str, Tensor]) -> None:
+    for key, value in losses.items():
+        totals[key] = totals.get(key, 0.0) + value.item()
+
+
+def mean_losses(totals: dict[str, float], n_batches: int) -> dict[str, float]:
+    n = max(n_batches, 1)
+    return {key.removeprefix("loss_"): value / n for key, value in totals.items()}
 
 
 @torch.no_grad()
@@ -111,28 +104,33 @@ def average_loss(
     model.eval()
     totals: dict[str, float] = {}
     try:
-        for batch in tqdm(loader, desc=desc, unit="batch", leave=False, disable=None):
-            images, targets = to_device(batch, device)
-            terms: dict[str, Tensor] = model(images, targets)
-            losses = {"total": torch.stack(list(terms.values())).sum(), **terms}
-            for key, value in losses.items():
-                totals[key] = totals.get(key, 0.0) + value.item()
+        for batch in progress(loader, desc):
+            add_losses(totals, loss_terms(model, batch, device))
     finally:
         model.train(was_training)
-    n = max(len(loader), 1)
-    return {key.removeprefix("loss_"): value / n for key, value in totals.items()}
+    return mean_losses(totals, len(loader))
 
 
 def path_for(directory: Path, model: str, split: str) -> Path:
     return directory / f"{model}_{split}{SUFFIX}"
 
 
-def load_pairs(paths: Sequence[Path]) -> list[tuple[RawPredictions, RawPredictions]]:
-    # -> [(val, test)] por modelo; val elige el umbral y test lo mide.
+# Los dos volcados de un modelo y dónde viven: val elige el umbral y test lo mide.
+class ModelDumps(NamedTuple):
+    model: str
+    directory: Path  # la del volcado de val; ahí va `operating_point.json`
+    val: RawPredictions
+    test: RawPredictions
+
+
+def load_dumps(paths: Sequence[Path]) -> list[ModelDumps]:
     by_model: dict[str, dict[str, RawPredictions]] = {}
+    directories: dict[str, Path] = {}
     for path in paths:
         dump = RawPredictions.load(path)
         by_model.setdefault(dump.model, {})[dump.split] = dump
+        if dump.split == VAL:
+            directories[dump.model] = path.parent
         logger.info(
             "%s %s: %d ventanas, %d cajas",
             dump.model,
@@ -143,4 +141,7 @@ def load_pairs(paths: Sequence[Path]) -> list[tuple[RawPredictions, RawPredictio
     incomplete = {m: sorted(s) for m, s in by_model.items() if not {VAL, TEST} <= s.keys()}
     if incomplete:
         raise ValueError(f"faltan volcados: {incomplete}; cada modelo necesita {VAL} y {TEST}")
-    return [(splits[VAL], splits[TEST]) for splits in by_model.values()]
+    return [
+        ModelDumps(model, directories[model], splits[VAL], splits[TEST])
+        for model, splits in by_model.items()
+    ]

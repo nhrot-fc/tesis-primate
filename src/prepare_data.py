@@ -14,7 +14,7 @@ from core.runtime import setup_logging
 from data import cache
 from data.annotations import load_annotations
 from data.manifest import ClipWindow, build_manifest, event_windows, sample_windows, split_manifest
-from data.species import BACKGROUND_SPECIES, LabelSet
+from data.species import BACKGROUND_SPECIES, LABEL_SEPARATOR, LabelSet
 from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
 logger = logging.getLogger("prepare_data")
@@ -40,7 +40,9 @@ JOINED_LABELS = {
 def select_experiment(annotations: pd.DataFrame) -> tuple[pd.DataFrame, LabelSet]:
     raven_df = annotations.loc[~annotations["species"].isin(BACKGROUND_SPECIES)].copy()
     raven_df["low_freq_hz"] = raven_df["low_freq_hz"].clip(lower=P.f_min)
-    raven_df["label"] = (raven_df["species"] + "/" + raven_df["call_type"]).replace(JOINED_LABELS)
+    raven_df["label"] = (raven_df["species"] + LABEL_SEPARATOR + raven_df["call_type"]).replace(
+        JOINED_LABELS
+    )
     raven_df = raven_df.loc[~raven_df["label"].isin(EXCLUDED_LABELS)]
 
     counts = raven_df["label"].value_counts()
@@ -122,7 +124,7 @@ def main() -> None:
     for name, split in zip(cache.SPLITS, splits, strict=True):
         logger.info("%s: %d ventanas", name, len(split))
         windows = build_dataset(split)
-        if name == "train":
+        if name == cache.TRAIN:
             db_range = mel_db_range(windows["images"][:, 0])
         path = cache.split_path(name)
         torch.save(windows, path)

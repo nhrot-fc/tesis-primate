@@ -10,44 +10,48 @@ from core.config import RUNS_DIR, P
 from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
-from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE
-from models.registry import build_model
+from models.backbone import TIME_STRIDE
+from models.deformable_detr import DIM, N_QUERIES
+from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE, TRAINABLE_LAYERS
+from models.registry import ARCHITECTURES, build_model
+from models.yolo import DEFAULT_MODEL, IMAGE_SIZE
 from training import yolo
 from training.trainer import TrainConfig, Trainer
 
 logger = logging.getLogger("train")
 
 
-class Detector(NamedTuple):
-    # Key usada para indexar en DETECTORS
+# Una receta de entrenamiento: qué `models.registry.ARCHITECTURES` y con qué hiperparámetros.
+# Los valores repiten los defaults de cada modelo para que queden escritos en el checkpoint.
+class Preset(NamedTuple):
     arch: str
     config: TrainConfig
     # Hiperparámetros del modelo usado en `build_model`
     hparams: dict[str, Any]
 
 
-DETECTORS: dict[str, Detector] = {
+PRESETS: dict[str, Preset] = {
     # AST-Deformable-DETR
-    "detr": Detector(
+    "detr": Preset(
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
-        {"n_frames": P.n_frames, "time_stride": 10, "dim": 128, "n_queries": 100},
+        {"n_frames": P.n_frames, "time_stride": TIME_STRIDE, "dim": DIM, "n_queries": N_QUERIES},
     ),
     # Faster R-CNN con ResNet50-FPN
-    "frcnn": Detector(
+    "frcnn": Preset(
         "faster_rcnn",
         TrainConfig(epochs=12, batch_size=4, learning_rate=1e-4),
         {
             "min_size": MIN_SIZE,
             "max_size": MAX_SIZE,
             "anchor_ratios": ANCHOR_RATIOS,
-            "trainable_layers": 3,  # de 5
+            "trainable_layers": TRAINABLE_LAYERS,
             "pretrained": True,
         },
     ),
     # Ultralytics YOLO
-    "yolo": Detector(
-        "yolo", TrainConfig(epochs=30, batch_size=32), {"model": "yolo26s", "imgsz": 512}
+    "yolo": Preset(
+        "yolo", TrainConfig(epochs=30, batch_size=32), {"model": DEFAULT_MODEL, "imgsz": IMAGE_SIZE}
     ),
 }
 
@@ -57,12 +61,12 @@ def parse_args() -> argparse.Namespace:
         description="Entrena un detector sobre las ventanas cacheadas (YOLO: sobre el export).",
         epilog="p. ej. --arch yolo --hp model=yolo26m | --arch detr --cfg epochs=20 batch_size=4",
     )
-    parser.add_argument("--arch", choices=tuple(DETECTORS), default="detr")
+    parser.add_argument("--arch", choices=tuple(PRESETS), default="detr")
     parser.add_argument("--name", help="nombre de la corrida; por defecto, la ablación")
     parser.add_argument("--device", help="'cuda', 'cuda:1', 'cpu'")
     parser.add_argument("--limit", type=int, help="usa sólo N ventanas (pruebas)")
     parser.add_argument(
-        "--hp", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `Detector.hparams`"
+        "--hp", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `Preset.hparams`"
     )
     parser.add_argument(
         "--cfg", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `TrainConfig`"
@@ -85,11 +89,10 @@ def overrides(pairs: list[str]) -> dict[str, Any]:
 
 def main() -> None:
     args = parse_args()
-    detector = DETECTORS[args.arch]
+    preset = PRESETS[args.arch]
     ablation = overrides(args.hp)
-    hparams = detector.hparams | ablation
-    # El FRCNN pinta el mel como imagen: necesita el rango en dB del caché
-    if args.arch == "frcnn":
+    hparams = preset.hparams | ablation
+    if ARCHITECTURES[preset.arch].needs_db_range:
         hparams["db_low"], hparams["db_high"] = cache.db_range()
 
     name = args.name or "_".join([args.arch, *(f"{k}-{v}" for k, v in sorted(ablation.items()))])
@@ -97,29 +100,29 @@ def main() -> None:
     setup_logging(log_file=run_dir / "train.log")
     logger.info("===== %s =====", name)
 
-    config = replace(detector.config, **overrides(args.cfg))
+    config = replace(preset.config, **overrides(args.cfg))
     device = resolve_device(args.device)
     set_seed(config.seed)
 
-    if detector.arch == "yolo":
+    if preset.arch == "yolo":
         yolo.fit(run_dir, hparams, config, device, limit=args.limit)
         logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", name)
         return
 
     labels = cache.labels()
-    model = build_model(detector.arch, len(labels), hparams).to(device)
+    model = build_model(preset.arch, len(labels), hparams).to(device)
 
     train_set = SpectrogramDataset(
-        cache.split_path("train"), jitter=config.jitter, augment=config.augment
+        cache.split_path(cache.TRAIN), jitter=config.jitter, augment=config.augment
     )
-    val_set = SpectrogramDataset(cache.split_path("val"))
+    val_set = SpectrogramDataset(cache.split_path(cache.VAL))
     if args.limit:
         train_set = Subset(train_set, range(min(args.limit, len(train_set))))
         val_set = Subset(val_set, range(min(args.limit, len(val_set))))
 
     Trainer(
         model,
-        detector.arch,
+        preset.arch,
         hparams,
         labels,
         make_loader(train_set, config.batch_size, config.workers, shuffle=True),

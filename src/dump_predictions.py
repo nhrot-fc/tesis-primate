@@ -7,14 +7,14 @@ import torch
 from core.config import RUNS_DIR
 from core.runtime import resolve_device, setup_logging
 from data import cache
+from data.cache import TEST, VAL
 from data.datasets import SpectrogramDataset, make_loader
-from evaluation.evaluator import TEST, VAL, RawPredictions, collect_detections, path_for
+from evaluation.evaluator import RawPredictions, collect_detections, path_for
+from inference.predictor import BATCH_SIZE
 from models.registry import load_checkpoint
 from training.checkpoint import BEST
 
 logger = logging.getLogger("dump_predictions")
-
-BATCH_SIZE = 16
 
 
 def parse_args() -> argparse.Namespace:

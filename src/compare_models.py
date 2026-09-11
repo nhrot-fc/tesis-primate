@@ -3,9 +3,16 @@ import json
 import logging
 from pathlib import Path
 
+from core.config import MAX_DETECTIONS
 from core.runtime import setup_logging
-from evaluation.evaluator import load_pairs
-from evaluation.protocol import MAX_DETECTIONS, MIN_PRECISIONS, N_BOOTSTRAP, as_json, compare
+from evaluation.evaluator import load_dumps
+from evaluation.protocol import (
+    MIN_PRECISIONS,
+    N_BOOTSTRAP,
+    as_json,
+    compare,
+    write_operating_point,
+)
 from evaluation.report import format_comparison
 
 logger = logging.getLogger("compare_models")
@@ -35,9 +42,20 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     setup_logging()
+    dumps = load_dumps(args.dumps)
     comparison = compare(
-        load_pairs(args.dumps), tuple(args.precision), max_det=args.max_det, n_boot=args.bootstrap
+        [(d.val, d.test) for d in dumps],
+        tuple(args.precision),
+        max_det=args.max_det,
+        n_boot=args.bootstrap,
     )
+    # El primer punto de operación de cada modelo queda junto a su checkpoint: el visor
+    # arranca de ahí.
+    for dump, compared in zip(dumps, comparison.models, strict=True):
+        if compared.paired and compared.paired[0].threshold is not None:
+            write_operating_point(
+                dump.directory, dump.model, compared.paired[0], comparison.protocol
+            )
     report = format_comparison(comparison)
     output = args.output or args.dumps[0].parent / OUTPUT
     output.parent.mkdir(parents=True, exist_ok=True)

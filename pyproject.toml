@@ -4,30 +4,48 @@ version = "0.1.0"
 description = "Detección de vocalizaciones de primates en espectrogramas"
 readme = "README.md"
 requires-python = ">=3.12"
+# Lo que corre el visor con inferencia (`python src/main.py`): abre checkpoints de Faster R-CNN.
+#   despliegue:      uv sync --no-dev [--extra detr] [--extra yolo]
+#   investigación:   uv sync --all-extras --all-groups
 dependencies = [
-    "ipympl>=0.10.0",
-    "ipywidgets>=8.1.8",
-    "jupyter>=1.1.1",
-    "matplotlib>=3.10.8",
     "numpy>=2.4.1",
     "pandas>=3.0.0",
-    "pillow>=12.1.0",
     "pyqt6>=6.11.0",
     "pyqtgraph>=0.14.0",
-    "python-slugify>=8.0.4",
-    "scipy>=1.18.0",
     "soundfile>=0.14.0",
     "soxr>=1.1.0",
     "torch>=2.10.0",
     "torchaudio>=2.10.0",
     "torchvision>=0.21.0",
-    "tqdm>=4.67.1",
-    "transformers>=5.0.0",
-    "ultralytics>=8.4.126",
 ]
 
+# Checkpoints de las otras arquitecturas (`models.registry.ARCHITECTURES`)
+[project.optional-dependencies]
+detr = ["transformers>=5.0.0"]
+yolo = ["opencv-python>=4.10", "ultralytics>=8.4.126"]
+
 [dependency-groups]
-dev = ["pytest>=8.3.4", "ruff>=0.14.14", "ty>=0.0.29"]
+# Preparar datos, entrenar y comparar (src/prepare_*.py, train.py, export_yolo.py, dump_*, compare_*)
+train = [
+    "python-slugify>=8.0.4",
+    "scipy>=1.18.0",
+    "tqdm>=4.67.1",
+    "tesis-primate[detr,yolo]",
+]
+notebooks = [
+    "ipympl>=0.10.0",
+    "ipywidgets>=8.1.8",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    { include-group = "train" },
+]
+dev = [
+    "pandas-stubs>=3.0.5.260730",
+    "pytest>=8.3.4",
+    "ruff>=0.14.14",
+    "scipy-stubs>=1.18.1.0",
+    "ty>=0.0.29",
+]
 
 [tool.ruff]
 line-length = 100
@@ -53,7 +71,7 @@ python-version = "3.12"
 root = ["./src"]
 
 [tool.ty.src]
-include = ["src", "main.py"]
+include = ["src"]
 exclude = [".git", "__pycache__", ".venv", ".ruff_cache", ".ty_cache", ".pytest_cache", ".jupyter"]
 
 [tool.ty.analysis]

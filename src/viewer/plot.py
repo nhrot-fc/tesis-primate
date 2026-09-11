@@ -9,7 +9,8 @@ from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import QGraphicsRectItem
 from pyqtgraph.exporters import ImageExporter
 
-from viewer.session import BEGIN, END, HIGH, LOW, label
+from data.raven import BEGIN, END, HIGH, LOW, SCORE
+from viewer.session import label
 from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
 from viewer.tasks import Latest
 
@@ -86,9 +87,7 @@ class SpectrogramView(pg.PlotWidget):
         self.vb.setMouseEnabled(x=False, y=False)
         self.vb.setDefaultPadding(0.0)
         self.image = pg.ImageItem()
-        colormap = pg.colormap.getFromMatplotlib(COLORMAP)
-        if colormap is not None:
-            self.image.setColorMap(colormap)
+        self.image.setColorMap(COLORMAP)  # pyqtgraph resuelve el nombre; es el magma de matplotlib
         self.vb.addItem(self.image)
         self.playhead = pg.InfiniteLine(angle=90, movable=False)
         self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=2))
@@ -220,7 +219,7 @@ class SpectrogramView(pg.PlotWidget):
             tint = QColor(layer.color)
             tint.setAlpha(FILL_ALPHA)
             brush = pg.mkBrush(tint)
-            scored = "Score" in table.columns
+            scored = SCORE in table.columns
             for _, row in visible.iterrows():
                 rect, text = self.box_slot(used)
                 x0, y0 = row[BEGIN], row[LOW]
@@ -233,7 +232,7 @@ class SpectrogramView(pg.PlotWidget):
                 # cambia de una caja a otra, y solo si la caja da el ancho para leerlo.
                 caption = label(row) if layer.captions else ""
                 if scored:
-                    caption = f"{caption} {row['Score']:.2f}".strip()
+                    caption = f"{caption} {row[SCORE]:.2f}".strip()
                 if caption and width >= floor:
                     text.setText(caption, color=layer.color)
                     # Cada capa rotula a un lado del borde superior --una afuera y otra

@@ -1,14 +1,14 @@
+import json
+from pathlib import Path
 from typing import Any, NamedTuple
 
 import torch
 from torch import Tensor
 
-from core.config import SEED
+from core.config import MAX_DETECTIONS, SCORE_FLOOR, SCORE_STEP, SEED, score_grid
 from evaluation.evaluator import RawPredictions
 from evaluation.metrics import (
     MATCH_IOU,
-    MAX_DETECTIONS,
-    SCORE_FLOOR,
     Boxes,
     PerClassAP,
     average_precision_per_class,
@@ -18,11 +18,14 @@ from evaluation.metrics import (
     window_classes,
 )
 
-THRESHOLD_GRID = torch.arange(0.01, 1.0, 0.01)
+THRESHOLD_GRID = score_grid(SCORE_STEP, 1.0 - SCORE_STEP)
 # Precisión mínima en val de cada punto de operación
 MIN_PRECISIONS = (0.70, 0.50)
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
+# El primer punto de operación de cada modelo, junto a su `best.pt`: es el umbral con el que
+# arranca el visor. Lo escribe `compare_models.py` y lo lee `models.registry.load_checkpoint`.
+OPERATING_POINT = "operating_point.json"
 
 
 class Point(NamedTuple):
@@ -153,7 +156,7 @@ def operating_point(matched: Matched, threshold: float) -> Point:
 
 
 def select(matched: Matched, min_precision: float) -> Point | None:
-    points = [operating_point(matched, round(float(t), 2)) for t in THRESHOLD_GRID]
+    points = [operating_point(matched, threshold) for threshold in THRESHOLD_GRID]
     feasible = [p for p in points if p.precision is not None and p.precision >= min_precision]
     if not feasible:
         return None
@@ -220,6 +223,22 @@ def class_rows(
         tp = float(found[predicted_labels == class_id].sum())
         rows.append(ClassRow(names[class_id], n_gt, tp / n_gt if n_gt else None, ap[class_id]))
     return rows
+
+
+def write_operating_point(directory: Path, model: str, paired: Paired, protocol: Protocol) -> Path:
+    path = directory / OPERATING_POINT
+    record = {"model": model, **as_json(paired), "protocol": as_json(protocol)}
+    path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
+    return path
+
+
+def read_operating_point(directory: Path) -> float | None:
+    # -> umbral de score, o None si la corrida no pasó por `compare_models.py`
+    path = directory / OPERATING_POINT
+    if not path.is_file():
+        return None
+    threshold = json.loads(path.read_text()).get("threshold")
+    return None if threshold is None else float(threshold)
 
 
 def describe(dump: RawPredictions) -> Split:

@@ -5,16 +5,17 @@ import torch
 from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
+from core.config import SCORE_THRESHOLD
+from utils.boxes import Detections, Target
+
 # Mínimo IoU para considerar una predicción como acierto
 MATCH_IOU = 0.3
-# Mínimo score para considerar una predicción
-SCORE_FLOOR = 0.001
-# Cantidad común de detecciones por clip
-MAX_DETECTIONS = 100
 # Ancho a partir de la cual una clase ocupa la ventana entera
 WINDOW_CLASS_WIDTH = 0.95
 
 
+# Cajas de muchas ventanas apiladas, cada una con el id de la suya. El orden de los campos es
+# el de los volcados `*_predictions.pt` ya guardados: no se cambia.
 class Boxes(NamedTuple):
     boxes: Tensor
     image_ids: Tensor
@@ -23,6 +24,17 @@ class Boxes(NamedTuple):
 
     def select(self, index: Tensor) -> "Boxes":
         return Boxes(*(field[index] for field in self))
+
+    @classmethod
+    def of(cls, detections: Detections, image_id: int) -> "Boxes":
+        boxes, scores, labels = (tensor.cpu() for tensor in detections)
+        return cls(boxes, torch.full((len(boxes),), image_id), labels, scores)
+
+    @classmethod
+    def truth(cls, target: Target, image_id: int) -> "Boxes":
+        boxes = target["boxes"].detach().to("cpu", copy=True)
+        labels = target["labels"].detach().to("cpu", copy=True)
+        return cls(boxes, torch.full((len(boxes),), image_id), labels, torch.ones(len(boxes)))
 
 
 class ImageOverlap(NamedTuple):
@@ -150,7 +162,7 @@ def detection_classes(truth: Boxes, n_classes: int) -> list[int]:
 
 
 def detection_metrics(
-    predictions: Boxes, truth: Boxes, n_classes: int, score_threshold: float = 0.5
+    predictions: Boxes, truth: Boxes, n_classes: int, score_threshold: float = SCORE_THRESHOLD
 ) -> DetectionMetrics:
     n_gt = len(truth.boxes)
     n_above = int((predictions.scores >= score_threshold).sum())

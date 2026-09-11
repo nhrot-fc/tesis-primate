@@ -5,18 +5,21 @@ import numpy as np
 import torch
 from torch import Tensor
 
+from core.config import NMS_IOU, SCORE_FLOOR, SCORE_THRESHOLD
 from models.base import Detector
 from utils.audio import mel_to_gray
 from utils.boxes import Detections
 
 DEFAULT_MODEL = "yolo26s"
-DEFAULT_IMAGE_SIZE = 512
+# Lado de la imagen cuadrada: el del export (`export_yolo.py`) y el de `imgsz` al entrenar
+IMAGE_SIZE = 512
 
 
 class SpectrogramYOLO(Detector):
     # YOLO26 sale sin NMS; el pos-proceso de anidadas se aplica igual que al resto
-    nms_iou = 0.3
+    nms_iou = NMS_IOU
     clip_grad = 1.0
+    needs_db_range = True
     ultralytics_predictor: Any
 
     def __init__(
@@ -25,7 +28,7 @@ class SpectrogramYOLO(Detector):
         db_low: float,
         db_high: float,
         model: str = DEFAULT_MODEL,
-        imgsz: int = DEFAULT_IMAGE_SIZE,
+        imgsz: int = IMAGE_SIZE,
     ) -> None:
         super().__init__()
         from ultralytics import YOLO
@@ -53,11 +56,11 @@ class SpectrogramYOLO(Detector):
         ]
 
     @torch.no_grad()
-    def detect(self, mel: Tensor, score_threshold: float = 0.5) -> list[Detections]:
+    def detect(self, mel: Tensor, score_threshold: float = SCORE_THRESHOLD) -> list[Detections]:
         results = self.ultralytics_predictor.predict(
             self.to_images(mel),
             imgsz=self.imgsz,
-            conf=max(score_threshold, 1e-4),
+            conf=max(score_threshold, SCORE_FLOOR),  # Ultralytics no acepta 0
             device=mel.device,
             verbose=False,
         )

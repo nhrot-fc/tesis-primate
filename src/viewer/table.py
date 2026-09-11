@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QTabWidget,
 )
 
+from data.raven import SCORE
 from viewer.session import SOURCES, Row, Session
 
 HEADERS = ("Inicio", "Fin", "Hz", "Etiqueta")
@@ -38,7 +39,7 @@ class BoxModel(QAbstractTableModel):
         self.beginResetModel()
         self.rows = self.session.rows(self.source)
         scored = any(not math.isnan(row.score) for row in self.rows)
-        self.headers = (*HEADERS, "Score", "") if scored else (*HEADERS, "")
+        self.headers = (*HEADERS, SCORE, "") if scored else (*HEADERS, "")
         self.endResetModel()
         return len(self.rows)
 

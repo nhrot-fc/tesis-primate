@@ -7,6 +7,7 @@ from torchvision.models.detection import (
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead
 
+from core.config import NMS_IOU, SCORE_FLOOR, SCORE_THRESHOLD
 from models.base import Detector
 from utils.audio import mel_to_unit
 from utils.boxes import Detections, Target, to_pixel_xyxy, to_unit_cxcywh
@@ -16,14 +17,15 @@ ANCHOR_RATIOS: tuple[float, ...] = (0.05, 0.15, 0.5, 1.5, 5.0)
 ANCHOR_SIZES: tuple[tuple[int], ...] = ((32,), (64,), (128,), (256,), (512,))
 # El mel de 128 x 331 queda en 396 x 1024
 MIN_SIZE, MAX_SIZE = 512, 1024
-# Mínimo score que devuelve torchvision (de fábrica 0.05)
-SCORE_THRESH = 0.001
+# Capas del ResNet que se afinan, de 5
+TRAINABLE_LAYERS = 3
 
 
 class SpectrogramFasterRCNN(Detector):
     # Cabeza densa: trae duplicados
-    nms_iou = 0.3
+    nms_iou = NMS_IOU
     clip_grad = 10.0
+    needs_db_range = True
 
     def __init__(
         self,
@@ -34,8 +36,9 @@ class SpectrogramFasterRCNN(Detector):
         min_size: int = MIN_SIZE,
         max_size: int = MAX_SIZE,
         anchor_ratios: tuple[float, ...] = ANCHOR_RATIOS,
-        trainable_layers: int = 3,
-        score_thresh: float = SCORE_THRESH,
+        trainable_layers: int = TRAINABLE_LAYERS,
+        # torchvision descarta por debajo de esto (de fábrica 0.05): el piso del protocolo
+        score_thresh: float = SCORE_FLOOR,
     ) -> None:
         super().__init__()
         self.db_low, self.db_high = db_low, db_high
@@ -87,7 +90,7 @@ class SpectrogramFasterRCNN(Detector):
             self.model.eval()
 
     @torch.no_grad()
-    def detect(self, mel: Tensor, score_threshold: float = 0.5) -> list[Detections]:
+    def detect(self, mel: Tensor, score_threshold: float = SCORE_THRESHOLD) -> list[Detections]:
         detections = []
         for output in self(mel):
             above = output["scores"] >= score_threshold

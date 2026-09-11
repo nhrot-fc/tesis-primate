@@ -2,6 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from core.config import P
+
 
 def logit_initializer(n_mels: int, value: float) -> torch.Tensor:
     return torch.full((1, 1, n_mels, 1), value).logit()
@@ -14,12 +16,12 @@ def inverse_softplus_initializer(n_mels: int, value: float) -> torch.Tensor:
 class TrainablePCEN(nn.Module):
     def __init__(
         self,
-        n_mels: int = 128,
+        n_mels: int = P.n_mels,
         smoothing_init: float = 0.025,
         gain_exponent_init: float = 0.98,
         bias_init: float = 2.0,
         compression_init: float = 0.5,
-        eps: float = 1e-6,
+        eps: float = P.eps,
     ):
         super().__init__()
         self.eps = eps
@@ -49,12 +51,3 @@ class TrainablePCEN(nn.Module):
         energy = self.eps + self.smoothed_energy(mel, smoothing)
         gain_controlled = mel / torch.pow(energy, gain_exponent)
         return torch.pow(gain_controlled + bias, compression) - torch.pow(bias, compression)
-
-
-class LogMelFrontend(nn.Module):
-    def __init__(self, eps: float = 1e-6) -> None:
-        super().__init__()
-        self.eps = eps
-
-    def forward(self, mel: torch.Tensor) -> torch.Tensor:
-        return torch.log(mel.clamp_min(0) + self.eps)
