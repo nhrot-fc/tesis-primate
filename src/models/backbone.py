@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from transformers import ASTModel
 
-from core.config import P, settings
+from core.config import HF_DIR, P
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ N_LEVELS = 4
 
 
 def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
-    return settings.hf_dir / checkpoint.replace("/", "__")
+    return HF_DIR / checkpoint.replace("/", "__")
 
 
 def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
@@ -28,8 +28,7 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
             logger.warning("Copia local inutilizable en %s; se redescarga.", local_dir)
 
     logger.info("Descargando backbone AST '%s' desde HuggingFace...", checkpoint)
-    token = settings.HF_TOKEN.get_secret_value() if settings.HF_TOKEN else None
-    model = ASTModel.from_pretrained(checkpoint, token=token)
+    model = ASTModel.from_pretrained(checkpoint)
     local_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(local_dir)
     logger.info("Backbone AST guardado en %s", local_dir)
@@ -37,8 +36,7 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> ASTModel:
 
 
 class ASTBackbone(nn.Module):
-    # Se afina entero y a la misma tasa que la cabeza: congelarlo, darle un LR propio o
-    # subirle el dropout fueron ablaciones que no separaron o empeoraron (runs/comparacion_nms).
+    # Se afina entero, a la misma tasa que la cabeza
     def __init__(
         self,
         n_frames: int | None = None,
@@ -65,7 +63,7 @@ class ASTBackbone(nn.Module):
             config.patch_size if isinstance(config.patch_size, int) else config.patch_size[0]
         )
         self.freq_out = (config.num_mel_bins - patch_size) // config.frequency_stride + 1
-        # El paso del checkpoint hay que leerlo antes de pisar `config.time_stride`.
+        # Leer el paso del checkpoint antes de pisarlo.
         pretrained_time_out = (config.max_length - patch_size) // config.time_stride + 1
         self.time_out = (n_frames - patch_size) // time_stride + 1
 
@@ -123,9 +121,7 @@ class MultiScalePyramid(nn.Module):
 
     @staticmethod
     def check_input_size(height: int, width: int) -> None:
-        # Con una dimensión impar el nivel 1/2x tira la última fila o columna y pasa a
-        # cubrir menos extensión física que los otros; `grid_sample` normaliza a [-1,1]
-        # sobre el mapa entero y los niveles quedan desalineados sin dar error.
+        # Con una dimensión impar el nivel 1/2x pierde una fila y los niveles se desalinean.
         if height % 2 or width % 2:
             raise ValueError(
                 f"la pirámide necesita dimensiones pares, no ({height}, {width}); ajustá "

@@ -13,17 +13,16 @@ from torchvision.ops import (
 
 from utils.boxes import Target
 
-Outputs = dict[str, Any]  # pred_logits, pred_boxes: Tensor; aux_outputs: list[dict[str, Tensor]]
+# pred_logits, pred_boxes y aux_outputs (una salida por capa del decodificador)
+Outputs = dict[str, Any]
 Indices = list[tuple[Tensor, Tensor]]
 
-# Los logits son `n_classes` sigmoides independientes, sin canal de no-objeto: el score no
-# mezcla "hay algo" con "qué es", y una query sin emparejar tiene todos los objetivos en cero.
+# Focal sigmoide por clase, sin canal de no-objeto
 FOCAL_ALPHA, FOCAL_GAMMA = 0.25, 2.0
 
 
 def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
-    # Sin canal de no-objeto cuya probabilidad sirva de costo, asignar una clase cuesta su
-    # pérdida focal positiva menos la negativa que se ahorra (Zhu et al. 2021).
+    # Costo de asignar una clase: focal positiva menos la negativa que se ahorra (Zhu et al. 2021).
     positive = alpha * (1 - probabilities) ** gamma * -(probabilities + 1e-8).log()
     negative = (1 - alpha) * probabilities**gamma * -(1 - probabilities + 1e-8).log()
     return positive - negative
@@ -97,7 +96,6 @@ class SetCriterion(nn.Module):
         return batch_index, query_index
 
     def losses(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:
-        # `matcher` es un `nn.Module` y su salida llega sin tipo: se estrecha en un local.
         matched_indices: Indices = self.matcher(outputs, targets)
         matched = self.matched_positions(matched_indices)
         n_matched = max(sum(len(query_index) for query_index, _ in matched_indices), 1)
@@ -133,8 +131,7 @@ class SetCriterion(nn.Module):
             / n_matched
         )
 
-        # Ya ponderados: quien entrena los suma sin saber de pesos, y el log muestra lo que
-        # cada término aporta de verdad al gradiente.
+        # Ya ponderados: quien entrena los suma tal cual.
         return {
             "loss_cls": self.weight_class * loss_class,
             "loss_bbox": self.weight_bbox * loss_bbox,

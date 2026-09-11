@@ -23,8 +23,7 @@ class TrainablePCEN(nn.Module):
     ):
         super().__init__()
         self.eps = eps
-        # Se guardan sin restringir y `forward` los lleva a su rango válido, una fila por
-        # banda mel. Los nombres `*_raw` son claves del state_dict.
+        # Sin restringir, una fila por banda; `forward` los lleva a su rango.
         self.s_raw = nn.Parameter(logit_initializer(n_mels, smoothing_init))
         self.alpha_raw = nn.Parameter(logit_initializer(n_mels, gain_exponent_init))
         self.delta_raw = nn.Parameter(inverse_softplus_initializer(n_mels, bias_init))
@@ -37,9 +36,7 @@ class TrainablePCEN(nn.Module):
         log_mel = mel.clamp_min(self.eps).log()
         frame = torch.arange(mel.shape[-1], device=mel.device, dtype=mel.dtype).view(1, 1, 1, -1)
 
-        # El filtro recursivo M_k = (1-s)*M_{k-1} + s*x_k tiene forma cerrada como suma
-        # acumulada, M_k = decay^k * sum_{j<=k} s*x_j/decay^j, y la suma se hace en log
-        # para que decay^-j no desborde. El primer frame no mezcla: M_0 = x_0, sin `s`.
+        # M_k = (1-s)·M_{k-1} + s·x_k en forma cerrada, sumado en log para no desbordar.
         log_terms = torch.where(frame == 0, log_mel, log_smoothing + log_mel - frame * log_decay)
         return (frame * log_decay + torch.logcumsumexp(log_terms, dim=-1)).exp()
 

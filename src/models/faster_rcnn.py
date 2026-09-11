@@ -1,5 +1,5 @@
 import torch
-from torch import Tensor, nn
+from torch import Tensor
 from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_V2_Weights,
     fasterrcnn_resnet50_fpn_v2,
@@ -7,22 +7,24 @@ from torchvision.models.detection import (
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead
 
+from models.base import Detector
 from utils.audio import mel_to_unit
 from utils.boxes import Detections, Target, to_pixel_xyxy, to_unit_cxcywh
 
-# El alto/ancho real de las cajas va de 0.05 a 9 (p1, p95=6.2): con los (0.5, 1, 2) de
-# fábrica el RPN se pierde los tonos angostos y las bandas largas.
+# Alto/ancho de las cajas: va de 0.05 a 9
 ANCHOR_RATIOS: tuple[float, ...] = (0.05, 0.15, 0.5, 1.5, 5.0)
 ANCHOR_SIZES: tuple[tuple[int], ...] = ((32,), (64,), (128,), (256,), (512,))
-# Sobre el mel de 128 x 331 la imagen queda en 396 x 1024, conservando la relación de
-# aspecto y con ella la validez de `ANCHOR_RATIOS`.
+# El mel de 128 x 331 queda en 396 x 1024
 MIN_SIZE, MAX_SIZE = 512, 1024
-# Torchvision descarta adentro todo lo que baje de 0.05 y corta la cola de la curva de AP,
-# mientras el DETR y YOLO llegan a 0.001: los tres tienen que reportar el mismo rango.
+# Mínimo score que devuelve torchvision (de fábrica 0.05)
 SCORE_THRESH = 0.001
 
 
-class SpectrogramFasterRCNN(nn.Module):
+class SpectrogramFasterRCNN(Detector):
+    # Cabeza densa: trae duplicados
+    nms_iou = 0.3
+    clip_grad = 10.0
+
     def __init__(
         self,
         n_classes: int,
@@ -37,7 +39,6 @@ class SpectrogramFasterRCNN(nn.Module):
     ) -> None:
         super().__init__()
         self.db_low, self.db_high = db_low, db_high
-
         model = fasterrcnn_resnet50_fpn_v2(
             weights=FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1 if pretrained else None,
             trainable_backbone_layers=trainable_layers if pretrained else None,
@@ -50,7 +51,6 @@ class SpectrogramFasterRCNN(nn.Module):
         model.roi_heads.box_predictor = FastRCNNPredictor(
             predictor.cls_score.in_features, n_classes + 1
         )
-
         anchors = AnchorGenerator(ANCHOR_SIZES, (tuple(anchor_ratios),) * len(ANCHOR_SIZES))
         model.rpn.anchor_generator = anchors
         out_channels = model.backbone.out_channels
@@ -59,19 +59,14 @@ class SpectrogramFasterRCNN(nn.Module):
         self.model = model
 
     def to_images(self, mel: Tensor) -> list[Tensor]:
-        unit_scaled = mel_to_unit(mel, self.db_low, self.db_high)
-        return list(unit_scaled.expand(-1, 3, -1, -1))
+        return list(mel_to_unit(mel, self.db_low, self.db_high).expand(-1, 3, -1, -1))
 
     @staticmethod
     def to_torchvision(targets: list[Target]) -> list[Target]:
-        # Las cajas del proyecto son cxcywh en [0,1]; torchvision quiere píxeles xyxy y
-        # reserva la clase 0 para el fondo.
+        # torchvision quiere píxeles xyxy y reserva la clase 0 para el fondo.
         return [
-            {
-                "boxes": to_pixel_xyxy(target["boxes"]),
-                "labels": target["labels"].to(torch.int64) + 1,
-            }
-            for target in targets
+            {"boxes": to_pixel_xyxy(t["boxes"]), "labels": t["labels"].to(torch.int64) + 1}
+            for t in targets
         ]
 
     def forward(
@@ -83,8 +78,7 @@ class SpectrogramFasterRCNN(nn.Module):
         targets = self.to_torchvision(targets)
         if self.training:
             return self.model(images, targets)
-        # torchvision sólo devuelve las pérdidas en modo train; para la pérdida de val se
-        # fuerza el modo en las tres cabezas sin tocar las BatchNorm congeladas.
+        # torchvision sólo devuelve pérdidas en modo train: se fuerza en las cabezas, no en las BN.
         for module in (self.model, self.model.rpn, self.model.roi_heads):
             module.training = True
         try:
@@ -92,20 +86,16 @@ class SpectrogramFasterRCNN(nn.Module):
         finally:
             self.model.eval()
 
-
-@torch.no_grad()
-def detect(
-    model: SpectrogramFasterRCNN, images: Tensor, score_threshold: float = 0.5
-) -> list[Detections]:
-    outputs: list[dict[str, Tensor]] = model(images)
-    detections = []
-    for output in outputs:
-        above_threshold = output["scores"] >= score_threshold
-        detections.append(
-            Detections(
-                boxes=to_unit_cxcywh(output["boxes"][above_threshold]),
-                scores=output["scores"][above_threshold],
-                labels=output["labels"][above_threshold] - 1,  # la 0 es el fondo
+    @torch.no_grad()
+    def detect(self, mel: Tensor, score_threshold: float = 0.5) -> list[Detections]:
+        detections = []
+        for output in self(mel):
+            above = output["scores"] >= score_threshold
+            detections.append(
+                Detections(
+                    boxes=to_unit_cxcywh(output["boxes"][above]),
+                    scores=output["scores"][above],
+                    labels=output["labels"][above] - 1,
+                )
             )
-        )
-    return detections
+        return detections

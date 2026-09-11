@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from slugify import slugify
 
-from core.config import settings
+from core.config import CLEANED_DIR, RAW_DIR
 from data.species import CALL_TYPES, VALID_PAIRS
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ MIN_DURATION_S = 0.01
 DROP_COLUMNS = ["selection", "view", "channel", "reference", "begin_file", "file_offset_s"]
 MANUAL_SYNONYMS = {
     "noises": NOISE,
-    "avevoc": "voc",  # PteroSet: `ID` es siempre AVEVOC (vocalización de ave)
+    "avevoc": "voc",  # PteroSet: `ID` es siempre AVEVOC
     "cs_a": "cs",
     "whinnie": "whc",
     "tca": "ta",
@@ -27,10 +27,9 @@ MANUAL_SYNONYMS = {
     "sqr": "sqc",
     "tc": "tr",
 }
-
 MANUAL_FIXES: dict[tuple[str, str], tuple[str, str]] = {("aa", "hc"): ("aa", "hm")}
 
-# Las anotaciones mezclan el código y el nombre legible del tipo de llamada.
+# Las tablas mezclan el código y el nombre legible del tipo de llamada.
 CALL_SYNONYMS: dict[str, dict[str, str]] = {
     species.name.lower(): {name: code for code, name in codes.items()}
     for species, codes in CALL_TYPES.items()
@@ -42,7 +41,7 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     df.columns = [slugify(col, separator="_") for col in df.columns]
     df = df.drop(columns=DROP_COLUMNS, errors="ignore")
     if "call_type" not in df and "id" in df:
-        # Tablas de PteroSet: `Tipo` (BIO) e `ID` (AVEVOC) en lugar de `Species`/`Call type`.
+        # PteroSet: `Tipo`/`ID` en vez de `Species`/`Call type`
         df["call_type"] = df["id"]
 
     df["call_type"] = (
@@ -51,7 +50,7 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
         .replace(MANUAL_SYNONYMS | CALL_SYNONYMS.get(species, {}))
     )
     df["species"] = species
-    df = df[df["call_type"].notna() & df["call_type"].ne(NOISE)]
+    df = df.loc[df["call_type"].notna() & df["call_type"].ne(NOISE)]
 
     for (bad_sp, bad_ct), (sp, ct) in MANUAL_FIXES.items():
         wrong = df["species"].eq(bad_sp) & df["call_type"].eq(bad_ct)
@@ -63,23 +62,20 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     df["duration_s"] = df["end_time_s"] - df["begin_time_s"]
     df["high_freq_hz"] = df["high_freq_hz"].clip(upper=MAX_FREQ_HZ)
     df["bandwidth_hz"] = df["high_freq_hz"] - df["low_freq_hz"]
-
-    df = df[(df["duration_s"] >= MIN_DURATION_S) & (df["bandwidth_hz"] > 0)]
+    df = df.loc[(df["duration_s"] >= MIN_DURATION_S) & (df["bandwidth_hz"] > 0)]
     return df.sort_values("begin_time_s").reset_index(drop=True)
 
 
 def species_of(wav_path: Path) -> str:
-    # El corpus nombra las carpetas `<nombre_comun>__<CODIGO>`; vale el código.
+    # Las carpetas se llaman `<nombre_comun>__<CODIGO>`; vale el código.
     for parent in wav_path.parents:
         if "__" in parent.name:
             return parent.name.split("__")[-1].lower()
     return wav_path.parent.name.lower()
 
 
-def load_annotations(
-    root: Path = settings.cleaned_dir, audio_root: Path = settings.raw_dir
-) -> pd.DataFrame:
-    # `prepare_annotations.py` nombró cada `.txt` como su `.wav`: la grabación es esta ruta.
+def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd.DataFrame:
+    # Cada `.txt` de cleaned/ se llama como su `.wav` en raw/.
     frames = []
     without_audio: list[str] = []
     for annotation_path in sorted(root.rglob("*.txt")):
@@ -94,7 +90,7 @@ def load_annotations(
 
     if not frames:
         raise FileNotFoundError(
-            f"no hay anotaciones en {root}; generalas con `python src/prepare_annotations.py`"
+            f"no hay anotaciones en {root}; corré `python src/prepare_annotations.py`"
         )
     if without_audio:
         logger.warning(

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
 from models.backbone import N_LEVELS
+from models.base import Detector
 from models.criterion import Outputs
 from utils.boxes import Detections
 
@@ -47,9 +48,7 @@ class DeformableAttention(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self) -> None:
-        # Init de Zhu et al. 2021: los offsets arrancan en una rejilla radial --cada cabeza
-        # mira en una dirección, cada punto a un radio mayor-- en vez de ruido, para no
-        # gastar épocas aprendiendo dónde muestrear.
+        # Zhu et al. 2021: los offsets arrancan en una rejilla radial, no en ruido.
         constant_(self.offsets.weight.data, 0.0)
         angles = torch.arange(self.n_heads, dtype=torch.float32) * (2.0 * math.pi / self.n_heads)
         directions = torch.stack([angles.cos(), angles.sin()], -1)
@@ -91,9 +90,7 @@ class DeformableAttention(nn.Module):
             batch_size, n_queries, self.n_heads, n_levels, self.n_points
         )
 
-        # Box refinement (Zhu et al. 2021): los offsets se miden en fracciones de la caja de
-        # referencia y no del mapa de features. Sin esto, una query que sigue una llamada de
-        # 2 s muestrea la misma vecindad de 4 píxeles que una de 50 ms.
+        # Los offsets se miden en fracciones de la caja de referencia, no del mapa.
         centers = ref_boxes[:, :, None, None, None, :2]
         sizes = ref_boxes[:, :, None, None, None, 2:]
         sample_points = centers + offsets / self.n_points * sizes * 0.5
@@ -155,8 +152,7 @@ class DeformableDecoderLayer(nn.Module):
         value_maps: list[torch.Tensor],
         attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        # La posición se resuma en cada capa: si no, la identidad de cada query se diluye
-        # en los residuales y todas terminan mirando lo mismo.
+        # La posición se resuma en cada capa para que las queries no se diluyan.
         located = queries + query_pos
         attended = self.self_attn(
             located, located, queries, attn_mask=attn_mask, need_weights=False
@@ -203,8 +199,7 @@ class DeformableDETR(nn.Module):
         per_layer: list[dict[str, torch.Tensor]] = []
         for index, layer in enumerate(self.layers):
             queries = layer(queries, query_pos, reference_boxes, features)
-            # Cada capa predice un delta en espacio logit sobre la caja de la anterior, y
-            # el `detach` corta el gradiente entre capas para estabilizar el refinamiento.
+            # Refina la caja anterior en espacio logit, sin gradiente entre capas.
             box_delta = self.bbox_heads[index](queries)
             reference_boxes = (box_delta + inverse_sigmoid(reference_boxes)).sigmoid()
             per_layer.append(
@@ -236,7 +231,7 @@ class DetectionHead(nn.Module):
         self.detr = detr
 
     def pyramid_features(self, tokens: torch.Tensor) -> list[torch.Tensor]:
-        features = self.proj(tokens.to(self.proj.weight.dtype))  # las cacheadas llegan en fp16
+        features = self.proj(tokens.to(self.proj.weight.dtype))
         features = features.transpose(1, 2).unflatten(-1, (self.freq_out, self.time_out))
         return self.pyramid(features)
 
@@ -244,7 +239,11 @@ class DetectionHead(nn.Module):
         return self.detr(self.pyramid_features(tokens))
 
 
-class ASTDeformableDETR(nn.Module):
+class ASTDeformableDETR(Detector):
+    # Sin NMS: el matching húngaro ya es uno a uno
+    nms_iou = None
+    clip_grad = 0.1
+
     def __init__(
         self,
         n_classes: int,
@@ -277,32 +276,16 @@ class ASTDeformableDETR(nn.Module):
         outputs = self.head(self.backbone(compressed))
         return outputs if targets is None else self.criterion(outputs, targets)
 
-
-def detections_above_threshold(
-    boxes: torch.Tensor, scores: torch.Tensor, labels: torch.Tensor, score_threshold: float
-) -> list[Detections]:
-    detections = []
-    for index in range(scores.shape[0]):
-        above = scores[index] >= score_threshold  # `>=`, igual que en `evaluate`
-        kept = scores[index][above]
-        by_score = kept.argsort(descending=True)
-        detections.append(
-            Detections(
-                boxes=boxes[index][above][by_score],
-                scores=kept[by_score],
-                labels=labels[index][above][by_score],
+    @torch.no_grad()
+    def detect(self, mel: torch.Tensor, score_threshold: float = 0.5) -> list[Detections]:
+        outputs: Outputs = self(mel)
+        # Sigmoides independientes por clase: el score no mezcla "hay algo" con "qué es".
+        scores, labels = outputs["pred_logits"].sigmoid().max(-1)
+        detections = []
+        for boxes, score, label in zip(outputs["pred_boxes"], scores, labels, strict=True):
+            above = score >= score_threshold
+            by_score = score[above].argsort(descending=True)
+            detections.append(
+                Detections(boxes[above][by_score], score[above][by_score], label[above][by_score])
             )
-        )
-    return detections
-
-
-@torch.no_grad()
-def detect(
-    model: nn.Module, images: torch.Tensor, score_threshold: float = 0.5
-) -> list[Detections]:
-    outputs: Outputs = model(images)
-    # Con focal no hay canal de no-objeto: cada logit es un sigmoide independiente, así que
-    # el score ya no mezcla "hay algo" con "qué es". Bajo softmax, dos sílabas hermanas se
-    # repartían la masa y ninguna llegaba al umbral aunque la query estuviera segura.
-    scores, labels = outputs["pred_logits"].sigmoid().max(-1)
-    return detections_above_threshold(outputs["pred_boxes"], scores, labels, score_threshold)
+        return detections

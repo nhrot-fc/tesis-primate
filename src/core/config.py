@@ -2,59 +2,32 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 SEED = 42
-# `num_workers` de `DataLoader` tiene que ser >= 0: -1 no significa "todos", tira ValueError.
-# Ocho es el techo útil acá; más procesos compiten por la GPU y por la RAM del caché de mel.
+# Workers del DataLoader
 WORKERS = min(8, os.cpu_count() or 1)
 
-
-class Settings(BaseSettings):
-    LOG_LEVEL: str = "INFO"
-
-    HF_TOKEN: SecretStr | None = None
-    # La raíz del repo, no el directorio desde el que se lanzó: de acá cuelga el caché, y
-    # buscarlo en el cwd deja `data/` vacío según desde dónde se corra el script.
-    PROJECT_DIR: Path = Path(__file__).resolve().parents[2]
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    @property
-    def hf_dir(self) -> Path:
-        return self.PROJECT_DIR / "hf"
-
-    @property
-    def data_dir(self) -> Path:
-        return self.PROJECT_DIR / "data"
-
-    @property
-    def raw_dir(self) -> Path:  # el audio vive acá y no se copia a ningún lado
-        return self.data_dir / "raw"
-
-    @property
-    def cleaned_dir(self) -> Path:  # sólo anotaciones normalizadas, una por grabación
-        return self.data_dir / "cleaned"
-
-    @property
-    def processed_dir(self) -> Path:
-        return self.data_dir / "processed"
-
-    @property
-    def yolo_dir(self) -> Path:
-        return self.data_dir / "yolo"
-
-    @property
-    def runs_dir(self) -> Path:
-        return self.PROJECT_DIR / "runs"
+# Raíz del repo
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+# Copia local del AST
+HF_DIR = PROJECT_DIR / "hf"
+DATA_DIR = PROJECT_DIR / "data"
+# Audio y tablas de Raven
+RAW_DIR = DATA_DIR / "raw"
+# Anotaciones normalizadas, una por grabación
+CLEANED_DIR = DATA_DIR / "cleaned"
+# Caché de ventanas
+PROCESSED_DIR = DATA_DIR / "processed"
+# Export PNG para Ultralytics
+YOLO_DIR = DATA_DIR / "yolo"
+RUNS_DIR = PROJECT_DIR / "runs"
 
 
 @dataclass
 class Parameters:
-    # Clips
+    # Ventanas
     clip_len_s: float = 3.0
     clip_hop_s: float = 1.5
+    # Fracción de la llamada que debe caer en la ventana
     min_overlap: float = 0.5
     pad_seed: int = 0
 
@@ -64,7 +37,7 @@ class Parameters:
     win_length: int = 1024
     hop_length: int = 400
 
-    # Mel spectrogram
+    # Mel
     n_mels: int = 128
     f_min: float = 25.0
     f_max: float = 22050.0
@@ -83,4 +56,3 @@ class Parameters:
 
 
 P = Parameters()
-settings = Settings()

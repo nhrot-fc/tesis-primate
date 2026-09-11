@@ -6,15 +6,16 @@ from torchvision.ops import batched_nms, box_area, box_convert
 
 from core.config import P, Parameters
 
-Target = dict[str, Tensor]  # 'boxes' (N,4) cxcywh normalizado + 'labels' (N,)
-IOMIN_THRESHOLD = 0.8  # solape sobre la caja chica a partir del cual una está anidada
+# 'boxes' (N,4) cxcywh en [0,1] + 'labels' (N,)
+Target = dict[str, Tensor]
+# Solape sobre la caja chica a partir del cual está anidada en otra
+IOMIN_THRESHOLD = 0.8
 
 
-# Lo que devuelve cualquier detector del proyecto, ya decodificado.
 class Detections(NamedTuple):
-    boxes: Tensor  # (K, 4) cxcywh normalizado
+    boxes: Tensor  # (K, 4) cxcywh en [0,1]
     scores: Tensor  # (K,)
-    labels: Tensor  # (K,) id de clase en `data.species.LabelSet`
+    labels: Tensor  # (K,) id de clase en `LabelSet`
 
 
 def suppress_nested(
@@ -24,19 +25,17 @@ def suppress_nested(
     nms_iou: float,
     iomin: float = IOMIN_THRESHOLD,
 ) -> Tensor:
-    keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)  # saca los solapes parciales
+    keep = batched_nms(boxes_xyxy, scores, labels, nms_iou)  # solapes parciales
     kept, kept_labels = boxes_xyxy[keep], labels[keep]
 
-    # Intersección sobre el área de la caja más chica: vale 1 si una está contenida en la
-    # otra, donde el IoU clásico baja con la diferencia de tamaño y deja pasar el duplicado.
+    # Intersección sobre la caja chica: vale 1 si una contiene a la otra, cosa que el IoU no ve.
     top_left = torch.max(kept[:, None, :2], kept[None, :, :2])
     bottom_right = torch.min(kept[:, None, 2:], kept[None, :, 2:])
     intersection = (bottom_right - top_left).clamp(min=0).prod(-1)
     area = box_area(kept)
     overlap = intersection / torch.min(area[:, None], area[None]).clamp(min=1e-6)
 
-    # `keep` viene ordenado por score, así que la triangular superior deja sólo las cajas
-    # anidadas en otra mejor.
+    # `keep` viene por score: la triangular superior deja sólo las anidadas en otra mejor.
     same_class = kept_labels[:, None] == kept_labels[None, :]
     nested = ((overlap.triu(diagonal=1) > iomin) & same_class).any(dim=0)
     return keep[~nested]

@@ -6,17 +6,16 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from core.config import SEED, settings
+from core.config import SEED
 
 
-def setup_logging(level: str | None = None, log_file: Path | None = None) -> None:
+def setup_logging(log_file: Path | None = None) -> None:
     handlers: list[logging.Handler] = [logging.StreamHandler()]
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         handlers.append(logging.FileHandler(log_file, mode="a", encoding="utf-8"))
-
     logging.basicConfig(
-        level=level or settings.LOG_LEVEL,
+        level=logging.INFO,
         format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=handlers,
@@ -25,9 +24,10 @@ def setup_logging(level: str | None = None, log_file: Path | None = None) -> Non
 
 
 def share_tensors_by_file() -> None:
+    # Compartir el caché por archivo pide más descriptores que los 1024 de fábrica.
     torch.multiprocessing.set_sharing_strategy("file_system")
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    if soft < hard:  # el límite blando suele venir en 1024 aunque el duro sea mucho mayor
+    if soft < hard:
         resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
 
 

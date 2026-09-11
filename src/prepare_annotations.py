@@ -6,19 +6,18 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.config import settings
+from core.config import CLEANED_DIR, RAW_DIR
 from core.runtime import setup_logging
 from data.annotations import clean_annotations, species_of
 
 logger = logging.getLogger("prepare_annotations")
 
-# La duración y el ancho de banda no se guardan: salen de estas cifras.
+# Columnas de la tabla de anotaciones que se conservan en cleaned/
 COLUMNS = ["species", "call_type", "begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
 
 
-def annotation_tables(root: Path) -> list[Path]:
-    # `Path.rglob` no entra en carpetas enlazadas (PteroSet vive en /data y `raw/birds__AV`
-    # es un symlink); `os.walk` sí.
+def list_annotation_files(root: Path) -> list[Path]:
+    # os.walk() para enlaces simbólicos
     return sorted(
         Path(directory) / name
         for directory, _, names in os.walk(root, followlinks=True)
@@ -27,20 +26,19 @@ def annotation_tables(root: Path) -> list[Path]:
     )
 
 
-def audio_for(annotation: Path) -> Path | None:
-    # El `.txt` a veces trae un espacio de más, o el `.Table.1.selections` que le agrega Raven
-    # (PteroSet viene así).
+def find_recording(annotation: Path) -> Path | None:
+    # Tolera un espacio de más y el `.Table.1.selections` de Raven.
     stem = re.sub(r"(\.Table\.\d+)?\.selections$", "", annotation.name.removesuffix(".txt").strip())
-    audio = annotation.with_name(f"{stem}.wav")
-    return audio if audio.is_file() else None
+    recording = annotation.with_name(f"{stem}.wav")
+    return recording if recording.is_file() else None
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Normaliza las anotaciones de raw/ y las deja en cleaned/, sin copiar audio."
     )
-    parser.add_argument("--raw", type=Path, default=settings.raw_dir)
-    parser.add_argument("--out", type=Path, default=settings.cleaned_dir)
+    parser.add_argument("--raw", type=Path, default=RAW_DIR)
+    parser.add_argument("--out", type=Path, default=CLEANED_DIR)
     parser.add_argument("--force", action="store_true", help="regenera sobre las que ya estén")
     args = parser.parse_args()
 
@@ -54,9 +52,9 @@ def main() -> None:
     empty = 0
     without_audio: list[str] = []
     failed: list[str] = []
-    for annotation in annotation_tables(args.raw):
+    for annotation in list_annotation_files(args.raw):
         relative = annotation.relative_to(args.raw)
-        audio = audio_for(annotation)
+        audio = find_recording(annotation)
         if audio is None:
             without_audio.append(str(relative))
             continue
@@ -66,14 +64,14 @@ def main() -> None:
             failed.append(f"{relative}: {exc}")
             continue
 
-        # Se llama como su `.wav`: de acá en más la grabación es esta misma ruta contra raw/.
+        # Se llama como su `.wav`.
         out = args.out / relative.with_name(audio.stem + ".txt")
         out.parent.mkdir(parents=True, exist_ok=True)
         frame[COLUMNS].to_csv(out, sep="\t", index=False)
 
         written += 1
         rows += len(frame)
-        review += int(frame["requires_review"].sum())
+        review += frame["requires_review"].astype(bool).sum()
         empty += int(frame.empty)
 
     if not written:

@@ -6,7 +6,7 @@ from typing import Any, NamedTuple
 
 from torch.utils.data import Subset
 
-from core.config import P, settings
+from core.config import RUNS_DIR, P
 from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
@@ -19,24 +19,21 @@ logger = logging.getLogger("train")
 
 
 class Detector(NamedTuple):
-    arch: str  # clave en `models.registry.ARCHITECTURES`
+    # Key usada para indexar en DETECTORS
+    arch: str
     config: TrainConfig
-    # Los hiperparámetros son los que rearman el grafo: viajan en el checkpoint y con ellos
-    # `load_checkpoint` reconstruye el modelo sin más contexto.
+    # Hiperparámetros del modelo usado en `build_model`
     hparams: dict[str, Any]
 
 
-# Una configuración por detector: la que ganó en runs/comparacion_nms/.
 DETECTORS: dict[str, Detector] = {
-    # AST afinado entero con paso temporal 10 (12 x 32 tokens; el paso 5 duplica el costo sin
-    # separar), 100 queries de 128 dimensiones, pirámide de cuatro niveles.
+    # AST-Deformable-DETR
     "detr": Detector(
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
         {"n_frames": P.n_frames, "time_stride": 10, "dim": 128, "n_queries": 100},
     ),
-    # El mejor checkpoint salió con lote 4 y en la época 4 de 30: de ahí en más sobreajustaba.
-    # Con 12 épocas el OneCycle recorta la tasa antes en vez de gastar 26 épocas memorizando.
+    # Faster R-CNN con ResNet50-FPN
     "frcnn": Detector(
         "faster_rcnn",
         TrainConfig(epochs=12, batch_size=4, learning_rate=1e-4),
@@ -44,12 +41,11 @@ DETECTORS: dict[str, Detector] = {
             "min_size": MIN_SIZE,
             "max_size": MAX_SIZE,
             "anchor_ratios": ANCHOR_RATIOS,
-            "trainable_layers": 3,  # de 5; congelar las primeras ahorra memoria y sobreajuste
+            "trainable_layers": 3,  # de 5
             "pretrained": True,
         },
     ),
-    # Ultralytics entrena solo (`training.yolo`): de `TrainConfig` usa épocas, lote,
-    # workers y semilla. A 50 épocas su mejor época fue la 21 y después sólo sobreajustó.
+    # Ultralytics YOLO
     "yolo": Detector(
         "yolo", TrainConfig(epochs=30, batch_size=32), {"model": "yolo26s", "imgsz": 512}
     ),
@@ -92,12 +88,12 @@ def main() -> None:
     detector = DETECTORS[args.arch]
     ablation = overrides(args.hp)
     hparams = detector.hparams | ablation
+    # El FRCNN pinta el mel como imagen: necesita el rango en dB del caché
     if args.arch == "frcnn":
-        # Único que pinta el mel como imagen: necesita el rango en dB con el que se cacheó.
         hparams["db_low"], hparams["db_high"] = cache.db_range()
 
     name = args.name or "_".join([args.arch, *(f"{k}-{v}" for k, v in sorted(ablation.items()))])
-    run_dir = settings.runs_dir / name
+    run_dir = RUNS_DIR / name
     setup_logging(log_file=run_dir / "train.log")
     logger.info("===== %s =====", name)
 
@@ -133,7 +129,7 @@ def main() -> None:
         device,
     ).fit()
 
-    logger.info("volcá predicciones con: python src/dump_predictions.py --run %s", name)
+    logger.info("Guarda predicciones con: python src/dump_predictions.py --run %s", name)
 
 
 if __name__ == "__main__":

@@ -1,81 +1,44 @@
-from typing import Any, Literal, NamedTuple
+from typing import Any, NamedTuple
 
 import torch
 from torch import Tensor
 
-from core.config import SEED, P
-from evaluation.decomposition import Decomposition, decompose
+from core.config import SEED
 from evaluation.evaluator import RawPredictions
 from evaluation.metrics import (
-    BETA,
-    COCO_THRESHOLDS,
     MATCH_IOU,
     MAX_DETECTIONS,
     SCORE_FLOOR,
     Boxes,
     PerClassAP,
     average_precision_per_class,
-    f_beta,
-    false_positives_per_hour,
     hits,
     mean_average_precision,
-    mean_average_precision_over,
     overlaps,
-    saturated_classes,
+    window_classes,
 )
 
 THRESHOLD_GRID = torch.arange(0.01, 1.0, 0.01)
+# Precisión mínima en val de cada punto de operación
+MIN_PRECISIONS = (0.70, 0.50)
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
-TARGET_PRECISION = 0.70
-
-CriterionKind = Literal["precision", "fp_per_hour", "f_beta"]
 
 
 class Point(NamedTuple):
     threshold: float
     recall: float | None
     precision: float | None
-    f_beta: float | None
-    fp_per_hour: float | None
-    boxes_per_tp: float | None
     n_above: int
     n_tp: int
 
 
-class Criterion(NamedTuple):
-    kind: CriterionKind
-    value: float
-
-    def __str__(self) -> str:
-        return {
-            "precision": f"precision>={self.value:.2f}",
-            "fp_per_hour": f"FP/h<={self.value:g}",
-            "f_beta": f"max F{self.value:g}",
-        }[self.kind]
-
-    def satisfied_by(self, point: Point) -> bool:
-        if self.kind == "precision":
-            return point.precision is not None and point.precision >= self.value
-        if self.kind == "fp_per_hour":
-            return point.fp_per_hour is not None and point.fp_per_hour <= self.value
-        return True
-
-
-DEFAULT_CRITERIA = (
-    Criterion("precision", TARGET_PRECISION),
-    Criterion("precision", 0.50),
-    Criterion("fp_per_hour", 100.0),
-    Criterion("f_beta", BETA),
-)
-
-
+# Umbral elegido en val, medido en test
 class Paired(NamedTuple):
-    criterion: str
+    min_precision: float
     threshold: float | None
     val: Point | None
     test: Point | None
-    agnostic_recall: float | None
     interval: dict[str, list[float]]
 
 
@@ -96,15 +59,8 @@ class WindowLevel(NamedTuple):
 
 class ModelComparison(NamedTuple):
     model: str
-    architecture: str
-    detections_per_window: float
     map_30: float | None
-    map_50: float | None
-    map_50_95: float | None
-    map_all: float | None
-    max_recall: float | None
     paired: list[Paired]
-    decomposition: Decomposition
     per_class: list[ClassRow]
     window_level: list[WindowLevel]
 
@@ -113,10 +69,8 @@ class Protocol(NamedTuple):
     iou: float
     max_det: int
     score_floor: float
-    beta: float
     n_bootstrap: int
     confidence: float
-    reference_criterion: str
     seed: int
 
 
@@ -148,28 +102,24 @@ def as_json(value: Any) -> Any:
 def equalize(
     predictions: Boxes, max_det: int = MAX_DETECTIONS, score_floor: float = SCORE_FLOOR
 ) -> Boxes:
-    # Deja las `max_det` mejores de cada ventana sin ordenar por ventana: `kept` ya viene en
-    # orden de score, así que la posición dentro de su grupo es el ranking, y el `.sort()`
-    # final devuelve las filas al orden de score global que el resto del módulo asume.
+    # Mismo presupuesto para todos: las `max_det` mejores de cada ventana, en orden de score.
     kept = predictions.select(predictions.scores >= score_floor)
     if not len(kept.boxes):
         return kept
-
     image_ids = kept.image_ids.to(torch.int64)
     by_image = image_ids.argsort(stable=True)
     per_image = torch.bincount(image_ids[by_image])
     starts = per_image.cumsum(0) - per_image
     rank_in_image = torch.arange(len(by_image)) - starts.repeat_interleave(per_image)
-    rows_in_score_order = by_image[rank_in_image < max_det].sort().values
-    return kept.select(rows_in_score_order)
+    return kept.select(by_image[rank_in_image < max_det].sort().values)
 
 
+# Predicciones en orden de score, con su acierto y su ventana
 class Matched(NamedTuple):
     scores: Tensor
     found: Tensor
     image_ids: Tensor
     gt_per_image: Tensor
-    n_images: int
 
     @property
     def n_gt(self) -> int:
@@ -179,100 +129,61 @@ class Matched(NamedTuple):
         return int((self.scores >= threshold).sum())
 
 
-def match(predictions: Boxes, truth: Boxes, n_images: int, class_aware: bool = True) -> Matched:
+def match(predictions: Boxes, truth: Boxes, n_images: int) -> Matched:
     return Matched(
         scores=predictions.scores,
-        found=hits(overlaps(predictions, truth, class_aware), len(predictions.boxes), MATCH_IOU),
+        found=hits(
+            overlaps(predictions, truth, class_aware=True), len(predictions.boxes), MATCH_IOU
+        ),
         image_ids=predictions.image_ids.to(torch.int64),
         gt_per_image=torch.bincount(truth.image_ids.to(torch.int64), minlength=n_images),
-        n_images=n_images,
     )
 
 
-def operating_point(matched: Matched, threshold: float, beta: float = BETA) -> Point:
+def operating_point(matched: Matched, threshold: float) -> Point:
     n_above = matched.above(threshold)
     n_tp = int(matched.found[:n_above].sum())
-    recall = n_tp / matched.n_gt if matched.n_gt else None
-    precision = n_tp / n_above if n_above else None
     return Point(
         threshold=threshold,
-        recall=recall,
-        precision=precision,
-        f_beta=f_beta(precision, recall, beta),
-        fp_per_hour=false_positives_per_hour(n_above - n_tp, matched.n_images),
-        boxes_per_tp=n_above / n_tp if n_tp else None,
+        recall=n_tp / matched.n_gt if matched.n_gt else None,
+        precision=n_tp / n_above if n_above else None,
         n_above=n_above,
         n_tp=n_tp,
     )
 
 
-def select(matched: Matched, criterion: Criterion, beta: float = BETA) -> Point | None:
-    points = [operating_point(matched, round(float(t), 2), beta) for t in THRESHOLD_GRID]
-    if criterion.kind == "f_beta":
-        return max(points, key=lambda point: point.f_beta or -1.0)
-    feasible = [point for point in points if criterion.satisfied_by(point)]
+def select(matched: Matched, min_precision: float) -> Point | None:
+    points = [operating_point(matched, round(float(t), 2)) for t in THRESHOLD_GRID]
+    feasible = [p for p in points if p.precision is not None and p.precision >= min_precision]
     if not feasible:
         return None
-    return max(feasible, key=lambda point: (point.recall or 0.0, point.precision or 0.0))
+    return max(feasible, key=lambda p: (p.recall or 0.0, p.precision or 0.0))
 
 
 def bootstrap(
-    matched: Matched,
-    recordings: Tensor,
-    threshold: float,
-    beta: float = BETA,
-    n_boot: int = N_BOOTSTRAP,
+    matched: Matched, recordings: Tensor, threshold: float, n_boot: int
 ) -> dict[str, list[float]]:
+    # IC por remuestreo de grabaciones: las ventanas de una misma grabación no son independientes.
+    n_images = len(matched.gt_per_image)
     n_above = matched.above(threshold)
     above = matched.image_ids[:n_above]
-    tp_per_window = torch.bincount(
-        above, weights=matched.found[:n_above], minlength=matched.n_images
-    )
-    predicted_per_window = torch.bincount(above, minlength=matched.n_images)
-    ones_per_window = torch.ones(matched.n_images)
+    tp_per_window = torch.bincount(above, weights=matched.found[:n_above], minlength=n_images)
+    predicted_per_window = torch.bincount(above, minlength=n_images)
 
     n_recordings = int(recordings.max()) + 1
     per_recording = torch.stack(
         [
             torch.bincount(recordings, weights=series.double(), minlength=n_recordings)
-            for series in (
-                tp_per_window,
-                predicted_per_window,
-                matched.gt_per_image,
-                ones_per_window,
-            )
+            for series in (tp_per_window, predicted_per_window, matched.gt_per_image)
         ]
     )
-
     generator = torch.Generator().manual_seed(SEED)
     draws = torch.randint(0, n_recordings, (n_boot, n_recordings), generator=generator)
-    tp, predicted, n_gt, windows = per_recording[:, draws].sum(dim=-1)
+    tp, predicted, n_gt = per_recording[:, draws].sum(dim=-1)
 
-    recall = tp / n_gt.clamp(min=1)
-    precision = tp / predicted.clamp(min=1)
-    samples = {
-        "recall": recall,
-        "precision": precision,
-        "f_beta": (1 + beta**2)
-        * precision
-        * recall
-        / (beta**2 * precision + recall).clamp(min=1e-9),
-        # `clip_hop_s`, no `clip_len_s`: las ventanas se solapan (ver `metrics.audio_hours`).
-        "fp_per_hour": (predicted - tp) / (windows * P.clip_hop_s / 3600).clamp(min=1e-9),
-    }
+    samples = {"recall": tp / n_gt.clamp(min=1), "precision": tp / predicted.clamp(min=1)}
     low, high = (1 - CONFIDENCE) / 2, (1 + CONFIDENCE) / 2
-    return {
-        name: [float(value.quantile(low)), float(value.quantile(high))]
-        for name, value in samples.items()
-    }
-
-
-def max_recall_at_precision(matched: Matched, target: float = TARGET_PRECISION) -> float | None:
-    if not len(matched.found) or not matched.n_gt:
-        return None
-    tp = matched.found.cumsum(0)
-    feasible = tp / torch.arange(1, len(tp) + 1) >= target
-    return float((tp[feasible] / matched.n_gt).max()) if feasible.any() else 0.0
+    return {name: [float(v.quantile(low)), float(v.quantile(high))] for name, v in samples.items()}
 
 
 def window_level(
@@ -297,7 +208,7 @@ def class_rows(
     truth: Boxes,
     threshold: float,
     ap: PerClassAP,
-    class_names: list[str],
+    names: list[str],
     classes: list[int],
 ) -> list[ClassRow]:
     n_above = matched.above(threshold)
@@ -307,14 +218,7 @@ def class_rows(
     for class_id in classes:
         n_gt = int((truth.labels == class_id).sum())
         tp = float(found[predicted_labels == class_id].sum())
-        rows.append(
-            ClassRow(
-                name=class_names[class_id],
-                n_gt=n_gt,
-                recall=tp / n_gt if n_gt else None,
-                ap=ap[class_id],
-            )
-        )
+        rows.append(ClassRow(names[class_id], n_gt, tp / n_gt if n_gt else None, ap[class_id]))
     return rows
 
 
@@ -322,66 +226,30 @@ def describe(dump: RawPredictions) -> Split:
     return Split(dump.n_images, len(dump.truth.boxes), len(dump.recording_names))
 
 
-def check_comparable(
-    models: list[tuple[RawPredictions, RawPredictions]],
-    reference_val: RawPredictions,
-    reference_test: RawPredictions,
-) -> None:
+def check_comparable(models: list[tuple[RawPredictions, RawPredictions]]) -> None:
+    reference_val, reference_test = models[0]
     for val, test in models:
         for dump, reference in ((val, reference_val), (test, reference_test)):
             if dump.labels != reference.labels or not torch.equal(
                 dump.recordings, reference.recordings
             ):
                 raise ValueError(
-                    f"{dump.model} y {reference.model} no evaluaron el mismo {dump.split}: "
-                    f"{dump.n_images} ventanas y {len(dump.labels)} clases contra "
-                    f"{reference.n_images} y {len(reference.labels)}."
+                    f"{dump.model} y {reference.model} no evaluaron el mismo {dump.split}"
                 )
-
-
-def paired_points(
-    matched_val: Matched,
-    matched_test: Matched,
-    agnostic: Matched,
-    recordings: Tensor,
-    criteria: tuple[Criterion, ...],
-    beta: float,
-    n_boot: int,
-) -> list[Paired]:
-    paired = []
-    for criterion in criteria:
-        chosen = select(matched_val, criterion, beta)
-        if chosen is None:
-            paired.append(Paired(str(criterion), None, None, None, None, {}))
-            continue
-        paired.append(
-            Paired(
-                criterion=str(criterion),
-                threshold=chosen.threshold,
-                val=chosen,
-                test=operating_point(matched_test, chosen.threshold, beta),
-                agnostic_recall=operating_point(agnostic, chosen.threshold, beta).recall,
-                interval=bootstrap(matched_test, recordings, chosen.threshold, beta, n_boot),
-            )
-        )
-    return paired
 
 
 def compare(
     models: list[tuple[RawPredictions, RawPredictions]],
-    criteria: tuple[Criterion, ...] = DEFAULT_CRITERIA,
+    min_precisions: tuple[float, ...] = MIN_PRECISIONS,
     max_det: int = MAX_DETECTIONS,
-    beta: float = BETA,
     n_boot: int = N_BOOTSTRAP,
 ) -> Comparison:
+    check_comparable(models)
     reference_val, reference_test = models[0]
-    check_comparable(models, reference_val, reference_test)
-
-    class_names = reference_val.labels
-    saturated = saturated_classes(reference_test.truth, len(class_names))
-    detection = [c for c in range(len(class_names)) if c not in saturated]
+    names = reference_val.labels
+    saturated = window_classes(reference_test.truth, len(names))
+    detection = [c for c in range(len(names)) if c not in saturated]
     recordings = reference_test.recordings.to(torch.int64)
-    reference_criterion = next((c for c in criteria if c.kind == "f_beta"), criteria[0])
 
     compared: list[ModelComparison] = []
     for val_dump, test_dump in models:
@@ -389,67 +257,50 @@ def compare(
         test = equalize(test_dump.predictions, max_det)
         matched_val = match(val, val_dump.truth, val_dump.n_images)
         matched_test = match(test, test_dump.truth, test_dump.n_images)
-        agnostic = match(test, test_dump.truth, test_dump.n_images, class_aware=False)
+        ap = average_precision_per_class(test, test_dump.truth, len(names))
 
-        paired = paired_points(
-            matched_val, matched_test, agnostic, recordings, criteria, beta, n_boot
-        )
-        reference_threshold = next(
-            (p.threshold for p in paired if p.criterion == str(reference_criterion)), None
-        )
-        ap = average_precision_per_class(test, test_dump.truth, len(class_names))
+        paired = []
+        for min_precision in min_precisions:
+            chosen = select(matched_val, min_precision)
+            if chosen is None:
+                paired.append(Paired(min_precision, None, None, None, {}))
+                continue
+            paired.append(
+                Paired(
+                    min_precision=min_precision,
+                    threshold=chosen.threshold,
+                    val=chosen,
+                    test=operating_point(matched_test, chosen.threshold),
+                    interval=bootstrap(matched_test, recordings, chosen.threshold, n_boot),
+                )
+            )
 
-        if reference_threshold is None:
-            per_class: list[ClassRow] = []
-            window_rows: list[WindowLevel] = []
-        else:
+        # Los desgloses por clase van al primer punto de operación.
+        threshold = paired[0].threshold
+        per_class = window_rows = []
+        if threshold is not None:
             per_class = class_rows(
-                matched_test,
-                test,
-                test_dump.truth,
-                reference_threshold,
-                ap[MATCH_IOU],
-                class_names,
-                detection,
+                matched_test, test, test_dump.truth, threshold, ap, names, detection
             )
             window_rows = [
-                window_level(
-                    test, test_dump.truth, class_id, class_names[class_id], reference_threshold
-                )
-                for class_id in saturated
+                window_level(test, test_dump.truth, c, names[c], threshold) for c in saturated
             ]
 
         compared.append(
             ModelComparison(
                 model=test_dump.model,
-                architecture=test_dump.architecture,
-                detections_per_window=test_dump.detections_per_window,
-                map_30=mean_average_precision(ap[MATCH_IOU], detection),
-                map_50=mean_average_precision(ap[0.5], detection),
-                map_50_95=mean_average_precision_over(ap, COCO_THRESHOLDS, detection),
-                map_all=mean_average_precision(ap[MATCH_IOU]),
-                max_recall=max_recall_at_precision(matched_test),
+                map_30=mean_average_precision(ap, detection),
                 paired=paired,
-                decomposition=decompose(test, test_dump.truth, class_names, detection),
                 per_class=per_class,
                 window_level=window_rows,
             )
         )
 
     return Comparison(
-        protocol=Protocol(
-            iou=MATCH_IOU,
-            max_det=max_det,
-            score_floor=SCORE_FLOOR,
-            beta=beta,
-            n_bootstrap=n_boot,
-            confidence=CONFIDENCE,
-            reference_criterion=str(reference_criterion),
-            seed=SEED,
-        ),
+        protocol=Protocol(MATCH_IOU, max_det, SCORE_FLOOR, n_boot, CONFIDENCE, SEED),
         val=describe(reference_val),
         test=describe(reference_test),
-        detection_classes=[class_names[c] for c in detection],
-        window_classes=[class_names[c] for c in saturated],
+        detection_classes=[names[c] for c in detection],
+        window_classes=[names[c] for c in saturated],
         models=compared,
     )

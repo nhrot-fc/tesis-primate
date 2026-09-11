@@ -3,10 +3,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from core.config import SEED, settings
+from core.config import SEED, YOLO_DIR
 from data import cache
 from data.species import LabelSet
-from models.registry import architecture
 from models.yolo import SpectrogramYOLO, load_ultralytics_weights
 from training import checkpoint
 from training.trainer import TrainConfig
@@ -19,7 +18,7 @@ PATIENCE = 10
 AUGMENTATION = {
     "hsv_h": 0.0,  # el gris no tiene tono ni saturación
     "hsv_s": 0.0,
-    "hsv_v": 0.2,  # brillo == ganancia de grabación: la única que sí varía en el campo
+    "hsv_v": 0.2,  # brillo == ganancia de grabación
     "degrees": 0.0,
     "shear": 0.0,
     "perspective": 0.0,
@@ -28,7 +27,7 @@ AUGMENTATION = {
     "fliplr": 0.0,  # invertir el tiempo cambia la llamada
     "flipud": 0.0,  # invertir la frecuencia también
     "bgr": 0.0,
-    "mosaic": 0.0,  # pega 4 clips: crea bordes y solapes que no existen en el audio
+    "mosaic": 0.0,  # pegar 4 clips crea bordes que no existen en el audio
     "close_mosaic": 0,
     "mixup": 0.0,
     "cutmix": 0.0,
@@ -38,18 +37,15 @@ AUGMENTATION = {
 
 
 def check_export() -> dict:
-    # El dataset de YOLO es una reexportación del caché: si el caché se regeneró, entrenar
-    # contra el export viejo invalida la comparación.
-    data_yaml = settings.yolo_dir / "dataset.yaml"
-    if not data_yaml.exists():
+    # El export tiene que ser del caché actual.
+    if not (YOLO_DIR / "dataset.yaml").exists():
         raise FileNotFoundError(
-            f"no hay dataset YOLO en {settings.yolo_dir}. Corré `python src/export_yolo.py`."
+            f"no hay dataset YOLO en {YOLO_DIR}; corré `python src/export_yolo.py`"
         )
-    meta = json.loads((settings.yolo_dir / "meta.json").read_text())
+    meta = json.loads((YOLO_DIR / "meta.json").read_text())
     if meta["dataset"] != cache.meta():
         raise ValueError(
-            f"{settings.yolo_dir} se exportó de otra versión del caché. Volvé a correr "
-            "`python src/export_yolo.py`."
+            f"{YOLO_DIR} es de otra versión del caché; corré `python src/export_yolo.py`"
         )
     return meta
 
@@ -57,8 +53,7 @@ def check_export() -> dict:
 def export_checkpoint(
     run_dir: Path, weights: Path, labels: LabelSet, hparams: dict[str, Any], config: dict
 ) -> Path:
-    # Ultralytics guarda el modelo pickleado; el registro guarda arquitectura, hiperparámetros
-    # y `state_dict`, que es lo que `load_checkpoint` abre.
+    # Al formato del proyecto, que es el que `load_checkpoint` abre.
     model = SpectrogramYOLO(n_classes=len(labels), **hparams)
     load_ultralytics_weights(model, weights)
     path = run_dir / checkpoint.BEST
@@ -70,7 +65,7 @@ def export_checkpoint(
         labels=labels,
         config=config,
         epoch=config["epochs"] - 1,
-        metrics={},  # las de Ultralytics están en results.csv; las comparables, de compare_models.py
+        metrics={},  # las de Ultralytics están en results.csv
     )
     return path
 
@@ -96,10 +91,10 @@ def fit(
     resume = last.is_file()
     if resume:
         logger.info("retomando %s", last)
-    trainer = YOLO(str(last) if resume else f"{stem}.pt")  # siempre desde los pesos de COCO
+    trainer = YOLO(str(last) if resume else f"{stem}.pt")  # desde los pesos de COCO
     n_train = meta["counts"]["train"]["windows"]
     results = trainer.train(
-        data=str(settings.yolo_dir / "dataset.yaml"),
+        data=str(YOLO_DIR / "dataset.yaml"),
         epochs=config.epochs,
         batch=config.batch_size,
         imgsz=hparams["imgsz"],
@@ -122,8 +117,6 @@ def fit(
     if results is None:
         raise RuntimeError("Ultralytics no devolvió resultados de entrenamiento.")
 
-    # YOLO26 es end-to-end (sin NMS), pero el pos-proceso de cajas anidadas se le aplica igual
-    # que a los demás para que el punto de operación sea el mismo.
     full_hparams = {
         "model": stem,
         "imgsz": hparams["imgsz"],
@@ -134,7 +127,7 @@ def fit(
         "architecture": "yolo",
         "hparams": full_hparams,
         "dataset": meta["dataset"],
-        "nms_iou": architecture("yolo").nms_iou,
+        "nms_iou": SpectrogramYOLO.nms_iou,
         "epochs": config.epochs,
         "batch_size": config.batch_size,
         "seed": SEED,

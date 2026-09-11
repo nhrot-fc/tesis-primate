@@ -18,24 +18,14 @@ CLUSTER_IOU = 0.55  # el de Solovyev et al. 2021 (WBF)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "Fusiona los volcados de varios modelos (WBF) en un volcado nuevo que "
-            "`compare_models.py` mide como a cualquier otro. Antes de fusionar, calibra el "
-            "score de cada modelo a su precisión en val: sin eso, promediar el 0.22 de un "
-            "DETR con el 0.02 de un YOLO no significa nada."
-        )
+        description="Fusiona los volcados de varios modelos (WBF) en uno nuevo que `compare_models.py` "
+        "mide como a cualquier otro. Antes calibra el score de cada modelo a su precisión en val: "
+        "sin eso, el 0.22 de un DETR y el 0.02 de un YOLO no son comparables."
     )
     parser.add_argument("dumps", nargs="+", type=Path, help="los *_predictions.pt, val y test")
     parser.add_argument("--name", required=True, help="con el que entra a la tabla")
     parser.add_argument("--output", type=Path, required=True, help="directorio")
     parser.add_argument("--iou", type=float, default=CLUSTER_IOU, help="para agrupar cajas")
-    parser.add_argument(
-        "--combine",
-        choices=("or", "mean"),
-        default="or",
-        help="score fusionado: 'or' = 1-∏(1-p) sobre los modelos que la proponen (una caja "
-        "de un solo modelo conserva su p); 'mean' = Σp / n_modelos (la penaliza)",
-    )
     return parser.parse_args()
 
 
@@ -73,14 +63,9 @@ def apply(curve: tuple[np.ndarray, np.ndarray], scores: Tensor) -> Tensor:
 
 
 def fuse_window(
-    boxes: Tensor,
-    scores: Tensor,
-    labels: Tensor,
-    members: Tensor,
-    n_models: int,
-    iou: float,
-    combine: str,
+    boxes: Tensor, scores: Tensor, labels: Tensor, members: Tensor, n_models: int, iou: float
 ) -> tuple[Tensor, Tensor, Tensor]:
+    # Agrupa por clase e IoU, promedia las cajas por score; score = 1 - ∏(1 - p) sobre los modelos.
     order = scores.argsort(descending=True)
     boxes, scores, labels, members = boxes[order], scores[order], labels[order], members[order]
     xyxy = box_convert(boxes, "cxcywh", "xyxy")
@@ -104,7 +89,7 @@ def fuse_window(
             mine = scores[rows_t][members[rows_t] == m]
             if len(mine):
                 best[m] = mine.max()
-        score = 1.0 - torch.prod(1.0 - best) if combine == "or" else best.sum() / n_models
+        score = 1.0 - torch.prod(1.0 - best)
         out_boxes.append(box_convert(fused[c][None], "xyxy", "cxcywh")[0])
         out_scores.append(score)
         out_labels.append(labels[rows[0]])
@@ -113,9 +98,7 @@ def fuse_window(
     return torch.stack(out_boxes), torch.stack(out_scores), torch.stack(out_labels)
 
 
-def fuse(
-    models: list[RawPredictions], curves: list, iou: float, combine: str, name: str
-) -> RawPredictions:
+def fuse(models: list[RawPredictions], curves: list, iou: float, name: str) -> RawPredictions:
     calibrated = [
         Boxes(
             m.predictions.boxes,
@@ -137,12 +120,10 @@ def fuse(
             members[rows_t],
             len(models),
             iou,
-            combine,
         )
         out.append(Boxes(boxes, torch.full((len(boxes),), image_id), labels, scores))
     merged = sort_by_score(Boxes(*(torch.cat([getattr(b, f) for b in out]) for f in Boxes._fields)))
-    first = models[0]
-    return first._replace(model=name, architecture="fusion", predictions=merged, nms_iou=None)
+    return models[0]._replace(model=name, predictions=merged)
 
 
 def main() -> None:
@@ -159,16 +140,9 @@ def main() -> None:
             values.max(),
         )
     for split, index in ((VAL, 0), (TEST, 1)):
-        fused = fuse([p[index] for p in pairs], curves, args.iou, args.combine, args.name)
+        fused = fuse([p[index] for p in pairs], curves, args.iou, args.name)
         out = fused.save(path_for(args.output, args.name, split))
-        logger.info(
-            "%s %s: %d cajas (%.1f por ventana) -> %s",
-            args.name,
-            split,
-            len(fused.predictions.boxes),
-            fused.detections_per_window,
-            out,
-        )
+        logger.info("%s %s: %d cajas -> %s", args.name, split, len(fused.predictions.boxes), out)
 
 
 if __name__ == "__main__":

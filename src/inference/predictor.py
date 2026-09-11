@@ -10,9 +10,7 @@ from models.registry import LoadedModel
 from utils.audio import load_clips, mel_spectrogram, window_starts, y_to_hz
 from utils.boxes import suppress_nested
 
-# IoU con el que se funden las detecciones repetidas por el solape entre ventanas (3 s cada
-# 1.5 s: cada vocalización cae en dos). No es la NMS de `Architecture.nms_iou`, que saca los
-# duplicados *dentro* de una ventana y que el DETR no necesita: ésta corre para todos.
+# IoU para fundir duplicados entre ventanas solapadas
 MERGE_IOU = 0.3
 
 
@@ -46,7 +44,7 @@ def predict(
         images = torch.stack(
             [mel(clip) for clip in load_clips(audio_path, chunk, params)]
         ).unsqueeze(1)
-        detections = loaded.detect(images.to(device), score_threshold)
+        detections = loaded.model.detect(images.to(device), score_threshold)
 
         for clip_start, det in zip(chunk, detections, strict=True):
             cx, cy, w, h = det.boxes.T.cpu()

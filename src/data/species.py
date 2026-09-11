@@ -11,10 +11,10 @@ class Species(Enum):
     PT = "toppins_titi_monkey"  # Plecturocebus toppini
     SB = "bolivian_squirrel_monkey"  # Saimiri boliviensis peruviensis
     SM = "large_headed_capuchin"  # Sapajus macrocephalus
-    AV = "bird"  # PteroSet (Ruiz et al. 2026): aves neotropicales, sólo como fondo
+    AV = "bird"  # PteroSet, sólo como fondo
 
 
-# Tipos de llamada válidos por especie: código en la anotación -> nombre legible.
+# Código en la anotación -> nombre legible.
 CALL_TYPES: dict[Species, dict[str, str]] = {
     Species.AA: {
         "gc": "gulp_call",
@@ -71,12 +71,10 @@ CALL_TYPES: dict[Species, dict[str, str]] = {
     Species.AV: {"voc": "bird_vocalization"},
 }
 
-# Especies que no son clase: sus cajas marcan qué ventanas tienen un sonido que el detector
-# tiene que aprender a ignorar, y entran al caché como ventanas sin cajas.
-BACKGROUND_SPECIES: frozenset[str] = frozenset({Species.AV.name.lower()})
+# No son clase: sus ventanas entran al caché sin cajas, como sonido que no se propone.
+BACKGROUND_SPECIES: tuple[str, ...] = (Species.AV.name.lower(),)
 
 
-# Pares (especie, tipo) admitidos, en minúsculas como vienen del `.txt` limpio.
 VALID_PAIRS: frozenset[tuple[str, str]] = frozenset(
     (species.name.lower(), code) for species, codes in CALL_TYPES.items() for code in codes
 )

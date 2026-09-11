@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-from core.config import SEED, P, Parameters, settings
+from core.config import PROCESSED_DIR, SEED, P, Parameters
 from core.runtime import setup_logging
 from data import cache
 from data.annotations import load_annotations
@@ -19,86 +19,43 @@ from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
 logger = logging.getLogger("prepare_data")
 
+# Mínimo de anotaciones de una etiqueta species/call_type para ser clase
 MIN_PAIR_COUNT = 100
-EMPTY_RATIO = 0.25  # ventanas vacías de las grabaciones propias, sobre el total
-# Ventanas de fondo con un evento de `BACKGROUND_SPECIES` (aves de PteroSet), en fracción de
-# las ventanas positivas. Van sin cajas: el detector aprende que ese sonido no se propone, y
-# el augmentador las usa además de fondo para mezclar. Como el split es por grabación,
-# también caen en val y test, donde sólo pueden sumar falsos positivos.
+# Fracción de ventanas sin anotaciones, sobre el total
+EMPTY_RATIO = 0.25
+# Fracción de ventanas con canto de ave (PteroSet), sobre las positivas
 BACKGROUND_RATIO = 0.25
-SPLIT_RATIOS = (0.6, 0.225, 0.175)  # train / val / test, por archivo de audio
-EXCLUDED_PAIRS: set[tuple[str, str]] = {("lw", "cc"), ("sm", "fc"), ("sb", "pcs")}
-JOINED_PAIRS: dict[tuple[tuple[str, str], ...], tuple[str, str]] = {
-    (("lw", "tr"), ("lw", "tj"), ("lw", "tt"), ("lw", "tf")): ("lw", "trino"),
-    # `lpc` sola tenía 49 anotaciones y `MIN_PAIR_COUNT` la dejaba afuera; es el peep largo de
-    # la misma sílaba que `ppc`. `pcc` queda aparte: el etograma la anota como secuencia entera.
-    (("sb", "ppc"), ("sb", "lpc")): ("sb", "ppc"),
+# Splits train/val/test por grabación
+SPLIT_RATIOS = (0.6, 0.225, 0.175)
+EXCLUDED_LABELS = ("lw/cc", "sm/fc", "sb/pcs")
+JOINED_LABELS = {
+    "lw/tr": "lw/trino",
+    "lw/tj": "lw/trino",
+    "lw/tt": "lw/trino",
+    "lw/tf": "lw/trino",
+    "sb/lpc": "sb/ppc",
 }
 
 
-def select_experiment(
-    annotations: pd.DataFrame | None = None,
-) -> tuple[pd.DataFrame, LabelSet]:
-    annotations = load_annotations() if annotations is None else annotations
-    annotations = annotations[~annotations["species"].isin(BACKGROUND_SPECIES)]
-    excluded = annotations[["species", "call_type"]].apply(tuple, axis=1).isin(EXCLUDED_PAIRS)
-    annotations = annotations[~excluded]
-    annotations["low_freq_hz"] = annotations["low_freq_hz"].clip(lower=P.f_min)
-    for old_pairs, new_pair in JOINED_PAIRS.items():
-        for old_pair in old_pairs:
-            joined = (annotations["species"] == old_pair[0]) & (
-                annotations["call_type"] == old_pair[1]
-            )
-            annotations.loc[joined, ["species", "call_type"]] = new_pair
-    logger.info("%d anotaciones | %d especies", len(annotations), annotations.species.nunique())
+def select_experiment(annotations: pd.DataFrame) -> tuple[pd.DataFrame, LabelSet]:
+    raven_df = annotations.loc[~annotations["species"].isin(BACKGROUND_SPECIES)].copy()
+    raven_df["low_freq_hz"] = raven_df["low_freq_hz"].clip(lower=P.f_min)
+    raven_df["label"] = (raven_df["species"] + "/" + raven_df["call_type"]).replace(JOINED_LABELS)
+    raven_df = raven_df.loc[~raven_df["label"].isin(EXCLUDED_LABELS)]
 
-    pairs = annotations[["species", "call_type"]].apply(tuple, axis=1)
-    pair_counts = pairs.value_counts()  # ya ordenado de mayor a menor
-    frequent = pair_counts[pair_counts >= MIN_PAIR_COUNT]
+    counts = raven_df["label"].value_counts()
+    frequent = counts[counts >= MIN_PAIR_COUNT].index.tolist()
+    experiment = raven_df.loc[raven_df["label"].isin(frequent)]
+    labels = LabelSet(experiment["label"])
     logger.info(
-        "%d/%d pares species/call_type con >= %d anotaciones: %s",
+        "%d anotaciones | %d/%d etiquetas con >= %d: %s",
+        len(experiment),
         len(frequent),
-        len(pair_counts),
+        len(counts),
         MIN_PAIR_COUNT,
-        ", ".join(f"{species}/{call_type}" for species, call_type in frequent.index),
-    )
-
-    experiment_df = annotations[pairs.isin(frequent.index)].copy()
-    experiment_df["label"] = experiment_df["species"] + "/" + experiment_df["call_type"]
-
-    labels = LabelSet(experiment_df["label"])
-    logger.info(
-        "%d anotaciones del experimento | %d clases: %s",
-        len(experiment_df),
-        len(labels),
         ", ".join(labels.names),
     )
-    return experiment_df, labels
-
-
-def select_background(annotations: pd.DataFrame) -> pd.DataFrame:
-    background = annotations[annotations["species"].isin(BACKGROUND_SPECIES)]
-    logger.info(
-        "%d eventos de fondo (%s) en %d grabaciones",
-        len(background),
-        ", ".join(sorted(BACKGROUND_SPECIES)),
-        background["audio_path"].nunique(),
-    )
-    return background
-
-
-def compute_mel_statistics(images: torch.Tensor, chunk: int = 256) -> dict[str, float]:
-    total = torch.zeros((), dtype=torch.float64)
-    total_sq = torch.zeros((), dtype=torch.float64)
-    for start in range(0, len(images), chunk):
-        block = images[start : start + chunk].double()
-        total += block.sum()
-        total_sq += block.pow(2).sum()
-
-    n = images.numel()
-    mean = float(total / n)
-    variance = max(float(total_sq / n) - mean**2, 0.0)
-    return {"mean": mean, "std": variance**0.5}
+    return experiment, labels
 
 
 def build_dataset(manifest: list[ClipWindow], params: Parameters = P) -> dict[str, Any]:
@@ -107,105 +64,70 @@ def build_dataset(manifest: list[ClipWindow], params: Parameters = P) -> dict[st
     boxes: list[torch.Tensor] = []
     labels: list[torch.Tensor] = []
     for index, window in enumerate(tqdm(manifest, desc="materializando", disable=None)):
-        waveform = load_clip(window.audio_path, window.clip_start_s, params)
-        images[index] = to_mel(waveform)
+        images[index] = to_mel(load_clip(window.audio_path, window.clip_start_s, params))
         boxes.append(torch.from_numpy(window.boxes.astype(np.float32)))
         labels.append(torch.from_numpy(window.labels))
     return {"images": images, "boxes": boxes, "labels": labels}
 
 
+def write_meta(db_range: tuple[float, float]) -> None:
+    meta = {
+        "seed": SEED,
+        "min_pair_count": MIN_PAIR_COUNT,
+        "empty_ratio": EMPTY_RATIO,
+        "background_species": sorted(BACKGROUND_SPECIES),
+        "background_ratio": BACKGROUND_RATIO,
+        "split_ratios": SPLIT_RATIOS,
+        "excluded_labels": EXCLUDED_LABELS,
+        "joined_labels": JOINED_LABELS,
+        "db_range": db_range,
+        "params": asdict(P),
+    }
+    (PROCESSED_DIR / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Materializa el caché de ventanas que consumen los tres detectores."
-    )
+    parser = argparse.ArgumentParser(description="Materializa el caché de ventanas.")
+    parser.add_argument("--force", action="store_true", help="regenera el caché existente")
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="regenera aunque ya haya un caché (la reconstrucción es destructiva)",
-    )
-    parser.add_argument(
-        "--sources-only",
-        action="store_true",
-        help="reescribe sólo el mapa ventana -> grabación, sin recalcular un solo mel",
+        "--sources-only", action="store_true", help="reescribe sólo el mapa ventana -> grabación"
     )
     args = parser.parse_args()
-
     setup_logging()
-    cache_dir = settings.processed_dir
-    if (cache_dir / "meta.json").exists() and not (args.force or args.sources_only):
-        raise SystemExit(f"ya hay un caché en {cache_dir}; pasá --force para regenerarlo.")
+    if (PROCESSED_DIR / "meta.json").exists() and not (args.force or args.sources_only):
+        raise SystemExit(f"ya hay un caché en {PROCESSED_DIR}; pasá --force para regenerarlo.")
 
     annotations = load_annotations()
-    experiment_df, labels = select_experiment(annotations)
-    manifest = build_manifest(experiment_df, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
-    background = select_background(annotations)
-    if len(background):
+    experiment, labels = select_experiment(annotations)
+    manifest = build_manifest(experiment, labels, empty_ratio=EMPTY_RATIO, seed=SEED)
+    birds = annotations.loc[annotations["species"].isin(BACKGROUND_SPECIES)]
+    if len(birds):
         n_positive = sum(len(window.boxes) > 0 for window in manifest)
-        hard_negatives = event_windows(background)
-        sampled = sample_windows(hard_negatives, round(n_positive * BACKGROUND_RATIO), SEED)
-        manifest += sampled
-        logger.info(
-            "%d ventanas positivas | %d ventanas de fondo con evento, entran %d",
-            n_positive,
-            len(hard_negatives),
-            len(sampled),
-        )
-    splits = dict(
-        zip(
-            cache.SPLITS,
-            split_manifest(manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS),
-            strict=True,
-        )
-    )
+        bird_windows = sample_windows(event_windows(birds), round(n_positive * BACKGROUND_RATIO))
+        manifest += bird_windows
+        logger.info("%d ventanas positivas | %d de fondo (aves)", n_positive, len(bird_windows))
+    splits = split_manifest(manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS)
 
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    for name, split in zip(cache.SPLITS, splits, strict=True):
+        cache.write_sources(name, split)
     if args.sources_only:
-        for name, split in splits.items():
-            cache.write_sources(name, split)
-            logger.info("%s: %d ventanas -> %s", name, len(split), cache.sources_path(name))
         return
 
-    (cache_dir / "meta.json").unlink(missing_ok=True)
-    (cache_dir / "labels.json").write_text(
+    (PROCESSED_DIR / "meta.json").unlink(missing_ok=True)
+    (PROCESSED_DIR / "labels.json").write_text(
         json.dumps(dict(enumerate(labels.names)), indent=2, ensure_ascii=False)
     )
-
-    normalization: dict[str, float] = {}
-    db_range: list[float] = []
-    for name, split in splits.items():
-        logger.info("%s: materializando %d ventanas...", name, len(split))
-        cache.write_sources(name, split)  # ventana -> grabación, para el IC por grabación
+    db_range = (0.0, 0.0)
+    for name, split in zip(cache.SPLITS, splits, strict=True):
+        logger.info("%s: %d ventanas", name, len(split))
         windows = build_dataset(split)
-        images: torch.Tensor = windows["images"]
         if name == "train":
-            normalization = compute_mel_statistics(images)
-            db_range = list(mel_db_range(images[:, 0]))
-            logger.info("mel de train -> normalización %s | dB %s", normalization, db_range)
-        path = cache_dir / f"{name}.pt"
+            db_range = mel_db_range(windows["images"][:, 0])
+        path = cache.split_path(name)
         torch.save(windows, path)
         logger.info("%s -> %s (%.2f GB)", name, path, path.stat().st_size / 1024**3)
-
-    (cache_dir / "meta.json").write_text(
-        json.dumps(
-            {
-                "seed": SEED,
-                "min_pair_count": MIN_PAIR_COUNT,
-                "empty_ratio": EMPTY_RATIO,
-                "background_species": sorted(BACKGROUND_SPECIES),
-                "background_ratio": BACKGROUND_RATIO,
-                "excluded_pairs": sorted(EXCLUDED_PAIRS),
-                "joined_pairs": {
-                    "/".join(new): ["/".join(old) for old in olds]
-                    for olds, new in JOINED_PAIRS.items()
-                },
-                "normalization": normalization,
-                "db_range": db_range,
-                "params": asdict(P),
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-    )
+    write_meta(db_range)
 
 
 if __name__ == "__main__":

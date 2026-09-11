@@ -3,8 +3,9 @@ from typing import Any
 
 import numpy as np
 import torch
-from torch import Tensor, nn
+from torch import Tensor
 
+from models.base import Detector
 from utils.audio import mel_to_gray
 from utils.boxes import Detections
 
@@ -12,7 +13,10 @@ DEFAULT_MODEL = "yolo26s"
 DEFAULT_IMAGE_SIZE = 512
 
 
-class SpectrogramYOLO(nn.Module):
+class SpectrogramYOLO(Detector):
+    # YOLO26 sale sin NMS; el pos-proceso de anidadas se aplica igual que al resto
+    nms_iou = 0.3
+    clip_grad = 1.0
     ultralytics_predictor: Any
 
     def __init__(
@@ -31,10 +35,7 @@ class SpectrogramYOLO(nn.Module):
         self.imgsz = imgsz
         self.detector = DetectionModel(f"{model}.yaml", nc=n_classes, verbose=False)
 
-        # El `YOLO` de Ultralytics hereda de `nn.Module` pero su `train()` lanza un
-        # entrenamiento en vez de cambiar de modo: como submódulo, un `model.eval()` correría
-        # sobre COCO8 y pisaría los pesos. Vive fuera del árbol de módulos y sólo predice; el
-        # submódulo entrenable es `self.detector`.
+        # `YOLO.train()` entrena en vez de cambiar de modo: se lo deja fuera del árbol de módulos.
         wrapper = YOLO(f"{model}.yaml")
         wrapper.model = self.detector
         self.__dict__["ultralytics_predictor"] = wrapper
@@ -76,9 +77,3 @@ def load_ultralytics_weights(model: SpectrogramYOLO, weights: Path) -> None:
     # Ultralytics guarda el modelo pickleado (en fp16); acá sólo interesan sus pesos.
     trained = torch.load(weights, weights_only=False)["model"]
     model.detector.load_state_dict({k: v.float() for k, v in trained.state_dict().items()})
-
-
-def detect(
-    model: SpectrogramYOLO, images: Tensor, score_threshold: float = 0.5
-) -> list[Detections]:
-    return model.detect(images, score_threshold)

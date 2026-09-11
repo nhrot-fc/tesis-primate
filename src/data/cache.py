@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 
-from core.config import settings
+from core.config import PROCESSED_DIR
 from data.manifest import ClipWindow
 from data.species import LabelSet
 
@@ -11,15 +11,13 @@ SPLITS = ("train", "val", "test")
 
 
 def split_path(split: str) -> Path:
-    return settings.processed_dir / f"{split}.pt"
+    return PROCESSED_DIR / f"{split}.pt"
 
 
 def read_json(name: str) -> dict:
-    path = settings.processed_dir / name
+    path = PROCESSED_DIR / name
     if not path.exists():
-        raise FileNotFoundError(
-            f"falta {path}. Corré `python src/prepare_data.py` para generar el caché."
-        )
+        raise FileNotFoundError(f"falta {path}. Corré `python src/prepare_data.py`.")
     return json.loads(path.read_text())
 
 
@@ -36,6 +34,7 @@ def db_range() -> tuple[float, float]:
     return float(low), float(high)
 
 
+# Ventana -> grabación
 class Sources(NamedTuple):
     recordings: list[str]
     recording_of_window: list[int]
@@ -43,7 +42,7 @@ class Sources(NamedTuple):
 
 
 def sources_path(split: str) -> Path:
-    return settings.processed_dir / f"{split}_sources.json"
+    return PROCESSED_DIR / f"{split}_sources.json"
 
 
 def write_sources(split: str, manifest: Sequence[ClipWindow]) -> Sources:
@@ -64,8 +63,8 @@ def sources(split: str, n_windows: int) -> Sources:
     stored = json.loads(path.read_text()) if path.exists() else {}
     if sorted(stored) != sorted(Sources._fields) or len(stored["recording_of_window"]) != n_windows:
         raise RuntimeError(
-            f"{path} no describe las {n_windows} ventanas de {split_path(split)}; reescribilo con "
-            "`python src/prepare_data.py --sources-only`, que no recalcula un solo mel."
+            f"{path} no describe las {n_windows} ventanas de {split_path(split)}; "
+            "reescribilo con `python src/prepare_data.py --sources-only`."
         )
     return Sources(**stored)
 

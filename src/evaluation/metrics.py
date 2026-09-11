@@ -1,19 +1,17 @@
 from collections import defaultdict
-from collections.abc import Iterable
 from typing import NamedTuple
 
 import torch
 from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
-from core.config import P
-
+# Mínimo IoU para considerar una predicción como acierto
 MATCH_IOU = 0.3
-COCO_THRESHOLDS: tuple[float, ...] = tuple(round(0.5 + 0.05 * step, 2) for step in range(10))
-MAP_THRESHOLDS: tuple[float, ...] = (MATCH_IOU, *COCO_THRESHOLDS)
-BETA = 2.0
+# Mínimo score para considerar una predicción
 SCORE_FLOOR = 0.001
+# Cantidad común de detecciones por clip
 MAX_DETECTIONS = 100
+# Ancho a partir de la cual una clase ocupa la ventana entera
 WINDOW_CLASS_WIDTH = 0.95
 
 
@@ -40,32 +38,7 @@ PerClassAP = dict[int, float | None]
 class DetectionMetrics(NamedTuple):
     recall: float | None
     precision: float | None
-    f_beta: float | None
-    fp_per_hour: float | None
     map_30: float | None
-    map_50: float | None
-    map_50_95: float | None
-    n_gt: int
-    n_predictions: int
-    n_above_threshold: int
-
-
-def f_beta(precision: float | None, recall: float | None, beta: float = BETA) -> float | None:
-    if precision is None or recall is None or precision + recall <= 0:
-        return None
-    return (1 + beta**2) * precision * recall / (beta**2 * precision + recall)
-
-
-def audio_hours(n_images: int) -> float:
-    # Las ventanas se cortan cada `clip_hop_s` y duran `clip_len_s`, así que se solapan (3 s
-    # cada 1.5 s). El tiempo que cubren es el hop por ventana, no la duración: contarlas por
-    # duración duplica las horas y deja la tasa de falsos positivos a la mitad.
-    return n_images * P.clip_hop_s / 3600
-
-
-def false_positives_per_hour(false_positives: int, n_images: int) -> float | None:
-    hours = audio_hours(n_images)
-    return false_positives / hours if hours else None
 
 
 def concat(chunks: list[Boxes]) -> Boxes:
@@ -88,7 +61,6 @@ def rows_by_image(image_ids: Tensor) -> dict[int, list[int]]:
 def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool) -> Overlaps:
     if not len(predictions.boxes) or not len(truth.boxes):
         return []
-
     predicted_xyxy = box_convert(predictions.boxes, "cxcywh", "xyxy")
     truth_xyxy = box_convert(truth.boxes, "cxcywh", "xyxy")
     truth_rows = rows_by_image(truth.image_ids)
@@ -107,6 +79,7 @@ def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool) -> Overlaps:
 
 
 def assignments(per_image: Overlaps, iou_threshold: float) -> list[tuple[int, int]]:
+    # Cada GT se asigna a lo sumo a una predicción.
     pairs: list[tuple[int, int]] = []
     for overlap in per_image:
         available = overlap.iou.masked_fill(overlap.iou < iou_threshold, -1.0)
@@ -144,96 +117,48 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
     return float(((recall - previous_recall) * envelope).sum())
 
 
-def class_average_precision(predictions: Boxes, truth: Boxes, class_id: int) -> float | None:
-    class_predictions = predictions.select(predictions.labels == class_id)
-    class_truth = truth.select(truth.labels == class_id)
-    return average_precision(
-        hits(
-            overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), MATCH_IOU
-        ),
-        len(class_truth.boxes),
-    )
-
-
-def average_precision_per_class(
-    predictions: Boxes, truth: Boxes, n_classes: int
-) -> dict[float, PerClassAP]:
-    per_threshold: dict[float, PerClassAP] = {t: {} for t in MAP_THRESHOLDS}
+def average_precision_per_class(predictions: Boxes, truth: Boxes, n_classes: int) -> PerClassAP:
+    ap: PerClassAP = {}
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
         class_truth = truth.select(truth.labels == class_id)
-        per_image = overlaps(class_predictions, class_truth, False)  # ya filtrado a una clase
-        for threshold in MAP_THRESHOLDS:
-            per_threshold[threshold][class_id] = average_precision(
-                hits(per_image, len(class_predictions.boxes), threshold), len(class_truth.boxes)
-            )
-    return per_threshold
+        found = hits(
+            overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), MATCH_IOU
+        )
+        ap[class_id] = average_precision(found, len(class_truth.boxes))
+    return ap
 
 
-def mean_average_precision(
-    ap_per_class: PerClassAP, classes: Iterable[int] | None = None
-) -> float | None:
-    selected = ap_per_class if classes is None else {c: ap_per_class[c] for c in classes}
-    scored = [ap for ap in selected.values() if ap is not None]
+def mean_average_precision(ap: PerClassAP, classes: list[int] | None = None) -> float | None:
+    scored = [v for v in (ap[c] for c in (ap if classes is None else classes)) if v is not None]
     return sum(scored) / len(scored) if scored else None
 
 
-def mean_average_precision_over(
-    ap: dict[float, PerClassAP],
-    thresholds: Iterable[float],
-    classes: Iterable[int] | None = None,
-) -> float | None:
-    classes = None if classes is None else list(classes)
-    scored = [
-        value
-        for value in (mean_average_precision(ap[threshold], classes) for threshold in thresholds)
-        if value is not None
-    ]
-    return sum(scored) / len(scored) if scored else None
-
-
-def saturated_classes(truth: Boxes, n_classes: int) -> list[int]:
-    widths = [truth.boxes[truth.labels == class_id][:, 2] for class_id in range(n_classes)]
-    return [
-        class_id
-        for class_id, width in enumerate(widths)
-        if len(width) and float(width.median()) >= WINDOW_CLASS_WIDTH
-    ]
+def window_classes(truth: Boxes, n_classes: int) -> list[int]:
+    # Clases cuya llamada dura más que el clip: la caja ocupa la ventana y no es detección.
+    saturated = []
+    for class_id in range(n_classes):
+        widths = truth.boxes[truth.labels == class_id][:, 2]
+        if len(widths) and float(widths.median()) >= WINDOW_CLASS_WIDTH:
+            saturated.append(class_id)
+    return saturated
 
 
 def detection_classes(truth: Boxes, n_classes: int) -> list[int]:
-    saturated = set(saturated_classes(truth, n_classes))
-    return [class_id for class_id in range(n_classes) if class_id not in saturated]
+    saturated = set(window_classes(truth, n_classes))
+    return [c for c in range(n_classes) if c not in saturated]
 
 
 def detection_metrics(
-    predictions: Boxes,
-    truth: Boxes,
-    n_classes: int,
-    n_images: int = 0,
-    score_threshold: float = 0.5,
-    beta: float = BETA,
+    predictions: Boxes, truth: Boxes, n_classes: int, score_threshold: float = 0.5
 ) -> DetectionMetrics:
     n_gt = len(truth.boxes)
-    n_predictions = len(predictions.boxes)
-    n_above_threshold = int((predictions.scores >= score_threshold).sum())
-
-    found = hits(overlaps(predictions, truth, class_aware=True), n_predictions, MATCH_IOU)
-    true_positives = int(found[:n_above_threshold].sum())
-    recall = true_positives / n_gt if n_gt else None
-    precision = true_positives / n_above_threshold if n_above_threshold else None
-
+    n_above = int((predictions.scores >= score_threshold).sum())
+    found = hits(overlaps(predictions, truth, class_aware=True), len(predictions.boxes), MATCH_IOU)
+    true_positives = int(found[:n_above].sum())
     ap = average_precision_per_class(predictions, truth, n_classes)
-    classes = detection_classes(truth, n_classes)
     return DetectionMetrics(
-        recall=recall,
-        precision=precision,
-        f_beta=f_beta(precision, recall, beta),
-        fp_per_hour=false_positives_per_hour(n_above_threshold - true_positives, n_images),
-        map_30=mean_average_precision(ap[MATCH_IOU], classes),
-        map_50=mean_average_precision(ap[0.5], classes),
-        map_50_95=mean_average_precision_over(ap, COCO_THRESHOLDS, classes),
-        n_gt=n_gt,
-        n_predictions=n_predictions,
-        n_above_threshold=n_above_threshold,
+        recall=true_positives / n_gt if n_gt else None,
+        precision=true_positives / n_above if n_above else None,
+        map_30=mean_average_precision(ap, detection_classes(truth, n_classes)),
     )
