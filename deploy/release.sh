@@ -15,7 +15,6 @@ VARIANTS=${VARIANTS:-cpu}
 TAG=${1:?uso: deploy/release.sh vX.Y.Z [MODELO...]}
 shift
 VERSION=${TAG#v}
-rm -f dist/SHA256SUMS.txt
 
 for variant in $VARIANTS; do
     "$UV" run python deploy/build_windows.py --version "$VERSION" runtime --variant "$variant"
@@ -24,10 +23,13 @@ if (($# > 0)); then
     "$UV" run python deploy/build_windows.py --version "$VERSION" models "$@"
 fi
 
+# Sumas de lo que se sube: runtimes, modelos
 files=()
-for asset in dist/*"-$VERSION-"* dist/SHA256SUMS.txt; do
+for asset in dist/*"-$VERSION-win64-"* dist/*"-$VERSION-model-"*; do
     [[ -f $asset ]] && files+=("$asset")
 done
+(cd dist && sha256sum "${files[@]#dist/}") > dist/SHA256SUMS.txt
+files+=(dist/SHA256SUMS.txt)
 
 # Notas en inglés: la plantilla más la tabla de archivos con su tamaño
 notes=dist/release_notes.md
@@ -38,7 +40,7 @@ sed "s/{version}/$VERSION/g" deploy/release_notes.md > "$notes"
     echo "|---|---|---|"
     for f in "${files[@]}"; do
         name=$(basename "$f")
-        size=$(du -m "$f" | cut -f1)
+        size=$(( ($(stat -c %s "$f") + 2**19) / 2**20 )); ((size == 0)) && size="<1"
         case $name in
             *-win64-cpu.zip*)  what="runtime, any 64-bit PC" ;;
             *-win64-cuda.zip*) what="runtime with NVIDIA support" ;;
