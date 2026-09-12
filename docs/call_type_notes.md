@@ -1,8 +1,7 @@
 # Notas de campo por tipo de llamada
 
-Notas del protocolo de anotación: qué significa cada llamada y qué criterio usaron los
-anotadores para dibujar la caja en Raven. No cubre todos los códigos de
-`domain.species.CALL_TYPES`, solo los que tienen nota documentada.
+Significado de cada llamada junto al criterio para dibujar la caja en Raven. 
+El vocabulario completo está en `src/data/species.py`.
 
 ## AA - night_monkey
 

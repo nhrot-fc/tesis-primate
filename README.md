@@ -1,102 +1,62 @@
-# tesis-primate
+# Detector de vocalizaciones de primates
 
-Detección de vocalizaciones de primates en espectrogramas: un detector de objetos (Faster
-R-CNN, AST + Deformable DETR o YOLO) dibuja cajas tiempo–frecuencia sobre ventanas de 3 s y
-las exporta como tablas de selección de Raven. Incluye el visor de escritorio con el que un
-analista revisa y corrige esas detecciones.
+Un detector de objetos (Faster R-CNN, AST-Deformable DETR o YOLO) dibuja cajas
+tiempo–frecuencia sobre el espectrograma de una grabación y las exporta como **tablas de
+selección de Raven**, para revisarlas en Raven Pro o en el visor incluido.
 
-Los documentos del proyecto (tesis, informes de resultados esperados, protocolo de
-comparación) están indexados en [docs/README.md](docs/README.md).
+Se distribuye como una carpeta portable para Windows: se descomprime y se usa. **No hay que
+instalar Python, CUDA ni ninguna librería.**
 
-## Instalación
+## Descarga
 
-Requiere Python 3.12 y [uv](https://docs.astral.sh/uv/). Las dependencias están en capas
-([pyproject.toml](pyproject.toml)):
+En [Releases](https://github.com/nhrot-fc/tesis-primate/releases), el zip de la última versión:
 
-| Para | Comando |
+| Paquete | Para quién | Tamaño |
+|---|---|---|
+| `detector-primates-<versión>-win64-cpu.zip` | cualquier PC de 64 bits | ~0,7 GB (2 GB descomprimido) |
+| `detector-primates-<versión>-win64-cuda.zip` | PC con tarjeta NVIDIA; sin ella usa la CPU | ~4 GB (6 GB descomprimido) |
+
+Si un paquete viene en partes (`.zip.001`, `.zip.002`, …), descárgalas todas en la misma
+carpeta junto con su `unir.bat` y ejecútalo: deja el zip entero. Con 7-Zip se puede abrir
+la parte `.001` directamente.
+
+## Requisitos de software
+
+| | Necesario | Notas |
+|---|---|---|
+| Sistema operativo | **Windows 10 u 11, 64 bits** | Sin permisos de administrador: todo queda en la carpeta descomprimida |
+| Python, CUDA, Visual C++ | **nada** | Van dentro del paquete |
+| Controlador NVIDIA (sólo paquete `cuda`) | serie **570 o más nueva** | Es lo único que el paquete no trae. Se actualiza desde [nvidia.com/drivers](https://www.nvidia.com/drivers). Con controladores desde la serie 527 suele funcionar; si torch no ve la GPU, el paquete sigue en CPU |
+| Raven Pro (opcional) | 1.5 o 1.6 | Para revisar las tablas junto al audio. Son texto tabulado: también las abren Excel o LibreOffice |
+| Internet | **no** | Ni para instalar ni para detectar |
+| 7-Zip (opcional) | — | Sólo para abrir paquetes en partes sin `unir.bat` |
+
+Detalles de hardware (RAM, GPU, disco y cuánto tarda cada modelo):
+[docs/system_requirements.md](docs/system_requirements.md).
+
+Dos avisos de Windows:
+
+- Descomprime en una **ruta corta** (`C:\detector\`): el paquete tiene rutas largas y el
+  explorador de Windows a veces falla con más de 260 caracteres.
+- El primer arranque es más lento: el antivirus revisa cientos de archivos nuevos. No hay
+  ningún `.exe` propio, sólo el `python.exe` firmado por python.org y dos archivos `.bat`.
+
+## Uso
+
+| Archivo | Qué hace |
 |---|---|
-| Visor + inferencia con Faster R-CNN (despliegue) | `uv sync --no-dev` |
-| …y además checkpoints DETR / YOLO | `uv sync --no-dev --extra detr --extra yolo` |
-| Preparar datos, entrenar, comparar | `uv sync --group train` |
-| Todo (investigación, notebooks, linters) | `uv sync --all-extras --all-groups` |
+| `Visor.bat` | Visor de espectrogramas. `Ctrl+O` abre un audio (WAV, FLAC, MP3), `Ctrl+M` un modelo de `models\`, `Ctrl+R` detecta. `F1` lista los controles. Exporta tablas de Raven e imágenes del tramo |
+| `Detectar.bat` | Procesa carpetas enteras: arrastra una carpeta (o varios audios) sobre el archivo y deja `<audio>.detections.txt` junto a cada grabación. Con más de un modelo en `models\` pregunta cuál usar |
+| `models\` | Un modelo por subcarpeta: el checkpoint y su umbral de operación. Para añadir otro, copiar su carpeta |
+| `LEEME.txt` | Esto mismo, dentro del paquete |
+| `visor.log` | Aparece si el visor falla; dice por qué |
 
-El backbone AST se descarga de Hugging Face la primera vez y queda en `hf/`.
+Con Raven Pro: abre el audio y luego *File → Open Selection Table* con su
+`.detections.txt`. La columna `Score` permite filtrar dentro de Raven; el umbral con el que
+se escribió la tabla es el que se eligió para ese modelo en la comparación.
 
-## Datos
+## Para desarrolladores
 
-```
-data/
-  raw/<nombre_comun>__<CODIGO>/*.wav + *.txt   # audio y tablas de Raven, por especie
-  cleaned/                                     # anotaciones normalizadas (prepare_annotations.py)
-  processed/{train,val,test}.pt + meta.json    # caché de ventanas mel (prepare_data.py)
-  yolo/                                        # export PNG para Ultralytics (export_yolo.py)
-runs/<corrida>/                                # checkpoints, métricas, volcados, punto de operación
-```
-
-Qué es cada especie y cada tipo de llamada: [src/data/species.py](src/data/species.py) y
-[docs/call_type_notes.md](docs/call_type_notes.md). Qué hay en el caché actual:
-[notebooks/dataset_report.ipynb](notebooks/dataset_report.ipynb).
-
-## Pipeline
-
-```bash
-uv run python src/prepare_annotations.py          # raw/ -> cleaned/
-uv run python src/prepare_data.py                 # cleaned/ -> processed/ (ventanas, splits, rango dB)
-uv run python src/export_yolo.py                  # processed/ -> yolo/ (sólo para YOLO)
-
-uv run python src/train.py --arch frcnn           # o detr | yolo; --hp clave=valor pisa hiperparámetros
-uv run python src/train.py --arch detr --hp frontend=logmel --cfg epochs=20
-
-./evaluation.sh                                   # vuelca val/test de cada runs/*/best.pt y compara
-uv run python src/compare_models.py runs/*/*_predictions.pt --output runs/comparacion/comparacion_modelos
-```
-
-`compare_models.py` elige en val el umbral de cada modelo con la precisión mínima del
-protocolo, lo mide una sola vez en test con IC por bootstrap de grabaciones, y deja
-`operating_point.json` junto al checkpoint: es el umbral con el que arranca el visor.
-`fuse_predictions.py` combina volcados de varios modelos (WBF) en uno que se compara igual.
-
-## Visor
-
-```bash
-uv run python src/main.py
-```
-
-Abre un audio (o arrastrarlo), un checkpoint (`Ctrl+M`) y detecta (`Ctrl+R`). Muestra las
-anotaciones de Raven que estén junto al `.wav`, las detecciones del modelo y, si se carga
-una tabla de hallazgos, una cola de revisión con aceptar/rechazar. `F1` lista los
-controles. Exporta imágenes del tramo y tablas en formato Raven.
-
-Inferencia sin interfaz: `inference.predictor.predict(loaded, audio)` devuelve la tabla de
-Raven de una grabación entera (ventanas solapadas fundidas).
-
-## Código
-
-```
-src/
-  core/        config.py: rutas, semilla, parámetros de señal y de detección compartidos
-  data/        especies y etiquetas, anotaciones, manifest de ventanas, caché, datasets, aumento
-  models/      Detector base, registry (arquitecturas, extras), FRCNN, AST-DETR (+PCEN), YOLO
-  training/    Trainer (FRCNN/DETR), YOLO vía Ultralytics, checkpoints
-  evaluation/  métricas, volcados, protocolo de comparación, reporte
-  inference/   predictor sobre grabaciones completas
-  viewer/      la aplicación PyQt6
-  utils/       audio (mel, dB, ventanas) y cajas (NMS anidado, conversión)
-```
-
-Convenciones: cajas `cxcywh` normalizadas a la ventana, `x` es tiempo y `y` frecuencia en
-escala mel; etiquetas `especie/llamada` en minúscula. Las constantes que comparten
-evaluación, inferencia y visor (umbral por defecto, piso de score, NMS, tope de
-detecciones) viven en `core/config.py`.
-
-Calidad: `uv run ruff check src && uv run ruff format src && uv run ty check src`.
-
-## Figuras y notebooks
-
-| Notebook | Qué hace |
-|---|---|
-| [notebooks/figuras_documento.ipynb](notebooks/figuras_documento.ipynb) | Genera las figuras de la tesis en `research/figures/`, una sección por capítulo del documento |
-| [notebooks/dataset_report.ipynb](notebooks/dataset_report.ipynb) | Reporte textual del caché: pares, splits, huella para comparar dos copias |
-| [notebooks/TF_Experimental_Training.ipynb](notebooks/TF_Experimental_Training.ipynb) | Línea base histórica (clasificador binario en TensorFlow/Colab). No corre en este entorno; sus figuras están en el informe de agosto |
-
-La tesis se compila con `make` (LaTeX en `research/`).
+Entorno, datos, entrenamiento, comparación de modelos y cómo se arma el paquete de Windows:
+[docs/desarrollo.md](docs/desarrollo.md). Documentos de la tesis e informes:
+[docs/README.md](docs/README.md).
