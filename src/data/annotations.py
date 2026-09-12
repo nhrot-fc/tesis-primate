@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from pathlib import Path
 
@@ -14,6 +15,8 @@ NOISE = "noise"
 MAX_FREQ_HZ = P.f_max
 # Duración mínima de una anotación; el manifest y el jitter derivan de acá su caja mínima
 MIN_DURATION_S = 0.01
+# Bytes que identifican un wav junto con su tamaño: alcanza para reconocer copias del mismo
+SIGNATURE_BYTES = 1 << 20
 
 DROP_COLUMNS = ["selection", "view", "channel", "reference", "begin_file", "file_offset_s"]
 MANUAL_SYNONYMS = {
@@ -86,6 +89,27 @@ def species_of(wav_path: Path) -> str:
     return wav_path.parent.name.lower()
 
 
+def audio_signature(path: Path) -> tuple[int, str]:
+    with open(path, "rb") as audio:
+        return path.stat().st_size, hashlib.md5(audio.read(SIGNATURE_BYTES)).hexdigest()
+
+
+def unify_copies(annotations: pd.DataFrame) -> pd.DataFrame:
+    # El mismo wav está copiado en varias carpetas de especie y cada copia anotada sólo para la
+    # suya. Todas pasan a ser una grabación con la unión de sus anotaciones: si no, el resto de
+    # especies queda como fondo en cada copia y el mismo audio puede caer en dos splits.
+    canonical: dict[str, str] = {}
+    by_signature: dict[tuple[int, str], str] = {}
+    for path in sorted(annotations["audio_path"].unique()):
+        canonical[path] = by_signature.setdefault(audio_signature(Path(path)), path)
+    n_copies = len(canonical) - len(by_signature)
+    if n_copies:
+        logger.info("%d copias de grabaciones unidas con su original", n_copies)
+    unified = annotations.assign(audio_path=annotations["audio_path"].map(canonical))
+    # Dos copias anotadas para la misma especie repetirían sus cajas.
+    return unified.drop_duplicates().reset_index(drop=True)
+
+
 def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd.DataFrame:
     # Cada `.txt` de cleaned/ se llama como su `.wav` en raw/.
     frames: list[pd.DataFrame] = []
@@ -114,7 +138,7 @@ def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd
             "".join(f"\n  {line}" for line in without_audio),
         )
 
-    annotations_df = pd.concat(frames, ignore_index=True)
+    annotations_df = unify_copies(pd.concat(frames, ignore_index=True))
     annotations_df[CLEANED_BOX_COLUMNS] = annotations_df[CLEANED_BOX_COLUMNS].astype(float)
     annotations_df["duration_s"] = annotations_df["end_time_s"] - annotations_df["begin_time_s"]
     annotations_df["bandwidth_hz"] = annotations_df["high_freq_hz"] - annotations_df["low_freq_hz"]
