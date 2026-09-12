@@ -9,16 +9,19 @@ instalar Python, CUDA ni ninguna librería.**
 
 ## Descarga
 
-En [Releases](https://github.com/nhrot-fc/tesis-primate/releases), el zip de la última versión:
+En [Releases](https://github.com/nhrot-fc/tesis-primate/releases), dos tipos de zip:
 
-| Paquete | Para quién | Tamaño |
+| Zip | Qué es | Tamaño |
 |---|---|---|
-| `detector-primates-<versión>-win64-cpu.zip` | cualquier PC de 64 bits | ~0,7 GB (2 GB descomprimido) |
-| `detector-primates-<versión>-win64-cuda.zip` | PC con tarjeta NVIDIA; sin ella usa la CPU | ~4 GB (6 GB descomprimido) |
+| `detector-<versión>-win64-cpu.zip` | el programa, para cualquier PC de 64 bits | ~0,5 GB |
+| `detector-<versión>-win64-cuda.zip` | el programa con soporte NVIDIA; sin GPU usa la CPU | ~3 GB |
+| `detector-<versión>-model-<nombre>.zip` | un modelo; hacen falta uno o más | 25 MB – 0,7 GB |
 
-Si un paquete viene en partes (`.zip.001`, `.zip.002`, …), descárgalas todas en la misma
-carpeta junto con su `unir.bat` y ejecútalo: deja el zip entero. Con 7-Zip se puede abrir
-la parte `.001` directamente.
+1. Descomprime **un** zip `win64` en una ruta corta, p. ej. `C:\detector\`.
+2. Arrastra cada zip `model` sobre `Agregar-modelo.bat` dentro de esa carpeta.
+
+Si un zip viene en partes (`.zip.001`, `.zip.002`, …), descárgalas todas en la misma carpeta
+con su `unir.bat` y ejecútalo; deja el zip entero.
 
 ## Requisitos de software
 
@@ -29,7 +32,7 @@ la parte `.001` directamente.
 | Controlador NVIDIA (sólo paquete `cuda`) | serie **570 o más nueva** | Es lo único que el paquete no trae. Se actualiza desde [nvidia.com/drivers](https://www.nvidia.com/drivers). Con controladores desde la serie 527 suele funcionar; si torch no ve la GPU, el paquete sigue en CPU |
 | Raven Pro (opcional) | 1.5 o 1.6 | Para revisar las tablas junto al audio. Son texto tabulado: también las abren Excel o LibreOffice |
 | Internet | **no** | Ni para instalar ni para detectar |
-| 7-Zip (opcional) | — | Sólo para abrir paquetes en partes sin `unir.bat` |
+| 7-Zip (opcional) | — | Sólo para abrir zips en partes sin `unir.bat` |
 
 Detalles de hardware (RAM, GPU, disco y cuánto tarda cada modelo):
 [docs/system_requirements.md](docs/system_requirements.md).
@@ -39,7 +42,7 @@ Dos avisos de Windows:
 - Descomprime en una **ruta corta** (`C:\detector\`): el paquete tiene rutas largas y el
   explorador de Windows a veces falla con más de 260 caracteres.
 - El primer arranque es más lento: el antivirus revisa cientos de archivos nuevos. No hay
-  ningún `.exe` propio, sólo el `python.exe` firmado por python.org y dos archivos `.bat`.
+  ningún `.exe` propio, sólo el `python.exe` firmado por python.org y tres archivos `.bat`.
 
 ## Uso
 
@@ -47,7 +50,7 @@ Dos avisos de Windows:
 |---|---|
 | `Visor.bat` | Visor de espectrogramas. `Ctrl+O` abre un audio (WAV, FLAC, MP3), `Ctrl+M` un modelo de `models\`, `Ctrl+R` detecta. `F1` lista los controles. Exporta tablas de Raven e imágenes del tramo |
 | `Detectar.bat` | Procesa carpetas enteras: arrastra una carpeta (o varios audios) sobre el archivo y deja `<audio>.detections.txt` junto a cada grabación. Con más de un modelo en `models\` pregunta cuál usar |
-| `models\` | Un modelo por subcarpeta: el checkpoint y su umbral de operación. Para añadir otro, copiar su carpeta |
+| `Agregar-modelo.bat` | Arrastra encima el zip de un modelo: queda en `models\<nombre>\` listo para usar. Un modelo por subcarpeta, con su umbral de operación |
 | `LEEME.txt` | Esto mismo, dentro del paquete |
 | `visor.log` | Aparece si el visor falla; dice por qué |
 
@@ -57,6 +60,36 @@ se escribió la tabla es el que se eligió para ese modelo en la comparación.
 
 ## Para desarrolladores
 
-Entorno, datos, entrenamiento, comparación de modelos y cómo se arma el paquete de Windows:
-[docs/desarrollo.md](docs/desarrollo.md). Documentos de la tesis e informes:
-[docs/README.md](docs/README.md).
+Python 3.12 y [uv](https://docs.astral.sh/uv/). `uv sync --no-dev --extra detr --extra yolo`
+corre el visor e inferencia con cualquier checkpoint; `uv sync --all-extras --all-groups` todo
+(datos, entrenamiento, notebooks, linters).
+
+```bash
+uv run python src/prepare_annotations.py                 # data/raw -> data/cleaned
+uv run python src/prepare_data.py                        # -> data/processed (ventanas, splits)
+uv run python src/train.py --arch frcnn                  # detr | detr_coco | yolo; --hp k=v, --cfg k=v
+./evaluation.sh                                          # vuelca val/test de runs/*/best.pt y compara
+uv run python src/main.py                                # visor
+uv run python src/detect.py --model runs/frcnn carpeta/  # por lotes
+```
+
+Cómo se comparan los modelos: [docs/protocolo_comparacion.md](docs/protocolo_comparacion.md).
+Especies y llamadas: [src/data/species.py](src/data/species.py) y
+[docs/call_type_notes.md](docs/call_type_notes.md). Informes entregados (PDF): [docs/informes/](docs/informes/).
+
+### Releases
+
+`deploy/build_windows.py` arma en `dist/` (ignorado por git) dos clases de zip, desde Linux:
+`runtime --variant cpu|cuda` (Python embebido, librerías, `src/`, lanzadores, `models/` vacía)
+y `models runs/<corrida>…` (un zip por modelo con su `models/<corrida>/` y los `hf/` que
+necesite; sin carpeta raíz, se vuelca dentro del runtime). Los zips van como *assets* del
+release, no al repo; si uno pasa de 1,9 GB sale en partes con un `unir.bat`.
+
+```bash
+deploy/release.sh v0.1.0 runs/frcnn runs/yolo26s_coco          # runtime cpu + modelos + gh release
+VARIANTS="cpu cuda" deploy/release.sh v0.1.0 runs/frcnn         # también el runtime cuda
+REPO=usuario/repo-privado deploy/release.sh v0.1.0 runs/frcnn   # publicar en otro repo
+```
+
+Necesita `gh` autenticado. Antes de publicar, probar el zip en un Windows limpio (sin Python,
+sin red): `Agregar-modelo.bat`, `Visor.bat`, `Detectar.bat`, el audio y cada modelo.

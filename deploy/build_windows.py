@@ -1,17 +1,19 @@
-"""Arma el paquete portable de Windows: Python embebido + librerías + código + modelos.
+"""Arma los zips del release de Windows: el runtime por un lado y cada modelo por otro.
 
-    dist/detector-primates-<versión>-win64-<cpu|cuda>/
-      Visor.bat, Detectar.bat, LEEME.txt
-      python/    intérprete embebido de python.org, Lib/site-packages, DLLs de MSVC
-      src/       este repo, tal cual (core.config resuelve hf/ y models/ desde acá)
-      hf/        backbones de Hugging Face que reconstruyen los modelos incluidos
-      models/    <nombre>/<checkpoint> + operating_point.json
+    runtime  detector-<versión>-win64-<cpu|cuda>.zip   (carpeta raíz del mismo nombre)
+               Visor.bat, Detectar.bat, Agregar-modelo.bat, LEEME.txt
+               python/   intérprete embebido de python.org, Lib/site-packages, DLLs de MSVC
+               src/      este repo, tal cual (core.config resuelve hf/ y models/ desde acá)
+               models/   vacía: acá van los modelos
+    models   detector-<versión>-model-<corrida>.zip   (sin carpeta raíz)
+               models/<corrida>/<checkpoint> + operating_point.json
+               hf/…      los backbones de Hugging Face que esa arquitectura reconstruye
 
-Corre en Linux: uv resuelve e instala los wheels de Windows sin ejecutarlos. El usuario
-descomprime y hace doble clic; no instala nada.
+El zip de un modelo se descomprime dentro de la carpeta del runtime (`Agregar-modelo.bat` lo
+hace). Corre en Linux: uv resuelve e instala los wheels de Windows sin ejecutarlos.
 
-    uv run python deploy/build_windows.py runs/frcnn runs/yolo26s_coco
-    uv run python deploy/build_windows.py --variant cuda runs/frcnn
+    uv run python deploy/build_windows.py runtime --variant cpu
+    uv run python deploy/build_windows.py models runs/frcnn runs/yolo26s_coco
 """
 
 import argparse
@@ -31,7 +33,7 @@ TEMPLATES = Path(__file__).resolve().parent / "windows"
 BUILD_DIR = PROJECT_DIR / "build"  # descargas reutilizables
 DIST_DIR = PROJECT_DIR / "dist"
 
-APP = "detector-primates"
+APP = "detector"
 # Último 3.12 con binarios en python.org (los siguientes son sólo código fuente)
 PYTHON_VERSION = "3.12.10"
 EMBED_URL = "https://www.python.org/ftp/python/{v}/python-{v}-embed-amd64.zip"
@@ -59,12 +61,15 @@ logger = logging.getLogger("build")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument(
-        "models", nargs="+", type=Path, metavar="MODELO", help="checkpoint o carpeta de runs/"
-    )
-    parser.add_argument("--variant", choices=tuple(TORCH_BACKENDS), default="cpu")
     parser.add_argument("--version", default=project_version(), help="va en el nombre del zip")
     parser.add_argument("--no-zip", action="store_true", help="deja sólo la carpeta en dist/")
+    what = parser.add_subparsers(dest="what", required=True)
+    runtime = what.add_parser("runtime", help="Python, librerías, código y lanzadores")
+    runtime.add_argument("--variant", choices=tuple(TORCH_BACKENDS), default="cpu")
+    models = what.add_parser("models", help="un zip por modelo, con sus backbones")
+    models.add_argument(
+        "models", nargs="+", type=Path, metavar="MODELO", help="checkpoint o carpeta de runs/"
+    )
     return parser.parse_args()
 
 
@@ -76,6 +81,14 @@ def project_version() -> str:
 def run(*command: str | Path) -> None:
     logger.info("$ %s", " ".join(str(c) for c in command))
     subprocess.run([str(c) for c in command], check=True)
+
+
+def fresh(name: str) -> Path:
+    stage = DIST_DIR / name
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    return stage
 
 
 # --- Modelos ----------------------------------------------------------------------
@@ -107,28 +120,24 @@ def architecture_of(checkpoint: Path) -> str:
     return stored["architecture"]
 
 
-def copy_models(sources: list[Path], stage: Path) -> set[Path]:
-    hf_dirs: set[Path] = set()
-    for source in sources:
-        checkpoint = checkpoint_of(source)
-        architecture = architecture_of(checkpoint)
-        target = stage / "models" / checkpoint.parent.name
-        target.mkdir(parents=True)
-        shutil.copy2(checkpoint, target / checkpoint.name)
-        operating_point = checkpoint.parent / "operating_point.json"
-        if operating_point.is_file():
-            shutil.copy2(operating_point, target / operating_point.name)
-        logger.info("modelo %s: %s (%s)", target.name, architecture, checkpoint.name)
-        hf_dirs.update(HF_BY_ARCHITECTURE.get(architecture, []))
-    return hf_dirs
+def stage_model(source: Path, version: str) -> Path:
+    checkpoint = checkpoint_of(source)
+    architecture = architecture_of(checkpoint)
+    name = checkpoint.parent.name
+    stage = fresh(f"{APP}-{version}-model-{name}")
 
-
-def copy_hf(hf_dirs: set[Path], stage: Path) -> None:
-    for source in sorted(hf_dirs):
-        if not source.is_dir():
-            raise SystemExit(f"Falta {source}: cargá el modelo una vez para que se descargue")
-        shutil.copytree(source, stage / "hf" / source.name)
-        logger.info("hf/%s", source.name)
+    target = stage / "models" / name
+    target.mkdir(parents=True)
+    shutil.copy2(checkpoint, target / checkpoint.name)
+    operating_point = checkpoint.parent / "operating_point.json"
+    if operating_point.is_file():
+        shutil.copy2(operating_point, target / operating_point.name)
+    for hf_dir in HF_BY_ARCHITECTURE.get(architecture, []):
+        if not hf_dir.is_dir():
+            raise SystemExit(f"Falta {hf_dir}: cargá el modelo una vez para que se descargue")
+        shutil.copytree(hf_dir, stage / "hf" / hf_dir.name)
+    logger.info("modelo %s: %s (%s)", name, architecture, checkpoint.name)
+    return stage
 
 
 # --- Python y librerías ----------------------------------------------------------------
@@ -195,26 +204,39 @@ def copy_source(stage: Path) -> None:
 
 
 def copy_launchers(stage: Path, version: str, variant: str) -> None:
-    for template in TEMPLATES.iterdir():
-        if template.suffix == ".in":
+    # `deploy/windows/` se calca sobre el paquete: python/entorno.bat, models/LEEME.txt…
+    for template in TEMPLATES.rglob("*"):
+        if not template.is_file() or template.suffix == ".in":
             continue
         text = template.read_text(encoding="utf-8").replace("{version}", version)
         text = text.replace("{variant}", variant)
-        target = stage / ("python" if template.name == "entorno.bat" else "") / template.name
+        target = stage / template.relative_to(TEMPLATES)
+        target.parent.mkdir(parents=True, exist_ok=True)
         # cmd.exe quiere CRLF; el repo guarda LF
         target.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
+
+
+def stage_runtime(version: str, variant: str) -> Path:
+    stage = fresh(f"{APP}-{version}-win64-{variant}")
+    copy_source(stage)
+    python_dir = install_python(stage)
+    install_packages(python_dir, variant)
+    copy_launchers(stage, version, variant)
+    return stage
 
 
 # --- Zip, partes y sumas -----------------------------------------------------------
 
 
-def make_zip(stage: Path) -> Path:
+def make_zip(stage: Path, with_root: bool) -> Path:
+    # El runtime lleva su carpeta raíz; el de un modelo no, para que se vuelque dentro de ella.
     archive = stage.with_name(f"{stage.name}.zip")
+    base = stage.parent if with_root else stage
     logger.info("comprimiendo %s", archive.name)
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for path in sorted(stage.rglob("*")):
             if path.is_file():
-                z.write(path, path.relative_to(stage.parent))
+                z.write(path, path.relative_to(base))
     return archive
 
 
@@ -241,37 +263,43 @@ def split(archive: Path, max_mb: int = MAX_PART_MB) -> list[Path]:
 
 
 def write_checksums(files: list[Path]) -> Path:
+    # Una entrada por archivo; las corridas sucesivas (runtime, modelos) se acumulan.
     sums = DIST_DIR / "SHA256SUMS.txt"
-    lines = [f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}" for f in files]
-    sums.write_text("\n".join(lines) + "\n")
+    entries: dict[str, str] = {}
+    if sums.is_file():
+        for line in sums.read_text().splitlines():
+            digest, _, name = line.partition("  ")
+            entries[name] = digest
+    for f in files:
+        entries[f.name] = hashlib.sha256(f.read_bytes()).hexdigest()
+    sums.write_text("".join(f"{digest}  {name}\n" for name, digest in sorted(entries.items())))
     return sums
+
+
+def publish(stage: Path, with_root: bool, no_zip: bool) -> None:
+    total = sum(p.stat().st_size for p in stage.rglob("*") if p.is_file())
+    logger.info("%s: %.2f GB descomprimido", stage.name, total / 1e9)
+    if no_zip:
+        return
+    files = split(make_zip(stage, with_root))
+    write_checksums(files)
+    for f in files:
+        logger.info("  %s  %.0f MB", f.name, f.stat().st_size / 2**20)
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parse_args()
-    name = f"{APP}-{args.version}-win64-{args.variant}"
-    stage = DIST_DIR / name
-    if stage.exists():
-        shutil.rmtree(stage)
-    stage.mkdir(parents=True)
-
-    hf_dirs = copy_models(args.models, stage)
-    copy_hf(hf_dirs, stage)
-    copy_source(stage)
-    python_dir = install_python(stage)
-    install_packages(python_dir, args.variant)
-    copy_launchers(stage, args.version, args.variant)
-
-    total = sum(p.stat().st_size for p in stage.rglob("*") if p.is_file())
-    logger.info("%s: %.2f GB descomprimido", stage.name, total / 1e9)
-    if args.no_zip:
-        return
-    files = split(make_zip(stage))
-    files.append(write_checksums(files))
-    for f in files:
-        logger.info("  %s  %.0f MB", f.name, f.stat().st_size / 2**20)
-    logger.info("Publicar: gh release create v%s %s", args.version, " ".join(str(f) for f in files))
+    if args.what == "runtime":
+        publish(stage_runtime(args.version, args.variant), True, args.no_zip)
+    else:
+        for source in args.models:
+            publish(stage_model(source, args.version), False, args.no_zip)
+    logger.info(
+        "Publicar: gh release create v%s dist/*%s*.zip* dist/SHA256SUMS.txt",
+        args.version,
+        args.version,
+    )
 
 
 if __name__ == "__main__":
