@@ -1,0 +1,25 @@
+Detector de vocalizaciones de primates - {version} (Windows 64 bits, {variant})
+==============================================================================
+
+Esta carpeta trae todo lo necesario: no hay que instalar Python ni ninguna
+librería. Descomprímela en una ruta corta (por ejemplo C:\detector\) y usa:
+
+  Visor.bat      Visor de espectrogramas. Abre un audio (Ctrl+O), un modelo
+                 (Ctrl+M, están en models\) y detecta (Ctrl+R). F1 lista los
+                 controles. Exporta tablas de selección de Raven.
+
+  Detectar.bat   Procesa carpetas enteras. Arrastra una carpeta (o varios
+                 audios) sobre el archivo: deja <audio>.detections.txt junto
+                 a cada grabación, listo para abrir en Raven Pro con el audio
+                 (File > Open Selection Table).
+
+Modelos: cada subcarpeta de models\ es un modelo (checkpoint + su umbral de
+operación). Para añadir uno nuevo basta con copiar su carpeta ahí.
+
+Requisitos: Windows 10 u 11 de 64 bits. Para usar la GPU (paquete "cuda"),
+un controlador NVIDIA de la serie 570 o más nuevo; sin GPU usa la CPU.
+Detalle de hardware y tiempos por modelo: docs\system_requirements.md en
+https://github.com/nhrot-fc/tesis-primate
+
+Si el visor no abre, el motivo queda en visor.log en esta carpeta.
+Formatos de audio: WAV, FLAC y MP3. No necesita conexión a internet.

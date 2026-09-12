@@ -38,6 +38,19 @@ def inverse_sigmoid(coordinates: torch.Tensor, eps: float = 1e-5) -> torch.Tenso
     return torch.log(coordinates.clamp(min=eps) / (1 - coordinates).clamp(min=eps))
 
 
+def sigmoid_detections(outputs: Outputs, score_threshold: float) -> list[Detections]:
+    # Sigmoides independientes por clase: el score no mezcla "hay algo" con "qué es".
+    scores, labels = outputs["pred_logits"].sigmoid().max(-1)
+    detections = []
+    for boxes, score, label in zip(outputs["pred_boxes"], scores, labels, strict=True):
+        above = score >= score_threshold
+        by_score = score[above].argsort(descending=True)
+        detections.append(
+            Detections(boxes[above][by_score], score[above][by_score], label[above][by_score])
+        )
+    return detections
+
+
 class DeformableAttention(nn.Module):
     def __init__(
         self,
@@ -291,14 +304,4 @@ class ASTDeformableDETR(Detector):
     def detect(
         self, mel: torch.Tensor, score_threshold: float = SCORE_THRESHOLD
     ) -> list[Detections]:
-        outputs: Outputs = self(mel)
-        # Sigmoides independientes por clase: el score no mezcla "hay algo" con "qué es".
-        scores, labels = outputs["pred_logits"].sigmoid().max(-1)
-        detections = []
-        for boxes, score, label in zip(outputs["pred_boxes"], scores, labels, strict=True):
-            above = score >= score_threshold
-            by_score = score[above].argsort(descending=True)
-            detections.append(
-                Detections(boxes[above][by_score], score[above][by_score], label[above][by_score])
-            )
-        return detections
+        return sigmoid_detections(self(mel), score_threshold)

@@ -1,6 +1,6 @@
 import logging
 import random
-import resource
+import sys
 from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
 
 def setup_logging(log_file: Path | None = None) -> None:
-    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    # Bajo `pythonw.exe` (paquete de Windows) no hay consola: queda sólo el archivo.
+    handlers: list[logging.Handler] = [] if sys.stderr is None else [logging.StreamHandler()]
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         handlers.append(logging.FileHandler(log_file, mode="a", encoding="utf-8"))
@@ -29,6 +30,8 @@ def setup_logging(log_file: Path | None = None) -> None:
 
 
 def share_tensors_by_file() -> None:
+    import resource  # sólo Unix: el entrenamiento no corre en el paquete de Windows
+
     # Compartir el caché por archivo pide más descriptores que los 1024 de fábrica.
     torch.multiprocessing.set_sharing_strategy("file_system")
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)

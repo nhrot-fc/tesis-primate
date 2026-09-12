@@ -784,8 +784,9 @@ class Viewer(QMainWindow):
 
 
 def main() -> None:
-    os.environ.setdefault("QT_QPA_PLATFORMTHEME", "xdgdesktopportal")
-    os.environ.setdefault("QT_WAYLAND_DECORATION", "adwaita")
+    if sys.platform == "linux":
+        os.environ.setdefault("QT_QPA_PLATFORMTHEME", "xdgdesktopportal")
+        os.environ.setdefault("QT_WAYLAND_DECORATION", "adwaita")
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     style = app.style()

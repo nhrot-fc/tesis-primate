@@ -1,0 +1,3 @@
+# Se resuelve junto a pyproject.toml al armar el paquete de Windows (deploy/build_windows.py).
+# DLLs del runtime de MSVC que torch y Qt necesitan y el Python embebido no trae.
+msvc-runtime

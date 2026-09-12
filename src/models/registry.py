@@ -8,6 +8,7 @@ from torch import Tensor, nn
 from data.species import LabelSet
 from evaluation.protocol import read_operating_point
 from models.base import Detector
+from models.coco_deformable_detr import CocoDeformableDETR
 from models.deformable_detr import ASTDeformableDETR
 from models.faster_rcnn import SpectrogramFasterRCNN
 from models.yolo import SpectrogramYOLO
@@ -17,11 +18,12 @@ logger = logging.getLogger(__name__)
 # Cada una se rearma con `n_classes` más los `hparams` del checkpoint.
 ARCHITECTURES: dict[str, type[Detector]] = {
     "ast_deformable_detr": ASTDeformableDETR,
+    "coco_deformable_detr": CocoDeformableDETR,
     "faster_rcnn": SpectrogramFasterRCNN,
     "yolo": SpectrogramYOLO,
 }
 # Extra de `pyproject.toml` que trae las librerías de cada arquitectura; el Faster R-CNN va de base.
-EXTRAS = {"ast_deformable_detr": "detr", "yolo": "yolo"}
+EXTRAS = {"ast_deformable_detr": "detr", "coco_deformable_detr": "detr", "yolo": "yolo"}
 
 
 def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> Detector:

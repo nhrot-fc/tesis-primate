@@ -11,6 +11,7 @@ from core.runtime import resolve_device, set_seed, setup_logging
 from data import cache
 from data.datasets import SpectrogramDataset, make_loader
 from models.backbone import TIME_STRIDE
+from models.coco_deformable_detr import DETR_CHECKPOINT
 from models.deformable_detr import DIM, FRONTEND, N_QUERIES
 from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE, TRAINABLE_LAYERS
 from models.registry import ARCHITECTURES, build_model
@@ -41,6 +42,18 @@ PRESETS: dict[str, Preset] = {
             "dim": DIM,
             "n_queries": N_QUERIES,
             "frontend": FRONTEND,  # none | logmel | pcen
+        },
+    ),
+    # Deformable DETR de HF con encoder, decoder y propuestas de COCO, sobre el mismo AST
+    "detr_coco": Preset(
+        "coco_deformable_detr",
+        TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
+        {
+            "n_frames": P.n_frames,
+            "time_stride": TIME_STRIDE,
+            "n_queries": N_QUERIES,
+            "frontend": FRONTEND,
+            "checkpoint": DETR_CHECKPOINT,
         },
     ),
     # Faster R-CNN con ResNet50-FPN
