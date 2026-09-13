@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -12,6 +15,8 @@ from PyQt6.QtWidgets import (
     QWidget,
     QWidgetAction,
 )
+
+from inference.catalog import available_models
 
 LABEL_WIDTH = 92
 READOUT_WIDTH = 48
@@ -85,7 +90,7 @@ def swatch(color: str, style: Qt.PenStyle, width: int) -> QPixmap:
 
 
 # Leyenda con interruptor: identifica el origen de cada caja y lo oculta. Una capa sin
-# tabla no se dibuja: mientras no haya modelo ni hallazgos, la fila es una sola casilla.
+# tabla no aparece: sin anotaciones ni modelo la fila queda vacía.
 class Layers(QWidget):
     changed = pyqtSignal()
 
@@ -124,12 +129,10 @@ class Layers(QWidget):
     def toggle(self, text: str) -> None:
         self.boxes[text].setChecked(not self.boxes[text].isChecked())
 
-    # `note` trae la etiqueta común de la capa: si todas las cajas dicen lo mismo, se dice
-    # una vez acá en vez de repetirlo encima de cada caja.
-    def set_state(self, text: str, shown: int, total: int, note: str = "") -> None:
+    # `shown` son las cajas en pantalla; `total`, las de la tabla (filtrada por score).
+    def set_state(self, text: str, shown: int, total: int) -> None:
         self.chips[text].setVisible(total > 0)
-        head = f"{text} · {note}" if note else text
-        self.boxes[text].setText(f"{head}   {shown}/{total}" if total else head)
+        self.boxes[text].setText(f"{text}   {shown}/{total}" if total else text)
 
 
 # Los dos extremos de la banda visible. Se escriben a mano y el zoom los reescribe.
@@ -181,14 +184,14 @@ class Band(QWidget):
 class ViewPanel(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.brightness = Slider("Brillo (dB)", *BRIGHTNESS)
-        self.contrast = Slider("Contraste", *CONTRAST)
+        self.brightness = Slider("Brightness (dB)", *BRIGHTNESS)
+        self.contrast = Slider("Contrast", *CONTRAST)
         # 0 dB es la grabación llevada a su pico; por encima recorta, que es lo que
         # hace audible una llamada lejana.
-        self.volume = Slider("Volumen (dB)", *VOLUME, fmt="{:+g}")
-        self.volume.setToolTip("0 dB es la grabación llevada a su pico; por encima recorta")
-        self.band = Band("Banda (Hz)")
-        self.band.setToolTip("Shift + rueda acerca en frecuencia; F abre la banda entera")
+        self.volume = Slider("Volume (dB)", *VOLUME, fmt="{:+g}")
+        self.volume.setToolTip("0 dB is the recording normalized to its peak; above that it clips")
+        self.band = Band("Band (Hz)")
+        self.band.setToolTip("Shift + wheel zooms in frequency; F shows the full band")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -212,3 +215,62 @@ class Popup(QToolButton):
         menu.addAction(action)
         self.setMenu(menu)
         self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+
+
+# El modelo es uno para todo el programa: lo que hay en `models\` más lo que se busque a mano.
+# Las dos entradas de acción van al final de la lista, y al elegirlas la selección vuelve
+# al modelo que había.
+class ModelPicker(QComboBox):
+    chosen = pyqtSignal(object)  # Path del checkpoint, o None
+    browse = pyqtSignal()
+    add = pyqtSignal()
+
+    BROWSE, ADD = "Browse for a checkpoint…", "Add model from zip…"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setPlaceholderText("Select a model…")
+        self.setToolTip("Model used by Detect and by the Batch view (Ctrl+M browses)")
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.current: Path | None = None
+        self.reload()
+        self.activated.connect(self.on_activated)
+
+    def paths(self) -> list[Path]:
+        return [self.itemData(i) for i in range(self.count()) if self.itemData(i) is not None]
+
+    # Relee `models\` conservando lo elegido a mano; `select` deja ese checkpoint elegido.
+    def reload(self, select: Path | None = None) -> None:
+        listed = available_models()
+        extra = [p for p in self.paths() if p not in listed]
+        self.blockSignals(True)
+        self.clear()
+        for path in [*listed, *extra]:
+            self.addItem(path.parent.name, path)
+        self.insertSeparator(self.count())
+        self.addItem(self.BROWSE)
+        self.addItem(self.ADD)
+        self.blockSignals(False)
+        self.select(select or self.current)
+
+    def select(self, path: Path | None) -> None:
+        if path is not None and path not in self.paths():
+            self.insertItem(0, path.parent.name, path)
+        index = -1 if path is None else self.findData(path)
+        self.setCurrentIndex(index)
+        if path != self.current:
+            self.current = path
+            self.chosen.emit(path)
+
+    def on_activated(self, index: int) -> None:
+        text, path = self.itemText(index), self.itemData(index)
+        if path is not None:
+            self.select(path)
+            return
+        # Las acciones no son una selección: se vuelve a la que había.
+        self.setCurrentIndex(-1 if self.current is None else self.findData(self.current))
+        if text == self.BROWSE:
+            self.browse.emit()
+        elif text == self.ADD:
+            self.add.emit()

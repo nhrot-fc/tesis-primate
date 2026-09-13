@@ -1,24 +1,22 @@
-import os
-import sys
+import zipfile
 from pathlib import Path
 from typing import override
 
 import pandas as pd
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QFontDatabase, QKeySequence
+from PyQt6.QtGui import QAction, QActionGroup, QFontDatabase, QKeySequence
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QMessageBox,
     QProgressBar,
-    QPushButton,
     QSizePolicy,
+    QStackedWidget,
     QStatusBar,
     QToolBar,
     QToolButton,
@@ -26,29 +24,28 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.config import SCORE_THRESHOLD, P, score_grid
-from data.raven import BEGIN, END, HIGH, LOW, renumber
-from viewer.controls import Layers, Popup, Slider, ViewPanel
+from core.config import PROJECT_DIR, SCORE_THRESHOLD, P, score_grid
+from data.raven import BEGIN, renumber
+from inference.catalog import (
+    AUDIO_SUFFIXES,
+    CHECKPOINT_SUFFIXES,
+    MODELS_DIR,
+    is_checkpoint,
+    output_for,
+    read_operating_point,
+)
+from viewer.batch import BatchView
+from viewer.controls import Layers, ModelPicker, Popup, Slider, ViewPanel
 from viewer.inference import DETECT_THRESHOLD, detect, preload
 from viewer.plot import Layer, SpectrogramView
 from viewer.session import (
-    ACCEPTED,
     ANNOTATIONS,
     COLORS,
     DETECTIONS,
-    FINDINGS,
-    ISSUE,
-    QUALITY,
-    RECORDING,
-    REJECTED,
     SOURCES,
     STYLES,
-    VERDICT,
     WIDTHS,
     Session,
-    common_label,
-    issue,
-    label,
     read_table,
 )
 from viewer.spectrogram import load_audio
@@ -56,10 +53,11 @@ from viewer.table import BoxTable
 from viewer.tasks import Worker
 from viewer.transport import Transport
 
-BASE_TITLE = "Visor de espectrogramas"
+BASE_TITLE = "Primate Vocalization Detector"
+REVIEW, BATCH = "Spectrogram", "Batch"
 SCORE_WIDTH = 220
 HELP_WIDTH = 560
-CARET = "\u25be"
+CARET = "▾"
 # En orden de preferencia; si no hay ninguna se queda la del escritorio.
 UI_FONTS = ("Inter", "Cantarell", "Noto Sans", "Ubuntu", "DejaVu Sans")
 UI_POINT_SIZE = 10
@@ -67,46 +65,51 @@ UI_POINT_SIZE = 10
 AUDIO = "*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3"
 TABLES = "*.txt *.csv"
 MODELS = "*.pth *.pt"
-# Qué se abre, con qué atajo y con qué filtro de archivos.
-OPEN = {
-    "audio": ("Audio…", "Ctrl+O", f"Audio ({AUDIO})"),
-    "table": ("Anotaciones o hallazgos…", "Ctrl+T", f"Tablas ({TABLES})"),
-    "model": ("Modelo…", "Ctrl+M", f"Checkpoint ({MODELS})"),
-}
-SUFFIXES = {
-    **dict.fromkeys((".wav", ".flac", ".mp3"), "audio"),
-    **dict.fromkeys((".txt", ".csv"), "table"),
-    **dict.fromkeys((".pth", ".pt"), "model"),
-}
+TABLE_SUFFIXES = {".txt", ".csv"}
+MODEL_ZIP_SUFFIX = ".zip"
+PLACEHOLDER = (
+    "<div style='font-size:15pt'>Drag and drop an audio to start</div>"
+    "<div style='margin-top:8px'>or press Ctrl+O · WAV, FLAC, MP3</div>"
+)
 HELP = {
-    "Ver": [
-        ("Rueda", "recorre el audio"),
-        ("Ctrl + rueda", "ancho de la ventana, de 0,25 a 30 s"),
-        ("Shift + rueda", "acerca en frecuencia, alrededor del puntero"),
-        ("↑ ↓", "sube y baja la banda visible"),
-        ("F", "vuelve a la banda entera"),
-        ("Vista", "brillo, contraste, volumen y los extremos de la banda"),
-        ("", "el ancho de ventana y la banda sólo cambian si los cambias tú"),
+    "Files": [
+        ("Ctrl+O", "open an audio; drop one on the window does the same"),
+        ("Ctrl+T", "open a Raven table over the audio: with a Score column it goes to "
+                   "Detections, otherwise to Annotations"),
+        ("Ctrl+M", "browse for a model checkpoint; the toolbar lists the ones in models\\"),
+        ("Ctrl+R", "run the model over the open audio"),
+        ("Ctrl+L", "clear the detections"),
+        ("Ctrl+S", "save the visible stretch as an image"),
+        ("Folder", "drop a folder on the window to process it in the Batch view"),
+        ("Zip", "drop a model zip on the window to add it to models\\"),
     ],
-    "Oír": [
-        ("Espacio", "reproduce o pausa"),
-        ("Clic", "lleva el cabezal a ese punto"),
-        ("Volumen", "0 dB es la grabación llevada a su pico; súbelo para las llamadas lejanas"),
+    "View": [
+        ("Wheel", "scroll through the audio"),
+        ("Ctrl + wheel", "window width, 0.25 to 30 s"),
+        ("Shift + wheel", "zoom in frequency around the pointer"),
+        ("↑ ↓", "move the visible band"),
+        ("F", "full band"),
+        ("View", "brightness, contrast, volume and band limits"),
+        ("", "the window width and the band only change when you change them"),
     ],
-    "Moverse": [
-        ("← →", "avanza y retrocede"),
-        ("Re Pág / Av Pág", "una ventana entera"),
-        ("Inicio / Fin", "principio y final del audio"),
-        ("N / P", "detección siguiente y anterior"),
+    "Listen": [
+        ("Space", "play or pause"),
+        ("Click", "move the playhead there"),
+        ("Volume", "0 dB is the recording normalized to its peak; raise it for distant calls"),
     ],
-    "Revisar los hallazgos de CLOD": [
-        (". / ,", "hallazgo siguiente y anterior; abre su grabación sin tocar tu zoom"),
-        ("A", "aceptar: añade la caja propuesta o borra la anotación sobrante"),
-        ("R", "rechazar: la anotación se queda como está"),
-        ("1 2 3", "muestra u oculta cada capa de cajas"),
-        ("Ctrl+E", "tabla de revisión"),
+    "Navigate": [
+        ("← →", "step forward and back"),
+        ("PgUp / PgDn", "a whole window"),
+        ("Home / End", "start and end of the audio"),
+        ("N / P", "next and previous detection"),
     ],
-}
+    "Boxes": [
+        ("1 / 2", "show or hide the Annotations and Detections layers"),
+        ("Ctrl+E", "table of boxes; click a row to frame it"),
+        ("Del", "in the table, remove the selected boxes"),
+        ("Score ≥", "hide detections below that score; Save keeps the visible ones"),
+    ],
+}  # fmt: skip
 
 # Espaciado y separadores salen de la paleta: la ventana se ve igual en claro y en oscuro.
 QSS = """
@@ -123,15 +126,9 @@ QToolBar QToolButton, QToolBar QToolButton:menu-indicator {{
 }}
 QToolBar QToolButton:hover:enabled {{ background: {hover}; }}
 QToolBar QToolButton:pressed:enabled {{ background: {press}; }}
-#reviewBar {{
-    background: {panel};
-    border: 1px solid {line};
-    border-left: 3px solid {accent};
-    border-radius: 6px;
-}}
-#reviewBar QPushButton {{ padding: 5px 14px; }}
-#queue {{ font-weight: 600; }}
-#hint {{ color: {muted}; }}
+QToolBar QToolButton:checked {{ background: {press}; font-weight: 600; }}
+QToolBar QComboBox {{ padding: 3px 8px; min-width: 140px; }}
+#hint, #placeholder {{ color: {muted}; }}
 #readout, #clock {{ font-family: "{mono}"; }}
 QStatusBar {{ border-top: 1px solid {line}; }}
 QStatusBar::item {{ border: 0; }}
@@ -157,26 +154,45 @@ def apply_style(app: QApplication) -> None:
             line=(window.lighter(140) if dark else window.darker(112)).name(),
             hover=(window.lighter(125) if dark else window.darker(107)).name(),
             press=(window.lighter(145) if dark else window.darker(115)).name(),
-            panel=(window.lighter(112) if dark else window.lighter(103)).name(),
-            muted=app.palette().placeholderText().color().name(),
-            accent=COLORS[FINDINGS],
+            muted=(window.lighter(220) if dark else window.darker(165)).name(),
             mono=QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont).family(),
         )
     )
+
+
+# Un zip de modelo trae `models/<nombre>/…` y, si hace falta, `hf/…`; se vuelca sobre la raíz
+# del paquete. Sólo entran rutas relativas dentro de esas dos carpetas.
+def add_model_zip(archive: Path) -> str:
+    with zipfile.ZipFile(archive) as z:
+        members = [
+            m
+            for m in z.namelist()
+            if not Path(m).is_absolute()
+            and ".." not in Path(m).parts
+            and Path(m).parts[:1] in (("models",), ("hf",))
+        ]
+        names = {
+            Path(m).parts[1] for m in members if m.startswith("models/") and len(Path(m).parts) > 2
+        }
+        if not names:
+            raise ValueError(f"{archive.name} has no models/<name>/ folder inside")
+        z.extractall(PROJECT_DIR, members)
+    return ", ".join(sorted(names))
 
 
 class Viewer(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(BASE_TITLE)
-        self.setMinimumSize(900, 560)
+        self.setMinimumSize(1000, 600)
         self.resize(1280, 820)
         self.setAcceptDrops(True)
 
         self.session = Session()
         self.worker: Worker | None = None
-        self.reviewing = -1  # posición en la cola de hallazgos, ordenada por Calidad
-        self.pending: pd.Series | None = None  # hallazgo esperando a que cargue su audio
+        self.engine: bool | None = None  # None mientras carga
+        self.pending_table: Path | None = None  # tabla que se abre en cuanto cargue su audio
+        self.dock_shown = False  # si el panel de cajas estaba abierto al pasar a Batch
 
         self.plot = SpectrogramView()
         self.plot.moved.connect(self.track)
@@ -201,50 +217,69 @@ class Viewer(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.table)
         self.table.hide()
 
+        self.batch = BatchView()
+        self.batch.open_requested.connect(self.open_result)
+        self.batch.said.connect(self.say)
+        self.batch.state_changed.connect(self.sync_controls)
+
         self.build_toolbar()
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(10)
-        layout.addWidget(self.plot, 1)
-        layout.addWidget(self.transport)
-        layout.addWidget(self.build_legend())
-        layout.addWidget(self.build_review())
-        central = QWidget()
-        central.setLayout(layout)
-        self.setCentralWidget(central)
-
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self.build_review())
+        self.pages.addWidget(self.batch)
+        self.setCentralWidget(self.pages)
         self.build_status_bar()
+
         self.session.changed.connect(self.on_changed)
-        self.sync_controls()
+        self.set_mode(REVIEW)
         self.start_engine()
 
     # --- Construccion -----------------------------------------------------------
 
     def build_toolbar(self) -> None:
-        self.open_actions = {}
-        open_menu = QMenu(self)
-        for kind, (text, shortcut, _) in OPEN.items():
-            action = QAction(text, self)
-            action.setShortcut(QKeySequence(shortcut))
-            action.triggered.connect(lambda _, name=kind: self.open_dialog(name))
-            open_menu.addAction(action)
-            self.open_actions[kind] = action
-        opener = self.menu_button("Abrir", open_menu)
+        # Las dos vistas: un botón marcado por cada una.
+        self.modes = QActionGroup(self)
+        self.mode_actions = {}
+        for mode, tip in ((REVIEW, "One recording at a time"), (BATCH, "A whole folder")):
+            action = QAction(mode, self.modes)
+            action.setCheckable(True)
+            action.setToolTip(tip)
+            action.triggered.connect(lambda _, name=mode: self.set_mode(name))
+            self.mode_actions[mode] = action
 
-        self.run_action = QAction("Detectar", self)
-        self.run_action.setShortcut(QKeySequence("Ctrl+R"))
-        self.run_action.setToolTip("Pasa el modelo por la grabación abierta (Ctrl+R)")
-        self.run_action.triggered.connect(self.run_model)
-
-        self.viewer_button = Popup(
-            f"Vista {CARET}", self.view, "Brillo, contraste, volumen y banda"
+        self.open_audio_action = QAction("Open audio…", self)
+        self.open_audio_action.setShortcut(QKeySequence("Ctrl+O"))
+        self.open_audio_action.setToolTip("WAV, FLAC or MP3 (Ctrl+O)")
+        self.open_audio_action.triggered.connect(self.open_audio)
+        self.open_table_action = QAction("Open table…", self)
+        self.open_table_action.setShortcut(QKeySequence("Ctrl+T"))
+        self.open_table_action.setToolTip(
+            "Raven selection table over the open audio (Ctrl+T)\n"
+            "With a Score column it goes to Detections, otherwise to Annotations"
         )
+        self.open_table_action.triggered.connect(self.open_table)
 
-        self.image_action = QAction("Imagen del tramo…", self)
+        self.picker = ModelPicker()
+        self.picker.chosen.connect(self.model_chosen)
+        self.picker.browse.connect(self.browse_model)
+        self.picker.add.connect(self.add_model)
+        self.browse_model_action = QAction("Browse for a model…", self)
+        self.browse_model_action.setShortcut(QKeySequence("Ctrl+M"))
+        self.browse_model_action.triggered.connect(self.browse_model)
+
+        self.run_action = QAction("Detect", self)
+        self.run_action.setShortcut(QKeySequence("Ctrl+R"))
+        self.run_action.triggered.connect(self.run_model)
+        self.clear_action = QAction("Clear", self)
+        self.clear_action.setShortcut(QKeySequence("Ctrl+L"))
+        self.clear_action.setToolTip("Remove the detections (Ctrl+L)")
+        self.clear_action.triggered.connect(lambda: self.session.set_table(DETECTIONS, None))
+
+        self.viewer_button = Popup(f"View {CARET}", self.view, "Brightness, contrast, volume, band")
+
+        self.image_action = QAction("Image of this stretch…", self)
         self.image_action.setShortcut(QKeySequence("Ctrl+S"))
         self.image_action.triggered.connect(self.export_image)
-        self.save_actions = {source: QAction(f"{source}…", self) for source in SOURCES}
+        self.save_actions = {source: QAction(f"{source} table…", self) for source in SOURCES}
         for source, action in self.save_actions.items():
             action.triggered.connect(lambda _, name=source: self.export_table(name))
         export_menu = QMenu(self)
@@ -252,36 +287,54 @@ class Viewer(QMainWindow):
         export_menu.addSeparator()
         for action in self.save_actions.values():
             export_menu.addAction(action)
-        export = self.menu_button("Guardar", export_menu)
+        self.export_button = self.menu_button("Save", export_menu)
 
-        self.help_action = QAction("Ayuda", self)
+        self.help_action = QAction("Help", self)
         self.help_action.setShortcut(QKeySequence("F1"))
-        self.help_action.setToolTip("Qué hace cada control (F1)")
+        self.help_action.setToolTip("What every control does (F1)")
         self.help_action.triggered.connect(self.show_help)
 
-        review = self.table.toggleViewAction()
-        if review is not None:
-            review.setText("Revisión")
-            review.setToolTip("Tabla de anotaciones y detecciones (Ctrl+E)")
-            review.setShortcut(QKeySequence("Ctrl+E"))
+        self.boxes_action = self.table.toggleViewAction()
+        if self.boxes_action is not None:
+            self.boxes_action.setText("Boxes")
+            self.boxes_action.setToolTip("Table of annotations and detections (Ctrl+E)")
+            self.boxes_action.setShortcut(QKeySequence("Ctrl+E"))
 
         toolbar = QToolBar()
         toolbar.setMovable(False)
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        toolbar.addWidget(opener)
-        toolbar.addAction(self.run_action)
+        for action in self.mode_actions.values():
+            toolbar.addAction(action)
+        # Lo que sólo tiene sentido con un espectrograma delante se esconde en Batch.
+        # (`addAction(QAction)` no devuelve nada; `addSeparator` y `addWidget` sí.)
+        self.review_only: list[QAction] = []
+        separator = toolbar.addSeparator()
+        if separator is not None:
+            self.review_only.append(separator)
+        for action in (self.open_audio_action, self.open_table_action):
+            toolbar.addAction(action)
+            self.review_only.append(action)
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel("Model"))
+        toolbar.addWidget(self.picker)
+        for action in (self.run_action, self.clear_action):
+            toolbar.addAction(action)
+            self.review_only.append(action)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
-        toolbar.addWidget(self.viewer_button)
-        toolbar.addWidget(export)
-        if review is not None:
-            toolbar.addAction(review)
+        for widget in (self.viewer_button, self.export_button):
+            placed = toolbar.addWidget(widget)
+            if placed is not None:
+                self.review_only.append(placed)
+        if self.boxes_action is not None:
+            toolbar.addAction(self.boxes_action)
+            self.review_only.append(self.boxes_action)
         toolbar.addAction(self.help_action)
         toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.addToolBar(toolbar)
-        # Los atajos del menu solo llegan si sus acciones cuelgan de la ventana.
-        for action in (*self.open_actions.values(), self.image_action, *self.save_actions.values()):
+        # Los atajos del menú sólo llegan si sus acciones cuelgan de la ventana.
+        for action in (self.browse_model_action, self.image_action, *self.save_actions.values()):
             self.addAction(action)
 
     # La flecha va en el texto: la que dibuja el estilo se pierde en cuanto la hoja de
@@ -294,7 +347,27 @@ class Viewer(QMainWindow):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         return button
 
-    # Leyenda de las capas y, sólo cuando hay modelo, su umbral y el salto entre detecciones.
+    # La vista de espectrograma: el mensaje de bienvenida hasta que haya audio, y con audio
+    # el espectrograma, la barra de tiempo y la leyenda con el filtro de score.
+    def build_review(self) -> QWidget:
+        self.placeholder = QLabel(PLACEHOLDER)
+        self.placeholder.setObjectName("placeholder")
+        self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.canvas = QStackedWidget()
+        self.canvas.addWidget(self.placeholder)
+        self.canvas.addWidget(self.plot)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(10)
+        layout.addWidget(self.canvas, 1)
+        layout.addWidget(self.transport)
+        layout.addWidget(self.build_legend())
+        page = QWidget()
+        page.setLayout(layout)
+        return page
+
+    # Leyenda de las capas y, sólo cuando hay detecciones, su umbral y el salto entre ellas.
     def build_legend(self) -> QWidget:
         self.layers = Layers([(s, COLORS[s], STYLES[s], WIDTHS[s]) for s in SOURCES])
         self.layers.changed.connect(self.draw_boxes)
@@ -306,8 +379,8 @@ class Viewer(QMainWindow):
         )
         self.score.setFixedWidth(SCORE_WIDTH)
         self.score.changed.connect(lambda: self.session.set_score(self.score.value()))
-        self.prev_button = self.chevron("◀", "Detección anterior (P)", lambda: self.jump(-1))
-        self.next_button = self.chevron("▶", "Detección siguiente (N)", lambda: self.jump(1))
+        self.prev_button = self.chevron("◀", "Previous detection (P)", lambda: self.jump(-1))
+        self.next_button = self.chevron("▶", "Next detection (N)", lambda: self.jump(1))
 
         self.model_tools = QWidget()
         tools = QHBoxLayout(self.model_tools)
@@ -317,14 +390,14 @@ class Viewer(QMainWindow):
         tools.addWidget(self.prev_button)
         tools.addWidget(self.next_button)
 
-        legend = QWidget()
-        row = QHBoxLayout(legend)
+        self.legend = QWidget()
+        row = QHBoxLayout(self.legend)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(16)
         row.addWidget(self.layers)
         row.addStretch(1)
         row.addWidget(self.model_tools)
-        return legend
+        return self.legend
 
     def chevron(self, text: str, tip: str, action) -> QToolButton:
         button = QToolButton()
@@ -333,40 +406,6 @@ class Viewer(QMainWindow):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.clicked.connect(lambda: action())
         return button
-
-    # La barra de revisión: qué hallazgo se está mirando y las dos únicas decisiones que
-    # caben sobre él. Sólo aparece cuando hay una cola cargada.
-    def build_review(self) -> QWidget:
-        self.queue = QLabel("")
-        self.queue.setObjectName("queue")
-        self.finding = QLabel("")
-        self.finding.setObjectName("hint")
-
-        self.back_button = self.chevron("◀", "Hallazgo anterior (,)", lambda: self.walk(-1))
-        self.forward_button = self.chevron("▶", "Hallazgo siguiente (.)", lambda: self.walk(1))
-        self.accept_button = QPushButton("Aceptar")
-        self.accept_button.setToolTip("Añade la caja propuesta o borra la sobrante (A)")
-        self.accept_button.clicked.connect(lambda: self.decide(ACCEPTED))
-        self.reject_button = QPushButton("Rechazar")
-        self.reject_button.setToolTip("La anotación se queda como está (R)")
-        self.reject_button.clicked.connect(lambda: self.decide(REJECTED))
-        for button in (self.accept_button, self.reject_button):
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-        self.review = QFrame()
-        self.review.setObjectName("reviewBar")
-        row = QHBoxLayout(self.review)
-        row.setContentsMargins(12, 7, 10, 7)
-        row.setSpacing(12)
-        row.addWidget(self.queue)
-        row.addWidget(self.finding)
-        row.addStretch(1)
-        row.addWidget(self.back_button)
-        row.addWidget(self.accept_button)
-        row.addWidget(self.reject_button)
-        row.addWidget(self.forward_button)
-        self.review.hide()
-        return self.review
 
     def show_help(self) -> None:
         rows = "".join(
@@ -378,7 +417,7 @@ class Viewer(QMainWindow):
             for section, entries in HELP.items()
         )
         box = QMessageBox(self)
-        box.setWindowTitle("Controles del visor")
+        box.setWindowTitle("Controls")
         box.setTextFormat(Qt.TextFormat.RichText)
         # QMessageBox se ajusta al texto: sin un mínimo, las frases se parten en dos.
         box.setStyleSheet(f"QLabel {{ min-width: {HELP_WIDTH}px; }}")
@@ -399,22 +438,31 @@ class Viewer(QMainWindow):
         self.bar.addPermanentWidget(self.readout)
         self.setStatusBar(self.bar)
 
+    # --- Motor ------------------------------------------------------------------
+
     def start_engine(self) -> None:
-        self.say("Preparando el motor de detección...")
+        self.say("Loading the detection engine… you can open an audio meanwhile.")
+        self.progress.setRange(0, 0)
+        self.progress.show()
         self.preloader = Worker(preload)
         self.preloader.ok.connect(self.engine_ready)
         self.preloader.error.connect(self.engine_failed)
         self.preloader.start()
 
     def engine_ready(self, _) -> None:
-        self.sync_controls()
-        if self.session.waveform is None:
-            self.say("Abre un audio (Ctrl+O) o arrástralo a la ventana.")
+        self.engine = True
+        self.batch.set_engine(True)
+        self.finish()
+        if self.mode() == REVIEW and self.session.waveform is None:
+            self.say("Drag and drop an audio to start, or press Ctrl+O.")
+        else:
+            self.say("Detection engine ready.")
 
     def engine_failed(self, message: str) -> None:
         # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas.
-        self.sync_controls()
-        self.say(f"El motor de detección no cargó ({message}). El visor funciona igual.")
+        self.engine = False
+        self.finish()
+        self.say(f"The detection engine did not load ({message}). Viewing still works.")
 
     # --- Estado -----------------------------------------------------------------
 
@@ -425,94 +473,194 @@ class Viewer(QMainWindow):
         self.say("Error.")
         QMessageBox.critical(self, "Error", message)
 
+    def mode(self) -> str:
+        return BATCH if self.pages.currentWidget() is self.batch else REVIEW
+
+    def set_mode(self, mode: str) -> None:
+        self.mode_actions[mode].setChecked(True)
+        leaving_review = mode == BATCH and self.mode() == REVIEW
+        if leaving_review:
+            self.dock_shown = self.table.isVisible()
+            self.table.hide()
+        self.pages.setCurrentWidget(self.batch if mode == BATCH else self.pages.widget(0))
+        for action in self.review_only:
+            action.setVisible(mode == REVIEW)
+        if mode == REVIEW and self.dock_shown:
+            self.table.show()
+            self.dock_shown = False
+        self.sync_controls()
+
+    def busy(self) -> bool:
+        return self.worker is not None and self.worker.isRunning()
+
     # Lo que no se puede usar todavía no se muestra apagado: se muestra cuando sirve.
-    def sync_controls(self, busy: bool = False) -> None:
+    def sync_controls(self) -> None:
+        busy = self.busy()
         loaded = self.session.waveform is not None
         detections = self.session.tables[DETECTIONS] is not None
-        findings = self.session.tables[FINDINGS] is not None
-        for action in self.open_actions.values():
-            action.setEnabled(not busy)
-        self.run_action.setEnabled(not busy and loaded and self.session.model_path is not None)
-        self.image_action.setEnabled(not busy and loaded)
+        model = self.session.model_path
+        engine = bool(self.engine)
+        review = self.mode() == REVIEW
+        self.open_audio_action.setEnabled(not busy)
+        self.open_table_action.setEnabled(not busy and loaded)
+        self.picker.setEnabled(not busy and not self.batch.running())
+        self.batch.set_blocked(busy)
+        self.browse_model_action.setEnabled(review and self.picker.isEnabled())
+        self.run_action.setEnabled(
+            review
+            and not busy
+            and not self.batch.running()
+            and loaded
+            and engine
+            and model is not None
+        )
+        self.run_action.setToolTip(
+            "Open an audio first (Ctrl+R)"
+            if not loaded
+            else "Choose a model first (Ctrl+R)"
+            if model is None
+            else "Waiting for the detection engine (Ctrl+R)"
+            if not engine
+            else f"Run {model.parent.name} over the open audio (Ctrl+R)"
+        )
+        self.clear_action.setEnabled(review and not busy and detections)
+        self.image_action.setEnabled(review and not busy and loaded)
         for source, action in self.save_actions.items():
-            action.setEnabled(not busy and self.session.tables[source] is not None)
-        for widget in (self.transport, self.viewer_button):
-            widget.setEnabled(loaded)
+            action.setEnabled(review and not busy and self.session.tables[source] is not None)
+        self.viewer_button.setEnabled(loaded)
+        self.export_button.setEnabled(review and loaded)
+        self.canvas.setCurrentWidget(self.plot if loaded else self.placeholder)
+        self.transport.setVisible(loaded)
+        self.legend.setVisible(loaded)
         self.model_tools.setVisible(detections)
-        self.review.setVisible(findings)
-        for button in (self.back_button, self.forward_button):
-            button.setEnabled(not busy)
-        for button in (self.accept_button, self.reject_button):
-            button.setEnabled(not busy and self.reviewing >= 0)
 
     def on_changed(self) -> None:
         self.draw_boxes()
         self.sync_controls()
 
     def start(self, task, done, message: str, reports: bool = False) -> None:
-        if self.worker is not None and self.worker.isRunning():
+        if self.busy():
             return
         self.say(message)
-        self.sync_controls(busy=True)
-        self.progress.setRange(0, 0)  # indeterminado hasta el primer reporte
-        self.progress.show()
         self.worker = Worker(task, reports)
         self.worker.ok.connect(done)
         self.worker.error.connect(self.fail)
         self.worker.progress.connect(self.show_progress)
         self.worker.finished.connect(self.finish)
         self.worker.start()
+        self.sync_controls()
+        self.progress.setRange(0, 0)  # indeterminado hasta el primer reporte
+        self.progress.show()
 
     def show_progress(self, done: int, total: int) -> None:
         self.progress.setRange(0, max(total, 1))
         self.progress.setValue(done)
 
     def finish(self) -> None:
-        self.progress.hide()
+        # La barra se queda mientras el motor o una tarea sigan cargando.
+        if not self.busy() and self.engine is not None:
+            self.progress.hide()
         self.sync_controls()
 
     # --- Apertura de archivos ---------------------------------------------------
 
-    def open_dialog(self, kind: str) -> None:
-        text, _, file_filter = OPEN[kind]
+    def open_audio(self) -> None:
         folder = str(self.session.audio_path.parent) if self.session.audio_path else ""
-        chosen, _ = QFileDialog.getOpenFileName(self, text.rstrip("…"), folder, file_filter)
+        chosen, _ = QFileDialog.getOpenFileName(self, "Open audio", folder, f"Audio ({AUDIO})")
         if chosen:
-            self.load(kind, Path(chosen))
+            self.load_audio(Path(chosen))
 
-    # Lo que se suelta en la ventana se enruta por extensión.
-    def open_path(self, path: Path) -> None:
-        kind = SUFFIXES.get(path.suffix.lower())
-        if kind is None:
-            self.say(f"No sé abrir '{path.name}'.")
-        else:
-            self.load(kind, path)
+    def open_table(self) -> None:
+        if self.session.audio_path is None:
+            self.say("Open an audio first: tables are drawn over it.")
+            return
+        folder = str(self.session.audio_path.parent)
+        chosen, _ = QFileDialog.getOpenFileName(self, "Open table", folder, f"Tables ({TABLES})")
+        if chosen:
+            self.load_table(Path(chosen))
 
-    def load(self, kind: str, path: Path) -> None:
-        if kind == "audio":
-            self.start(
-                lambda: (path, load_audio(path, P.target_sr)),
-                self.audio_loaded,
-                f"Cargando {path.name}...",
+    def browse_model(self) -> None:
+        folder = str(MODELS_DIR if MODELS_DIR.is_dir() else PROJECT_DIR)
+        chosen, _ = QFileDialog.getOpenFileName(
+            self, "Choose a model", folder, f"Checkpoint ({MODELS})"
+        )
+        if chosen:
+            self.picker.select(Path(chosen))
+
+    def add_model(self, archive: Path | None = None) -> None:
+        if archive is None:
+            chosen, _ = QFileDialog.getOpenFileName(
+                self, "Add model from zip", str(PROJECT_DIR), "Model zip (*.zip)"
             )
-        elif kind == "table":
-            self.start(lambda: read_table(path), self.table_loaded, f"Cargando {path.name}...")
-        elif kind == "model":
-            self.session.model_path = path
-            self.run_action.setToolTip(f"{path.name} (Ctrl+R)")
-            self.say(f"Modelo listo: {path.name}   (Ctrl+R para detectar)")
-            self.sync_controls()
+            if not chosen:
+                return
+            archive = Path(chosen)
+        self.start(lambda: add_model_zip(archive), self.model_added, f"Adding {archive.name}…")
+
+    def model_added(self, names: str) -> None:
+        self.picker.reload()
+        self.say(f"Added {names}: choose it in the Model list.")
+
+    # Lo que se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
+    def open_path(self, path: Path) -> None:
+        suffix = path.suffix.lower()
+        if path.is_dir():
+            self.set_mode(BATCH)
+            self.batch.set_folder(path)
+        elif suffix in AUDIO_SUFFIXES:
+            self.set_mode(REVIEW)
+            self.load_audio(path)
+        elif suffix in TABLE_SUFFIXES:
+            self.set_mode(REVIEW)
+            if self.session.audio_path is None:
+                self.say("Open an audio first: tables are drawn over it.")
+            else:
+                self.load_table(path)
+        elif is_checkpoint(path):
+            self.picker.select(path)
+        elif suffix == MODEL_ZIP_SUFFIX:
+            self.add_model(path)
+        else:
+            self.say(f"Cannot open '{path.name}'.")
+
+    def load_audio(self, path: Path) -> None:
+        self.start(
+            lambda: (path, load_audio(path, P.target_sr)),
+            self.audio_loaded,
+            f"Loading {path.name}…",
+        )
+
+    def load_table(self, path: Path) -> None:
+        self.start(lambda: read_table(path), self.table_loaded, f"Loading {path.name}…")
+
+    def model_chosen(self, path: Path | None) -> None:
+        self.session.model_path = path
+        operating = None if path is None else read_operating_point(path.parent)
+        self.batch.set_model(path, operating)
+        if path is not None:
+            self.say(
+                f"Model: {path.parent.name}"
+                + ("" if operating is None else f" · operating point {operating:.2f}")
+            )
+        self.sync_controls()
 
     def run_model(self) -> None:
         audio, model = self.session.audio_path, self.session.model_path
-        if audio is None or model is None:
+        if audio is None or model is None or not self.run_action.isEnabled():
             return
         self.start(
             lambda report: detect(audio, model, on_progress=report),
             self.detections_ready,
-            f"Ejecutando '{model.name}'...",
+            f"Running {model.parent.name}…",
             reports=True,
         )
+
+    # Desde Batch: la grabación con la tabla que el modelo le dejó, si la tiene.
+    def open_result(self, path: Path) -> None:
+        table = output_for(path)
+        self.pending_table = table if table.is_file() else None
+        self.set_mode(REVIEW)
+        self.load_audio(path)
 
     def audio_loaded(self, loaded: tuple) -> None:
         path, waveform = loaded
@@ -521,25 +669,18 @@ class Viewer(QMainWindow):
         self.plot.set_waveform(waveform, P.target_sr)
         self.transport.set_audio(waveform, P.target_sr)
         self.view.band.set_limits(int(P.nyquist_hz))
-        # El Raven de la grabación vive junto al wav: revisando se quiere siempre.
-        sidecar = path.with_suffix(".txt")
-        if sidecar.is_file():
-            self.session.set_table(*read_table(sidecar))
         self.say(f"{path.name} · {self.session.duration:.1f} s")
-        if self.pending is not None:
-            self.show_finding(self.pending)
-            self.pending = None
+        if self.pending_table is not None:
+            table, self.pending_table = self.pending_table, None
+            self.load_table(table)
 
     def table_loaded(self, loaded: tuple[str, pd.DataFrame]) -> None:
         source, table = loaded
         self.session.set_table(source, table)
-        if source != FINDINGS:
-            self.say(f"{len(table)} anotaciones cargadas.")
-            return
-        self.reviewing = -1
-        self.queue.setText(f"0 / {len(table)}")
-        self.finding.setText(f"{table[RECORDING].nunique()} grabaciones · '.' para el primero")
-        self.say(f"{len(table)} hallazgos por revisar.")
+        if source == DETECTIONS:
+            self.say(f"{len(table)} detections loaded (Score column found).")
+        else:
+            self.say(f"{len(table)} annotations loaded.")
 
     def detections_ready(self, table: pd.DataFrame) -> None:
         # Si la corrida pasó por `compare_models.py`, el slider arranca en el umbral que eligió
@@ -549,8 +690,8 @@ class Viewer(QMainWindow):
             self.score.set_value(operating)
         self.session.set_table(DETECTIONS, table)
         self.say(
-            f"{len(table)} detecciones del modelo."
-            + ("" if operating is None else f"   Umbral de la comparación: {operating:.2f}")
+            f"{len(table)} detections from the model."
+            + ("" if operating is None else f"   Operating point: {operating:.2f}")
         )
 
     # --- Recorrido --------------------------------------------------------------
@@ -566,54 +707,10 @@ class Viewer(QMainWindow):
         times = table[BEGIN].to_numpy()
         candidates = times[times >= stop] if direction > 0 else times[times < start]
         if candidates.size == 0:
-            self.say("No hay más detecciones en esa dirección.")
+            self.say("No more detections that way.")
             return
         target = float(candidates[0] if direction > 0 else candidates[-1])
         self.transport.center(target)
-
-    # La cola recorre los hallazgos por Calidad, peores primero, y abre el audio de cada uno.
-    def walk(self, direction: int) -> None:
-        table = self.session.tables[FINDINGS]
-        if table is None or table.empty:
-            return
-        self.reviewing = (self.reviewing + direction) % len(table)
-        row = table.iloc[self.reviewing]
-        path = Path(row[RECORDING])
-        if path == self.session.audio_path:
-            self.show_finding(row)
-        elif path.is_file():
-            self.pending = row
-            self.load("audio", path)
-        else:
-            self.say(f"No encontré {path.name}, el audio del hallazgo.")
-
-    def show_finding(self, row: pd.Series) -> None:
-        table = self.session.tables[FINDINGS]
-        # El encuadre es del usuario: sólo se desplaza si la caja quedó fuera de pantalla,
-        # igual que al elegirla en la tabla. La banda y el ancho de ventana no se tocan.
-        start, stop = self.transport.time_window()
-        if not (start <= row[BEGIN] and row[END] <= stop):
-            self.transport.center(0.5 * (row[BEGIN] + row[END]))
-        self.plot.set_highlight((row[BEGIN], row[END], row[LOW], row[HIGH]))
-        self.queue.setText(f"{self.reviewing + 1} / {0 if table is None else len(table)}")
-        self.finding.setText(
-            f"{issue(row[ISSUE])} · calidad {row[QUALITY]:.3f} · {row[VERDICT] or 'sin veredicto'}"
-        )
-        # Dice dónde cae la caja en vez de ir hasta ella: si esta fuera de la banda, se ve
-        # en qué frecuencias hay que mirar.
-        self.say(
-            f"{Path(row[RECORDING]).name} · {label(row)} · "
-            f"{row[BEGIN]:.2f}–{row[END]:.2f} s · {row[LOW]:,.0f}–{row[HIGH]:,.0f} Hz"
-        )
-        self.sync_controls()
-
-    def decide(self, verdict: str) -> None:
-        table = self.session.tables[FINDINGS]
-        if table is None or not 0 <= self.reviewing < len(table):
-            return
-        done = self.session.judge(self.reviewing, verdict)
-        self.show_finding(table.iloc[self.reviewing])
-        self.say(f"{done}.   ('.' para el siguiente)")
 
     def focus(self, row) -> None:
         if row is None:
@@ -646,33 +743,28 @@ class Viewer(QMainWindow):
 
     def draw_boxes(self) -> None:
         start, stop = self.transport.time_window()
-        # Una capa apagada entra como None: ni se dibuja ni se cuenta. Si todas sus cajas
-        # dicen lo mismo, esa etiqueta va a la leyenda y no encima de cada caja.
-        notes, layers = [], []
-        for source in SOURCES:
-            table = self.session.visible(source)
-            note = "" if table is None else common_label(table)
-            notes.append(note)
-            layers.append(
-                Layer(
-                    table if self.layers.enabled(source) else None,
-                    COLORS[source],
-                    STYLES[source],
-                    WIDTHS[source],
-                    source == ANNOTATIONS,
-                    not note,
-                )
+        # Una capa apagada entra como None: ni se dibuja ni se cuenta. Las anotaciones se
+        # rotulan en el borde de arriba y las detecciones en el de abajo.
+        layers = [
+            Layer(
+                self.session.visible(source) if self.layers.enabled(source) else None,
+                COLORS[source],
+                STYLES[source],
+                WIDTHS[source],
+                source == ANNOTATIONS,
             )
+            for source in SOURCES
+        ]
         shown = self.plot.draw_boxes(layers, start, stop)
-        for source, count, note in zip(SOURCES, shown, notes, strict=True):
-            table = self.session.tables[source]
-            self.layers.set_state(source, count, 0 if table is None else len(table), note)
+        for source, count in zip(SOURCES, shown, strict=True):
+            table = self.session.visible(source)
+            self.layers.set_state(source, count, 0 if table is None else len(table))
 
     # --- Exportacion ------------------------------------------------------------
 
     def save_path(self, title: str, suffix: str, file_filter: str) -> Path | None:
         audio = self.session.audio_path
-        stem = audio.stem if audio is not None else "espectrograma"
+        stem = audio.stem if audio is not None else "spectrogram"
         folder = audio.parent if audio is not None else Path.cwd()
         chosen, _ = QFileDialog.getSaveFileName(
             self, title, str(folder / f"{stem}{suffix}"), file_filter
@@ -683,49 +775,45 @@ class Viewer(QMainWindow):
         if self.session.waveform is None:
             return
         start, stop = self.transport.time_window()
-        path = self.save_path("Guardar imagen", f"_{start:.2f}-{stop:.2f}s.png", "PNG (*.png)")
+        path = self.save_path("Save image", f"_{start:.2f}-{stop:.2f}s.png", "PNG (*.png)")
         if path is None:
             return
         try:
             self.plot.export_png(path)
         except Exception as exc:
-            self.fail(f"No se pudo guardar la imagen:\n{type(exc).__name__}: {exc}")
+            self.fail(f"Could not save the image:\n{type(exc).__name__}: {exc}")
         else:
-            self.say(f"Imagen guardada en {path.name}")
+            self.say(f"Image saved as {path.name}")
 
+    # Se guardan las cajas visibles: las detecciones bajo el score del slider no van.
     def export_table(self, source: str) -> None:
-        # Los veredictos son de todo el dataset; las cajas, sólo del audio abierto.
-        if source == FINDINGS:
-            table = self.session.tables[FINDINGS]
-            suffix, file_filter = "_veredictos.csv", "CSV (*.csv)"
-        else:
-            table = self.session.visible(source)
-            suffix = f".{'detections' if source == DETECTIONS else 'annotations'}.txt"
-            file_filter = "Raven (*.txt);;CSV (*.csv)"
+        table = self.session.visible(source)
         if table is None:
             return
-        table = table.copy()
-        if source != FINDINGS:
-            table = renumber(table)
-        path = self.save_path(f"Guardar {source.lower()}", suffix, file_filter)
+        suffix = f".{'detections' if source == DETECTIONS else 'annotations'}.txt"
+        path = self.save_path(f"Save {source.lower()}", suffix, "Raven (*.txt);;CSV (*.csv)")
         if path is None:
             return
+        table = renumber(table.copy())
         try:
             table.to_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index=False)
         except Exception as exc:
-            self.fail(f"No se pudo guardar la tabla:\n{type(exc).__name__}: {exc}")
+            self.fail(f"Could not save the table:\n{type(exc).__name__}: {exc}")
         else:
-            self.say(f"{len(table)} filas en {path.name}")
+            self.say(f"{len(table)} rows saved to {path.name}")
 
     # --- Eventos ----------------------------------------------------------------
 
     def dropped(self, event) -> Path | None:
         mime = event.mimeData() if event is not None else None
         urls = mime.urls() if mime is not None and mime.hasUrls() else []
-        if not urls or not self.open_actions["audio"].isEnabled():
+        if not urls or self.busy():
             return None
         path = Path(urls[0].toLocalFile())
-        return path if path.is_file() and path.suffix.lower() in SUFFIXES else None
+        known = {*AUDIO_SUFFIXES, *TABLE_SUFFIXES, *CHECKPOINT_SUFFIXES, MODEL_ZIP_SUFFIX}
+        if path.is_dir() or (path.is_file() and path.suffix.lower() in known):
+            return path
+        return None
 
     @override
     def dragEnterEvent(self, a0) -> None:
@@ -741,7 +829,9 @@ class Viewer(QMainWindow):
 
     @override
     def keyPressEvent(self, a0) -> None:
-        if a0 is None:
+        if a0 is None or self.mode() != REVIEW or self.session.waveform is None:
+            if a0 is not None:
+                super().keyPressEvent(a0)
             return
         key = a0.key()
         if key == Qt.Key.Key_Space:
@@ -764,30 +854,38 @@ class Viewer(QMainWindow):
             self.jump(1)
         elif key == Qt.Key.Key_P:
             self.jump(-1)
-        elif key in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3):
+        elif key in (Qt.Key.Key_1, Qt.Key.Key_2):
             self.layers.toggle(SOURCES[key - Qt.Key.Key_1])
-        elif key == Qt.Key.Key_Comma:
-            self.walk(-1)
-        elif key == Qt.Key.Key_Period:
-            self.walk(1)
-        elif key == Qt.Key.Key_A:
-            self.decide(ACCEPTED)
-        elif key == Qt.Key.Key_R:
-            self.decide(REJECTED)
         else:
             super().keyPressEvent(a0)
 
     @override
     def closeEvent(self, a0) -> None:
+        if a0 is None:
+            return
+        if self.batch.running():
+            answer = QMessageBox.question(
+                self,
+                "Batch running",
+                "A batch is still running. Stop it and quit?\nTables already written are kept.",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                a0.ignore()
+                return
+            self.batch.stop()
+        if self.batch.worker is not None:
+            self.batch.worker.wait()
+        if self.worker is not None:
+            self.worker.stop()
+            self.worker.wait()
         self.plot.close_renderer()
         super().closeEvent(a0)
 
 
-def main() -> None:
-    if sys.platform == "linux":
-        os.environ.setdefault("QT_QPA_PLATFORMTHEME", "xdgdesktopportal")
-        os.environ.setdefault("QT_WAYLAND_DECORATION", "adwaita")
-    app = QApplication(sys.argv)
+# El arranque (main.py) crea la QApplication y muestra el splash antes de importar este
+# módulo; acá se termina de configurar y se abre la ventana con lo que venga por argumento.
+def run(app: QApplication, paths: list[Path]) -> Viewer:
+    app.setApplicationName(BASE_TITLE)
     app.setStyle("Fusion")
     style = app.style()
     if style is not None:
@@ -801,4 +899,6 @@ def main() -> None:
     )
     viewer = Viewer()
     viewer.show()
-    sys.exit(app.exec())
+    for path in paths:
+        viewer.open_path(path)
+    return viewer

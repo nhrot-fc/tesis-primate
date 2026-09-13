@@ -15,15 +15,14 @@ from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
 from viewer.tasks import Latest
 
 COLORMAP = "magma"
-PLAYHEAD_COLOR = "#19ff8f"
-HIGHLIGHT_COLOR = "#ffffff"
+# Blanco y ámbar: ninguno de los dos es el color de una capa de cajas.
+PLAYHEAD_COLOR = "#ffffff"
+HIGHLIGHT_COLOR = "#ffd54f"
 HIGHLIGHT_MARGIN = 0.012
 # Un relleno tenue: la caja se lee como region aunque su borde cruce una zona clara.
 FILL_ALPHA = 34
 CAPTION_ALPHA = 165
 CAPTION_POINT_SIZE = 8
-# Debajo de este ancho la etiqueta mide mas que su caja y solo tapa: no se dibuja.
-MIN_CAPTION_PX = 30
 AXIS_PAD = 12
 AXIS_SAMPLE = "00000"
 EXPORT_WIDTH = 2400
@@ -47,8 +46,7 @@ class Layer(NamedTuple):
     color: str
     style: Qt.PenStyle
     width: int
-    above: bool  # rotula afuera del borde superior en vez de adentro
-    captions: bool  # False cuando todas las cajas dicen lo mismo y lo dice la leyenda
+    top: bool  # rotula pegado al borde superior de la caja; si no, al inferior
 
 
 def resolution(span: float, sr: int) -> tuple[int, int]:
@@ -69,7 +67,7 @@ class SpectrogramView(pg.PlotWidget):
         item = self.getPlotItem()
 
         if item is None:
-            raise RuntimeError("No se pudo obtener el PlotItem del SpectrogramView")
+            raise RuntimeError("SpectrogramView has no PlotItem")
 
         item.showAxes(True, showValues=(True, False, False, True))  # pyright: ignore[reportArgumentType]
         item.getAxis("bottom").enableAutoSIPrefix(False)
@@ -90,7 +88,7 @@ class SpectrogramView(pg.PlotWidget):
         self.image.setColorMap(COLORMAP)  # pyqtgraph resuelve el nombre; es el magma de matplotlib
         self.vb.addItem(self.image)
         self.playhead = pg.InfiniteLine(angle=90, movable=False)
-        self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=2))
+        self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=1.5))
         self.playhead.setZValue(20)
         self.playhead.hide()
         self.vb.addItem(self.playhead, ignoreBounds=True)
@@ -199,15 +197,10 @@ class SpectrogramView(pg.PlotWidget):
             self.pool.append((rect, text))
         return self.pool[index]
 
-    # El ancho en segundos que ocupa un rotulo corto: por debajo de eso no se dibuja.
-    def caption_floor(self) -> float:
-        (x0, x1), _ = self.vb.viewRange()
-        return MIN_CAPTION_PX * (x1 - x0) / max(self.vb.width(), 1)
-
     def draw_boxes(self, layers: list[Layer], start: float, stop: float) -> list[int]:
         # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
-        floor = self.caption_floor()
+        (view_x0, _), (view_y0, view_y1) = self.vb.viewRange()
         for layer in layers:
             table = layer.table
             if table is None or table.empty:
@@ -228,20 +221,18 @@ class SpectrogramView(pg.PlotWidget):
                 rect.setPen(pen)
                 rect.setBrush(brush)
                 rect.setVisible(True)
-                # La etiqueta comun de la capa ya esta en la leyenda; aca solo va lo que
-                # cambia de una caja a otra, y solo si la caja da el ancho para leerlo.
-                caption = label(row) if layer.captions else ""
+                # Cada caja lleva siempre su rotulo, y cada capa lo pega a un borde distinto
+                # para que una deteccion encima de su anotacion no lo tape. Si la caja sale
+                # de la pantalla, el rotulo se queda en el borde visible.
+                caption = label(row)
                 if scored:
                     caption = f"{caption} {row[SCORE]:.2f}".strip()
-                if caption and width >= floor:
-                    text.setText(caption, color=layer.color)
-                    # Cada capa rotula a un lado del borde superior --una afuera y otra
-                    # adentro-- para que una deteccion encima de su anotacion no la tape.
-                    text.setAnchor((0, 1) if layer.above else (0, 0))
-                    text.setPos(x0, y0 + height)
-                    text.setVisible(True)
-                else:
-                    text.setVisible(False)
+                x = max(x0, view_x0)
+                y = min(y0 + height, view_y1) if layer.top else max(y0, view_y0)
+                text.setText(caption, color=layer.color)
+                text.setAnchor((0, 0) if layer.top else (0, 1))
+                text.setPos(x, y)
+                text.setVisible(True)
                 used += 1
         for rect, text in self.pool[used:]:
             rect.setVisible(False)

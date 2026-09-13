@@ -45,7 +45,7 @@ sed "s/{version}/$VERSION/g" deploy/release_notes.md > "$notes"
             *-win64-cpu.zip*)  what="runtime, any 64-bit PC" ;;
             *-win64-cuda.zip*) what="runtime with NVIDIA support" ;;
             *-model-*.zip*)    m=${name#*-model-}; what="model \`${m%%.zip*}\`" ;;
-            *.unir.bat)        what="joins the parts of a split zip" ;;
+            *.join.bat)        what="joins the parts of a split zip" ;;
             SHA256SUMS.txt)    what="checksums" ;;
             *)                 what="" ;;
         esac

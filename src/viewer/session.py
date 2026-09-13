@@ -7,79 +7,32 @@ import pandas as pd
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
 from core.config import SCORE_THRESHOLD
-from data.raven import BEGIN, BOX_COLUMNS, CALL, CLEANED_BOX_COLUMNS, END, SCORE, SPECIES
-from data.species import LABEL_SEPARATOR
+from data.raven import BOX_COLUMNS, CALL, SCORE, SPECIES
 from viewer.spectrogram import Waveform
 
-ANNOTATIONS = "Anotaciones"
-DETECTIONS = "Modelo"
-FINDINGS = "Hallazgos"
-SOURCES = (ANNOTATIONS, DETECTIONS, FINDINGS)
-# Sobre un espectrograma en grises el color es sólo de las cajas. Azul y naranja es el par
-# que mejor se separa sin distinguir colores, y el trazo lo confirma: la verdad va entera,
-# el modelo a rayas. Los hallazgos, que son la excepción, van en magenta y más gruesos.
-COLORS = {ANNOTATIONS: "#00a8ff", DETECTIONS: "#ff7a18", FINDINGS: "#ff2d78"}
-STYLES = {
-    ANNOTATIONS: Qt.PenStyle.SolidLine,
-    DETECTIONS: Qt.PenStyle.DashLine,
-    FINDINGS: Qt.PenStyle.SolidLine,
-}
-WIDTHS = {ANNOTATIONS: 2, DETECTIONS: 2, FINDINGS: 3}
-
-RECORDING, VERDICT = "recording", "Veredicto"
-ACCEPTED, REJECTED = "aceptado", "rechazado"
-# Formato de las tablas de hallazgos de la auditoría CLOD (runs/comparacion_nms/*.csv): cajas
-# con las columnas de `cleaned/`, un hallazgo por fila y su calidad.
-ISSUE, QUALITY = "Hallazgo", "Calidad"
-SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
-# La caja de CLOD y la del Raven fuente sólo difieren en el redondeo del archivo.
-TOLERANCE_S = 1e-3
+ANNOTATIONS = "Annotations"
+DETECTIONS = "Detections"
+SOURCES = (ANNOTATIONS, DETECTIONS)
+# Sobre el espectrograma magma (negro, púrpura, amarillo) verde y celeste se separan de la
+# imagen y entre sí; el trazo lo confirma para quien no distingue colores: la verdad va
+# entera, el modelo a rayas.
+COLORS = {ANNOTATIONS: "#3ddc84", DETECTIONS: "#4fc3f7"}
+STYLES = {ANNOTATIONS: Qt.PenStyle.SolidLine, DETECTIONS: Qt.PenStyle.DashLine}
+WIDTHS = {ANNOTATIONS: 2, DETECTIONS: 2}
 
 
-# Una tabla de CLOD se reconoce por su columna de hallazgo; el resto se lee como Raven.
+# Una tabla de Raven con columna `Score` la escribió un modelo y va a la capa de detecciones,
+# donde el slider la filtra; sin ella es una anotación.
 def read_table(path: Path) -> tuple[str, pd.DataFrame]:
     table = pd.read_csv(path, sep=None, engine="python")
-    if ISSUE in table.columns:
-        needed = [*CLEANED_BOX_COLUMNS, QUALITY, RECORDING]
-        absent = [name for name in needed if name not in table.columns]
-        if absent:
-            raise ValueError(f"'{path.name}' no trae las columnas: {', '.join(absent)}")
-        table = table.rename(columns=dict(zip(CLEANED_BOX_COLUMNS, BOX_COLUMNS, strict=True)))
-        # CLOD pega especie y llamada como el `LabelSet` ('sm/fs'); el Raven fuente las trae
-        # aparte y en mayúscula.
-        table[[SPECIES, CALL]] = (
-            table["species"].str.upper().str.split(LABEL_SEPARATOR, n=1, expand=True)
-        )
-        table[VERDICT] = ""
-        return FINDINGS, table.sort_values(QUALITY, kind="mergesort").reset_index(drop=True)
-
     absent = [name for name in BOX_COLUMNS if name not in table.columns]
     if absent:
-        raise ValueError(f"'{path.name}' no tiene las columnas: {', '.join(absent)}")
-    return ANNOTATIONS, table
-
-
-# CLOD nombra sus hallazgos en ingles; en pantalla van como el resto de la ventana.
-ISSUES = {MISSING: "falta", SPURIOUS: "sobra", LOCATION: "posición", LABEL: "etiqueta"}
-
-
-def issue(value: str) -> str:
-    return ISSUES.get(value, value)
+        raise ValueError(f"'{path.name}' is missing the columns: {', '.join(absent)}")
+    return (DETECTIONS if SCORE in table.columns else ANNOTATIONS), table
 
 
 def label(row: pd.Series) -> str:
-    name = "/".join(str(row[c]) for c in (SPECIES, CALL) if c in row.index)
-    return f"{issue(row[ISSUE])} {name}" if ISSUE in row.index else name
-
-
-# La etiqueta que comparten todas las cajas de una tabla, o "" si hay mas de una. Cuando es
-# una sola se dice en la leyenda, en vez de repetirla encima de cada caja.
-def common_label(table: pd.DataFrame) -> str:
-    columns = [name for name in (ISSUE, SPECIES, CALL) if name in table.columns]
-    if not columns or table.empty:
-        return ""
-    unique = table[columns].drop_duplicates()
-    return label(unique.iloc[0]) if len(unique) == 1 else ""
+    return "/".join(str(row[c]) for c in (SPECIES, CALL) if c in row.index)
 
 
 @dataclass(frozen=True)
@@ -94,8 +47,8 @@ class Row:
     score: float  # NaN cuando la tabla no trae `SCORE`
 
 
-# Estado compartido entre el espectrograma y la tabla de revisión: quien mira las cajas
-# las lee de aquí y quien las edita emite `changed`.
+# Estado compartido entre el espectrograma y la tabla de cajas: quien mira las cajas las lee
+# de aquí y quien las edita emite `changed`. El audio va primero: cargar otro vacía las capas.
 class Session(QObject):
     changed = pyqtSignal()
 
@@ -114,16 +67,11 @@ class Session(QObject):
 
     def set_audio(self, path: Path, waveform: Waveform, sr: int) -> None:
         self.audio_path, self.waveform, self.sr = path, waveform, sr
-        self.tables[DETECTIONS] = None  # son de otro audio
+        self.tables = dict.fromkeys(SOURCES)  # eran de otro audio
         self.changed.emit()
 
-    def set_table(self, source: str, table: pd.DataFrame) -> None:
+    def set_table(self, source: str, table: pd.DataFrame | None) -> None:
         self.tables[source] = table
-        # Al recargar el Raven de una grabación ya revisada se rehacen sus veredictos.
-        judged = self.visible(FINDINGS) if source == ANNOTATIONS else None
-        if judged is not None:
-            for _, row in judged.iterrows():
-                self.apply(row)
         self.changed.emit()
 
     def set_score(self, score: float) -> None:
@@ -132,12 +80,7 @@ class Session(QObject):
 
     def visible(self, source: str) -> pd.DataFrame | None:
         table = self.tables[source]
-        if table is None:
-            return None
-        # Los hallazgos son de todo el dataset; sobre el audio abierto van sólo los suyos.
-        if RECORDING in table.columns:
-            table = table.loc[table[RECORDING] == str(self.audio_path)]
-        if SCORE not in table.columns:
+        if table is None or SCORE not in table.columns:
             return table
         return table.loc[table[SCORE] >= self.score]
 
@@ -148,35 +91,6 @@ class Session(QObject):
             if indices and table is not None:
                 self.tables[source] = table.drop(index=indices)
         self.changed.emit()
-
-    # `position` es la fila en la cola de hallazgos, no la etiqueta del índice.
-    def judge(self, position: int, verdict: str) -> str:
-        findings = self.tables[FINDINGS]
-        if findings is None:
-            return ""
-        findings.at[findings.index[position], VERDICT] = verdict
-        done = self.apply(findings.iloc[position])
-        self.changed.emit()
-        return done
-
-    # Lleva un veredicto aceptado a las anotaciones y cuenta qué hizo. `location` y
-    # `label` piden mover la caja, y el visor no la edita: sólo quedan registrados.
-    def apply(self, row: pd.Series) -> str:
-        annotations = self.tables[ANNOTATIONS]
-        if row[VERDICT] != ACCEPTED or annotations is None:
-            return row[VERDICT] or "sin veredicto"
-        if row[ISSUE] == MISSING:
-            self.tables[ANNOTATIONS] = pd.concat(
-                [annotations, row[[*BOX_COLUMNS, SPECIES, CALL]].to_frame().T], ignore_index=True
-            )
-            return "anotación añadida"
-        if row[ISSUE] == SPURIOUS:
-            gap = (annotations[BEGIN] - row[BEGIN]).abs() + (annotations[END] - row[END]).abs()
-            if len(gap) and gap.min() < TOLERANCE_S:
-                self.tables[ANNOTATIONS] = annotations.drop(index=gap.idxmin())
-                return "anotación borrada"
-            return "aceptado, pero esa anotación no está en la tabla"
-        return "aceptado; la caja hay que moverla a mano"
 
     # Las cajas de un origen ordenadas por tiempo, que es como se revisan.
     def rows(self, source: str) -> list[Row]:

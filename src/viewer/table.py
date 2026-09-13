@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 from data.raven import SCORE
 from viewer.session import SOURCES, Row, Session
 
-HEADERS = ("Inicio", "Fin", "Hz", "Etiqueta")
+HEADERS = ("Start", "End", "Hz", "Label")
 LABEL_COLUMN = 3
 TRASH_WIDTH = 34
 PANEL_WIDTH = 400
@@ -65,7 +65,7 @@ class BoxModel(QAbstractTableModel):
             if role == Qt.ItemDataRole.DecorationRole:
                 return self.trash
             if role == Qt.ItemDataRole.ToolTipRole:
-                return "Borrar (Supr)"
+                return "Remove (Del)"
             return None
         if role == Qt.ItemDataRole.TextAlignmentRole and column != LABEL_COLUMN:
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
@@ -147,12 +147,12 @@ class SourceTable(QTableView):
             self.session.remove([(row.source, row.index) for row in rows])
 
 
-# Ventana de revisión: una pestaña por origen, cada caja borrable con su papelera.
+# Panel de cajas: una pestaña por origen, cada caja borrable con su papelera.
 class BoxTable(QDockWidget):
     picked = pyqtSignal(object)
 
     def __init__(self, session: Session) -> None:
-        super().__init__("Revisión")
+        super().__init__("Boxes")
         self.session = session
         self.setAllowedAreas(
             Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea

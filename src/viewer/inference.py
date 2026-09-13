@@ -1,7 +1,7 @@
 import importlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -12,15 +12,26 @@ if TYPE_CHECKING:
 # arriba: bajar el slider no vuelve a correr el modelo.
 DETECT_THRESHOLD = 0.05
 
-# Cache en memoria de los checkpoints cargados
-# Esto es posible porque los checkpoints son ligeros <= 400 MB
-LOADED: dict[Path, "LoadedModel | Any"] = {}
+# Cache en memoria del checkpoint cargado, uno solo: el visor y la vista Batch comparten el
+# modelo, y con <= 400 MB por checkpoint cabe recargarlo al cambiar de modelo.
+LOADED: dict[Path, "LoadedModel"] = {}
 
 
 def preload() -> None:
     # Carga torch, transformers y los modelos fuera del hilo de la interfaz.
-    for module in ("inference.predictor", "models.registry"):
+    for module in ("inference.batch", "inference.predictor", "models.registry"):
         importlib.import_module(module)
+
+
+def load(checkpoint_path: Path) -> "tuple[LoadedModel, str]":
+    from core.runtime import resolve_device
+    from models.registry import load_checkpoint
+
+    device = resolve_device()
+    if checkpoint_path not in LOADED:
+        LOADED.clear()
+        LOADED[checkpoint_path] = load_checkpoint(checkpoint_path, device)
+    return LOADED[checkpoint_path], device
 
 
 def detect(
@@ -28,18 +39,17 @@ def detect(
     checkpoint_path: Path,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> pd.DataFrame:
-    from core.runtime import resolve_device
+    from inference.batch import batch_size_for
     from inference.predictor import predict
-    from models.registry import load_checkpoint
 
-    device = resolve_device()
-    if checkpoint_path not in LOADED:
-        LOADED.clear()
-        LOADED[checkpoint_path] = load_checkpoint(checkpoint_path, device)
-    loaded = LOADED[checkpoint_path]
-
+    loaded, device = load(checkpoint_path)
     table = predict(
-        loaded, audio_path, device, score_threshold=DETECT_THRESHOLD, on_progress=on_progress
+        loaded,
+        audio_path,
+        device,
+        score_threshold=DETECT_THRESHOLD,
+        batch_size=batch_size_for(device),
+        on_progress=on_progress,
     )
     table.attrs["operating_point"] = loaded.operating_point
     return table

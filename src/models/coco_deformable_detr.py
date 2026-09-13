@@ -5,70 +5,51 @@ from typing import TYPE_CHECKING
 
 import torch
 from torch import Tensor, nn
+from torch.nn import functional as F
 from torch.nn.init import constant_
 
 from core.config import HF_DIR, SCORE_THRESHOLD
-from models.backbone import TIME_STRIDE, ASTBackbone, MultiScalePyramid
 from models.base import Detector
 from models.criterion import Outputs, SetCriterion
-from models.deformable_detr import (
-    FRONTEND,
-    N_QUERIES,
-    PRIOR_PROB,
-    inverse_sigmoid,
-    sigmoid_detections,
-)
-from models.frontend import build_frontend
+from models.deformable_detr import PRIOR_PROB, inverse_sigmoid, sigmoid_detections
+from models.faster_rcnn import MAX_SIZE, MIN_SIZE
+from utils.audio import mel_to_unit
 from utils.boxes import Detections, Target
 
 if TYPE_CHECKING:
-    from transformers import DeformableDetrConfig, DeformableDetrForObjectDetection
+    from transformers import DeformableDetrForObjectDetection
 
 logger = logging.getLogger(__name__)
 
 # Deformable DETR de dos etapas con refinamiento de cajas, entrenado en COCO (Zhu et al. 2021)
 DETR_CHECKPOINT = "SenseTime/deformable-detr-with-box-refine-two-stage"
-D_MODEL = 256
+# Queries y propuestas con las que se entrenó en COCO
+COCO_QUERIES = 300
+# Con lo que se normalizaron las imágenes que vio su ResNet-50
+IMAGENET_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
 def local_detr_dir(checkpoint: str = DETR_CHECKPOINT) -> Path:
     return HF_DIR / checkpoint.replace("/", "__")
 
 
-def placeholder_config(source: str | Path) -> "DeformableDetrConfig":
-    from transformers import DeformableDetrConfig, ResNetConfig
-
-    config = DeformableDetrConfig.from_pretrained(source)
-    if not config.two_stage:
-        raise ValueError(f"{source} no es de dos etapas; `outputs` cuenta con las propuestas")
-    # El ResNet-50 de COCO se descarta (y pediría `timm`): un ResNet de relleno con cuatro salidas
-    # de D_MODEL canales hace que HF arme `input_proj` como cuatro convoluciones 1x1 para la
-    # pirámide del AST, que ocupa su lugar en `CocoDeformableDETR`.
-    config.backbone_config = ResNetConfig(
-        embedding_size=D_MODEL,
-        hidden_sizes=[D_MODEL] * 4,
-        depths=[1] * 4,
-        out_features=[f"stage{i}" for i in range(1, 5)],
-    )
-    return config
-
-
 def load_detr(
     n_classes: int, n_queries: int, checkpoint: str = DETR_CHECKPOINT
 ) -> "DeformableDetrForObjectDetection":
-    # `transformers` es el extra `detr`: sólo hace falta si se carga esta arquitectura.
-    from transformers import DeformableDetrForObjectDetection
+    # `transformers` y `timm` (su ResNet-50) son el extra `detr`: sólo hacen falta si se carga
+    # esta arquitectura.
+    from transformers import DeformableDetrConfig, DeformableDetrForObjectDetection
 
     local_dir = local_detr_dir(checkpoint)
     if not local_dir.is_dir():
         logger.info("Descargando Deformable DETR '%s' desde HuggingFace...", checkpoint)
-        pristine = DeformableDetrForObjectDetection.from_pretrained(
-            checkpoint, config=placeholder_config(checkpoint), ignore_mismatched_sizes=True
-        )
-        pristine.save_pretrained(local_dir)
+        DeformableDetrForObjectDetection.from_pretrained(checkpoint).save_pretrained(local_dir)
         logger.info("Deformable DETR guardado en %s", local_dir)
 
-    config = placeholder_config(local_dir)
+    config = DeformableDetrConfig.from_pretrained(local_dir)
+    if not config.two_stage:
+        raise ValueError(f"{checkpoint} no es de dos etapas; `outputs` cuenta con las propuestas")
     config.num_labels = n_classes
     config.num_queries = config.two_stage_num_proposals = n_queries
     # Las cabezas de clase (91 clases de COCO) se reinician; el resto carga tal cual.
@@ -77,52 +58,51 @@ def load_detr(
     )
 
 
-class ASTPyramid(nn.Module):
-    # Ocupa el lugar del ResNet de HF: (mapa, máscara) por nivel, del 4x al 1/2x de los tokens del AST.
-    def __init__(self, n_frames: int | None, time_stride: int, frontend: str, dim: int = D_MODEL):
-        super().__init__()
-        self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride)
-        self.frontend = build_frontend(frontend, self.backbone.n_mels)
-        # Media 0 y varianza 1 por lote, a la mitad: el rango con el que el AST se preentrenó.
-        self.input_norm = nn.BatchNorm2d(1, affine=False)
-        self.proj = nn.Linear(self.backbone.hidden_size, dim)
-        self.pyramid = MultiScalePyramid(dim)
-        self.pyramid.check_input_size(self.backbone.freq_out, self.backbone.time_out)
-
-    def forward(self, mel: Tensor, pixel_mask: Tensor | None = None) -> list[tuple[Tensor, Tensor]]:
-        tokens = self.backbone(self.input_norm(self.frontend(mel)) / 2)
-        features = self.proj(tokens).transpose(1, 2)
-        features = features.unflatten(-1, (self.backbone.freq_out, self.backbone.time_out))
-        return [
-            (level, level.new_ones(level.shape[0], *level.shape[-2:], dtype=torch.bool))
-            for level in self.pyramid(features)
-        ]
-
-
-class CocoDeformableDETR(Detector):
+class ResNetDeformableDETR(Detector):
+    # El Deformable DETR de COCO tal cual sale de HF, ResNet-50 incluido, con la receta de Zhu
+    # et al. 2021: el mel pintado como imagen ImageNet, 300 queries, stem y layer1 congelados.
     # Sin NMS: el matching húngaro ya es uno a uno
     nms_iou = None
     clip_grad = 0.1
+    needs_db_range = True
+    mean: Tensor
+    std: Tensor
 
     def __init__(
         self,
         n_classes: int,
-        n_frames: int | None = None,
-        time_stride: int = TIME_STRIDE,
-        n_queries: int = N_QUERIES,
-        frontend: str = FRONTEND,
+        db_low: float,
+        db_high: float,
+        n_queries: int = COCO_QUERIES,
+        min_size: int = MIN_SIZE,
+        max_size: int = MAX_SIZE,
         checkpoint: str = DETR_CHECKPOINT,
     ):
         super().__init__()
+        self.db_low, self.db_high = db_low, db_high
+        self.min_size, self.max_size = min_size, max_size
         self.detr = load_detr(n_classes, n_queries, checkpoint)
-        self.detr.model.backbone = ASTPyramid(n_frames, time_stride, frontend)
+        for name, parameter in self.detr.model.backbone.model.named_parameters():
+            parameter.requires_grad_(any(f"layer{i}" in name for i in (2, 3, 4)))
         # Cabezas nuevas con el prior de Zhu et al. 2021; la última puntúa las propuestas del encoder.
         for head in self.detr.class_embed:
+            assert isinstance(head, nn.Linear)
             constant_(head.bias, -math.log((1 - PRIOR_PROB) / PRIOR_PROB))
         self.criterion = SetCriterion()
+        self.register_buffer("mean", torch.tensor(IMAGENET_MEAN).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor(IMAGENET_STD).view(1, 3, 1, 1))
+
+    def pixels(self, mel: Tensor) -> Tensor:
+        # Como el Faster R-CNN: el mel en dB a [0, 1], escalado a 396 x 1024 y en tres canales
+        image = mel_to_unit(mel, self.db_low, self.db_high)
+        height, width = image.shape[-2:]
+        scale = min(self.min_size / min(height, width), self.max_size / max(height, width))
+        size = (round(height * scale), round(width * scale))
+        image = F.interpolate(image, size=size, mode="bilinear", align_corners=False)
+        return (image.expand(-1, 3, -1, -1) - self.mean) / self.std
 
     def outputs(self, mel: Tensor) -> Outputs:
-        core = self.detr.model(pixel_values=mel)
+        core = self.detr.model(pixel_values=self.pixels(mel))
         hidden = core.intermediate_hidden_states  # (B, capas, Q, C)
         per_layer: list[dict[str, Tensor]] = []
         for layer in range(hidden.shape[1]):

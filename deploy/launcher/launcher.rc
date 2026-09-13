@@ -1,0 +1,24 @@
+// Icono y ficha de versión de los .exe; build_windows.py rellena las llaves antes de compilar.
+1 ICON "icon.ico"
+
+1 VERSIONINFO
+FILEVERSION {file_version}
+PRODUCTVERSION {file_version}
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "ProductName", "Primate Vocalization Detector"
+            VALUE "FileDescription", "{description}"
+            VALUE "FileVersion", "{version}"
+            VALUE "ProductVersion", "{version}"
+            VALUE "OriginalFilename", "{filename}"
+            VALUE "InternalName", "{filename}"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

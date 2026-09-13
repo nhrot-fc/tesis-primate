@@ -1,7 +1,7 @@
 """Arma los zips del release de Windows: el runtime por un lado y cada modelo por otro.
 
     runtime  detector-<versión>-win64-<cpu|cuda>.zip   (carpeta raíz del mismo nombre)
-               Visor.bat, Detectar.bat, Agregar-modelo.bat, LEEME.txt
+               Detector.exe, detect.exe, README.txt
                python/   intérprete embebido de python.org, Lib/site-packages, DLLs de MSVC
                src/      este repo, tal cual (core.config resuelve hf/ y models/ desde acá)
                models/   vacía: acá van los modelos
@@ -9,8 +9,9 @@
                models/<corrida>/<checkpoint> + operating_point.json
                hf/…      los backbones de Hugging Face que esa arquitectura reconstruye
 
-El zip de un modelo se descomprime dentro de la carpeta del runtime (`Agregar-modelo.bat` lo
-hace). Corre en Linux: uv resuelve e instala los wheels de Windows sin ejecutarlos.
+El zip de un modelo se descomprime dentro de la carpeta del runtime (el visor lo hace con
+"Add model from zip…"). Corre en Linux: uv resuelve e instala los wheels de Windows sin
+ejecutarlos, y los .exe (deploy/launcher/) se compilan con zig, que uv baja como paquete.
 
     uv run python deploy/build_windows.py runtime --variant cpu
     uv run python deploy/build_windows.py models runs/frcnn runs/yolo26s_coco
@@ -30,6 +31,7 @@ from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES = Path(__file__).resolve().parent / "windows"
+LAUNCHER = Path(__file__).resolve().parent / "launcher"
 BUILD_DIR = PROJECT_DIR / "build"  # descargas reutilizables
 DIST_DIR = PROJECT_DIR / "dist"
 
@@ -41,6 +43,14 @@ PLATFORM = "x86_64-pc-windows-msvc"
 # Índice de torch por variante: cu128 corre con drivers NVIDIA desde la serie 527
 TORCH_BACKENDS = {"cpu": "cpu", "cuda": "cu128"}
 UV = os.environ.get("UV", "uv")
+# Compilador cruzado para los .exe: el paquete `ziglang` de PyPI trae zig entero
+ZIG_VERSION = "0.16.0"
+# Los dos lanzadores: nombre, macro con la que se compila launcher.c y ficha de versión
+LAUNCHERS = [
+    ("Detector.exe", "GUI", "Spectrogram viewer and batch detection"),
+    ("detect.exe", None, "Command-line batch detection"),
+]
+ICON_SIZES = [(256, 256), (48, 48), (32, 32), (16, 16)]
 # GitHub admite hasta 2 GiB por archivo en un release
 MAX_PART_MB = 1900
 # Dentro de site-packages: cabeceras, librerías de enlace y pruebas que la inferencia no usa
@@ -204,7 +214,7 @@ def copy_source(stage: Path) -> None:
 
 
 def copy_launchers(stage: Path, version: str, variant: str) -> None:
-    # `deploy/windows/` se calca sobre el paquete: python/entorno.bat, models/LEEME.txt…
+    # `deploy/windows/` se calca sobre el paquete: README.txt, models/README.txt…
     for template in TEMPLATES.rglob("*"):
         if not template.is_file() or template.suffix == ".in":
             continue
@@ -216,12 +226,63 @@ def copy_launchers(stage: Path, version: str, variant: str) -> None:
         target.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
 
 
+# --- Lanzadores .exe -----------------------------------------------------------------
+
+
+def zig(*arguments: str | Path) -> None:
+    package = f"ziglang=={ZIG_VERSION}"
+    run(UV, "run", "--no-project", "--with", package, "python", "-m", "ziglang", *arguments)
+
+
+# El icono se dibuja acá para no guardar binarios en el repo: un cuadro oscuro con las cajas
+# de las dos capas del visor.
+def draw_icon(path: Path) -> None:
+    from PIL import Image, ImageDraw  # la trae torchvision
+
+    image = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((8, 8, 248, 248), radius=52, fill="#1c1b22")
+    draw.rectangle((44, 72, 148, 184), outline="#3ddc84", width=14)
+    draw.rectangle((100, 120, 212, 212), outline="#4fc3f7", width=14)
+    image.save(path, sizes=ICON_SIZES)
+
+
+def file_version(version: str) -> str:
+    numbers = [part for part in version.split(".") if part.isdigit()][:3]
+    return ",".join([*numbers, *["0"] * (4 - len(numbers))])
+
+
+def build_launchers(stage: Path, version: str) -> None:
+    work = BUILD_DIR / "launcher"
+    work.mkdir(parents=True, exist_ok=True)
+    draw_icon(work / "icon.ico")
+    template = (LAUNCHER / "launcher.rc").read_text(encoding="utf-8")
+    for name, macro, description in LAUNCHERS:
+        stem = Path(name).stem
+        resource = work / f"{stem}.rc"
+        resource.write_text(
+            template.replace("{file_version}", file_version(version))
+            .replace("{version}", version)
+            .replace("{description}", description)
+            .replace("{filename}", name),
+            encoding="utf-8",
+        )
+        compiled = work / f"{stem}.res"
+        zig("rc", "--", resource, compiled)  # "--": la ruta absoluta empieza como una opción
+        flags = ["-DGUI", "-Wl,--subsystem,windows"] if macro == "GUI" else []
+        zig(
+            "cc", "-target", "x86_64-windows-gnu", "-O2", "-s", *flags,
+            LAUNCHER / "launcher.c", compiled, "-o", stage / name,
+        )  # fmt: skip
+
+
 def stage_runtime(version: str, variant: str) -> Path:
     stage = fresh(f"{APP}-{version}-win64-{variant}")
     copy_source(stage)
     python_dir = install_python(stage)
     install_packages(python_dir, variant)
     copy_launchers(stage, version, variant)
+    build_launchers(stage, version)
     return stage
 
 
@@ -252,11 +313,11 @@ def split(archive: Path, max_mb: int = MAX_PART_MB) -> list[Path]:
             parts.append(part)
     archive.unlink()
     # Sin 7-Zip, `copy /b` vuelve a juntar las partes
-    joiner = archive.with_suffix(".unir.bat")
+    joiner = archive.with_suffix(".join.bat")
     joined = "+".join(f'"{p.name}"' for p in parts)
     joiner.write_bytes(
         f'@echo off\r\ncopy /b {joined} "{archive.name}"\r\n'
-        f"echo Listo: extrae {archive.name}\r\npause\r\n".encode()
+        f"echo Done: now unzip {archive.name}\r\npause\r\n".encode()
     )
     logger.info("%s supera %d MB: %d partes + %s", archive.name, max_mb, len(parts), joiner.name)
     return [*parts, joiner]

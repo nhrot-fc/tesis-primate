@@ -18,14 +18,16 @@ from evaluation.metrics import (
     window_classes,
 )
 
+# El primer punto de operación de cada modelo, junto a su `best.pt`: es el umbral con el que
+# arranca el visor. Lo escribe `compare_models.py` y lo lee `models.registry.load_checkpoint`;
+# el lector vive en `inference.catalog` para que el visor lo consulte sin torch.
+from inference.catalog import OPERATING_POINT, read_operating_point  # noqa: E402, F401
+
 THRESHOLD_GRID = score_grid(SCORE_STEP, 1.0 - SCORE_STEP)
 # Precisión mínima en val de cada punto de operación
 MIN_PRECISIONS = (0.70, 0.50)
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
-# El primer punto de operación de cada modelo, junto a su `best.pt`: es el umbral con el que
-# arranca el visor. Lo escribe `compare_models.py` y lo lee `models.registry.load_checkpoint`.
-OPERATING_POINT = "operating_point.json"
 
 
 class Point(NamedTuple):
@@ -230,15 +232,6 @@ def write_operating_point(directory: Path, model: str, paired: Paired, protocol:
     record = {"model": model, **as_json(paired), "protocol": as_json(protocol)}
     path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
     return path
-
-
-def read_operating_point(directory: Path) -> float | None:
-    # -> umbral de score, o None si la corrida no pasó por `compare_models.py`
-    path = directory / OPERATING_POINT
-    if not path.is_file():
-        return None
-    threshold = json.loads(path.read_text()).get("threshold")
-    return None if threshold is None else float(threshold)
 
 
 def describe(dump: RawPredictions) -> Split:

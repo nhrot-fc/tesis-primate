@@ -1,7 +1,12 @@
+import threading
 from collections.abc import Callable
 from typing import override
 
 from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
+
+
+class StopError(Exception):
+    pass
 
 
 class Worker(QThread):
@@ -10,15 +15,27 @@ class Worker(QThread):
     progress = pyqtSignal(int, int)
 
     def __init__(self, task, reports: bool = False) -> None:
-        # Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso.
+        # Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso, y
+        # por ese callback se la corta: `stop()` la hace fallar en el siguiente reporte.
         super().__init__()
         self.task = task
         self.reports = reports
+        self.stopping = threading.Event()
+
+    def stop(self) -> None:
+        self.stopping.set()
+
+    def report(self, done: int, total: int) -> None:
+        if self.stopping.is_set():
+            raise StopError
+        self.progress.emit(done, total)
 
     @override
     def run(self) -> None:
         try:
-            self.ok.emit(self.task(self.progress.emit) if self.reports else self.task())
+            self.ok.emit(self.task(self.report) if self.reports else self.task())
+        except StopError:
+            pass  # quien paró ya sabe
         except Exception as exc:
             self.error.emit(f"{type(exc).__name__}: {exc}")
 

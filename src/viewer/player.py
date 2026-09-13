@@ -36,7 +36,7 @@ class AudioPlayer(QWidget):
         )
 
         self.button = QToolButton()
-        self.button.setToolTip("Reproducir / pausar (Espacio)")
+        self.button.setToolTip("Play / pause (Space)")
         self.button.setFixedWidth(34)
         self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.button.clicked.connect(self.toggle)
@@ -120,7 +120,7 @@ class AudioPlayer(QWidget):
 
         device = QMediaDevices.defaultAudioOutput()
         if device.isNull():
-            self.failed.emit("No hay dispositivo de salida de audio.")
+            self.failed.emit("No audio output device.")
             return
 
         fmt = QAudioFormat()

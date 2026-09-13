@@ -5,7 +5,7 @@ from viewer.player import AudioPlayer
 from viewer.spectrogram import Waveform, pcm16
 
 TIME_STEP = 0.05
-# La mediana de los hallazgos dura 0,2 s: por debajo de 1 s también hace falta ventana.
+# La llamada mediana dura 0,2 s: por debajo de 1 s también hace falta ventana.
 SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
 
@@ -36,7 +36,7 @@ class Transport(QWidget):
             self.spans.addItem(f"{value:g} s", value)
         self.spans.setCurrentIndex(SPANS.index(5.0))
         self.spans.setFixedWidth(SPAN_WIDTH)
-        self.spans.setToolTip("Ancho de la ventana (Ctrl + rueda)")
+        self.spans.setToolTip("Window width (Ctrl + wheel)")
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
 

@@ -21,7 +21,10 @@ dependencies = [
 
 # Checkpoints de las otras arquitecturas (`models.registry.ARCHITECTURES`)
 [project.optional-dependencies]
-detr = ["transformers>=5.0.0"]
+detr = [
+    "timm>=1.0.29",
+    "transformers>=5.0.0",
+]
 yolo = ["opencv-python>=4.10", "ultralytics>=8.4.126"]
 
 [dependency-groups]

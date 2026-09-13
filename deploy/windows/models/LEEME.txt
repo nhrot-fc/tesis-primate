@@ -1,4 +1,0 @@
-Cada modelo es una subcarpeta de models\ con su checkpoint y su umbral de operación.
-
-Para agregar uno, arrastra su zip (detector-*-model-*.zip) sobre
-Agregar-modelo.bat, en la carpeta principal. Equivale a descomprimirlo ahí mismo.

@@ -5,11 +5,10 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
-import torch
-
 from core.config import SEED
 
+# torch se importa dentro de cada función: el visor llama a `setup_logging` antes de mostrar
+# nada, y torch tarda segundos en cargar.
 if TYPE_CHECKING:
     from tqdm.auto import tqdm
 
@@ -32,6 +31,8 @@ def setup_logging(log_file: Path | None = None) -> None:
 def share_tensors_by_file() -> None:
     import resource  # sólo Unix: el entrenamiento no corre en el paquete de Windows
 
+    import torch
+
     # Compartir el caché por archivo pide más descriptores que los 1024 de fábrica.
     torch.multiprocessing.set_sharing_strategy("file_system")
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -40,12 +41,17 @@ def share_tensors_by_file() -> None:
 
 
 def set_seed(seed: int = SEED) -> None:
+    import numpy as np
+    import torch
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
 
 def resolve_device(requested: str | None = None) -> str:
+    import torch
+
     device = requested or ("cuda" if torch.cuda.is_available() else "cpu")
     if device.startswith("cuda"):
         torch.cuda.set_device(torch.device(device).index or 0)
