@@ -1,0 +1,27 @@
+% extraído de research/reportes/RE_1-1_protocolo-curacion.tex (fig:pipeline) por armar_figuras.py
+\begin{tikzpicture}[node distance=4mm and 4mm]
+        \node[dato] (raw) {data/raw/<especie>\_\_<COD>/\\*.wav + *.txt};
+        \node[etapa, below=of raw] (pair) {Emparejamiento tabla $\leftrightarrow$ grabación};
+        \node[descarte, right=of pair] (orphan) {sin \code{.wav}: se omite\\ilegible: se registra};
+        \node[etapa, below=of pair] (cols) {Normalización de columnas\\\code{Begin Time (s)} $\to$ \code{begin\_time\_s}};
+        \node[etapa, below=of cols] (labels) {Tipo de llamada: minúsculas y \code{\_}, mapa de sinónimos, nombre legible $\to$ código};
+        \node[etapa, below=of labels] (species) {Especie $:=$ código de la carpeta};
+        \node[etapa, below=of species] (noise) {Descarte de \code{noise} y vacíos};
+        \node[descarte, right=of noise] (noisedrop) {\nNoise{} + \nEmptyCall{} filas};
+        \node[etapa, below=of noise] (fix) {Corrección de pares imposibles};
+        \node[etapa, below=of fix] (vocab) {Vocabulario cerrado: par $\notin$ vocabulario $\Rightarrow$ \code{requires\_review}};
+        \node[etapa, below=of vocab] (geom) {Saneamiento geométrico: recorte a Nyquist, descarte de cajas degeneradas};
+        \node[descarte, right=of geom] (geomdrop) {\nDegenerate{} filas};
+        \node[dato, below=of geom] (cleaned) {data/cleaned/<especie>\_\_<COD>/<grabación>.txt};
+        \node[etapa, below=of cleaned] (unify) {Unión de copias byte-idénticas (al cargar)};
+        \node[dato, below=of unify] (df) {tabla única: \nKept{} anotaciones, \nUniqueRecordings{} grabaciones};
+
+        \foreach \a/\b in {raw/pair, pair/cols, cols/labels, labels/species, species/noise,
+                           noise/fix, fix/vocab, vocab/geom, geom/cleaned, cleaned/unify, unify/df}
+            \draw[flecha] (\a) -- (\b);
+        \draw[flecha, dashed] (pair) -- (orphan);
+        \draw[flecha, dashed] (noise) -- (noisedrop);
+        \draw[flecha, dashed] (geom) -- (geomdrop);
+        \node[nota, left=2mm of cols.west, anchor=east] {\file{prepare\_annotations.py}};
+        \node[nota, left=2mm of unify.west, anchor=east] {\file{load\_annotations()}};
+    \end{tikzpicture}

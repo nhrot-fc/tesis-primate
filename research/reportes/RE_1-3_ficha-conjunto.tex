@@ -1,0 +1,420 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_1-3/valores}
+\hypersetup{pdftitle={RE1.3 Ficha del conjunto derivado}}
+
+\begin{document}
+\reporte{RE1.3}{OE1}{Ficha del conjunto derivado}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Esta ficha, el \file{README} del repositorio y los metadatos
+de \file{data/processed/}; cifras y figuras generadas por
+\file{RE\_1-3\_\allowbreak ficha-\allowbreak conjunto.ipynb}.
+
+\rotulo{Estructura.} La ficha sigue las \emph{datasheets} para conjuntos de datos
+\citep{gebru_2021}: propósito, composición, recolección, transformaciones, usos, distribución
+y mantenimiento, limitaciones. Distingue dos capas de responsabilidad
+(Figura~\ref{fig:capas}):
+
+\begin{description}
+    \item[Conjunto primario.] Las grabaciones y las anotaciones originales, producidas por el
+          equipo de investigación. La ficha documenta su origen, el equipo de captura y el
+          procedimiento de anotación, pero no reclama su autoría.
+    \item[Conjunto derivado.] El resultado de aplicar el protocolo de curación (RE1.1) y el
+          particionado y ventaneo (RE1.2): \file{data/cleaned/} y \file{data/processed/}. Esta
+          capa sí es contribución de esta tesis, y la ficha registra cada transformación junto
+          con lo que descarta.
+\end{description}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=4mm and 10mm]
+        \node[dato] (wav) {\nRecordings{} grabaciones WAV\\44,1\,kHz, AudioMoth};
+        \node[dato, right=of wav] (txt) {tablas de Raven\\\nAnnotations{} cajas curadas};
+        \node[etapa, below=8mm of $(wav)!0.5!(txt)$] (clean) {RE1.1\sep protocolo de curación};
+        \node[dato, below=of clean] (cleaned) {data/cleaned/\sep una tabla por grabación};
+        \node[etapa, below=of cleaned] (proc) {RE1.2\sep selección de clases, partición, ventaneo};
+        \node[dato, below=of proc] (processed) {data/processed/\sep \nClasses{} clases, tres particiones};
+        \begin{scope}[on background layer]
+            \node[fit=(wav)(txt), draw=gris, dashed, rounded corners, inner sep=6pt, label={[nota]above:capa primaria: equipo de investigación}] {};
+            \node[fit=(clean)(cleaned)(proc)(processed), draw=azul!60, dashed, rounded corners, inner sep=6pt, label={[nota]below:capa derivada: esta tesis}] {};
+        \end{scope}
+        \draw[flecha] (wav) -- (clean);
+        \draw[flecha] (txt) -- (clean);
+        \draw[flecha] (clean) -- (cleaned);
+        \draw[flecha] (cleaned) -- (proc);
+        \draw[flecha] (proc) -- (processed);
+    \end{tikzpicture}
+    \caption{Capas del conjunto y responsable de cada una}
+    \label{fig:capas}
+\end{figure}
+
+\section{Propósito}
+
+\rotulo{Finalidad.} Entrenar y evaluar un detector que reciba un espectrograma y devuelva
+cajas tiempo--frecuencia con especie, tipo de llamada y confianza (OE2), sobre vocalizaciones
+de primates neotropicales grabadas con sensores pasivos de bajo costo. Las anotaciones
+primarias existían antes de la tesis, producidas para el estudio del repertorio vocal de cada
+especie; la capa derivada las convierte en un conjunto consistente, particionado y
+documentado.
+
+\rotulo{Autoría.} Capa primaria: el equipo de investigación que opera los sensores y anota en
+Raven. Capa derivada: el autor, con la supervisión del asesor.
+
+\todo{Completar: nombre del equipo o laboratorio, proyecto que financió las campañas de campo,
+y si existe una publicación del repertorio vocal que deba citarse como fuente de las
+anotaciones.}
+
+\section{Composición}
+
+\subsection{Instancias}
+
+El conjunto derivado tiene dos niveles de instancia. En \file{cleaned/}, la instancia es la
+\emph{anotación}: una caja tiempo--frecuencia sobre una grabación, con especie y tipo de
+llamada. En \file{processed/}, la instancia es la \emph{ventana} de 3\,s: un espectrograma mel
+con cero o más cajas normalizadas. La Tabla~\ref{tab:especies} resume la composición por
+especie; RE1.2 detalla el paso de una a otra.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Composición por especie}
+        \label{tab:especies}
+        \small
+        \setlength{\tabcolsep}{4pt}
+        \begin{tabular}{@{}L{4.2cm}lrrrrrr@{}}
+            \toprule
+            \textbf{Especie} & \textbf{Cód.} & \thead{Grab.} & \thead{Horas} & \thead{Anot.} & \thead{Pares} & \thead{Clases} & \thead{Anot. en\\experimento} \\
+            \midrule
+            \input{figures/RE_1-3/especies} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Grabaciones y horas cuentan las grabaciones con al menos una anotación de la
+            especie; una grabación con dos especies anotadas cuenta en ambas, por lo que las
+            filas suman más que el total. Pares: tipos de llamada del vocabulario con al menos
+            una anotación. Clases: pares que entran al experimento (RE1.2).
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+En total: \nRecordings{} grabaciones anotadas que suman \hours{} horas de audio,
+\nAnnotations{} anotaciones sobre \nSpecies{} especies y \nVocabPairs{} pares del vocabulario;
+de ellas, \nExperiment{} anotaciones en \nClasses{} clases forman el conjunto de experimento
+(\pctExperiment{} del material en vocabulario), sobre \nSpeciesExperiment{} de las
+\nSpecies{} especies. Quedan fuera del experimento, pero dentro de \file{cleaned/}, los
+\nReview{} registros de \nReviewPairs{} pares fuera del vocabulario y los pares que no alcanzan
+el umbral de 100 anotaciones (RE1.2).
+
+\subsection{Desbalance}
+
+La distribución es de cola larga en dos niveles. Entre especies, \textit{Leontocebus weddelli}
+aporta once tipos de llamada y \textit{Cebus cuscinus} uno con 29 anotaciones. Dentro de una
+especie, la distribución es tan sesgada como entre especies: los diez pares mayores concentran
+el \topTenShare{} de las anotaciones en vocabulario y la cola llega hasta pares con una sola.
+Entre \largestPair{} (\largestPairN{} anotaciones) y la clase más escasa del experimento median
+más de veinte veces.
+
+\subsection{Geometría de los eventos}
+\label{sec:geometria}
+
+La llamada más larga dura \durMaxS{}\,s y la más corta \durMinMs{}\,ms, una razón de
+\durRatio{}$\times$; el ancho de banda va de \bwMin{} a \bwMax{}\,Hz (\bwRatio{}$\times$). En
+COCO, la colección de referencia de los detectores de objetos \citep{lin_2014}, los objetos
+mayores superan a los menores en un factor de entre 10 y 100.
+
+La Tabla~\ref{tab:geometria} sitúa cada clase en duración y banda. Las especies se separan en
+buena medida por banda: \textit{Alouatta sara} ocupa el grave, por debajo de 1,5\,kHz, y
+\code{lw/cs} nunca aparece anotada por debajo de 3,7\,kHz. Los tipos de llamada de una misma
+especie no se separan: en LW, los trinos, \code{vc} y \code{cs} comparten banda y duración
+casi por completo.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Duración, banda y ancho de banda por clase (orden: duración mediana)}
+        \label{tab:geometria}
+        \footnotesize
+        \begin{tabular}{@{}lrL{3.4cm}L{2.6cm}rr@{}}
+            \toprule
+            \textbf{Clase} & \thead{Anot.} & \thead[l]{Duración (s)\\mediana [RIC]} & \thead[l]{Banda\\(Hz)} & \thead{Ancho de\\banda (Hz)} & \thead{CV del\\ancho} \\
+            \midrule
+            \input{figures/RE_1-3/geometria} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item RIC: rango intercuartílico (percentiles 25--75). La banda es
+            [mediana de $f_{\min}$, mediana de $f_{\max}$] por clase; el ancho de banda es la
+            mediana de $f_{\max} - f_{\min}$ anotación por anotación, no la resta de la columna
+            anterior. CV: coeficiente de variación del ancho de banda.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+En \splitShapes{} (coeficientes de variación del ancho de banda \splitShapesCv{}) la nube de
+duración frente a ancho de banda se parte en dos grupos separados (Figura~\ref{fig:formas}):
+la etiqueta agrupa dos variantes que el vocabulario no distingue
+(sección~\ref{sec:limitaciones}). La Figura~\ref{fig:galeria} muestra nueve clases sobre el
+espectrograma: la más anotada de cada especie y las dos siguientes en volumen, ordenadas por
+banda del grave al agudo; en cada panel, la anotación de duración más cercana a la mediana de
+su clase.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \includegraphics[width=\linewidth]{figures/RE_1-3/formas_ac_bc}
+        \caption{\code{ac/bc}}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \includegraphics[width=\linewidth]{figures/RE_1-3/formas_sm_fs}
+        \caption{\code{sm/fs}}
+    \end{subfigure}
+    \caption{Duración frente a ancho de banda: dos nubes bajo una misma etiqueta}
+    \label{fig:formas}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \input{figures/RE_1-3/galeria}
+    \caption{Nueve clases sobre el espectrograma (anotación en verde; eje de frecuencia en
+        escala mel)}
+    \label{fig:galeria}
+\end{figure}
+
+\subsection{Exclusiones}
+
+\begin{itemize}
+    \item Ninguna medición de acuerdo entre anotadores ni una segunda anotación de control.
+    \item Ninguna anotación de sonidos que no sean vocalizaciones de las ocho especies: el
+          ruido antropogénico, otras especies y el fondo no llevan caja.
+    \item Ninguna información de ubicación, sensor o sesión más allá de la que codifica el
+          nombre del archivo (fecha y hora).
+    \item Ninguna medida de calidad de la grabación (relación señal-ruido, distancia al
+          animal).
+\end{itemize}
+
+\section{Recolección (capa primaria)}
+
+Las grabaciones se capturaron con dispositivos AudioMoth desplegados en el bosque, a 44,1\,kHz,
+en archivos WAV de duración corta (el \pctShortRecordings{} dura un minuto o menos; mediana
+\medianRecordingS{}\,s). Los nombres de archivo codifican la fecha y la hora de inicio: el
+material va del \firstDate{} al \lastDate{}, con la mayoría de las grabaciones entre las 5 y
+las 12 de la mañana y un segundo bloque a media tarde (Figura~\ref{fig:horas}). Las anotaciones
+se crearon en Raven Pro: el analista dibuja una región rectangular sobre el espectrograma, el
+programa deriva de ella los tiempos y las frecuencias, y las columnas de especie y tipo de
+llamada se escriben a mano.
+
+\todocita{AudioMoth como sensor de bajo costo para monitoreo acústico pasivo (Hill et al.
+2018) y Raven Pro como herramienta de anotación (K. Lisa Yang Center for Conservation
+Bioacoustics)}
+
+\todo{Completar con el equipo: sitio y país de las campañas, número de sensores, configuración
+de grabación (ganancia, ciclo de trabajo) y criterio con que se seleccionaron los archivos que
+se anotaron. Si la ubicación de especies amenazadas es sensible, declararlo aquí como
+restricción de distribución.}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                ybar, bar width=4pt, width=\linewidth, height=5cm,
+                axis line style={black!50}, tick style={black!50},
+                ymajorgrids, grid style={black!12},
+                ylabel={grabaciones}, xlabel={hora del día},
+                xmin=-0.5, xmax=23.5, xtick={0,4,...,20},
+            ]
+                \addplot[fill=azul!70, draw=none] table[x=hora, y=grabaciones] {figures/RE_1-3/horas.dat};
+            \end{axis}
+        \end{tikzpicture}
+        \caption{Hora del día}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                ybar, bar width=4pt, width=\linewidth, height=5cm,
+                axis line style={black!50}, tick style={black!50},
+                ymajorgrids, grid style={black!12},
+                ylabel={grabaciones}, xlabel={mes},
+                symbolic x coords={2023-12,2024-01,2024-02,2024-03,2024-04,2024-05,2024-06,2024-07,2024-08,2024-09,2024-10,2024-11,2024-12,2025-01,2025-02,2025-03},
+                xtick={2023-12,2024-03,2024-06,2024-09,2024-12,2025-03},
+                x tick label style={rotate=45, anchor=east, font=\scriptsize}, enlarge x limits=0.05,
+            ]
+                \addplot[fill=celeste!80, draw=none] table[x=mes, y=grabaciones] {figures/RE_1-3/meses.dat};
+            \end{axis}
+        \end{tikzpicture}
+        \caption{Mes}
+    \end{subfigure}
+    \caption{Distribución temporal de las \nRecordings{} grabaciones anotadas, según su
+        nombre de archivo}
+    \label{fig:horas}
+\end{figure}
+
+\section{Transformaciones (capa derivada)}
+
+Cada transformación es un programa del repositorio y tiene su propio documento; aquí se
+enumeran para que la ficha sea autocontenida.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Transformaciones aplicadas al conjunto primario}
+    \label{tab:transformaciones}
+    \small
+    \begin{tabular}{@{}L{3.2cm}L{7.6cm}L{2.6cm}@{}}
+        \toprule
+        \textbf{Etapa} & \textbf{Qué hace} & \textbf{Documento} \\
+        \midrule
+        Curación & Normaliza columnas y etiquetas, fija la especie por carpeta, descarta ruido y cajas degeneradas, recorta a Nyquist, marca pares fuera de vocabulario, une copias de una misma grabación & RE1.1 \\
+        \addlinespace
+        Selección de clases & Excluye las frases anidadas, fusiona variantes de trino y de pío, exige 100 anotaciones por clase & RE1.2, §2 \\
+        \addlinespace
+        Partición & Reparte las grabaciones enteras en train/val/test (60/22,5/17,5), estratificando por clase de la más rara a la más común & RE1.2, §3 \\
+        \addlinespace
+        Ventaneo & Corta cada grabación en ventanas de 3\,s con salto de 1,5\,s; una anotación entra si la ventana cubre la mitad de su parte visible; añade 25\,\% de ventanas vacías & RE1.2, §4 \\
+        \addlinespace
+        Representación & Espectrograma mel de potencia (128 bandas, 25\,Hz--22\,050\,Hz, HTK) y cajas normalizadas $(c_x, c_y, w, h)$ con el eje de frecuencia en escala mel & RE1.2, §5 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Diccionario de datos}
+
+\subsection{Estructura de directorios}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{lstlisting}
+data/
+  raw/<nombre_comun>__<COD>/       capa primaria, sin modificar
+    <AAAAMMDD_HHMMSS>.wav
+    <AAAAMMDD_HHMMSS>.Table.1.selections.txt
+  cleaned/<nombre_comun>__<COD>/   RE1.1: una tabla normalizada por grabacion
+    <AAAAMMDD_HHMMSS>.txt
+  processed/                       RE1.2: el cache de ventanas
+    train.pt  val.pt  test.pt
+    labels.json  meta.json
+    train_sources.json  val_sources.json  test_sources.json
+    prepare_data.log
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Tablas de \file{cleaned/}}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Columnas de las tablas de \file{data/cleaned/}}
+    \label{tab:cleaned}
+    \small
+    \begin{tabular}{@{}llL{8.0cm}@{}}
+        \toprule
+        \textbf{Columna} & \textbf{Tipo} & \textbf{Significado} \\
+        \midrule
+        \code{species} & texto & Código de especie en minúscula (\code{lw}); el de la carpeta \\
+        \code{call\_type} & texto & Código del tipo de llamada normalizado (\code{cs}); puede estar fuera del vocabulario \\
+        \code{begin\_time\_s} & real & Inicio de la caja, en segundos desde el inicio de la grabación \\
+        \code{end\_time\_s} & real & Fin de la caja, en segundos; $>$ \code{begin\_time\_s} + 0,01 \\
+        \code{low\_freq\_hz} & real & Frecuencia inferior de la caja, en Hz \\
+        \code{high\_freq\_hz} & real & Frecuencia superior, en Hz; $\leq 22\,050$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Al cargar (\code{data.annotations.load\_annotations()}) se añaden \code{audio\_path} (ruta de
+la grabación en \file{raw/}), \code{duration\_s} y \code{bandwidth\_hz}, y se unen las copias
+de una misma grabación.
+
+\subsection{Estructuras de \file{processed/}}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Estructuras de \file{data/processed/}}
+    \label{tab:processed}
+    \small
+    \begin{tabular}{@{}L{3.6cm}L{3.0cm}L{7.2cm}@{}}
+        \toprule
+        \textbf{Clave o archivo} & \textbf{Tipo} & \textbf{Significado} \\
+        \midrule
+        \code{images} & \code{float32} $(N, 1, 128, 331)$ & Mel de potencia de cada ventana, sin comprimir; 128 bandas $\times$ 331 tramas \\
+        \code{boxes} & lista de $(n_i, 4)$ & Cajas $(c_x, c_y, w, h)$ en $[0,1]$: $x$ es tiempo, $y$ frecuencia en escala mel \\
+        \code{labels} & lista de $(n_i,)$ \code{int64} & Índice de clase de cada caja, según \file{labels.json} \\
+        \file{labels.json} & JSON & \code{\{"0": "aa/gc", \ldots, "24": "sm/sc"\}} \\
+        \file{meta.json} & JSON & Semilla, umbral, exclusiones, fusiones, proporciones, rango en dB, parámetros del mel \\
+        \file{*\_sources.json} & JSON & \code{recordings}, \code{recording\_of\_window} y \code{clip\_start\_s}: qué grabación y qué segundo origina cada ventana \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Usos}
+
+\rotulo{Uso previsto.} Entrenar y evaluar detectores de cajas tiempo--frecuencia (RE2.1--2.3)
+y medir su utilidad operativa (OE3). Las particiones son fijas: validación elige
+\emph{checkpoints} y umbrales, prueba se mide una vez.
+
+\rotulo{Usos secundarios.} Clasificación de ventanas (una etiqueta por ventana, derivable de las
+cajas), detección agnóstica a la clase, y estudio de la geometría del repertorio por especie.
+
+\rotulo{Usos no recomendados.} Estimar abundancia o presencia de las especies: las grabaciones
+se seleccionaron para anotar, no por muestreo del paisaje. Comparar tipos de llamada entre
+especies como si fueran categorías homólogas: el vocabulario es por especie. Inferir el
+comportamiento del detector sobre las dos clases de frase excluidas o sobre las especies sin
+clase.
+
+\section{Distribución y mantenimiento}
+
+\rotulo{Distribución.} El código que construye ambas capas derivadas es público (RE2.5). Las
+grabaciones y anotaciones primarias pertenecen al equipo de investigación y no se redistribuyen
+con el repositorio. \todo{Decidir con el equipo si el conjunto derivado se libera, en qué
+términos y con qué licencia; si hay restricciones por ubicación de especies amenazadas,
+declararlas aquí como limitación legítima.}
+
+\rotulo{Versión.} La versión del conjunto derivado queda identificada por \file{meta.json} y
+por la huella SHA-256 de la lista de grabaciones de cada partición
+(\file{notebooks/\allowbreak dataset\_report.ipynb}). Esta ficha describe el caché construido el
+12/09/2026, el primero que une las copias de grabaciones.
+
+\rotulo{Mantenimiento.} El conjunto se regenera con dos comandos (RE1.1 y RE1.2) cada vez que
+el equipo entrega anotaciones nuevas o corrige las existentes. Los pares fuera de vocabulario
+son el primer punto de revisión pendiente con el equipo.
+
+\section{Limitaciones}
+\label{sec:limitaciones}
+
+\begin{itemize}
+    \item \textbf{Anotación de una sola fuente.} No hay medición de acuerdo entre anotadores.
+          \todocita{variabilidad entre anotadores en bioacústica; \citet{leroy_reliability_2018}
+          o un trabajo equivalente sobre etiquetas fuertes}
+    \item \textbf{Cajas dibujadas con criterio variable en frecuencia.} El eje de frecuencia
+          lo fija el analista a ojo; el protocolo de evaluación empareja a IoU 0,3 (RE2.1).
+    \item \textbf{Fragmentación de las llamadas largas.} \longestClass{} (mediana
+          \longestClassS{}\,s) y \code{pt/dc} sobreviven al ventaneo como series de cajas
+          recortadas al borde de la ventana, sin ningún mecanismo que las reagrupe en el
+          evento original.
+    \item \textbf{Frases excluidas.} Las dos clases de frase quedan fuera por anidamiento y
+          dejan sin cubrir el nivel superior de la jerarquía vocal.
+    \item \textbf{Cobertura parcial del repertorio.} Los tipos de llamada bajo el umbral de
+          100 anotaciones y los \nReviewPairs{} pares fuera de vocabulario no entran al
+          experimento; \textit{Cebus cuscinus} no tiene ninguna clase.
+    \item \textbf{Escasez en once clases.} Once clases aportan menos de 300 cajas de
+          entrenamiento.
+    \item \textbf{Etiquetas que esconden dos formas.} \splitShapes{} agrupan cada una dos
+          variantes geométricas distintas (Figura~\ref{fig:formas}).
+    \item \textbf{Copias de grabaciones en la capa primaria.} El mismo audio aparece en varias
+          carpetas de especie, anotado solo para la especie de cada carpeta; la capa derivada las
+          une (RE1.1), pero la llamada de una tercera especie no anotada en ninguna copia
+          sigue sin caja.
+    \item \textbf{Sesgo horario y estacional.} La mayoría de las grabaciones son matinales y de
+          los meses de abril y mayo de 2024 (Figura~\ref{fig:horas}); no hay garantía de que el
+          fondo acústico de otras horas o estaciones esté representado.
+    \item \textbf{Un solo sistema de captura.} Todo el material proviene de AudioMoth; la
+          transferencia a otros sensores no está medida. \todocita{variabilidad entre sensores
+          de bajo costo y su efecto sobre los detectores}
+\end{itemize}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

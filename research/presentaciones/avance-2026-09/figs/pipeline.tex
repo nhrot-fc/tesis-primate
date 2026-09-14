@@ -1,0 +1,34 @@
+% extraído de research/reportes/RE_2-2_pipeline.tex (fig:pipeline) por armar_figuras.py
+\begin{tikzpicture}[node distance=2.6mm and 5mm, caja/.append style={font=\scriptsize, inner sep=3pt},
+                        dato/.append style={font=\scriptsize\ttfamily}]
+        \node[dato] (raw) {data/raw/};
+        \node[etapa, below=of raw] (pa) {prepare\_annotations.py};
+        \node[dato, below=of pa] (cleaned) {data/cleaned/};
+        \node[etapa, below=of cleaned] (pd) {prepare\_data.py};
+        \node[dato, below=of pd] (proc) {data/processed/};
+        \node[etapa, below=of proc] (train) {train.py --arch \{detr, detr\_resnet, frcnn, yolo\}};
+        \node[etapa, right=of proc] (yolo) {export\_yolo.py};
+        \node[dato, right=of yolo] (yolodir) {data/yolo/};
+        \node[dato, below=of train] (run) {runs/<name>/: best.pt, last.pt, config.json, metrics.jsonl, train.log};
+        \node[etapa, below=of run] (dump) {dump\_predictions.py};
+        \node[dato, below=of dump] (dumps) {runs/<name>/<name>\_val|test\_predictions.pt};
+        \node[etapa, below=of dumps] (cmp) {compare\_models.py};
+        \node[dato, below=of cmp] (cmpout) {runs/comparacion/*.txt, *.json};
+        \node[etapa, below=of cmpout] (detect) {detect.py $|$ main.py (visor)};
+        \node[dato, right=of detect] (op) {runs/<name>/operating\_point.json};
+        \node[dato, below=of detect] (raven) {<audio>.detections.txt (tabla de Raven)};
+        \foreach \a/\b in {raw/pa, pa/cleaned, cleaned/pd, pd/proc, proc/train, train/run, run/dump, dump/dumps, dumps/cmp, cmp/cmpout, cmpout/detect, detect/raven}
+            \draw[flecha] (\a) -- (\b);
+        \draw[flecha] (proc) -- (yolo);
+        \draw[flecha] (yolo) -- (yolodir);
+        \draw[flecha] (yolodir.south) |- (train.east);
+        \draw[flecha] (cmp.east) -| (op.north);
+        \draw[flecha] (op) -- (detect);
+        \draw[flecha] (run.east) -- ++(4mm, 0) |- ([yshift=1.5mm]detect.east);
+        \node[nota, left=2mm of pa.west, anchor=east] {RE1.1};
+        \node[nota, left=2mm of pd.west, anchor=east] {RE1.2};
+        \node[nota, left=2mm of train.west, anchor=east] {RE2.1};
+        \node[nota, left=2mm of cmp.west, anchor=east] {RE2.3};
+        \node[nota, left=2mm of detect.west, anchor=east] {RE2.4};
+        \node[nota, right=1mm of yolodir.east, anchor=west, align=left] {sólo YOLO:\\PNG para Ultralytics};
+    \end{tikzpicture}

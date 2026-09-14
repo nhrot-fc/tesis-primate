@@ -1,0 +1,183 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_2-4/valores}
+\hypersetup{pdftitle={RE2.4 Modelo final cargable y demostración funcional}}
+
+\begin{document}
+\reporte{RE2.4}{OE2}{Modelo final cargable y demostración funcional}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} \file{runs/\run/best.pt} con su
+\file{operating\_point.json}; ejecución de \file{src/detect.py} sobre una grabación de
+prueba; evidencia generada por \file{RE\_2-4\_\allowbreak modelo-\allowbreak final.ipynb}.
+
+\rotulo{Indicador.} El \emph{checkpoint} del modelo final se carga sin claves incompatibles
+(sección~\ref{sec:modelo}) y la inferencia sobre un WAV produce un archivo tabulado con las
+columnas de Raven: coordenadas tiempo--frecuencia, especie, tipo de llamada y puntuación
+(secciones~\ref{sec:formato} y~\ref{sec:demo}). El cuaderno ejecuta la demostración de
+principio a fin sobre una grabación de prueba que el modelo no vio, y falla si alguna de las
+dos condiciones no se cumple.
+
+\section{Modelo final}
+\label{sec:modelo}
+
+El modelo que pasa a producción es el ganador de la comparación de RE2.3:
+\code{\run} (\code{\architecture}), la época \epoch{} de su corrida, con \nParams{}\,M de
+parámetros en un \emph{checkpoint} de \mb{}\,MB. Su punto de operación, elegido en validación
+con precisión $\geq 0{,}70$, es un umbral de confianza de \threshold{}, al que en prueba
+recupera \opRecall{} de las cajas anotadas con precisión \opPrecision{}. El umbral viaja junto
+al \emph{checkpoint} en \file{operating\_point.json}, y es el que usan por defecto
+\file{detect.py} y el visor.
+
+\rotulo{Carga sin claves incompatibles.} \code{models.registry.load\_checkpoint(path)}
+reconstruye la arquitectura a partir de las claves \code{architecture} y \code{hparams} del
+archivo, con el número de clases que dicta \code{labels} (\nClasses{}), y carga el
+\code{state\_dict} en modo estricto: los \nTensors{} tensores del archivo coinciden uno a uno
+con los del modelo reconstruido, sin faltantes ni sobrantes. El cuaderno lo comprueba de forma
+explícita comparando ambos conjuntos de claves, y devuelve además las etiquetas, la
+configuración de la corrida (que incluye el \file{meta.json} del conjunto) y el umbral de
+operación.
+
+\section{Formato de salida}
+\label{sec:formato}
+
+La salida es una \emph{tabla de selección} de Raven Pro: texto delimitado por tabulaciones con
+las columnas de la Tabla~\ref{tab:columnas}, que Raven abre sobre la grabación y dibuja como
+cajas sobre el espectrograma. Es el mismo formato en que el equipo entrega sus anotaciones
+(RE1.1), con dos diferencias: la columna \code{Score}, que Raven ignora y el visor usa para
+filtrar, y que \code{Species} y \code{Call type} vienen siempre en mayúscula y del vocabulario
+cerrado. Las coordenadas de frecuencia se obtienen invirtiendo la escala mel con la que se
+normalizaron las cajas (RE1.2). BirdNET y HOWLish entregan una probabilidad por segmento
+\citep{kahl_birdnet_2021,Campos_Krofel_Rio-Maior_Renna_2025} y los \emph{sound event bounding
+boxes} y YOHO, límites temporales \citep{ebbers_sound_2024,venkatesh_you_2022}; este sistema
+entrega tiempo, frecuencia, especie, tipo de llamada y confianza, en el formato que el
+analista ya usa \citep{escobar-amado_computer_2024}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Columnas de la tabla de salida (\code{data.raven.raven\_table})}
+    \label{tab:columnas}
+    \small
+    \begin{tabular}{@{}lL{9.4cm}@{}}
+        \toprule
+        \textbf{Columna} & \textbf{Contenido} \\
+        \midrule
+        \code{Selection} & Correlativo desde 1, como exige Raven \\
+        \code{View}, \code{Channel} & \code{Spectrogram 1}, \code{1}: la vista y el canal en que Raven dibuja \\
+        \code{Begin Time (s)}, \code{End Time (s)} & Lados temporales de la caja, en segundos desde el inicio del archivo \\
+        \code{Low Freq (Hz)}, \code{High Freq (Hz)} & Lados de frecuencia, en hercios \\
+        \code{Species} & Código de especie en mayúscula (\code{LW}) \\
+        \code{Call type} & Código del tipo de llamada en mayúscula (\code{CS}) \\
+        \code{Score} & Confianza del modelo en $[0,1]$; sólo en tablas del modelo \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Demostración}
+\label{sec:demo}
+
+\subsection{Comandos}
+
+\begin{lstlisting}[language=bash]
+uv run python src/detect.py grabaciones/ --model runs/yolo26s_v2/best.pt   # una carpeta o archivos
+detect.exe --model models\yolo26s_v2 D:\grabaciones                        # en el paquete portable
+\end{lstlisting}
+
+\file{detect.py} corta cada grabación en ventanas de 3\,s con salto de 1,5\,s (las mismas del
+caché), ejecuta el modelo por lotes, aplica el pos-procesamiento de cada arquitectura (NMS y
+tope de 100 cajas por ventana, como en la evaluación), funde entre ventanas solapadas las
+cajas anidadas de la misma clase (IoU 0,3) y escribe \code{<audio>.detections.txt} junto a
+cada archivo, con las cajas por encima del umbral (Figura~\ref{fig:flujo}). Un archivo que ya
+tiene tabla se salta salvo con \code{--overwrite}; un archivo ilegible se registra y no detiene
+el lote.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=3mm and 5mm, caja/.append style={font=\scriptsize, inner sep=3pt},
+                        dato/.append style={font=\scriptsize\ttfamily}]
+        \node[dato] (wav) {grabación.wav};
+        \node[etapa, right=of wav] (win) {ventanas 3\,s / 1,5\,s\\mel de cada una};
+        \node[etapa, right=of win] (model) {modelo por lotes\\score $\geq$ umbral};
+        \node[etapa, right=of model] (post) {NMS del modelo\\tope 100 por ventana};
+        \node[etapa, below=of post] (merge) {fusión entre ventanas\\anidadas de la misma clase, IoU 0,3};
+        \node[etapa, left=of merge] (hz) {tiempo absoluto\\mel $\to$ Hz};
+        \node[dato, left=of hz] (txt) {grabación.detections.txt};
+        \draw[flecha] (wav) -- (win);
+        \draw[flecha] (win) -- (model);
+        \draw[flecha] (model) -- (post);
+        \draw[flecha] (post) -- (merge);
+        \draw[flecha] (merge) -- (hz);
+        \draw[flecha] (hz) -- (txt);
+        \node[nota, below=1mm of txt] {Raven Pro $|$ visor $|$ Excel};
+    \end{tikzpicture}
+    \caption{De la grabación a la tabla (\code{inference.predictor.predict})}
+    \label{fig:flujo}
+\end{figure}
+
+\subsection{Grabación de prueba}
+
+El cuaderno elige, entre las \nTestRecordings{} grabaciones de la partición de prueba, una de
+un minuto o menos con varias clases anotadas: \file{\demoFile}, de \demoSeconds{}\,s, con
+\demoNAnnotations{} anotaciones de \demoClasses{}. La ejecuta dos veces, por la API
+(\code{predict}) y por la línea de comandos (\file{detect.py}, en CPU, como en el paquete
+portable), y comprueba que ambas produzcan la misma tabla con exactamente las columnas de la
+Tabla~\ref{tab:columnas}. El Listado~\ref{lst:detect} es la transcripción de la ejecución y la
+Tabla~\ref{tab:salida} las primeras filas de la salida.
+
+\lstinputlisting[language=bash, caption={Transcripción de \file{detect.py} sobre la grabación de prueba}, label={lst:detect}]{figures/RE_2-4/detect_stdout.txt}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Primeras filas de \file{\demoFile.detections.txt} (sin \code{View} ni \code{Channel})}
+    \label{tab:salida}
+    \small
+    \begin{tabular}{@{}rrrrrllr@{}}
+        \toprule
+        \thead{Sel.} & \thead{Begin\\Time (s)} & \thead{End\\Time (s)} & \thead{Low\\Freq (Hz)} & \thead{High\\Freq (Hz)} & \thead{Species} & \thead{Call\\type} & \thead{Score} \\
+        \midrule
+        \input{figures/RE_2-4/tabla} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Comparación con las anotaciones}
+
+Sobre esa grabación el modelo emite \demoNDetections{} detecciones al umbral \threshold{}. A
+IoU $\geq 0{,}3$ en coordenadas de la grabación entera, \demoNFound{} de las
+\demoNAnnotations{} anotaciones del equipo tienen una detección encima, \demoNHits{} de las
+\demoNDetections{} detecciones caen sobre una anotación y \demoNSameLabel{} de ellas llevan
+además la misma etiqueta. La Figura~\ref{fig:demo} muestra las dos capas sobre el
+espectrograma completo, tal como se ven en Raven o en el visor; es un ejemplo, no una
+métrica (las métricas son las de RE2.3).
+
+\begin{figure}[htbp]
+    \centering
+    \input{figures/RE_2-4/demo}
+    \caption{Grabación de prueba: anotaciones del equipo (verde, continuas) y detecciones del
+        modelo final (celeste, discontinuas, con clase y confianza)}
+    \label{fig:demo}
+\end{figure}
+
+\section{Visor}
+
+La misma tabla se abre en el visor (\file{src/main.py}, \file{Detector.exe}), que la dibuja en
+la capa \emph{Detections} en celeste, permite filtrar por confianza con un deslizador, oír cada
+caja, borrar las que no correspondan y guardar la tabla corregida; una tabla del equipo se
+abre en la capa \emph{Annotations} en verde, de modo que el analista compara ambas en
+pantalla. La vista \emph{Batch} recorre una carpeta entera y produce las tablas de todas las
+grabaciones, con el mismo motor que \file{detect.py}. \todo{Añadir una captura de Raven Pro
+abriendo \file{\demoFile.detections.txt} sobre el audio: es la prueba visual de que el sistema
+cierra el ciclo con el analista; se toma en la máquina con Raven, no aquí.}
+
+\section{Fuera de alcance}
+
+La demostración verifica formato, carga y ejecución, no calidad: una grabación no es una
+muestra. El comportamiento operativo del modelo (cobertura frente a carga de revisión,
+naturaleza de los falsos positivos) es objeto de OE3. Si la selección de RE2.3 cambia, el
+cuaderno se vuelve a ejecutar con otro \code{RUN} y este documento se regenera.
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

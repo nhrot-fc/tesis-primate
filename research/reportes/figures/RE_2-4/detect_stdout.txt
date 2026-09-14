@@ -1,0 +1,7 @@
+$ uv run python src/detect.py <carpeta>/20240611_071141.wav --model runs/yolo26s_v2/best.pt --device cpu
+Loading detection engine...
+Overriding model.yaml nc=80 with nc=25
+[2026-09-14 11:09:48] [INFO] [models.registry] yolo | 25 clases | época 18 | umbral 0.10 | /home/fcandia/tesis-primate/runs/yolo26s_v2/best.pt
+[2026-09-14 11:09:48] [INFO] [detect] yolo26s_v2 on cpu | score >= 0.10 | 1 recordings
+[2026-09-14 11:09:53] [INFO] [detect] [1/1] 20240611_071141.wav: 33 detections in 5 s -> 20240611_071141.detections.txt
+[2026-09-14 11:09:53] [INFO] [detect] Done. Open each audio in Raven with its .detections.txt table

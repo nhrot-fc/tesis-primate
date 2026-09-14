@@ -1,0 +1,385 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_1-1/valores}
+\hypersetup{pdftitle={RE1.1 Protocolo de curación y estandarización}}
+
+\begin{document}
+\reporte{RE1.1}{OE1}{Protocolo de curación y estandarización de las anotaciones}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Este documento; la implementación en
+\file{src/\allowbreak prepare\_\allowbreak annotations.py} y
+\file{src/\allowbreak data/\allowbreak annotations.py}; las cifras generadas por
+\file{RE\_1-1\_\allowbreak protocolo-\allowbreak curacion.ipynb}.
+
+\rotulo{Contenido.} Reglas con las que las anotaciones entregadas por el equipo de
+investigación se convierten en un conjunto consistente de cajas tiempo--frecuencia etiquetadas
+por especie y tipo de llamada: \emph{normalización} (columnas, etiquetas, especie),
+\emph{saneamiento} (ruido, cajas degeneradas, límite de Nyquist), \emph{vocabulario cerrado} y
+\emph{unión de copias} de una misma grabación. La selección de clases y el particionado son
+objeto de RE1.2; la ficha del conjunto, de RE1.3.
+
+\rotulo{Implementación.} El protocolo es un programa, no una edición manual: el
+guion \file{src/\allowbreak prepare\_\allowbreak annotations.py} lo aplica sobre
+\file{data/raw/}, escribe \file{data/cleaned/} y registra lo que descarta; se vuelve a
+ejecutar cada vez que una regla cambia.
+
+\todocita{protocolos de monitoreo acústico estandarizables y reproducibles, para
+justificar que el protocolo sea código y no una edición manual; \citet{gibb_2018} sirve de
+partida}
+
+\section{Datos de entrada}
+
+\subsection{Estructura de directorios}
+
+El material llega en una carpeta por especie, nombrada \code{<nombre\_común>\_\_<CÓDIGO>}, con
+las grabaciones WAV a 44,1\,kHz capturadas con AudioMoth y, junto a cada una, la tabla de
+selección que el analista exportó desde Raven Pro. La Tabla~\ref{tab:especies} lista las ocho
+especies y sus códigos; el código de la carpeta es un dato estructural, fijado una vez por
+sesión de campo, y el protocolo lo trata como la fuente de verdad de la especie
+(sección~\ref{sec:especie}).
+
+\begin{table}[htbp]
+    \centering
+    \caption{Especies del corpus y códigos de carpeta}
+    \label{tab:especies}
+    \small
+    \begin{tabular}{@{}lL{4.4cm}L{7.0cm}@{}}
+        \toprule
+        \textbf{Cód.} & \textbf{Especie} & \textbf{Carpeta} \\
+        \midrule
+        AA & \textit{Aotus azarae} & \code{night\_monkey\_\_AA} \\
+        AC & \textit{Ateles chamek} & \code{peruvian\_spider\_monkey\_\_AC} \\
+        AS & \textit{Alouatta sara} & \code{howler\_monkey\_\_AS} \\
+        CC & \textit{Cebus cuscinus} & \code{shock\_headed\_capuchin\_monkey\_\_CC} \\
+        LW & \textit{Leontocebus weddelli} & \code{weddells\_saddleBack\_tamarin\_\_LW} \\
+        PT & \textit{Plecturocebus toppini} & \code{toppins\_titi\_monkey\_\_PT} \\
+        SB & \textit{Saimiri boliviensis} & \code{bolivian\_squirrel\_monkey\_\_SB} \\
+        SM & \textit{Sapajus macrocephalus} & \code{large\_headed\_capuchin\_\_SM} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Tablas de selección de Raven}
+
+Cada tabla es un archivo de texto delimitado por tabulaciones, una fila por caja. Raven deriva
+las coordenadas de la caja que el analista dibuja sobre el espectrograma; las columnas de
+especie y tipo de llamada se escriben a mano y son las que concentran los defectos que el
+protocolo corrige. La Tabla~\ref{tab:columnas} recoge las columnas encontradas en el corpus
+(\nHeaders{} encabezados distintos) y qué hace el protocolo con cada una.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Columnas de las tablas crudas y su destino}
+    \label{tab:columnas}
+    \small
+    \begin{tabular}{@{}L{3.6cm}L{3.6cm}L{7.2cm}@{}}
+        \toprule
+        \textbf{Columna de Raven} & \textbf{En \file{cleaned/}} & \textbf{Tratamiento} \\
+        \midrule
+        \code{Begin Time (s)} & \code{begin\_time\_s} & Se conserva; define el lado izquierdo de la caja \\
+        \code{End Time (s)} & \code{end\_time\_s} & Se conserva; lado derecho \\
+        \code{Low Freq (Hz)} & \code{low\_freq\_hz} & Se conserva; lado inferior \\
+        \code{High Freq (Hz)} & \code{high\_freq\_hz} & Se conserva, recortada a Nyquist \\
+        \code{Species} & \code{species} & Se reemplaza por el código de la carpeta \\
+        \code{Call type} & \code{call\_type} & Se normaliza y se mapea al vocabulario \\
+        \addlinespace
+        \code{Selection}, \code{View}, \code{Channel} & --- & Estado interno de Raven; se descartan \\
+        \code{Begin File}, \code{File Offset (s)}, \code{Reference} & --- & Referencias al archivo; se descartan \\
+        \code{Inband Power (dB FS)}, \code{Rating} & --- & No se usan; no llegan a \file{cleaned/} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Inventario}
+
+El corpus de primates tiene \nRecordings{} grabaciones y \nTables{} tablas de anotación. De
+ellas, \nPaired{} tienen una grabación homónima junto a ellas, \nOrphans{} no la tienen y
+\nFailed{} no pueden leerse (archivos vacíos o truncados). Las tablas emparejadas suman
+\nRawRows{} filas crudas, que son el punto de partida de todo lo que sigue.
+
+\section{Esquema del protocolo}
+
+La Figura~\ref{fig:pipeline} recorre el protocolo de la entrada a la salida. Las reglas se
+aplican en el orden mostrado y cada una tiene una sección propia más abajo; la unión de copias
+es la única que se aplica al cargar \file{cleaned/}, no al escribirlo, porque necesita ver
+todas las carpetas a la vez.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=4mm and 4mm]
+        \node[dato] (raw) {data/raw/<especie>\_\_<COD>/\\*.wav + *.txt};
+        \node[etapa, below=of raw] (pair) {Emparejamiento tabla $\leftrightarrow$ grabación};
+        \node[descarte, right=of pair] (orphan) {sin \code{.wav}: se omite\\ilegible: se registra};
+        \node[etapa, below=of pair] (cols) {Normalización de columnas\\\code{Begin Time (s)} $\to$ \code{begin\_time\_s}};
+        \node[etapa, below=of cols] (labels) {Tipo de llamada: minúsculas y \code{\_}, mapa de sinónimos, nombre legible $\to$ código};
+        \node[etapa, below=of labels] (species) {Especie $:=$ código de la carpeta};
+        \node[etapa, below=of species] (noise) {Descarte de \code{noise} y vacíos};
+        \node[descarte, right=of noise] (noisedrop) {\nNoise{} + \nEmptyCall{} filas};
+        \node[etapa, below=of noise] (fix) {Corrección de pares imposibles};
+        \node[etapa, below=of fix] (vocab) {Vocabulario cerrado: par $\notin$ vocabulario $\Rightarrow$ \code{requires\_review}};
+        \node[etapa, below=of vocab] (geom) {Saneamiento geométrico: recorte a Nyquist, descarte de cajas degeneradas};
+        \node[descarte, right=of geom] (geomdrop) {\nDegenerate{} filas};
+        \node[dato, below=of geom] (cleaned) {data/cleaned/<especie>\_\_<COD>/<grabación>.txt};
+        \node[etapa, below=of cleaned] (unify) {Unión de copias byte-idénticas (al cargar)};
+        \node[dato, below=of unify] (df) {tabla única: \nKept{} anotaciones, \nUniqueRecordings{} grabaciones};
+
+        \foreach \a/\b in {raw/pair, pair/cols, cols/labels, labels/species, species/noise,
+                           noise/fix, fix/vocab, vocab/geom, geom/cleaned, cleaned/unify, unify/df}
+            \draw[flecha] (\a) -- (\b);
+        \draw[flecha, dashed] (pair) -- (orphan);
+        \draw[flecha, dashed] (noise) -- (noisedrop);
+        \draw[flecha, dashed] (geom) -- (geomdrop);
+        \node[nota, left=2mm of cols.west, anchor=east] {\file{prepare\_annotations.py}};
+        \node[nota, left=2mm of unify.west, anchor=east] {\file{load\_annotations()}};
+    \end{tikzpicture}
+    \caption{Reglas del protocolo en orden de aplicación}
+    \label{fig:pipeline}
+\end{figure}
+
+\section{Reglas}
+
+\subsection{Emparejamiento con la grabación}
+
+Solo se procesa la tabla que tiene una grabación homónima junto a ella. El nombre del
+\code{.wav} se obtiene del de la tabla quitando el sufijo \code{.Table.1.selections} que Raven
+añade y tolerando un espacio final. Una tabla huérfana no aporta nada entrenable y su presencia
+suele indicar un error de transferencia; se omite y se lista en el registro. Una tabla ilegible
+(vacía o truncada) se captura sin detener el proceso y también se registra.
+
+\subsection{Normalización de columnas}
+
+Los encabezados se convierten a \code{snake\_case} programático (\code{Begin Time (s)} $\to$
+\code{begin\_time\_s}). Un solo paso absorbe variantes de mayúsculas y espacios en los nombres
+de columna, y hace que el resto del código dependa de un nombre estable. Las columnas de estado
+interno de Raven (\code{Selection}, \code{View}, \code{Channel}, \code{Begin File},
+\code{File Offset (s)}, \code{Reference}) se descartan: describen la sesión de Raven, no el
+evento.
+
+\subsection{Normalización del tipo de llamada}
+\label{sec:llamada}
+
+Sobre la columna manual de tipo de llamada se aplican, en este orden:
+
+\begin{enumerate}
+    \item \textbf{Normalización tipográfica.} Toda etiqueta se reduce a minúsculas y a
+          caracteres alfanuméricos separados por guion bajo. El corpus trae \nRawCallValues{}
+          valores distintos escritos a mano, entre ellos \code{CS}, \code{CS\char32},
+          \code{CS\char32\char32\char32\char32\char32\char32 A}, \code{noise|}, \code{noises},
+          \code{\char32 BC} y \code{bC}; el paso absorbe las mayúsculas y los espacios sin
+          enumerarlos. En \nTypography{} filas el valor cambia más allá de la mayúscula.
+    \item \textbf{Mapa de sinónimos.} Un diccionario explícito unifica lo que la tipografía no
+          captura por ser un error de escritura o una abreviatura alternativa
+          (Tabla~\ref{tab:sinonimos}). A él se suma, por especie, la traducción del nombre
+          legible al código (\code{contact syllable} $\to$ \code{cs}), de modo que las tablas
+          escritas en prosa converjan con las escritas en código. Toca \nSynonyms{} filas.
+\end{enumerate}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Mapa de sinónimos (\code{MANUAL\_SYNONYMS} en \file{src/data/annotations.py})}
+    \label{tab:sinonimos}
+    \small
+    \begin{tabular}{@{}ll@{}}
+        \toprule
+        \textbf{Escrito} & \textbf{Código} \\
+        \midrule
+        \input{figures/RE_1-1/sinonimos} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Asignación de especie por directorio}
+\label{sec:especie}
+
+La columna \code{Species} se reemplaza por el código de la carpeta contenedora. En
+\nSpeciesEmpty{} filas la columna viene vacía y en \nSpeciesMismatch{} trae un valor distinto
+del código de la carpeta (\code{AS} en la carpeta de AC y viceversa, \code{SN} por \code{SM},
+o residuos como \code{\}}, \code{8} o \code{AS---------------------AS}). El directorio se fija
+una vez por sesión de campo mientras que la columna se teclea en cada fila, y es donde se
+acumulan los errores. La consecuencia es que una llamada de otra
+especie anotada dentro de una carpeta recibe la especie de la carpeta; la unión de copias
+(sección~\ref{sec:copias}) corrige el caso en que esa llamada sí está anotada en su propia
+carpeta.
+
+\subsection{Descarte de ruido y de vacíos}
+
+Las filas cuyo tipo de llamada normalizado es \code{noise} (\nNoise{}) marcan la ausencia de
+evento, no un evento, y se eliminan; lo mismo ocurre con las \nEmptyCall{} filas sin tipo de
+llamada, que no pueden asignarse a ninguna clase. El fondo que el detector debe aprender a no
+proponer entra al conjunto por otra vía, las ventanas vacías de RE1.2, y no por estas filas.
+
+\subsection{Corrección de pares imposibles}
+
+Un pequeño conjunto de correcciones explícitas resuelve pares que no existen en el repertorio
+de la especie y cuya intención es inequívoca: \code{aa/hc} pasa a \code{aa/hm}, porque
+\textit{Aotus azarae} no tiene llamada de aullido pero sí de ululato (\nFixed{} filas). Toda
+corrección de este tipo se declara en código (\code{MANUAL\_FIXES}), no se aplica a mano.
+
+\subsection{Vocabulario cerrado y marca de revisión}
+\label{sec:vocabulario}
+
+El vocabulario admisible se declara como el conjunto de pares (especie, tipo de llamada)
+válidos del dominio (\nVocab{} pares, Tabla~\ref{tab:vocabulario}), no como aquello que
+aparezca en los datos. Cerrar el vocabulario responde a que las definiciones de unidad y las
+etiquetas semánticas varían ampliamente entre investigadores, incluso dentro de un mismo grupo
+taxonómico \citep{kershenbaum_acoustic_2016}: sin una lista fija, la misma señal recibe
+etiquetas distintas según quién la anote.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Vocabulario cerrado (\code{CALL\_TYPES} en \file{src/data/species.py})}
+    \label{tab:vocabulario}
+    \small
+    \begin{tabular}{@{}lrL{11.2cm}@{}}
+        \toprule
+        \textbf{Esp.} & \thead{Tipos} & \textbf{Códigos de tipo de llamada} \\
+        \midrule
+        \input{figures/RE_1-1/vocabulario} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Los pares fuera del vocabulario no se eliminan: se marcan con la bandera
+\code{requires\_review} y el registro de la ejecución informa cuántos son. La diferencia es
+deliberada. Un par fuera de vocabulario puede ser un error de escritura no previsto o un tipo
+de llamada legítimo aún no incorporado (\code{as/cp}, \code{as/pp} e \code{as/ip} encabezan
+los \nReviewPairs{} pares y \nReview{} filas de la Tabla~\ref{tab:review}), y solo el equipo
+de investigación puede distinguir uno de otro. Descartarlos en silencio destruiría esa
+evidencia: \file{cleaned/} los conserva, y quedan fuera del experimento porque ninguno alcanza
+el umbral de 100 anotaciones de RE1.2. \todo{La bandera no se escribe en \file{cleaned/}: la
+exclusión descansa hoy en el umbral de frecuencia y no en el vocabulario. Conviene guardarla
+como columna o filtrar por \code{VALID\_PAIRS} en \code{select\_experiment}, para que un par
+fuera de vocabulario con más de 100 filas no entre al experimento por accidente.}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Pares fuera del vocabulario marcados para revisión}
+    \label{tab:review}
+    \small
+    \begin{tabular}{@{}lr@{\hspace{2.5em}}lr@{}}
+        \toprule
+        \textbf{Par} & \thead{Filas} & \textbf{Par} & \thead{Filas} \\
+        \midrule
+        \input{figures/RE_1-1/fuera_vocabulario} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Saneamiento geométrico}
+
+Las coordenadas de la caja se validan con independencia de la etiqueta:
+
+\begin{description}
+    \item[Recorte a Nyquist.] La frecuencia superior se recorta a 22\,050\,Hz. Por encima de
+          la mitad de la frecuencia de muestreo no hay energía observable en una señal a
+          44,1\,kHz, de modo que un valor mayor (\nNyquist{} filas) es un error de anotación y
+          no una propiedad del evento. \todocita{teorema de muestreo de Nyquist--Shannon, si el
+          jurado pide la referencia clásica}
+    \item[Descarte de cajas degeneradas.] Se eliminan las anotaciones de duración inferior a
+          10\,ms y las de ancho de banda nulo o negativo (\nDegenerate{} filas). Una caja sin
+          área no define una región y no puede emparejarse con ninguna predicción.
+    \item[Características derivadas.] Se calculan la duración y el ancho de banda de cada
+          caja, sobre las que se construye el análisis de geometría de RE1.3.
+\end{description}
+
+\subsection{Unión de copias de una misma grabación}
+\label{sec:copias}
+
+Al cargar \file{cleaned/} se detecta que una misma grabación está copiada, byte a byte, en
+dos o tres carpetas de especie, y que cada copia lleva solo las anotaciones de la especie de su
+carpeta. Tratarlas como grabaciones distintas deja la llamada de la otra especie sin anotar en
+cada copia, da supervisión contradictoria al mismo audio y permite que caiga en dos
+particiones distintas, con fuga entre entrenamiento y prueba. La regla identifica las copias por tamaño y huella MD5
+del primer megabyte, las funde en una sola grabación con la unión de sus anotaciones y descarta
+las anotaciones repetidas. En el corpus hay \nCopies{} copias, que reducen las grabaciones
+anotadas a \nUniqueRecordings{}.
+
+\todocita{fuga de datos entre particiones por instancias duplicadas o casi duplicadas y su
+efecto sobre la evaluación; \citet{koga_lead_2024} cubre la variación de etiquetas, falta el
+argumento de fuga}
+
+\section{Resultados}
+
+La Tabla~\ref{tab:reglas} cuenta qué toca cada regla sobre las \nRawRows{} filas crudas. El
+protocolo conserva \nKept{} anotaciones (\pctKept{}); casi todo lo que descarta es ruido
+marcado como tal por el analista. La Tabla~\ref{tab:etapas} cuenta los valores distintos de
+las dos columnas manuales tras cada etapa de normalización: de \nRawCallValues{} grafías de
+tipo de llamada a \nVocabCallValues{} códigos del vocabulario.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Filas que toca cada regla del protocolo}
+    \label{tab:reglas}
+    \small
+    \begin{tabular}{@{}L{7.4cm}rL{4.6cm}@{}}
+        \toprule
+        \textbf{Regla} & \thead{Filas} & \textbf{Tratamiento} \\
+        \midrule
+        \input{figures/RE_1-1/reglas} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Valores distintos en las columnas manuales tras cada etapa}
+    \label{tab:etapas}
+    \small
+    \begin{tabular}{@{}lrr@{}}
+        \toprule
+        \textbf{Etapa} & \thead{Especie} & \thead{Tipo de llamada} \\
+        \midrule
+        \input{figures/RE_1-1/etapas} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Salida}
+
+\subsection{Formato de \file{data/cleaned/}}
+
+Se escribe una tabla por grabación, con el mismo nombre que su \code{.wav} y en la misma
+carpeta relativa que en \file{raw/}, sin copiar audio. Las columnas son \code{species},
+\code{call\_type}, \code{begin\_time\_s}, \code{end\_time\_s}, \code{low\_freq\_hz} y
+\code{high\_freq\_hz}. Una grabación cuya tabla queda vacía tras el protocolo conserva su
+archivo vacío: es evidencia de que se procesó y no quedó nada utilizable.
+
+\subsection{Comandos}
+
+\begin{lstlisting}[language=bash]
+uv run python src/prepare_annotations.py          # raw/ -> cleaned/
+uv run python src/prepare_annotations.py --force  # regenera lo que ya hay
+\end{lstlisting}
+
+El registro informa cuántas grabaciones y anotaciones salieron, cuántas quedaron marcadas para
+revisión, cuántas tablas resultaron ilegibles y cuáles no tenían grabación al lado. La unión de
+copias se ejecuta en \code{data.annotations.load\_annotations()}, que es la única puerta por la
+que el resto del pipeline (RE1.2) lee las anotaciones, e informa cuántas copias unió.
+
+\section{Fuera de alcance}
+
+\begin{itemize}
+    \item No corrige coordenadas más allá de Nyquist ni desplaza cajas: la geometría dibujada
+          por el analista se respeta tal cual.
+    \item No resuelve el anidamiento frase--sílaba (una frase \code{lw/cc} contiene varias
+          sílabas \code{lw/cs}); esa decisión se toma al seleccionar las clases del experimento
+          en RE1.2, porque depende de la forma de salida del detector y no de la calidad de la
+          anotación.
+    \item No mide el acuerdo entre anotadores. Sin una doble anotación de una muestra, el error
+          de etiquetado residual no puede separarse del error del modelo; RE1.3 lo declara como
+          limitación. \todocita{fiabilidad de la anotación manual en bioacústica y necesidad de
+          medir el acuerdo entre anotadores; \citet{leroy_reliability_2018} es candidata}
+    \item No decide qué hacer con los pares fuera de vocabulario: los marca y los deja al
+          equipo de investigación.
+\end{itemize}
+
+\todo{Confirmar con el equipo si \code{as/cp}, \code{as/pp} y \code{as/ip} son tipos de
+llamada legítimos de \textit{Alouatta sara}; si lo son, entran al vocabulario y el cuaderno se
+vuelve a ejecutar.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

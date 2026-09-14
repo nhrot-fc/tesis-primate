@@ -1,0 +1,514 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_1-2/valores}
+\hypersetup{pdftitle={RE1.2 Conjunto acústico curado y particionado}}
+
+\begin{document}
+\reporte{RE1.2}{OE1}{Conjunto acústico curado y particionado para el experimento}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Directorio \file{data/processed/} (etiquetas, metadatos y
+tres archivos \file{.pt}); código en \file{src/\allowbreak prepare\_\allowbreak data.py},
+\file{src/\allowbreak data/\allowbreak manifest.py} y
+\file{src/\allowbreak data/\allowbreak cache.py}; cifras generadas por
+\file{RE\_1-2\_\allowbreak conjunto-\allowbreak particionado.ipynb}.
+
+\rotulo{Contenido.} Cómo se pasa de las \nAnnotationsCleaned{} anotaciones de
+\file{data/cleaned/} (RE1.1) a las \nClasses{} clases del experimento, cómo se reparten las
+grabaciones en entrenamiento, validación y prueba, qué hace el ventaneo de 3\,s y qué contiene
+cada archivo de \file{data/processed/}.
+
+\rotulo{Indicador.} Los archivos procesados cargan sin error
+(sección~\ref{sec:archivos}); \file{meta.json} registra la semilla, el criterio de selección,
+las exclusiones y la normalización (sección~\ref{sec:meta}); la partición se hace por archivo
+de grabación en proporción \splitRatios{} (sección~\ref{sec:particion}).
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=3.5mm and 8mm]
+        \node[dato] (cleaned) {data/cleaned/\\\nAnnotationsCleaned{} anotaciones};
+        \node[etapa, right=of cleaned] (select) {Selección de clases\\umbral, fusiones, exclusiones};
+        \node[dato, right=of select] (exp) {\nClasses{} clases\\\nExperiment{} anotaciones};
+        \node[etapa, below=of select] (manifest) {Ventaneo 3\,s / 1,5\,s\\+ \emptyRatio{} de ventanas vacías};
+        \node[dato, right=of manifest] (windows) {\nWindows{} ventanas\\\nBoxes{} cajas};
+        \node[etapa, below=of manifest] (split) {Partición por grabación\\\splitRatios{}};
+        \node[dato, below=of split, xshift=-32mm] (train) {train.pt\\\nWindowsTrain{} ventanas};
+        \node[dato, below=of split] (val) {val.pt\\\nWindowsVal{} ventanas};
+        \node[dato, below=of split, xshift=32mm] (test) {test.pt\\\nWindowsTest{} ventanas};
+        \node[dato, left=of split] (meta) {labels.json\\meta.json\\*\_sources.json};
+        \draw[flecha] (cleaned) -- (select);
+        \draw[flecha] (select) -- (exp);
+        \draw[flecha] (exp) |- (manifest);
+        \draw[flecha] (manifest) -- (windows);
+        \draw[flecha] (windows) |- (split);
+        \draw[flecha] (split) -- (train);
+        \draw[flecha] (split) -- (val);
+        \draw[flecha] (split) -- (test);
+        \draw[flecha, dashed] (split) -- (meta);
+    \end{tikzpicture}
+    \caption{De las anotaciones curadas al caché de ventanas (\file{src/prepare\_data.py})}
+    \label{fig:flujo}
+\end{figure}
+
+\section{Selección de clases}
+\label{sec:seleccion}
+
+Las anotaciones curadas cubren \nVocabPairs{} pares (especie, tipo de llamada) del vocabulario.
+No todos pueden ser clase de un detector, y el paso de uno a otro sigue tres reglas declaradas
+en \file{src/prepare\_data.py}:
+
+\begin{enumerate}
+    \item \textbf{Exclusión por anidamiento} (\code{EXCLUDED\_LABELS}). Una \emph{frase} es
+          una secuencia de \emph{sílabas} y los expertos anotan ambas: el mismo tramo de audio
+          lleva una caja grande y varias pequeñas dentro de ella
+          (Figura~\ref{fig:anidamiento}). El detector devuelve una lista plana de cajas y el
+          emparejamiento durante el entrenamiento asocia cada anotación con exactamente una
+          predicción, sin manera de expresar que ``esta caja contiene a aquella''
+          (anidamiento jerárquico de las unidades acústicas,
+          \citealp{kershenbaum_acoustic_2016}). Se retiran las frases \code{lw/cc} y
+          \code{sm/fc}; \code{sb/pcs}, la secuencia de píos de SB, no pertenece al
+          vocabulario.
+    \item \textbf{Fusión de variantes} (\code{JOINED\_LABELS}). Los cuatro tipos de trino de
+          LW (\code{tr}, \code{tj}, \code{tt}, \code{tf}) se reúnen en \code{lw/trino}, y el
+          pío largo \code{sb/lpc} se une al pío de juego \code{sb/ppc}. Las variantes
+          comparten banda y duración casi por completo (RE1.3) y por separado no alcanzan el
+          umbral de la regla siguiente.
+    \item \textbf{Umbral de frecuencia} (\code{MIN\_PAIR\_COUNT}). Se conservan los pares con
+          al menos \minPairCount{} anotaciones. Por debajo de ese piso una clase no sostiene ni
+          entrenamiento ni evaluación por clase.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../figures/nesting_phrase.png}
+    \caption{Anidamiento frase--sílaba: la frase \code{lw/cc} contiene sílabas \code{lw/cs}}
+    \label{fig:anidamiento}
+\end{figure}
+
+El resultado son \nClasses{} clases con \nExperiment{} anotaciones, el \pctExperiment{} del
+material en vocabulario. La Tabla~\ref{tab:excluidas} lista los \nLeftOut{} pares que quedan
+fuera (\nLeftOutAnnotations{} anotaciones); entre los \nBelowThreshold{} que no alcanzan el
+umbral está \code{cc/cc}, la única llamada de \textit{Cebus cuscinus}, de modo que el
+experimento cubre siete de las ocho especies.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Pares del vocabulario que no entran al experimento}
+    \label{tab:excluidas}
+    \small
+    \begin{tabular}{@{}lL{4.4cm}rL{4.2cm}@{}}
+        \toprule
+        \textbf{Par} & \textbf{Tipo de llamada} & \thead{Anot.} & \textbf{Motivo} \\
+        \midrule
+        \input{figures/RE_1-2/excluidas} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Partición por grabación}
+\label{sec:particion}
+
+\subsection{Regla}
+
+La unidad de partición es la \emph{grabación}: todas las ventanas de un mismo archivo caen en
+la misma partición. Repartir ventanas sueltas dejaría dos ventanas solapadas de una misma
+anotación en particiones distintas, y la prueba mediría memoria en lugar de generalización
+\citep{koga_lead_2024}.
+
+\todocita{fuga de datos por ventanas solapadas de una misma grabación en bioacústica o SED;
+un precedente que reporte la inflación de métricas al partir por clip en vez de por archivo}
+
+\subsection{Algoritmo}
+
+La asignación es golosa y estratificada por clase (\code{split\_manifest} en
+\file{src/data/\allowbreak manifest.py}); la Figura~\ref{fig:reparto} la esquematiza.
+
+\begin{enumerate}
+    \item Se cuenta, por grabación, cuántas cajas de cada clase contiene, y se fija como
+          objetivo de cada partición la fracción \splitRatios{} del total de cada clase.
+    \item Las clases se recorren \textbf{de la más rara a la más común}. Para cada clase, las
+          grabaciones que la contienen y aún no están asignadas se ordenan de más a menos cajas
+          de esa clase, y cada una va a la partición con mayor déficit en esa clase (en caso de
+          empate, a la que tenga menos ventanas respecto de su objetivo).
+    \item Las grabaciones sin cajas de ninguna clase (las ventanas vacías de la
+          sección~\ref{sec:vacias}) van donde falten ventanas.
+\end{enumerate}
+
+Recorrer las clases de la más rara a la más común hace que el reparto de las clases escasas se
+decida primero y no quede como residuo del de las abundantes: una clase con 105 anotaciones
+concentradas en pocas grabaciones podría, de otro modo, caer entera en una sola partición. La
+semilla (\seed{}) fija el orden inicial de las grabaciones y hace la partición reproducible.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=2mm and 10mm]
+        \node[nota, anchor=west] at (0, 2.2) {grabaciones con la clase más rara, de más a menos cajas};
+        \foreach \i/\n in {1/7, 2/5, 3/4, 4/2, 5/1}
+            \node[caja, minimum width=9mm, fill=celeste!15] (r\i) at (1.4*\i - 0.6, 1.4) {$g_{\i}$\\\footnotesize\n};
+        \node[nota, anchor=west] at (7.4, 1.4) {$\cdots$};
+        \node[etapa, minimum width=32mm] (train) at (1.6, -1.2) {train\\\footnotesize objetivo 60\,\%};
+        \node[etapa, minimum width=32mm] (val) at (5.3, -1.2) {val\\\footnotesize objetivo 22,5\,\%};
+        \node[etapa, minimum width=32mm] (test) at (9.0, -1.2) {test\\\footnotesize objetivo 17,5\,\%};
+        \draw[flecha] (r1) -- (train.north);
+        \draw[flecha] (r2) -- (val.north);
+        \draw[flecha] (r3) -- (test.north);
+        \draw[flecha] (r4) -- (train.north);
+        \draw[flecha, dashed] (r5) -- (train.north);
+        \node[nota, anchor=north, text width=12.5cm, align=center] at (5.3, -2.0) {cada grabación va
+            a la partición con mayor déficit de la clase; al terminar la clase se pasa a la
+            siguiente más rara, sin reasignar lo ya asignado};
+    \end{tikzpicture}
+    \caption{Reparto goloso por grabación, estratificado por clase (bajo cada grabación,
+        sus cajas de la clase en reparto)}
+    \label{fig:reparto}
+\end{figure}
+
+\subsection{Composición}
+
+La Tabla~\ref{tab:particiones} recoge la composición de las tres particiones tras el ventaneo.
+Ninguna grabación aparece en más de una partición: el cuaderno lo comprueba sobre los
+\file{*\_sources.json} y falla si encuentra intersección. La Tabla~\ref{tab:clases} desglosa
+por clase: la proporción de entrenamiento se conserva clase a clase (última columna) y el
+desbalance entre clases se mantiene, con más de un orden de magnitud entre \largestClass{}
+(\largestClassTrain{} cajas de entrenamiento) y \smallestClass{} (\smallestClassTrain{}).
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Composición de las particiones}
+        \label{tab:particiones}
+        \small
+        \begin{tabular}{@{}lrrrrrr@{}}
+            \toprule
+            \textbf{Partición} & \thead{Grabaciones} & \thead{Ventanas} & \thead{Vacías} & \thead{\% vacías} & \thead{Cajas} & \thead{GB} \\
+            \midrule
+            \input{figures/RE_1-2/particiones} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Hay más cajas que anotaciones porque una anotación puede caer en dos
+            ventanas consecutivas: la ventana de 3\,s avanza 1,5\,s (sección~\ref{sec:ventaneo}).
+            \item Una grabación de \textit{Aotus azarae} está dañada y no puede leerse; queda
+            fuera del caché, y por eso el total de grabaciones es una menos que en el conjunto
+            de experimento.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Las \nClasses{} clases del experimento: anotaciones, grabaciones y cajas por partición}
+        \label{tab:clases}
+        \footnotesize
+        \setlength{\tabcolsep}{4pt}
+        \begin{tabular}{@{}lL{4.0cm}rrrrrr@{}}
+            \toprule
+            \textbf{Clase} & \textbf{Tipo de llamada} & \thead{Anot.} & \thead{Grab.} & \thead{Train} & \thead{Val} & \thead{Test} & \thead{Train \%} \\
+            \midrule
+            \input{figures/RE_1-2/clases} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Las tres columnas de partición cuentan cajas en ventanas del caché, no
+            anotaciones. \code{as/hc} y \code{pt/dc} multiplican su material porque cada
+            llamada larga atraviesa varias ventanas (Tabla~\ref{tab:ventaneo}).
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\section{Ventaneo}
+\label{sec:ventaneo}
+
+\subsection{Regla de asignación}
+
+Las grabaciones tienen duración variable y el detector consume entradas de tamaño fijo, de modo
+que cada grabación se segmenta en ventanas de 3\,s que avanzan 1,5\,s. Una anotación entra en
+una ventana si el solapamiento entre ambas cubre al menos la mitad de la \emph{parte visible}
+del evento, definida como el mínimo entre su duración y la longitud de la ventana
+(Figura~\ref{fig:ventaneo}). Comparar contra la duración completa dejaría inalcanzable a
+todo evento de más de 6\,s; con la parte visible, un aullido de 30\,s entra en toda ventana
+que caiga dentro de él y ninguna anotación del experimento queda sin ventana. Al entrar, la
+caja se recorta a los límites de la ventana.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[x=0.95cm, y=1cm]
+        % eje de tiempo
+        \draw[-{Stealth}, black!60] (0, 0) -- (12.6, 0) node[below, nota, xshift=-4mm] {s};
+        \foreach \t in {0, 1.5, 3, 4.5, 6, 7.5, 9, 10.5, 12}
+            \draw[black!60] (\t, 0.07) -- (\t, -0.07) node[below, font=\scriptsize] {\t};
+        % eventos, en carriles propios
+        \fill[verde!75] (3.2, 0.35) rectangle (3.9, 0.62);
+        \fill[ambar!85] (8.9, 0.35) rectangle (10.4, 0.62);
+        \fill[rosa!75] (2.0, 0.8) rectangle (11.0, 1.07);
+        \node[font=\scriptsize, anchor=east] at (1.9, 0.94) {evento largo};
+        \node[font=\scriptsize, anchor=east] at (3.1, 0.49) {corto};
+        \node[font=\scriptsize, anchor=west] at (10.5, 0.49) {parcial};
+        % ventanas
+        \foreach \i/\c in {0/azul, 1/celeste, 2/azul, 3/celeste, 4/azul, 5/celeste, 6/azul}
+            \draw[\c, thick, fill=\c!8] (1.5*\i, 1.45 + 0.4*\i) rectangle (1.5*\i + 3, 1.75 + 0.4*\i)
+                node[midway, font=\scriptsize, text=\c!80!black] {$v_{\i}$};
+        % leyenda
+        \node[nota, anchor=north west, text width=12cm] at (0, -0.6) {%
+            \textcolor{verde!60!black}{$\blacksquare$} corto (0,7\,s): entra en $v_1$ y $v_2$, completo en las dos.\quad
+            \textcolor{ambar!80!black}{$\blacksquare$} parcial (1,5\,s): entra en $v_5$ y $v_6$; $v_4$ ve 0,1\,s y no lo cuenta.\\
+            \textcolor{rosa!70!black}{$\blacksquare$} largo (9\,s): entra en $v_1 \ldots v_6$ recortado a cada ventana; en $v_2 \ldots v_5$ ocupa la ventana entera.};
+    \end{tikzpicture}
+    \caption{Asignación de eventos a ventanas de 3\,s con salto de 1,5\,s}
+    \label{fig:ventaneo}
+\end{figure}
+
+\subsection{Efecto sobre los eventos largos}
+
+La Tabla~\ref{tab:ventaneo} mide la fragmentación. Cada anotación se reparte, en promedio,
+entre \boxesPerAnnotation{} ventanas (el salto de 1,5\,s hace que casi todo evento breve
+aparezca en dos); las dos clases largas, \longClasses{}, se reparten entre 8 y 5. Casi todas
+sus cajas tocan al menos un borde temporal de la ventana y en la mayoría ocupan la ventana
+entera; aportan el \pctLongBoxes{} de las cajas del conjunto. El protocolo de evaluación
+(RE2.1) las aparta como \emph{clases de ventana}.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Efecto del ventaneo de 3\,s sobre las clases de eventos largos}
+        \label{tab:ventaneo}
+        \small
+        \begin{tabular}{@{}lrrrrrr@{}}
+            \toprule
+            \textbf{Clase} & \thead{Anot.} & \thead{Cajas} & \thead{Cajas por\\anotación} & \thead{Anot.\\$>3$\,s} & \thead{Cajas en\\el borde} & \thead{Ventana\\entera} \\
+            \midrule
+            \input{figures/RE_1-2/ventaneo} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Una caja está ``en el borde'' cuando su lado temporal izquierdo o derecho
+            coincide con el límite de la ventana, es decir, cuando el evento continúa fuera de
+            ella; ``ventana entera'' cuando toca los dos.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\todo{Pendiente de esta etapa: una segunda longitud de ventana para las clases largas, o
+una agregación que reconstruya el evento completo a partir de sus fragmentos.}
+
+\subsection{Ventanas vacías}
+\label{sec:vacias}
+
+A las ventanas con al menos una anotación se suma un \emptyRatio{} de ventanas \emph{vacías},
+tomadas al azar (semilla \seed{}) de tramos sin ninguna llamada y sin ningún evento a medias:
+una ventana que ve menos de la mitad de una llamada no cuenta como vacía. Sin ellas el modelo
+nunca ve fondo puro (selva, lluvia, insectos) y aprende que en toda entrada hay algo que
+reportar. Son \nEmpty{} ventanas
+(\pctEmpty{} del total); su proporción difiere entre particiones porque se reparten por
+grabación, no por ventana.
+
+\todocita{muestreo de negativos o de fondo en detección de eventos sonoros y su efecto sobre
+los falsos positivos; un trabajo de SED bioacústica que reporte la proporción de clips sin
+evento}
+
+\subsection{Densidad de eventos por ventana}
+
+La mediana de cajas por ventana con contenido es \medianPerWindow{}, el máximo \maxPerWindow{}
+y el \pctLeqFour{} de las ventanas lleva cuatro o menos (Figura~\ref{fig:densidad}). RE2.1
+fija sobre el máximo el número de predicciones simultáneas del decodificador.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar, bar width=14pt,
+            width=0.75\textwidth, height=5.4cm,
+            ymode=log, log origin=infty, ymin=0.7,
+            xlabel={cajas anotadas en la ventana}, ylabel={ventanas},
+            xtick=data, xtick pos=bottom,
+            point meta=rawy,
+            nodes near coords={\pgfmathprintnumber[fixed, 1000 sep={\,}]{\pgfplotspointmeta}},
+            every node near coord/.append style={font=\scriptsize},
+            axis line style={black!50}, tick style={black!50},
+            ymajorgrids, grid style={black!12},
+        ]
+            \addplot[fill=azul!70, draw=azul!80!black] table[x=cajas, y=ventanas] {figures/RE_1-2/cajas_por_ventana.dat};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Cajas anotadas por ventana, sobre las ventanas con al menos una (escala
+        logarítmica)}
+    \label{fig:densidad}
+\end{figure}
+
+\section{Representación de entrada}
+\label{sec:representacion}
+
+\subsection{Espectrograma log-mel}
+
+Cada ventana se transforma en un espectrograma mel de potencia con los parámetros de la
+Tabla~\ref{tab:preproc}, y el caché guarda ese mel sin comprimir (\code{float32}); la
+compresión logarítmica o la normalización de energía por canal se aplican como primera capa de
+cada modelo (RE2.1), de modo que un mismo caché sirve a todos. Los once parámetros fijan el
+espectrograma de principio a fin: \code{torchaudio.transforms.MelSpectrogram} instanciada con
+estos valores lo reproduce (\file{src/core/config.py} y \file{src/utils/audio.py}).
+
+\todocita{escala mel y banco de filtros HTK; referencia clásica de la escala mel (Stevens y
+Volkmann) o de HTK (Young et al.)}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Parámetros del espectrograma}
+    \label{tab:preproc}
+    \small
+    \begin{tabular}{@{}L{2.6cm}L{3.0cm}L{8.3cm}@{}}
+        \toprule
+        \textbf{Parámetro} & \textbf{Valor} & \textbf{Justificación} \\
+        \midrule
+        Frecuencia de muestreo & 44\,100\,Hz & Igual a la de las grabaciones, de modo que esta etapa no remuestrea; su mitad, 22\,050\,Hz, es el techo de Nyquist que fija el límite superior del rango de frecuencia \\
+        \addlinespace
+        Ventana / salto & 3,0\,s / 1,5\,s & Contiene entera a 23 de las 25 clases; el costo es la fragmentación de las dos largas (Tabla~\ref{tab:ventaneo}) \\
+        \addlinespace
+        Solapamiento mínimo & 0,5 & Un evento entra si la mitad de su parte visible cae en la ventana; medirlo contra la parte visible es lo que mantiene alcanzables a los eventos de más de 6\,s \\
+        \addlinespace
+        Longitud de ventana STFT & 1\,024 (23\,ms) & Más corta que los eventos más breves: 34\,ms el mínimo, 81\,ms la mediana de \code{sm/cc} \\
+        \addlinespace
+        Función de ventana & Hann & Valor por defecto de \code{torchaudio}; ninguna clase mostró fuga espectral atribuible a la ventana \\
+        \addlinespace
+        Puntos de la FFT & 4\,096 & Relleno con ceros: densifica la rejilla de frecuencia sin tocar la resolución temporal \\
+        \addlinespace
+        Salto STFT & 400 (9\,ms) & Produce 331 tramas por ventana \\
+        \addlinespace
+        Bandas mel & 128 & Lo que espera el extractor preentrenado del modelo propuesto; 256 no dio ganancia medible \\
+        \addlinespace
+        Escala mel & HTK ($q=2\,595$,\newline $f_\text{quiebre}=700$\,Hz) & Convención por defecto de \code{torchaudio}; es la misma fórmula con la que se mapean las cajas, $m(f) = q \log_{10}(1 + f / f_\text{quiebre})$ \\
+        \addlinespace
+        Rango de frecuencia & 25\,Hz -- 22\,050\,Hz & Un techo de 16\,kHz truncaba la mitad de las cajas de \code{sb/spc}, cuya frecuencia superior media es 16\,110\,Hz \\
+        \addlinespace
+        Rango en dB & \dbLow{} a \dbHigh{}\,dB & Percentiles 1 y 99,9 de $10\log_{10}(\text{mel}+10^{-6})$ sobre 2\,000 ventanas de entrenamiento; los modelos que pintan el mel como imagen normalizan con él \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Normalización de las cajas}
+
+Las cajas se guardan en formato centro, ancho y alto normalizados al intervalo $[0,1]$ de la
+ventana (Figura~\ref{fig:caja}): el tiempo se divide por los 3\,s de la ventana, y la
+frecuencia pasa por la misma escala mel que produce la imagen,
+\[
+    y(f) = \frac{m(f) - m(f_{\min})}{m(f_{\max}) - m(f_{\min})},\qquad
+    m(f) = 2\,595 \log_{10}\!\left(1 + \frac{f}{700}\right).
+\]
+El rectángulo que el modelo predice es el rectángulo que Raven dibuja, y la inversa
+$y \mapsto f$ recupera los hercios al exportar (RE2.4). Las cajas más angostas que 10\,ms en cualquiera de los dos ejes se
+descartan al ventanear, con el mismo mínimo que fijó el protocolo de curación.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[x=1cm, y=1cm]
+        % Raven
+        \draw[black!60] (0, 0) rectangle (5, 3.4);
+        \node[nota, anchor=south west] at (0, 3.45) {tabla de Raven (s, Hz)};
+        \draw[verde!80!black, thick, fill=verde!15] (1.4, 0.9) rectangle (3.6, 2.5);
+        \draw[<->, black!60] (1.4, 0.45) -- (3.6, 0.45) node[midway, below, font=\scriptsize] {Begin, End Time (s)};
+        \draw[<->, black!60] (4.4, 0.9) -- (4.4, 2.5) node[midway, right, font=\scriptsize, align=left] {Low,\\High\\Freq (Hz)};
+        % flecha
+        \draw[flecha] (5.4, 1.7) -- (7.0, 1.7) node[midway, above, font=\scriptsize, align=center] {$t/3$\\$y(f)$};
+        % normalizado
+        \draw[black!60] (7.4, 0) rectangle (12.4, 3.4);
+        \node[nota, anchor=south west] at (7.4, 3.45) {ventana normalizada $[0,1]^2$ (eje mel)};
+        \draw[celeste!70!black, thick, fill=celeste!15] (8.8, 0.9) rectangle (11.0, 2.5);
+        \fill[celeste!70!black] (9.9, 1.7) circle (1.5pt) node[above right, font=\scriptsize] {$(c_x, c_y)$};
+        \draw[<->, black!60] (8.8, 0.45) -- (11.0, 0.45) node[midway, below, font=\scriptsize] {$w$};
+        \draw[<->, black!60] (11.6, 0.9) -- (11.6, 2.5) node[midway, right, font=\scriptsize] {$h$};
+        \node[font=\scriptsize, black!60] at (7.4, -0.25) {0};
+        \node[font=\scriptsize, black!60] at (12.4, -0.25) {1};
+    \end{tikzpicture}
+    \caption{Normalización de una caja: tiempo por la longitud de la ventana, frecuencia
+        por la escala mel}
+    \label{fig:caja}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\linewidth]{figures/RE_1-2/ventana_densa}
+        \caption{La ventana más densa}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\linewidth]{figures/RE_1-2/ventana_larga}
+        \caption{Llamada larga, cortada en ambos bordes}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\linewidth]{figures/RE_1-2/ventana_vacia}
+        \caption{Ventana vacía}
+    \end{subfigure}
+    \caption{Ventanas de entrenamiento tal como las recibe el modelo (mel en dB, cajas
+        normalizadas)}
+    \label{fig:ventanas}
+\end{figure}
+
+\section{Entregables}
+\label{sec:archivos}
+
+\file{data/processed/} contiene los archivos de la Tabla~\ref{tab:archivos}; en total
+\gbTotal{}\,GB. Los tres \file{.pt} son diccionarios con las mismas tres claves:
+\code{images}, un tensor $(N, 1, 128, 331)$ en \code{float32} con el mel de cada ventana;
+\code{boxes}, una lista de $N$ tensores $(n_i, 4)$ con las cajas normalizadas; y
+\code{labels}, una lista de $N$ tensores $(n_i,)$ con el índice de clase de cada caja según
+\file{labels.json}. Se abren con \code{torch.load(path, mmap=True, weights\_only=True)}, que
+lee cajas y etiquetas sin traer los espectrogramas a memoria; el cuaderno los carga y
+comprueba las claves y las formas.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Contenido de \file{data/processed/}}
+    \label{tab:archivos}
+    \small
+    \begin{tabular}{@{}lL{9.6cm}@{}}
+        \toprule
+        \textbf{Archivo} & \textbf{Contenido} \\
+        \midrule
+        \file{train.pt}, \file{val.pt}, \file{test.pt} & Ventanas de cada partición: mel, cajas y etiquetas \\
+        \file{labels.json} & Índice de clase $\to$ nombre \code{especie/llamada}, las \nClasses{} clases en orden alfabético \\
+        \file{meta.json} & Semilla, criterio de selección, exclusiones y fusiones, proporciones de partición, rango en dB y los parámetros del espectrograma \\
+        \file{train\_sources.json}, \ldots & Grabación y segundo de inicio de cada ventana, para volver al audio (evaluación por grabación, visor, ejemplos) \\
+        \file{prepare\_data.log} & Registro de la ejecución que construyó el caché \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Metadatos}
+\label{sec:meta}
+
+\file{meta.json} deja escrito todo lo que hace falta para reconstruir el caché y para saber de
+qué versión del conjunto salió una cifra: la semilla, el umbral de selección, la proporción de
+ventanas vacías, las proporciones de partición, las exclusiones y fusiones de etiquetas, el rango
+en dB de la normalización y los parámetros del espectrograma. Cada corrida de entrenamiento lo
+copia en su \file{config.json} y en el propio \emph{checkpoint}, de modo que un modelo lleva
+consigo la descripción del conjunto con el que se entrenó.
+
+\lstinputlisting[caption={\file{meta.json} del caché actual}]{figures/RE_1-2/meta.json}
+
+\todo{\code{background\_species} y \code{background\_ratio} declaran el mecanismo para
+mezclar canto de aves (PteroSet) como fondo, pero \file{cleaned/} no contiene tablas de aves y
+el caché actual no tiene ninguna ventana de ese origen. O se regenera \file{cleaned/} con
+\file{birds\_\_AV} o se quita el mecanismo de \file{meta.json}; documentarlo tal cual está
+sería engañoso.}
+
+\subsection{Comandos}
+
+\begin{lstlisting}[language=bash]
+uv run python src/prepare_annotations.py           # RE1.1: raw/ -> cleaned/
+uv run python src/prepare_data.py --force          # cleaned/ -> processed/ (~3 min)
+uv run python src/prepare_data.py --sources-only   # sólo reescribe *_sources.json
+\end{lstlisting}
+
+La construcción es determinista: con la misma \file{cleaned/}, la misma semilla y los mismos
+parámetros se obtienen las mismas ventanas en el mismo orden. El cuaderno
+\file{notebooks/dataset\_report.ipynb} calcula una huella SHA-256 de la lista de grabaciones de
+cada partición para comparar dos copias del conjunto.
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

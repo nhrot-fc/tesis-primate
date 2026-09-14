@@ -1,5 +1,7 @@
 import hashlib
 import logging
+import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +35,21 @@ MANUAL_SYNONYMS = {
     "tc": "tr",
 }
 MANUAL_FIXES: dict[tuple[str, str], tuple[str, str]] = {("aa", "hc"): ("aa", "hm")}
+# La `Species` escrita se resuelve con la carpeta, salvo en estas tablas (tabla de raw/ ->
+# especie escrita), revisadas en notebooks/especies_discordantes.ipynb:
+#   MANUAL_IGNORE: filas que no se deciden sin experto. Se conservan con `ignore` y el manifest
+#   descarta toda ventana que las pise, para no enseñarlas ni como caja ni como fondo.
+MANUAL_IGNORE: dict[str, str] = {
+    "peruvian_spider_monkey__AC/20240419_060128.txt": "as",  # tabla entera, 31 bc
+    "howler_monkey__AS/20240823_142122.txt": "ac",  # tabla entera, 14 bc
+    "peruvian_spider_monkey__AC/20240522_063701.txt": "as",  # 2 bc
+    "peruvian_spider_monkey__AC/20240617_152336.txt": "as",  # 1 bc
+    "large_headed_capuchin__SM/20240411_104650.txt": "ac",  # 5 sc
+    "large_headed_capuchin__SM/20240901_094557.txt": "lw",  # 1 cc
+}
+#   MANUAL_DROP: filas pegadas desde la tabla de la copia de la misma grabación en la carpeta de
+#   la especie escrita, donde ya están anotadas; acá se quitan.
+MANUAL_DROP: dict[str, str] = {"peruvian_spider_monkey__AC/20241106_083703.txt": "sm"}
 
 # Las tablas mezclan el código y el nombre legible del tipo de llamada.
 CALL_SYNONYMS: dict[str, dict[str, str]] = {
@@ -48,7 +65,8 @@ def cleaned(column: str) -> str:
     return slugify(column, separator="_")
 
 
-def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
+def clean_annotations(df: pd.DataFrame, species: str, table: str | None = None) -> pd.DataFrame:
+    # `table`: ruta de la tabla relativa a raw/, para `MANUAL_IGNORE` y `MANUAL_DROP`.
     from slugify import slugify
 
     assert [cleaned(c) for c in BOX_COLUMNS] == CLEANED_BOX_COLUMNS
@@ -58,6 +76,15 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     if "call_type" not in df and "id" in df:
         # PteroSet: `Tipo`/`ID` en vez de `Species`/`Call type`
         df["call_type"] = df["id"]
+
+    written = (
+        df["species"].map(lambda v: v.strip().lower() if isinstance(v, str) else "")
+        if "species" in df
+        else pd.Series("", index=df.index)
+    )
+    df["ignore"] = written.eq(MANUAL_IGNORE[table]) if table in MANUAL_IGNORE else False
+    if table in MANUAL_DROP:
+        df = df.loc[written.ne(MANUAL_DROP[table])]
 
     df["call_type"] = (
         df["call_type"]
@@ -79,6 +106,22 @@ def clean_annotations(df: pd.DataFrame, species: str) -> pd.DataFrame:
     df["bandwidth_hz"] = df["high_freq_hz"] - df["low_freq_hz"]
     df = df.loc[(df["duration_s"] >= MIN_DURATION_S) & (df["bandwidth_hz"] > 0)]
     return df.sort_values("begin_time_s").reset_index(drop=True)
+
+
+def list_files(root: Path, suffix: str) -> list[Path]:
+    # os.walk() para enlaces simbólicos; los `._*` son metadatos de macOS
+    return sorted(
+        Path(directory) / name
+        for directory, _, names in os.walk(root, followlinks=True)
+        for name in names
+        if name.endswith(suffix) and not name.startswith("._")
+    )
+
+
+def recording_stem(annotation: Path) -> str:
+    # Nombre del `.wav` que anota una tabla: tolera un espacio de más y el
+    # `.Table.1.selections` de Raven.
+    return re.sub(r"(\.Table\.\d+)?\.selections$", "", annotation.name.removesuffix(".txt").strip())
 
 
 def species_of(wav_path: Path) -> str:
@@ -140,6 +183,9 @@ def load_annotations(root: Path = CLEANED_DIR, audio_root: Path = RAW_DIR) -> pd
 
     annotations_df = unify_copies(pd.concat(frames, ignore_index=True))
     annotations_df[CLEANED_BOX_COLUMNS] = annotations_df[CLEANED_BOX_COLUMNS].astype(float)
+    if "ignore" not in annotations_df:  # cleaned/ anterior a `MANUAL_IGNORE`
+        annotations_df["ignore"] = False
+    annotations_df["ignore"] = annotations_df["ignore"].astype(bool)
     annotations_df["duration_s"] = annotations_df["end_time_s"] - annotations_df["begin_time_s"]
     annotations_df["bandwidth_hz"] = annotations_df["high_freq_hz"] - annotations_df["low_freq_hz"]
     return annotations_df

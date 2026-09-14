@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
-from core.config import SCORE_THRESHOLD
+from core.config import NMS_IOU, SCORE_THRESHOLD
 from models.backbone import N_LEVELS, TIME_STRIDE
 from models.base import Detector
 from models.criterion import Outputs
@@ -263,8 +263,10 @@ class DetectionHead(nn.Module):
 
 
 class ASTDeformableDETR(Detector):
-    # Sin NMS: el matching húngaro ya es uno a uno
-    nms_iou = None
+    # El matching húngaro es uno a uno al entrenar, pero en inferencia 100 consultas sobre 1-3
+    # llamadas dejan duplicados y cajas anidadas: el mismo postprocesado que las cabezas densas
+    # (+0,02 mAP en val y test, y el visor sale mucho más limpio).
+    nms_iou = NMS_IOU
     clip_grad = 0.1
 
     def __init__(

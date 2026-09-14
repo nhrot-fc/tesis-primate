@@ -1,0 +1,112 @@
+% Preámbulo común de los reportes RE_x-y (un documento por resultado esperado).
+% Cada RE_*.tex lo carga con \input{preambulo} justo después de \documentclass.
+
+% === Codificación e idioma =========================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-noquoting]{babel}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{etoolbox}
+
+% === Figuras, tablas y listas =======================================
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{threeparttable}
+\usepackage{enumitem}
+\usepackage[font=small,labelfont=bf,skip=8pt]{caption}
+\usepackage{subcaption}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyhdr}
+
+% === Esquemas y gráficos en LaTeX ===================================
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,backgrounds,
+                decorations.pathreplacing,matrix,chains,quotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots,statistics}
+
+% === Geometría ======================================================
+\usepackage{geometry}
+\geometry{left=3cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+% === Citas y enlaces (hyperref al final) ============================
+\usepackage[round,authoryear]{natbib}
+\usepackage[hidelinks,hypertexnames=false]{hyperref}
+\hypersetup{pdfauthor={Fernando Nelson Candia Aroni}, pdflang={es}}
+
+% ===================================================================
+% FORMATO
+% ===================================================================
+\setstretch{1.2}
+\AtBeginEnvironment{tabular}{\setstretch{1}}
+\AtBeginEnvironment{tabularx}{\setstretch{1}}
+\AtBeginEnvironment{thebibliography}{\setstretch{1}}
+\captionsetup{font={small,stretch=1}}
+
+\titleformat*{\section}{\setstretch{1}\raggedright\normalfont\Large\bfseries}
+\titleformat*{\subsection}{\setstretch{1}\raggedright\normalfont\large\bfseries}
+\titleformat*{\subsubsection}{\setstretch{1}\raggedright\normalfont\normalsize\bfseries}
+\titleformat{\paragraph}[hang]{\setstretch{1}\normalfont\bfseries}{}{0pt}{}
+\titlespacing*{\paragraph}{0pt}{2.6ex plus .6ex minus .2ex}{1.2ex}
+
+% Etiqueta corta incrustada al inicio del párrafo.
+\newcommand{\rotulo}[1]{\par\medskip\noindent\textbf{#1}\hskip 1em\ignorespaces}
+
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\setlist[description]{style=unboxed, leftmargin=1.6em, labelindent=0pt,
+                      topsep=1ex, itemsep=1.1ex, parsep=0pt}
+\setlist[itemize]{topsep=1ex, itemsep=0.5ex, parsep=0pt}
+\setlist[enumerate]{topsep=1ex, itemsep=0.5ex, parsep=0pt}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.15}
+\renewcommand{\theadfont}{\bfseries}
+\renewcommand{\theadalign}{br}
+
+% Código y comandos: monoespaciado pequeño, sin resaltar.
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    columns=fullflexible,
+    keepspaces=true,
+    frame=leftline,
+    framerule=0.6pt,
+    rulecolor=\color{black!35},
+    xleftmargin=1em,
+    aboveskip=1ex,
+    belowskip=1ex,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+             {→}{{$\to$}}1 {≥}{{$\geq$}}1 {·}{{$\cdot$}}1,
+}
+\renewcommand{\lstlistingname}{Listado}
+
+% === Paleta, estilos TikZ, \code, \file, \sep, \todocita y \todo ===========
+\input{estilos}
+
+% === Encabezado del reporte =========================================
+% \reporte{RE1.1}{OE1}{Título}: título, subtítulo (RE y OE) y autor.
+\newcommand{\reporte}[3]{%
+    \pagestyle{fancy}\fancyhf{}%
+    \fancyhead[L]{\small #2\sep#1}\fancyhead[R]{\small\thepage}%
+    \renewcommand{\headrulewidth}{0.4pt}%
+    \begin{center}
+        {\LARGE\bfseries #3}\\[1.2ex]
+        {\large Resultado esperado #1 del objetivo específico #2}\\[1.2ex]
+        {\normalsize Fernando Nelson Candia Aroni}
+    \end{center}
+    \vspace{1ex}\hrule\vspace{2ex}%
+}

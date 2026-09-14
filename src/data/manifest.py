@@ -55,22 +55,36 @@ def boxes_in_window(
     return boxes[usable], class_ids[keep][usable], bool(usable.sum() < present.sum())
 
 
+def touches(group: pd.DataFrame, clip_start_s: float, params: Parameters) -> bool:
+    # Si alguna anotación del grupo pisa la ventana, aunque sea un instante.
+    begin = group["begin_time_s"].to_numpy()
+    end = group["end_time_s"].to_numpy()
+    return bool(
+        (np.minimum(end, clip_start_s + params.clip_len_s) > np.maximum(begin, clip_start_s)).any()
+    )
+
+
 def build_manifest(
     df: pd.DataFrame,
     labels: LabelSet,
     params: Parameters = P,
     empty_ratio: float = 0.0,
     seed: int = SEED,
+    ignored: pd.DataFrame | None = None,
 ) -> list[ClipWindow]:
+    # `ignored`: anotaciones que no se pueden decidir (`MANUAL_IGNORE`); toda ventana que pise una
+    # se descarta, para no enseñarla como fondo.
     if not 0.0 <= empty_ratio < 1.0:
         raise ValueError(f"empty_ratio debe estar en [0, 1): {empty_ratio}")
     unknown = {name for name in df["label"].unique() if name not in labels}
     if unknown:
         raise ValueError(f"etiquetas fuera del LabelSet: {sorted(unknown)}")
+    blocked = {} if ignored is None else dict(tuple(ignored.groupby("audio_path")))
 
     positive: list[ClipWindow] = []
     empty: list[ClipWindow] = []
     unreadable: list[str] = []
+    skipped = 0
     for audio_path, group in df.groupby("audio_path"):
         duration_s = duration_of(str(audio_path))
         if duration_s is None:
@@ -78,6 +92,9 @@ def build_manifest(
             continue
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.int64)
         for clip_start_s in window_starts(duration_s, params):
+            if audio_path in blocked and touches(blocked[audio_path], float(clip_start_s), params):
+                skipped += 1
+                continue
             boxes, ids, incomplete = boxes_in_window(group, class_ids, float(clip_start_s), params)
             window = ClipWindow(str(audio_path), float(clip_start_s), boxes, ids)
             if len(boxes):
@@ -89,39 +106,13 @@ def build_manifest(
         logger.warning(
             "%d audios ilegibles, quedan fuera:\n  %s", len(unreadable), "\n  ".join(unreadable)
         )
+    if skipped:
+        logger.info("%d ventanas descartadas por pisar una anotación ignorada", skipped)
     if empty_ratio <= 0.0 or not empty:
         return positive
     n_empty = min(len(empty), round(len(positive) * empty_ratio / (1 - empty_ratio)))
     keep = np.random.default_rng(seed).choice(len(empty), size=n_empty, replace=False)
     return positive + [empty[i] for i in keep]
-
-
-def event_windows(df: pd.DataFrame, params: Parameters = P) -> list[ClipWindow]:
-    # Ventanas sin cajas de las grabaciones de fondo, sólo las que pisan un evento anotado.
-    windows: list[ClipWindow] = []
-    no_boxes, no_labels = np.empty((0, 4)), np.empty(0, dtype=np.int64)
-    for audio_path, group in df.groupby("audio_path"):
-        duration_s = duration_of(str(audio_path))
-        if duration_s is None:
-            logger.warning("audio de fondo ilegible, queda fuera: %s", audio_path)
-            continue
-        begin, end = group["begin_time_s"].to_numpy(), group["end_time_s"].to_numpy()
-        for clip_start_s in window_starts(duration_s, params):
-            overlap = np.minimum(end, clip_start_s + params.clip_len_s) - np.maximum(
-                begin, clip_start_s
-            )
-            if (overlap > 0).any():
-                windows.append(
-                    ClipWindow(str(audio_path), float(clip_start_s), no_boxes, no_labels)
-                )
-    return windows
-
-
-def sample_windows(windows: list[ClipWindow], n: int, seed: int = SEED) -> list[ClipWindow]:
-    keep = np.random.default_rng(seed).choice(
-        len(windows), size=min(len(windows), n), replace=False
-    )
-    return [windows[i] for i in sorted(keep)]
 
 
 def split_manifest(

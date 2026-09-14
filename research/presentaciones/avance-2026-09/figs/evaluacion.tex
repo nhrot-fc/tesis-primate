@@ -1,0 +1,15 @@
+% extraído de research/reportes/RE_2-1_diseno-arquitectura.tex (fig:protocolo) por armar_figuras.py
+\begin{tikzpicture}[node distance=3mm and 6mm, every node/.style={font=\footnotesize}]
+        \node[etapa] (train) {entrenamiento\\receta del preset};
+        \node[dato, right=of train] (best) {best.pt\\mAP@\matchIou{} en val};
+        \node[etapa, right=of best] (dump) {volcado val y test\\score $\geq$ \scoreFloor{}, \maxDetections{} cajas};
+        \node[etapa, below=of dump] (thr) {val elige el umbral\\P $\geq$ \minPrecision{}, máximo recall};
+        \node[etapa, left=of thr] (test) {test se mide una vez\\recall, precisión, IC 95\,\%};
+        \node[etapa, left=of test] (per) {por clase\\recall, AP@\matchIou{}};
+        \draw[flecha] (train) -- (best);
+        \draw[flecha] (best) -- (dump);
+        \draw[flecha] (dump) -- (thr);
+        \draw[flecha] (thr) -- (test);
+        \draw[flecha] (test) -- (per);
+        \node[nota, below=1mm of test] {\textit{bootstrap} por grabación};
+    \end{tikzpicture}

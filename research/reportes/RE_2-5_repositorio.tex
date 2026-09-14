@@ -1,0 +1,183 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\hypersetup{pdftitle={RE2.5 Código y modelo disponibles en un repositorio}}
+
+\begin{document}
+\reporte{RE2.5}{OE2}{Código y modelo disponibles en un repositorio}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Repositorio público
+\url{https://github.com/nhrot-fc/tesis-primate} y sus \emph{releases}. Este documento es un
+índice y no tiene cuaderno.
+
+\rotulo{Indicador.} La URL del repositorio permite localizar el código de curación,
+entrenamiento, evaluación e inferencia, las instrucciones de ejecución y los artefactos del
+modelo final publicados (Tabla~\ref{tab:donde}).
+
+\section{Repositorio}
+
+\rotulo{URL.} \url{https://github.com/nhrot-fc/tesis-primate}, público, con historia completa
+(más de cien \emph{commits}) y \emph{releases} etiquetados por versión
+(\code{v0.1.0}, \code{v0.1.5}). La versión del paquete es la de \file{pyproject.toml}.
+
+\rotulo{Estructura.} La Figura~\ref{fig:arbol} muestra el árbol de primer nivel y qué
+resultado esperado documenta cada rama; la Tabla~\ref{tab:donde} lleva de cada verbo del
+indicador al archivo que lo implementa.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.92\textwidth}
+\begin{lstlisting}
+tesis-primate/
+  README.md         instalacion del paquete portable y uso del visor
+  pyproject.toml    dependencias, extras y grupos (uv)
+  evaluation.sh     volcado + comparacion de todas las corridas
+  src/              el pipeline entero (RE2.2, mapa del codigo)
+  notebooks/        auditoria, comparacion visual, figuras, aves
+  research/         la tesis (main.tex), figuras, reportes RE_*
+  deploy/           paquete portable para Windows
+  docs/             protocolo de comparacion, requisitos, notas
+  data/   (no versionado)  raw/, cleaned/, processed/, yolo/
+  runs/   (no versionado)  corridas: checkpoints, volcados
+  hf/     (no versionado)  backbones preentrenados
+\end{lstlisting}
+    \end{minipage}
+    \caption{Árbol del repositorio}
+    \label{fig:arbol}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Ubicación de cada elemento del indicador}
+    \label{tab:donde}
+    \small
+    \begin{tabular}{@{}L{3.2cm}L{6.6cm}L{4.0cm}@{}}
+        \toprule
+        \textbf{Qué} & \textbf{Dónde} & \textbf{Documento} \\
+        \midrule
+        Curación & \file{src/prepare\_annotations.py}, \file{src/data/annotations.py}, \file{src/data/species.py} & RE1.1 \\
+        Conjunto y partición & \file{src/prepare\_data.py}, \file{src/data/manifest.py}, \file{src/data/cache.py} & RE1.2, RE1.3 \\
+        Arquitecturas & \file{src/models/} & RE2.1 \\
+        Entrenamiento & \file{src/train.py}, \file{src/training/} & RE2.2 \\
+        Evaluación & \file{src/dump\_predictions.py}, \file{src/compare\_models.py}, \file{src/evaluation/}, \file{evaluation.sh} & RE2.1 (protocolo), RE2.3 \\
+        Inferencia & \file{src/detect.py}, \file{src/inference/}, \file{src/main.py} y \file{src/viewer/} & RE2.4 \\
+        Instrucciones & \file{README.md}, \file{docs/system\_requirements.md}, \file{pyproject.toml} & RE2.2 \\
+        Modelos publicados & \emph{Releases}: \code{detector-<versión>-\allowbreak model-<nombre>.zip} & esta sección \\
+        Paquete portable & \emph{Releases}: \code{detector-<versión>-\allowbreak win64-\{cpu,cuda\}.zip}; \file{deploy/} & esta sección \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Contenido publicado}
+
+\subsection{Código}
+
+Todo el pipeline, tal como lo describe RE2.2, más los cuadernos que generan las figuras de la
+tesis y de estos reportes. El código corre con \code{uv sync} y los comandos de RE2.2; no
+depende de nada que no esté declarado en \file{pyproject.toml} y \file{uv.lock}.
+
+\subsection{Modelos}
+
+Cada \emph{release} lleva un zip por modelo con la carpeta \code{models/<nombre>/} (el
+\emph{checkpoint} autocontenido de RE2.2 más \file{operating\_point.json}) y, cuando el
+modelo lo necesita, la copia de su \emph{backbone} preentrenado en \code{hf/}. El zip se
+descomprime dentro de la carpeta del paquete portable, o de un clon del repositorio, y el
+modelo aparece en el selector del visor y en \file{detect.py} sin ningún paso más. La
+Tabla~\ref{tab:release} lista los artefactos del \emph{release} actual.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Artefactos del \emph{release} \code{v0.1.5}}
+        \label{tab:release}
+        \small
+        \begin{tabular}{@{}L{6.6cm}rL{4.8cm}@{}}
+            \toprule
+            \textbf{Archivo} & \thead{Tamaño} & \textbf{Contenido} \\
+            \midrule
+            \file{detector-0.1.5-win64-cpu.zip} & 0,5\,GB & Programa completo para Windows de 64 bits, sólo CPU \\
+            \file{detector-0.1.5-win64-\allowbreak cuda.zip.001/.002} & 3,1\,GB & Lo mismo con soporte NVIDIA; \file{join.bat} une las partes \\
+            \file{detector-0.1.5-model-frcnn.zip} & 161\,MB & Faster R-CNN R50-FPN v2 \\
+            \file{detector-0.1.5-model-\allowbreak yolo26s\_coco.zip} & 24\,MB & YOLO26s \\
+            \file{detector-0.1.5-model-\allowbreak detr\_t10\_pcen.zip} & 652\,MB & AST-Deformable-DETR con PCEN, con su AST \\
+            \file{SHA256SUMS.txt} & --- & Sumas de verificación de todo lo anterior \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Los tres modelos del \emph{release} se entrenaron sobre la versión anterior
+            del caché (antes de unir las copias de grabaciones, RE1.1). \todo{Publicar
+            \code{yolo26s\_v2}, el modelo final de RE2.3 y RE2.4, como
+            \file{detector-0.1.6-model-yolo26s\_v2.zip}, y retirar o marcar como anteriores los
+            tres zips actuales.}
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsection{Paquete portable}
+
+El paquete de Windows (\file{deploy/build\_windows.py}) empaqueta un Python embebido con las
+dependencias resueltas por \code{uv} para Windows, el código de \file{src/} y dos lanzadores
+compilados desde \file{deploy/launcher/launcher.c}: \file{Detector.exe} abre el visor (vistas
+\emph{Spectrogram} y \emph{Batch}) y \file{detect.exe} es la línea de comandos de
+\file{detect.py}. No exige instalar Python, CUDA ni permisos de administrador; el usuario
+descomprime, añade un modelo y arrastra un audio o una carpeta. \file{deploy/release.sh} sube
+los zips a GitHub con sus sumas SHA-256. \todo{El paquete se construyó y probó en Linux con
+Wine ausente: falta una prueba en una máquina Windows real antes de publicar el \emph{release}
+como definitivo (hoy está en borrador).}
+
+\section{Contenido no publicado}
+
+\begin{itemize}
+    \item \textbf{Las grabaciones y las anotaciones primarias} (\file{data/raw/}) pertenecen
+          al equipo de investigación; el repositorio no las contiene ni las referencia por
+          ubicación. RE1.3 deja abierta la decisión de liberar el conjunto derivado.
+    \item \textbf{Las corridas} (\file{runs/}): sus \emph{checkpoints} y volcados suman
+          decenas de gigabytes; se publican los \emph{checkpoints} elegidos, no las corridas.
+    \item \textbf{Los pesos preentrenados de terceros} (AST de AudioSet, Deformable DETR de
+          COCO) se descargan de Hugging Face en el primer uso y viajan dentro del zip del
+          modelo que los necesita, con la licencia de su autor.
+\end{itemize}
+
+\section{Comandos de reproducción}
+
+\begin{lstlisting}[language=bash]
+git clone https://github.com/nhrot-fc/tesis-primate.git && cd tesis-primate
+uv sync --no-dev --extra yolo                       # o --extra detr para los DETR
+unzip detector-0.1.5-model-yolo26s_coco.zip          # deja models/yolo26s_coco/
+uv run python src/detect.py grabaciones/            # una tabla de Raven por audio
+uv run python src/main.py grabaciones/alguna.wav    # o el visor
+\end{lstlisting}
+
+Sin GPU los cinco comandos funcionan igual; en Windows, el paquete portable reemplaza los dos
+primeros por descomprimir un zip.
+
+\section{Licencia y condiciones de uso}
+
+\todo{El repositorio no tiene archivo \file{LICENSE}. Decidir y añadir: para el código, una
+licencia permisiva (MIT o Apache-2.0) es lo habitual en software de investigación; para los
+pesos del modelo, declarar que derivan de AudioSet/COCO y heredan las condiciones de sus
+\emph{backbones}; para los datos, remitir a la decisión del equipo (RE1.3). Sin licencia, el
+código es ``todos los derechos reservados'' por defecto y nadie puede reutilizarlo
+legalmente.}
+
+\todocita{principios de citación de software (Smith et al. 2016) y, si se deposita una
+versión en Zenodo con DOI, la guía de GitHub--Zenodo; también la práctica de publicar pesos
+con \emph{model cards} (Mitchell et al. 2019), que la ficha de RE1.3 y el
+\file{operating\_point.json} cubren parcialmente}
+
+\section{Versionado y trazabilidad}
+
+Cada \emph{checkpoint} lleva dentro la descripción del conjunto con el que se entrenó (RE2.2)
+y cada \emph{release} lleva sumas SHA-256. Las cifras de los reportes RE1.x y RE2.x se
+generan con los cuadernos homónimos de \file{research/reportes/} sobre los artefactos de
+\file{runs/} y \file{data/processed/}, de modo que una cifra se rastrea a un \emph{commit}, un
+\file{meta.json} y un \file{best.pt}. \todo{Etiquetar el \emph{commit} con el que se
+generaron estos reportes (\code{git tag reportes-oe1-oe2}) y depositar una instantánea en
+Zenodo para obtener un DOI citable en la tesis.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

@@ -1,0 +1,22 @@
+% extraído de research/reportes/RE_1-2_conjunto-particionado.tex (fig:flujo) por armar_figuras.py
+\begin{tikzpicture}[node distance=3.5mm and 8mm]
+        \node[dato] (cleaned) {data/cleaned/\\\nAnnotationsCleaned{} anotaciones};
+        \node[etapa, right=of cleaned] (select) {Selección de clases\\umbral, fusiones, exclusiones};
+        \node[dato, right=of select] (exp) {\nClasses{} clases\\\nExperiment{} anotaciones};
+        \node[etapa, below=of select] (manifest) {Ventaneo 3\,s / 1,5\,s\\+ \emptyRatio{} de ventanas vacías};
+        \node[dato, right=of manifest] (windows) {\nWindows{} ventanas\\\nBoxes{} cajas};
+        \node[etapa, below=of manifest] (split) {Partición por grabación\\\splitRatios{}};
+        \node[dato, below=of split, xshift=-32mm] (train) {train.pt\\\nWindowsTrain{} ventanas};
+        \node[dato, below=of split] (val) {val.pt\\\nWindowsVal{} ventanas};
+        \node[dato, below=of split, xshift=32mm] (test) {test.pt\\\nWindowsTest{} ventanas};
+        \node[dato, left=of split] (meta) {labels.json\\meta.json\\*\_sources.json};
+        \draw[flecha] (cleaned) -- (select);
+        \draw[flecha] (select) -- (exp);
+        \draw[flecha] (exp) |- (manifest);
+        \draw[flecha] (manifest) -- (windows);
+        \draw[flecha] (windows) |- (split);
+        \draw[flecha] (split) -- (train);
+        \draw[flecha] (split) -- (val);
+        \draw[flecha] (split) -- (test);
+        \draw[flecha, dashed] (split) -- (meta);
+    \end{tikzpicture}

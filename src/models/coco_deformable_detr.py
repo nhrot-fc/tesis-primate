@@ -8,7 +8,7 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.nn.init import constant_
 
-from core.config import HF_DIR, SCORE_THRESHOLD
+from core.config import HF_DIR, NMS_IOU, SCORE_THRESHOLD
 from models.base import Detector
 from models.criterion import Outputs, SetCriterion
 from models.deformable_detr import PRIOR_PROB, inverse_sigmoid, sigmoid_detections
@@ -61,8 +61,8 @@ def load_detr(
 class ResNetDeformableDETR(Detector):
     # El Deformable DETR de COCO tal cual sale de HF, ResNet-50 incluido, con la receta de Zhu
     # et al. 2021: el mel pintado como imagen ImageNet, 300 queries, stem y layer1 congelados.
-    # Sin NMS: el matching húngaro ya es uno a uno
-    nms_iou = None
+    # Mismo postprocesado que el resto (ver ASTDeformableDETR): 300 consultas dejan duplicados.
+    nms_iou = NMS_IOU
     clip_grad = 0.1
     needs_db_range = True
     mean: Tensor

@@ -1,0 +1,47 @@
+{
+  "seed": 42,
+  "min_pair_count": 100,
+  "empty_ratio": 0.25,
+  "background_species": [
+    "av"
+  ],
+  "background_ratio": 0.25,
+  "split_ratios": [
+    0.6,
+    0.225,
+    0.175
+  ],
+  "excluded_labels": [
+    "lw/cc",
+    "sm/fc",
+    "sb/pcs"
+  ],
+  "joined_labels": {
+    "lw/tr": "lw/trino",
+    "lw/tj": "lw/trino",
+    "lw/tt": "lw/trino",
+    "lw/tf": "lw/trino",
+    "sb/lpc": "sb/ppc"
+  },
+  "db_range": [
+    -54.047462463378906,
+    27.61951457023642
+  ],
+  "params": {
+    "clip_len_s": 3.0,
+    "clip_hop_s": 1.5,
+    "min_overlap": 0.5,
+    "pad_seed": 0,
+    "target_sr": 44100,
+    "n_fft": 4096,
+    "win_length": 1024,
+    "hop_length": 400,
+    "n_mels": 128,
+    "f_min": 25.0,
+    "f_max": 22050.0,
+    "mel_scale": "htk",
+    "mel_break_hz": 700.0,
+    "mel_scale_q": 2595.0,
+    "eps": 1e-06
+  }
+}

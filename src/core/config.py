@@ -15,6 +15,8 @@ DATA_DIR = PROJECT_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 # Anotaciones normalizadas, una por grabación
 CLEANED_DIR = DATA_DIR / "cleaned"
+# Grabaciones únicas de raw/ (sin copias) con la unión de sus tablas de Raven, sin limpiar
+UNIFIED_DIR = DATA_DIR / "unified"
 # Caché de ventanas
 PROCESSED_DIR = DATA_DIR / "processed"
 # Export PNG para Ultralytics

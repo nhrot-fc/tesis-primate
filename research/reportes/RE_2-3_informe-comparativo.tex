@@ -1,0 +1,402 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_2-3/valores}
+\hypersetup{pdftitle={RE2.3 Informe comparativo de resultados}}
+
+\begin{document}
+\reporte{RE2.3}{OE2}{Informe comparativo de resultados}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Este informe; la comparación
+\file{runs/comparacion/\allowbreak comparacion\_modelos.txt} (y \file{.json}) y los volcados
+de \file{runs/*/}; tablas y figuras generadas por
+\file{RE\_2-3\_\allowbreak informe-\allowbreak comparativo.ipynb}.
+
+\rotulo{Contenido.} Comparación de las seis configuraciones declaradas en RE2.1 sobre el
+conjunto de 25 clases de RE1.2, con el mismo protocolo, y selección del modelo que pasa a
+RE2.4. Las cifras de validación sirvieron para elegir \emph{checkpoints} y umbrales; las de
+prueba se reportan una sola vez, sobre lo ya elegido.
+
+\rotulo{Indicador.} \textit{Recall}, precisión y F\textsubscript{1} al punto de operación
+(Tabla~\ref{tab:resumen}); IoU de los pares acertados y AP a IoU 0,25, 0,3 y 0,5
+(Tabla~\ref{tab:ejes}); \textit{recall} por clase (Tabla~\ref{tab:por-clase}) y matriz de
+confusión (Figura~\ref{fig:confusion}); carga de falsos positivos y de llamadas perdidas al
+punto de operación (sección~\ref{sec:carga}).
+
+\section{Diseño de la comparación}
+
+\rotulo{Datos.} Validación: \nValWindows{} ventanas. Prueba: \nTestWindows{} ventanas de 3\,s
+con \nTestBoxes{} cajas anotadas, de \nTestRecordings{} grabaciones que ninguna configuración
+vio al entrenar. \nDetectionClasses{} clases se puntúan como detección; \code{as/hc} y
+\code{pt/dc}, cuyas cajas ocupan la ventana entera, se puntúan como clasificación de ventana
+y no entran en el promedio por clase.
+
+\rotulo{Protocolo} (RE2.1, sección 5.2). Acierto a IoU $\geq 0{,}3$ por clase; a lo sumo 100
+cajas por ventana para todos; umbral de cada modelo elegido en validación como el de mayor
+\textit{recall} con precisión $\geq 0{,}70$ (punto principal) y $\geq 0{,}50$ (secundario);
+prueba medida una vez en ese umbral, con intervalos de confianza al 95\,\% por remuestreo de
+grabaciones; mAP@0,3 como métrica libre de umbral.
+
+\rotulo{Configuraciones.} La propuesta con log-mel y con PCEN (AST afinado entero, cabeza
+deformable desde cero), la propuesta con log-mel y la cabeza preentrenada con cantos de aves
+(\emph{AST-DETR aves}), el Deformable DETR completo de COCO con ResNet-50, Faster R-CNN
+R50-FPN v2 de COCO y YOLO26s de COCO. Los tres DETR aplican en inferencia la misma supresión
+de no máximos que las líneas base (RE2.1). Las recetas de entrenamiento son las de cada
+preset y no están igualadas (RE2.1, Tabla de recetas).
+
+\section{Resultado principal}
+
+La Tabla~\ref{tab:resumen} reúne las cifras del protocolo y la Figura~\ref{fig:curvas} las
+curvas precisión--\textit{recall} completas.
+
+\begin{enumerate}
+    \item \textbf{mAP@0,3 (libre de umbral).} \bestModel{} \bestMap{}, propuesta con la
+          cabeza preentrenada en aves \birdsMap{}, propuesta con log-mel \logmelMap{}, ResNet
+          DETR \resnetMap{}, Faster R-CNN \frcnnMap{}, propuesta con PCEN \pcenMap{}.
+    \item \textbf{\textit{Recall} al punto de operación principal.} El mayor es el de
+          \topRecallModel{}, \topRecall{}; \bestModel{} obtiene \bestRecall{}
+          [\bestRecallLow{}, \bestRecallHigh{}] con precisión \bestPrecision{}. El intervalo
+          de \bestModel{} no se solapa con el de \separated{}; sí se solapa con el de
+          \overlapping{}, que por tanto no se separan de \bestModel{} en \textit{recall}.
+    \item \textbf{Umbrales elegidos en validación.} \yoloThreshold{} para YOLO,
+          \frcnnThreshold{} para Faster R-CNN, \logmelThreshold{} y \birdsThreshold{} para
+          las dos propuestas con log-mel.
+\end{enumerate}
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Resumen de la comparación en prueba}
+        \label{tab:resumen}
+        \scriptsize
+        \setlength{\tabcolsep}{3pt}
+        \begin{tabular}{@{}L{2.2cm}c|cL{2.8cm}L{2.8cm}c|ccc@{}}
+            \toprule
+            & & \multicolumn{4}{c|}{\textbf{Precisión $\geq 0{,}70$ en val}} & \multicolumn{3}{c}{\textbf{Precisión $\geq 0{,}50$}} \\
+            \textbf{Modelo} & \thead{mAP\\@0,3} & \thead{Umbral} & \thead[l]{Recall [IC 95\,\%]} & \thead[l]{Precisión [IC]} & \thead{F\textsubscript{1}} & \thead{Umbral} & \thead{Recall} & \thead{Prec.} \\
+            \midrule
+            \input{figures/RE_2-3/resumen} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Intervalos por \textit{bootstrap} de 1\,000 remuestreos de grabaciones. Si
+            dos intervalos se solapan, este experimento no separa a esos modelos.
+            \item mAP@0,3: promedio de la AP por clase sobre las \nDetectionClasses{} clases
+            de detección, calculado sobre toda la curva y sin umbral.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/RE_2-3/curvas_pr}
+    \caption{Precisión frente a \textit{recall} en prueba (IoU $\geq 0{,}3$); los marcadores
+        son los puntos de operación elegidos en validación}
+    \label{fig:curvas}
+\end{figure}
+
+\section{Detección, encuadre y clasificación}
+
+La Tabla~\ref{tab:ejes} separa los tres ejes. \emph{Detección}: si el modelo puso una caja con
+IoU $\geq 0{,}3$ sobre la anotación, cualquiera sea la etiqueta. \emph{Encuadre}: IoU mediano
+de los pares acertados y mAP a IoU 0,25 y 0,5. \emph{Clasificación}, condicionada a la
+detección: fracción de los pares acertados con la clase correcta y con la especie correcta.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Detección, encuadre y clasificación (prueba, punto de operación principal)}
+        \label{tab:ejes}
+        \small
+        \setlength{\tabcolsep}{4pt}
+        \begin{tabular}{@{}L{2.8cm}cc|ccc|cc@{}}
+            \toprule
+            & \multicolumn{2}{c|}{\textbf{Detección}} & \multicolumn{3}{c|}{\textbf{Encuadre}} & \multicolumn{2}{c}{\textbf{Clasificación}} \\
+            \textbf{Modelo} & \thead{Recall\\sin clase} & \thead{Prec.\\sin clase} & \thead{IoU\\mediano} & \thead{mAP\\@0,25} & \thead{mAP\\@0,5} & \thead{Clase\\correcta} & \thead{Especie\\correcta} \\
+            \midrule
+            \input{figures/RE_2-3/ejes} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item ``Sin clase'': emparejamiento agnóstico a la etiqueta. Clase y especie
+            correctas se calculan sobre los pares acertados sin clase.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/RE_2-3/confusion}
+    \caption{Matriz de confusión de \bestModel{} sobre los \nPairsBest{} pares acertados sin
+        exigir la clase (filas: anotada; columnas: predicha; color normalizado por fila; las
+        líneas grises separan especies)}
+    \label{fig:confusion}
+\end{figure}
+
+En las seis configuraciones, la distancia entre el \textit{recall} sin clase
+(Tabla~\ref{tab:ejes}) y el \textit{recall} por clase (Tabla~\ref{tab:resumen}) es de pocos
+puntos. Para \bestModel{}, el \pctOffDiagonal{} de los pares acertados lleva otra clase, casi
+siempre otro tipo de llamada de la misma especie (Figura~\ref{fig:confusion}). La mediana del
+IoU de los pares acertados queda cerca de 0,8 en los seis modelos; la mAP cae unos diez
+puntos al pasar de IoU 0,3 a 0,5 y apenas se mueve entre 0,25 y 0,3.
+
+\todocita{decisión de reportar métricas por eje en SED con cajas; \citet{ebbers_sound_2024}
+por los \textit{sound event bounding boxes} y Mesaros et al. (2016) por las métricas de SED}
+
+\section{Resultados por clase}
+
+La Tabla~\ref{tab:por-clase} desglosa el \textit{recall} al punto de operación y la AP@0,3 por
+clase; la Tabla~\ref{tab:ventana} reporta aparte las dos clases de ventana.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{\textit{Recall} al punto de operación y AP@0,3 por clase (prueba)}
+        \label{tab:por-clase}
+        \tiny
+        \setlength{\tabcolsep}{2.4pt}
+        \begin{tabular}{@{}lr|cccccc|cccccc@{}}
+            \toprule
+            & & \multicolumn{6}{c|}{\textbf{Recall}} & \multicolumn{6}{c}{\textbf{AP@0,3}} \\
+            \textbf{Clase} & \thead{Cajas} & \thead{YOLO} & \thead{FRCNN} & \thead{AST\\log-mel} & \thead{AST\\aves} & \thead{ResNet\\DETR} & \thead{AST\\PCEN} & \thead{YOLO} & \thead{FRCNN} & \thead{AST\\log-mel} & \thead{AST\\aves} & \thead{ResNet\\DETR} & \thead{AST\\PCEN} \\
+            \midrule
+            \input{figures/RE_2-3/por_clase} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item En negrita, el mejor de la fila. El promedio es sobre las
+            \nDetectionClasses{} clases de detección; el de AP es la mAP@0,3 de la
+            Tabla~\ref{tab:resumen}.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Clases de ventana: \textit{recall} / precisión por ventana al punto de operación}
+    \label{tab:ventana}
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrcccccc@{}}
+        \toprule
+        \textbf{Clase} & \thead{Ventanas} & \thead{YOLO} & \thead{FRCNN} & \thead{AST\\log-mel} & \thead{AST\\aves} & \thead{ResNet\\DETR} & \thead{AST\\PCEN} \\
+        \midrule
+        \input{figures/RE_2-3/ventana} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Clases escasas.} \code{sm/sc}, \code{ac/gc} y \code{ac/sc} (menos de 200
+          cajas de entrenamiento) no pasan de 0,52 de AP en ningún modelo; \code{sm/sc} no
+          llega a 0,3.
+    \item \textbf{Clases escasas de banda estrecha.} \code{aa/hm} (44 cajas de prueba) y
+          \code{pt/sqc} (138) están entre las clases de mayor AP en los seis modelos, entre
+          0,74 y 0,91.
+    \item \textbf{Log-mel frente a PCEN.} Con la misma arquitectura y receta, la propuesta
+          con log-mel obtiene \logmelMap{} de mAP y \logmelRecall{} de \textit{recall} frente
+          a \pcenMap{} y \pcenRecall{} con PCEN, y gana en la mayoría de las clases.
+    \item \textbf{Cabeza DETR preentrenada en imágenes.} El ResNet DETR de COCO no supera a
+          la propuesta con log-mel en mAP (\resnetMap{} frente a \logmelMap{}).
+    \item \textbf{Cabeza preentrenada en cantos de aves.} Con la misma arquitectura y receta,
+          partir de la corrida con aves (RE2.1) da \birdsMap{} de mAP y \birdsRecall{}
+          [\birdsRecallLow{}, \birdsRecallHigh{}] de \textit{recall}, frente a \logmelMap{} y
+          \logmelRecall{} de la cabeza desde cero.
+\end{itemize}
+
+\section{Carga de falsos positivos y falsos negativos}
+\label{sec:carga}
+
+Al punto de operación, cada detección que no acierta es una propuesta que el analista revisa y
+descarta, y cada caja anotada sin detección es una llamada que el sistema pierde. La
+Tabla~\ref{tab:carga} cuenta ambas cosas por hora de audio y las separa por tipo:
+
+\begin{itemize}
+    \item \textbf{Falsos positivos.} \emph{Fondo}: sin ninguna caja anotada debajo
+          (IoU $< 0{,}3$ con todas). \emph{Otra clase}: sobre una caja anotada de otra clase
+          (el par se cuenta como acierto sin clase en la Tabla~\ref{tab:ejes}).
+          \emph{Duplicado}: sobre una caja anotada de la misma clase que ya acertó otra
+          detección de mayor confianza.
+    \item \textbf{Cajas perdidas.} \emph{Sin caja}: ninguna detección con IoU $\geq 0{,}3$
+          encima. \emph{Con caja}: hay una detección encima que no cuenta (otra clase, o ya
+          asignada a otra caja anotada).
+\end{itemize}
+
+Las cuentas son por ventana, antes de la fusión entre ventanas solapadas que hace
+\file{detect.py} (RE2.4), y la ``hora'' es la equivalencia de \windowsPerHour{} ventanas
+de 3\,s con salto de 1,5\,s: las \nTestWindows{} ventanas de prueba equivalen a
+\testHours{}\,h. La partición de prueba tiene \boxesPerHour{} cajas anotadas por hora, una
+densidad muy superior a la del audio de campo, porque el caché toma sólo las ventanas con
+anotación más un \pctEmptyTest{} de ventanas vacías (RE1.2); por eso la última columna
+reporta aparte los falsos positivos sobre las ventanas vacías, que es la tasa que gobierna la
+carga en tramos sin llamadas.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Falsos positivos y cajas perdidas por hora de audio en prueba, a los dos
+            puntos de operación}
+        \label{tab:carga}
+        \scriptsize
+        \setlength{\tabcolsep}{2.2pt}
+        \begin{tabular}{@{}L{1.9cm}cc|c|cccc|ccc|c@{}}
+            \toprule
+            & & & & \multicolumn{4}{c|}{\textbf{Falsos positivos por hora}} & \multicolumn{3}{c|}{\textbf{Cajas perdidas por hora}} & \\
+            \textbf{Modelo} & \thead{P mín.\\en val} & \thead{Umbral} & \thead{Detec.\\por hora} & \thead{Total} & \thead{Fondo} & \thead{Otra\\clase} & \thead{Dupli-\\cado} & \thead{Total} & \thead{Sin\\caja} & \thead{Con\\caja} & \thead{FP por\\1\,000 vent.\\vacías} \\
+            \midrule
+            \input{figures/RE_2-3/carga} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Acierto a IoU $\geq 0{,}3$ y misma clase. Cajas anotadas en prueba:
+            \boxesPerHour{} por hora; una hora son \windowsPerHour{} ventanas.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/RE_2-3/carga}
+    \caption{Falsos positivos frente a cajas perdidas por hora de audio a lo largo del umbral
+        de confianza (prueba); los marcadores son los puntos de operación}
+    \label{fig:carga}
+\end{figure}
+
+\rotulo{Lectura de la tabla.} Al punto principal, los seis modelos dejan entre
+\fpPerHourMin{} y \fpPerHourMax{} falsos positivos por hora y pierden entre
+\missedPerHourMin{} y \missedPerHourMax{} cajas por hora. En todos, la mayoría de los falsos
+positivos es de fondo (\bestModel{}: \bestFpBackgroundShare{} de sus \bestFpPerHour{}) y la
+mayoría de las cajas perdidas no tiene ninguna detección encima (\bestModel{}:
+\bestMissedBareShare{} de sus \bestMissedPerHour{}): el error dominante en ambos sentidos es
+de detección, no de etiqueta. Con la supresión de no máximos común a las seis configuraciones
+(RE2.1), los duplicados son marginales (la propuesta con log-mel deja
+\logmelDuplicatesMain{} por hora al punto principal y \logmelDuplicatesAlt{} al secundario);
+sin ella, en la primera comparación, los tres DETR dejaban un orden de magnitud más
+(sección~\ref{sec:seleccion}). Al pasar del
+punto principal al secundario, \bestModel{} pasa de \bestFpPerHour{} a \bestFpAltPerHour{}
+falsos positivos por hora y de \bestMissedPerHour{} a \bestMissedAltPerHour{} cajas
+perdidas. Sobre las ventanas vacías, los seis emiten entre \fpEmptyMin{} y \fpEmptyMax{}
+detecciones por cada 1\,000 ventanas al punto principal, es decir, entre \fpEmptyHourMin{} y
+\fpEmptyHourMax{} propuestas por hora de audio sin llamadas anotadas. \todo{Las ventanas
+vacías salen de las mismas grabaciones anotadas, con llamadas que el anotador no marcó (series
+de la misma especie, llamadas tenues); parte de esos falsos positivos puede ser señal real.
+Sólo una revisión de una muestra de falsos positivos por un analista (OE3) puede repartirlos
+entre fondo y llamadas sin anotar.}
+
+\rotulo{Lectura de la curva.} La Figura~\ref{fig:carga} recorre el umbral de cada modelo.
+A igual tasa de falsos positivos, las seis curvas quedan a menos de 100 cajas perdidas por
+hora entre sí; a lo largo del umbral, cada una recorre dos órdenes de magnitud en falsos
+positivos. La elección del punto de operación mueve la carga más que la elección del modelo.
+
+\rotulo{Costo de revisión.} El tiempo de revisión por hora de audio es el producto de las
+propuestas por hora (columna \emph{Detec.}) por el tiempo que el analista tarda en aceptar o
+descartar una, $t_v$; el tiempo que exige recuperar las cajas perdidas no aparece en la tabla,
+porque sólo se recuperan escuchando el audio. \citet{heinicke_2015}, con un sistema
+semiautomático para primates en Costa de Marfil, midieron ambas cosas: escuchar y verificar
+179\,h de grabación costó unas 360\,h de analista, y verificar la salida del sistema (con
+precisión entre 0 y 7,5\,\% y \textit{recall} entre 1 y 50\,\%) costó menos del 3,5\,\% de
+ese tiempo; para dar cuenta de los falsos negativos extendieron el material a verificar por
+$1/\textit{recall}$. En el mismo trabajo, una tasa alta de falsos positivos sólo cuesta
+almacenamiento y tiempo de revisión \citep{blumstein_acoustic_2011}, y la exactitud es
+engañosa cuando los verdaderos negativos dominan, de modo que \textit{recall} y precisión son
+las medidas apropiadas; ambas observaciones sostienen el protocolo de RE2.1. Aquí las
+propuestas por hora son mucho más numerosas que en ese sistema (que operaba con 0,1 a 10
+llamadas por hora) porque la prueba está saturada de llamadas y porque el vocabulario es de
+25 clases; la carga en campo depende de la densidad de llamadas y de la tasa sobre fondo, y
+$t_v$ no está medido. \todo{OE3: medir $t_v$ con un analista sobre el visor (aceptar o
+descartar una caja con audio y espectrograma) y la densidad de llamadas de una grabación de
+campo típica; con ambos, convertir la Tabla~\ref{tab:carga} en horas de revisión por hora
+de audio, corregidas por $1/\textit{recall}$ como en \citet{heinicke_2015}.} \todocita{Browning
+et al. 2017 (directrices WWF de monitoreo acústico pasivo): lo automático como primer pase
+que reduce lo que se revisa a mano, y la tolerancia a cada tipo de error según el objetivo del
+monitoreo; Swiston y Mennill 2009 y Digby et al. 2013 por \textit{recall} de 8--56\,\% en
+sistemas de campo} El costo de anotar de cero condiciona incluso qué clases se etiquetan:
+\citet{escobar-amado_computer_2024} omitieron tres tipos de vocalización por el tiempo que
+exigía etiquetarlas.
+
+\section{Ejemplos cualitativos}
+
+La Figura~\ref{fig:ventanas} muestra \nShown{} ventanas de prueba, elegidas al azar con una
+por grabación y clases distintas mientras fue posible, con las detecciones de los seis
+modelos superpuestas, cada uno en su punto de operación principal. En blanco, las
+anotaciones; en color, las detecciones (continuas si aciertan, discontinuas si no, con su
+clase y confianza); bajo cada anotación, un cuadrado por modelo, lleno si la acertó.
+
+\begin{figure}[htbp]
+    \centering
+    \input{figures/RE_2-3/ventanas}
+    \caption{Ventanas de prueba con las detecciones de los seis modelos al punto de
+        operación principal}
+    \label{fig:ventanas}
+\end{figure}
+
+\section{Costo de inferencia}
+
+La Tabla~\ref{tab:inferencia} mide, sobre las mismas ventanas de prueba y sin contar la
+carga del audio, cuántos segundos tarda cada modelo en procesar una hora de audio en la GPU
+del servidor y en CPU. Sólo el orden de magnitud se sostiene entre ejecuciones: con GPU, los
+seis procesan una hora de audio en menos de dos minutos; en CPU, la misma hora cuesta de
+minutos a más de dos horas, y los dos detectores con ResNet-50 son los más lentos. La máquina
+se comparte con procesos ajenos que ocupan la mayoría de los núcleos: entre ejecuciones, un
+mismo modelo varió hasta un orden de magnitud en CPU. \todo{Repetir la medición en una máquina
+dedicada (o en la PC de destino del paquete portable) antes de citar cifras de costo.}
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Segundos de cómputo por hora de audio}
+        \label{tab:inferencia}
+        \small
+        \begin{tabular}{@{}L{3.6cm}rr@{}}
+            \toprule
+            \textbf{Modelo} & \thead{GPU} & \thead{CPU} \\
+            \midrule
+            \input{figures/RE_2-3/inferencia} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Ventanas de 3\,s con salto de 1,5\,s (una hora de audio son 2\,400
+            ventanas); 256 ventanas cronometradas en GPU con lotes de 16 y 16 en CPU con
+            lotes de 4; incluye el pos-procesamiento de cada modelo. GPU y CPU compartidas con
+            otros procesos: orden de magnitud, no cifras estables.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\section{Selección del modelo}
+\label{sec:seleccion}
+
+La regla de decisión de RE2.1 fija la métrica primaria en el \textit{recall} de prueba al punto
+de operación de precisión $\geq 0{,}70$ y la secundaria en mAP@0,3, y elige el más barato en
+inferencia si dos no se separan. Aplicada a la Tabla~\ref{tab:resumen}:
+
+\begin{itemize}
+    \item \textbf{Métrica primaria.} El mayor \textit{recall} es el de \topRecallModel{}
+          (\topRecall{}); su intervalo se solapa con el de \bestModel{} (\bestRecall{}
+          [\bestRecallLow{}, \bestRecallHigh{}]), de modo que la métrica primaria no los
+          separa. \bestModel{} sí se separa de \separated{}.
+    \item \textbf{Desempate.} \bestModel{} tiene la mayor mAP@0,3 (\bestMap{} frente a
+          \topRecallMap{} de \topRecallModel{}) y es el más barato en inferencia
+          (Tabla~\ref{tab:inferencia}).
+    \item \textbf{Modelo seleccionado: \bestModel{}}, operado al umbral \bestThreshold{}
+          elegido en validación; pasa a RE2.4.
+\end{itemize}
+
+\rotulo{Condiciones de la comparación.} Las recetas no están igualadas: YOLO elige su
+\emph{checkpoint} con otra métrica y entrena con otras aumentaciones. Hay una sola partición:
+los intervalos acotan la variación entre grabaciones de prueba, no entre particiones. La
+supresión de no máximos de los DETR se añadió después de una primera comparación sin ella
+(mAP@0,3 de \noNmsLogmelMap{}, \noNmsResnetMap{} y \noNmsPcenMap{} para log-mel, ResNet DETR
+y PCEN; \file{runs/comparacion/\allowbreak comparacion\_modelos\_detr\_sin\_nms.json}); la
+selección no cambió.
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

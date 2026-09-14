@@ -1,0 +1,620 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_2-1/valores}
+\input{figures/RE_2-1/resolucion}
+\hypersetup{pdftitle={RE2.1 Diseño experimental, arquitectura propuesta y línea base}}
+
+\begin{document}
+\reporte{RE2.1}{OE2}{Diseño experimental, arquitectura propuesta y líneas base}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Este documento y el módulo de arquitecturas
+\file{src/models/}; cifras generadas por
+\file{RE\_2-1\_\allowbreak diseno-\allowbreak arquitectura.ipynb} a partir del código.
+
+\rotulo{Contenido.} Qué se compara en RE2.3 y con qué regla se decide: la arquitectura
+propuesta (un AST-Deformable-DETR sobre espectrogramas), sus hiperparámetros, las tres líneas
+base, las recetas de entrenamiento y el protocolo de comparación. Todos los valores numéricos
+salen del código (\file{src/models/}, \file{src/train.py}, \file{src/evaluation/}).
+
+\section{Formulación del problema}
+
+La entrada es una ventana de 3\,s convertida en espectrograma mel de potencia
+$X \in \mathbb{R}^{1 \times \nMels \times \nFrames}$ (RE1.2). La salida es un \emph{conjunto} de
+detecciones $\{(b_k, c_k, s_k)\}$, cada una con una caja $b_k = (c_x, c_y, w, h) \in [0,1]^4$
+en el marco normalizado de la ventana, una clase $c_k$ entre las \nQueries{} posibles
+consultas y 25 clases, y una confianza $s_k \in [0,1]$. Detectar un objeto implica tanto
+afirmar que una clase está presente como localizarla, y esa localización se representa
+típicamente mediante una caja delimitadora \citep{lin_2014}; los eventos acústicos se
+manifiestan en el espectrograma como patrones bidimensionales con texturas y estructuras
+propias, análogos a los objetos de las imágenes naturales \citep{pham_eventness_2018}.
+
+La formulación separa tres preguntas que el protocolo puntúa por separado
+(sección~\ref{sec:protocolo}): si la llamada se \emph{encontró} (detección), si la caja quedó
+bien \emph{encuadrada} (localización) y si la etiqueta es \emph{correcta} (clasificación).
+
+\section{Arquitectura propuesta: AST-Deformable-DETR}
+\label{sec:arquitectura}
+
+\subsection{Esquema general}
+
+La Figura~\ref{fig:arquitectura} recorre el modelo de la entrada a la salida. Tres decisiones
+lo definen:
+
+\begin{enumerate}
+    \item \textbf{Un extractor preentrenado en audio, no en imágenes.} El AST
+          (\emph{Audio Spectrogram Transformer}) preentrenado en AudioSet
+          (\code{\astCheckpoint}) sustituye al \textit{backbone} convolucional de imágenes que
+          traen los detectores estándar. La brecha de modalidad entre imagen y audio justifica
+          esa sustitución \citep{zhu_sound_2025}: las estadísticas de un espectrograma (ejes
+          asimétricos, sin invariancia a la traslación en frecuencia) no son las de una
+          fotografía. \todocita{AST original, Gong et al. (2021), y AudioSet, Gemmeke et al.
+          (2017)}
+    \item \textbf{Una pirámide multiescala sobre los tokens.} El AST produce una única rejilla
+          de tokens de \tokensFreq{}\,$\times$\,\tokensTime{}, es decir, una sola escala,
+          mientras que las clases van de \cellZero{}\,ms a decenas de segundos (RE1.3). La
+          pirámide corrige que las arquitecturas de tipo ViT produzcan representaciones de
+          escala única \citep{zhu_sound_2025}, siguiendo la receta de ViTDet: deconvoluciones y
+          una convolución con paso 2 sobre el mismo mapa. \todocita{ViTDet, Li et al. (2022),
+          como origen de la pirámide simple sobre un ViT sin jerarquía}
+    \item \textbf{Un decodificador deformable de predicción de conjuntos.} La cabeza es el
+          decodificador de Deformable DETR \citep{zhu_deformable_2021}: \nQueries{} consultas
+          aprendidas atienden a unos pocos puntos muestreados alrededor de una caja de
+          referencia, en los \nLevels{} niveles, y refinan la caja capa a capa. No hay anclas:
+          el emparejamiento húngaro durante el entrenamiento fuerza una predicción por evento
+          (en inferencia se aplica de todos modos la supresión de no máximos de la
+          sección~\ref{sec:inferencia}). \todocita{DETR original, Carion et al. (2020), por la
+          predicción de conjuntos con emparejamiento bipartito}
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=3mm and 5mm, every node/.style={font=\footnotesize}]
+        \node[dato] (mel) {mel\\$1 \times \nMels \times \nFrames$};
+        \node[etapa, right=of mel] (fe) {front-end\\log-mel $|$ PCEN};
+        \node[etapa, right=of fe] (bn) {BatchNorm\\$\cdot\,1/2$};
+        \node[etapa, right=of bn, fill=celeste!15, draw=celeste!60!black] (ast) {AST\\parches $16 \times 16$\\paso $10 \times \timeStride$\\12 capas, \hidden-d};
+        \node[dato, right=of ast] (tok) {tokens\\$\tokensFreq \times \tokensTime \times \hidden$};
+        \node[etapa, below=14mm of tok] (proj) {proyección\\$\hidden \to \headDim$};
+        \node[etapa, left=of proj] (pyr) {pirámide\\$4\times, 2\times, 1\times, \tfrac{1}{2}\times$};
+        \node[etapa, left=of pyr, fill=celeste!15, draw=celeste!60!black] (dec) {decodificador deformable\\\nDecoderLayers{} capas, \nQueries{} consultas\\\nHeads{} cabezas, \nPoints{} puntos};
+        \node[dato, left=of dec] (out) {\nQueries{} $\times$ (25 logits\\+ caja $c_x c_y w h$)};
+        \draw[flecha] (mel) -- (fe);
+        \draw[flecha] (fe) -- (bn);
+        \draw[flecha] (bn) -- (ast);
+        \draw[flecha] (ast) -- (tok);
+        \draw[flecha] (tok) -- (proj);
+        \draw[flecha] (proj) -- (pyr);
+        \draw[flecha] (pyr) -- (dec);
+        \draw[flecha] (dec) -- (out);
+        \node[nota, above=1mm of ast] {preentrenado en AudioSet, se afina entero};
+        \node[nota, below=1mm of dec] {desde cero};
+    \end{tikzpicture}
+    \caption{AST-Deformable-DETR: extractor (arriba) y cabeza de detección (abajo)}
+    \label{fig:arquitectura}
+\end{figure}
+
+\subsection{Front-end y normalización de entrada}
+
+El caché guarda el mel de potencia sin comprimir, y la primera capa del modelo decide cómo
+comprimirlo. Hay tres opciones intercambiables (\code{--hp frontend=\allowbreak none|logmel|pcen}): la
+identidad, la compresión logarítmica $\log(\text{mel} + 10^{-6})$, y una normalización de
+energía por canal (PCEN) con sus cuatro parámetros ($s$, $\alpha$, $\delta$, $r$) aprendibles
+por banda. PCEN es una ganancia automática que aplana el fondo y realza los transitorios, y
+tiene precedente en bioacústica como alternativa robusta al log-mel
+\citep{lostanlen_robust_2019}. \todocita{PCEN original, Wang et al. (2017)}. A continuación,
+una \code{BatchNorm2d} sin parámetros afines lleva la entrada a media 0 y varianza 1 por lote,
+y se divide entre 2: es el rango con el que el AST se preentrenó. La comparación de RE2.3
+entrena la propuesta con log-mel y con PCEN; la primera es la configuración de referencia.
+
+\subsection{Extractor: AST con paso temporal adaptado}
+
+El AST corta el espectrograma en parches de $16 \times 16$ y los proyecta a \hidden{}
+dimensiones; con el paso original de 10 en ambos ejes, una ventana de 128 bandas por
+\nFrames{} tramas produce $\tokensFreq \times \tokensTime$ tokens (\timeStride{} tramas
+$\approx$ 94\,ms por token en tiempo). La incrustación posicional del \emph{checkpoint},
+entrenada para otra rejilla, se interpola bilinealmente a la nueva. El extractor se afina
+entero, a la misma tasa que la cabeza (con el extractor congelado, la propuesta quedó última
+en una comparación anterior). El paso temporal de 5 (94 $\to$ 47\,ms por token) no separó
+de 10; se mantiene 10 por costo.
+
+\subsection{Pirámide multiescala}
+
+Los tokens se proyectan de \hidden{} a \headDim{} dimensiones y se reordenan como un mapa
+$\tokensFreq \times \tokensTime$. Sobre ese mapa, cuatro ramas producen los \nLevels{} niveles
+de la Figura~\ref{fig:piramide}, cuyo tamaño de celda recoge la Tabla~\ref{tab:niveles}. El
+nivel más fino resuelve \cellZero{}\,ms por celda, por debajo de la mediana de la clase más
+corta (\code{sm/cc}, 81\,ms); el más grueso, \cellThree{}\,ms, del orden de las sílabas
+largas. La Figura~\ref{fig:duraciones} sitúa las 25 clases frente a esas cuatro
+resoluciones.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[x=0.42mm, y=0.42mm, every node/.style={font=\footnotesize}]
+        % mapa base, arriba
+        \draw[fill=black!8, draw=black!60] (150, 95) rectangle (182, 107);
+        \node[anchor=south] at (166, 108) {tokens $\tokensFreq \times \tokensTime$, \headDim{} canales};
+        % cuatro niveles, abajo, a escala
+        \draw[fill=azul!12, draw=azul!70] (0, 0) rectangle (128, 48);
+        \draw[fill=azul!12, draw=azul!70] (150, 0) rectangle (214, 24);
+        \draw[fill=azul!12, draw=azul!70] (236, 0) rectangle (268, 12);
+        \draw[fill=azul!12, draw=azul!70] (290, 0) rectangle (306, 6);
+        \node[anchor=north, text=azul!80!black, align=center] at (64, -3) {$4\times$: $48 \times 128$\\\cellZero{}\,ms por celda};
+        \node[anchor=north, text=azul!80!black, align=center] at (182, -3) {$2\times$: $24 \times 64$\\\cellOne{}\,ms};
+        \node[anchor=north, text=azul!80!black, align=center] at (252, -3) {$1\times$: $12 \times 32$\\\cellTwo{}\,ms};
+        \node[anchor=north, text=azul!80!black, align=center] at (298, -3) {$\tfrac{1}{2}\times$: $6 \times 16$\\\cellThree{}\,ms};
+        \draw[flecha] (152, 95) -- (64, 50) node[pos=0.5, above left, nota] {2 deconv $2\times$};
+        \draw[flecha] (162, 95) -- (182, 26) node[pos=0.6, left, nota] {deconv $2\times$};
+        \draw[flecha] (172, 95) -- (252, 14) node[pos=0.5, above right, nota] {identidad};
+        \draw[flecha] (180, 95) -- (298, 8) node[pos=0.55, above right, nota] {conv paso 2};
+    \end{tikzpicture}
+    \caption{Pirámide multiescala, a escala: cuatro mapas de \headDim{} canales a partir
+        del mapa de tokens}
+    \label{fig:piramide}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Niveles de la pirámide y resolución de cada celda}
+    \label{tab:niveles}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Escala} & \thead{Mapa\\(bandas $\times$ tramas)} & \thead{ms por celda} & \thead{Bandas mel\\por celda} \\
+        \midrule
+        \input{figures/RE_2-1/niveles} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            width=0.9\textwidth, height=11.5cm,
+            xmode=log, xmin=20, xmax=40000,
+            xlabel={duración (ms, escala logarítmica)},
+            ytick=data, yticklabels from table={figures/RE_2-1/duraciones.dat}{clase},
+            yticklabel style={font=\scriptsize\ttfamily},
+            ymin=-1, ymax=25,
+            axis line style={black!50}, tick style={black!50},
+            xmajorgrids, grid style={black!12},
+            log ticks with fixed point, clip=false,
+            x tick label style={/pgf/number format/1000 sep={\,}},
+        ]
+            \addplot[only marks, mark=*, mark size=1.6pt, azul, error bars/.cd, x dir=both, x explicit, error bar style={azul!70}]
+                table[x=med, y expr=\coordindex, x error minus expr=\thisrow{med}-\thisrow{q1}, x error plus expr=\thisrow{q3}-\thisrow{med}]
+                {figures/RE_2-1/duraciones.dat};
+            \draw[celeste!80!black, dashed] (axis cs:\cellZero,-1) -- (axis cs:\cellZero,25) node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {$4\times$ (\cellZero{}\,ms)};
+            \draw[celeste!80!black, dashed] (axis cs:\cellOne,-1) -- (axis cs:\cellOne,25) node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {$2\times$ (\cellOne{}\,ms)};
+            \draw[celeste!80!black, dashed] (axis cs:\cellTwo,-1) -- (axis cs:\cellTwo,25) node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {$1\times$ (\cellTwo{}\,ms)};
+            \draw[celeste!80!black, dashed] (axis cs:\cellThree,-1) -- (axis cs:\cellThree,25) node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {$\tfrac{1}{2}\times$ (\cellThree{}\,ms)};
+            \draw[rosa!80!black, dashed] (axis cs:3000,-1) -- (axis cs:3000,25) node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {ventana (3\,s)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Duración de cada clase (mediana y rango intercuartílico) frente a la
+        resolución de los niveles de la pirámide y a la ventana}
+    \label{fig:duraciones}
+\end{figure}
+
+\subsection{Decodificador deformable}
+
+El decodificador tiene \nDecoderLayers{} capas idénticas (Figura~\ref{fig:decoder}), de
+dimensión \headDim{}, con \nHeads{} cabezas de atención, FFN de \ffn{} y \textit{dropout}
+\dropout{}. Cada una de las \nQueries{} consultas lleva dos vectores aprendidos, contenido y
+posición, y de la posición se deriva un punto de referencia inicial $(c_x, c_y)$ que, con un
+tamaño inicial de 0,1, forma la caja de referencia de la primera capa. En cada capa:
+
+\begin{enumerate}
+    \item \textbf{Autoatención} entre consultas, con la posición sumada a las claves y
+          consultas en cada capa, para que las consultas no se diluyan y puedan repartirse los
+          eventos entre sí.
+    \item \textbf{Atención cruzada deformable} (Figura~\ref{fig:deformable}): en lugar de
+          atender a todas las celdas de los cuatro mapas, cada consulta y cada cabeza muestrean
+          \nPoints{} puntos por nivel, en posiciones que la propia consulta predice como
+          desplazamientos relativos al tamaño de su caja de referencia, y los combinan con
+          pesos que también predice (softmax sobre los $\nLevels \times \nPoints$ puntos). Los
+          desplazamientos arrancan en una rejilla radial y no en ruido, como en el diseño
+          original \citep{zhu_deformable_2021}. Es lo que hace tratable atender a un mapa de
+          $48 \times 128$ celdas y lo que permite mezclar escalas sin elegir una.
+    \item \textbf{FFN} y normalización residual.
+    \item \textbf{Cabezas por capa.} Una cabeza lineal produce los 25 logits de clase y un MLP
+          de tres capas produce un delta de caja que se suma, en el espacio logit, a la caja de
+          referencia; la caja refinada es la referencia de la capa siguiente (sin gradiente
+          entre capas). Cada capa se supervisa por separado (pérdidas auxiliares).
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=2.2mm and 6mm, every node/.style={font=\footnotesize}]
+        \node[dato] (q) {consultas $q$ ($\nQueries \times \headDim$)};
+        \node[etapa, below=of q] (sa) {autoatención sobre $q + p$};
+        \node[etapa, below=of sa] (n1) {suma y norma};
+        \node[etapa, below=of n1, fill=celeste!15, draw=celeste!60!black] (ca) {atención cruzada deformable};
+        \node[etapa, below=of ca] (n2) {suma y norma};
+        \node[etapa, below=of n2] (ffn) {FFN $\headDim \to \ffn \to \headDim$};
+        \node[etapa, below=of ffn] (n3) {suma y norma};
+        \node[etapa, below=of n3, xshift=-22mm] (cls) {cabeza de clase\\25 logits};
+        \node[etapa, below=of n3, xshift=22mm] (box) {cabeza de caja\\$\Delta b$};
+        \node[dato, below=of box] (ref) {$b \leftarrow \sigma(\sigma^{-1}(b) + \Delta b)$};
+        \node[dato, right=of ca] (maps) {mapas de la pirámide\\\nLevels{} niveles};
+        \node[dato, left=of ca] (pos) {posición $p$\\y caja de referencia $b$};
+        \foreach \a/\b in {q/sa, sa/n1, n1/ca, ca/n2, n2/ffn, ffn/n3, box/ref}
+            \draw[flecha] (\a) -- (\b);
+        \draw[flecha] (n3) -- (cls);
+        \draw[flecha] (n3) -- (box);
+        \draw[flecha] (maps) -- (ca);
+        \draw[flecha] (pos) -- (ca);
+        \draw[flecha] (pos.north) |- (sa.west);
+        \draw[flecha, dashed] (ref.east) -- ++(10mm, 0) |- (q.east) node[pos=0.25, right, nota, align=left] {referencia de la\\capa siguiente};
+        \node[nota, below=1mm of ref] {$\times$ \nDecoderLayers{} capas, cada una supervisada};
+    \end{tikzpicture}
+    \caption{Una capa del decodificador}
+    \label{fig:decoder}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[x=7mm, y=7mm, every node/.style={font=\footnotesize}]
+        \draw[step=7mm, black!15] (0, 0) grid (12, 6);
+        \draw[black!50] (0, 0) rectangle (12, 6);
+        \node[anchor=south west, nota] at (0, 6.1) {un nivel de la pirámide (celdas de \headDim{} canales)};
+        \draw[rosa!80!black, thick] (3.5, 1.5) rectangle (8.5, 4.5);
+        \fill[rosa!80!black] (6, 3) circle (2pt) node[below, text=rosa!80!black, yshift=-1pt] {$(c_x, c_y)$};
+        \draw[<->, rosa!80!black] (3.5, 0.9) -- (8.5, 0.9) node[midway, below] {$w$};
+        \draw[<->, rosa!80!black] (9.1, 1.5) -- (9.1, 4.5) node[midway, right] {$h$};
+        \foreach \dx/\dy/\r in {1.6/0.9/3.2, -1.2/1.3/2.6, -1.9/-0.8/2.0, 0.8/-1.4/1.5} {
+            \draw[flecha, celeste!80!black, thin] (6, 3) -- (6 + \dx, 3 + \dy);
+            \fill[celeste!80!black] (6 + \dx, 3 + \dy) circle (\r pt);
+        }
+        \node[nota, text width=13cm, anchor=north west] at (0, -0.8) {%
+            Para cada consulta y cabeza, la consulta predice \nPoints{} desplazamientos $\Delta$ y
+            \nPoints{} pesos $a$ (el tamaño del punto). El punto muestreado es
+            $c + \Delta \cdot (w, h)/2$ y su valor, la interpolación bilineal del mapa. Se repite en
+            los \nLevels{} niveles y los pesos se normalizan sobre los $\nLevels \times \nPoints$
+            puntos.};
+    \end{tikzpicture}
+    \caption{Muestreo deformable de una cabeza sobre un nivel, en fracciones de la caja
+        de referencia}
+    \label{fig:deformable}
+\end{figure}
+
+\subsection{Emparejamiento y pérdida}
+
+Las \nQueries{} predicciones de una ventana y sus $n$ cajas anotadas se emparejan uno a uno con
+el algoritmo húngaro sobre una matriz de costo (Figura~\ref{fig:matching}):
+\[
+    C_{kj} = \costClass\, \mathcal{C}_{\text{focal}}(p_k, c_j) + \costBbox\, \lVert b_k - b_j \rVert_1 - \costIou\, \text{GIoU}(b_k, b_j),
+\]
+donde el costo de clase es la pérdida focal positiva menos la negativa que se ahorra
+\citep{zhu_deformable_2021}. Sobre los pares emparejados se calcula la pérdida
+\[
+    \mathcal{L} = \weightClass\, \mathcal{L}_{\text{focal}} + \costBbox\, \mathcal{L}_{1} + \costIou\, \mathcal{L}_{\text{GIoU}},
+\]
+con la focal ($\alpha = \focalAlpha$, $\gamma = \focalGamma$) sobre sigmoides
+independientes por clase y sin canal de ``no objeto'': la confianza de una consulta no
+emparejada se empuja a cero en todas las clases; el modelo puede así emitir una caja de
+alta confianza con la etiqueta equivocada, que el protocolo mide como acierto agnóstico y
+fallo por clase. Los sesgos de las cabezas de clase se inicializan en $\log\frac{1-\pi}{\pi}$ con $\pi =
+\priorProb$, para que al inicio casi ninguna consulta dispare. \todocita{pérdida focal e
+inicialización del prior, Lin et al. (2017); GIoU, Rezatofighi et al. (2019); algoritmo
+húngaro, Kuhn (1955)}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=3mm and 4mm, every node/.style={font=\footnotesize}]
+        \node[dato] (pred) at (0, 0.8) {\nQueries{} predicciones $(p_k, b_k)$};
+        \node[dato] (gt) at (0, -0.8) {$n$ cajas anotadas $(c_j, b_j)$};
+        \node[etapa] (cost) at (4.0, 0) {matriz de costo\\$\nQueries \times n$};
+        \node[etapa, right=of cost] (hung) {asignación húngara\\$n$ pares};
+        \node[etapa, right=of hung] (loss) {pérdida\\focal + $L_1$ + GIoU};
+        \node[nota, below=1mm of hung.south, anchor=north, xshift=8mm] {las $\nQueries - n$ consultas restantes: focal hacia 0};
+        \draw[flecha] (pred.east) -- (cost.west |- pred.east) -- (cost);
+        \draw[flecha] (gt.east) -- (cost.west |- gt.east) -- (cost);
+        \draw[flecha] (cost) -- (hung);
+        \draw[flecha] (hung) -- (loss);
+    \end{tikzpicture}
+    \caption{Emparejamiento uno a uno por ventana, repetido en cada capa del decodificador}
+    \label{fig:matching}
+\end{figure}
+
+\subsection{Inferencia}
+\label{sec:inferencia}
+
+La confianza de cada consulta es el máximo de sus 25 sigmoides y la clase, su argumento; se
+conservan las cajas con confianza $\geq$ \scoreFloor{} (el piso del protocolo) y, como para
+todos los modelos, a lo sumo \maxDetections{} por ventana. El emparejamiento uno a uno
+desalienta los duplicados al entrenar, pero \nQueries{} consultas sobre una a tres llamadas
+dejan en inferencia cajas repetidas y anidadas, de modo que los dos DETR aplican la misma
+supresión de no máximos por clase que las líneas base (IoU \nmsIou{}). El presupuesto de
+\nQueries{} consultas se dimensiona sobre el máximo de cajas por ventana del conjunto (11,
+RE1.2), no sobre la mediana.
+
+\subsection{Cabeza preentrenada con cantos de aves}
+\label{sec:aves}
+
+La cabeza deformable de la propuesta se entrena desde cero, mientras que las líneas base
+parten de un detector completo. Para separar ese efecto, una sexta configuración preentrena
+la misma arquitectura, con los mismos hiperparámetros, sobre un caché aparte de cantos de aves
+construido con el ventaneo y el mel de RE1.2 (\file{data/processed\_extra/}, fuentes
+\birdSources{}): \nBirdClasses{} clases (\nBirdSpecies{} especies de Powdermill y una clase
+de canto de PteroSet), \nBirdWindowsTrain{} ventanas de entrenamiento y \nBirdWindowsVal{} de
+validación (\birdSplitTrain{}/\birdSplitVal{}), \birdEpochs{} épocas, mejor mAP@0,3 en
+validación \birdBestMap{} (época \birdBestEpoch{}, \file{runs\_extra/detr\_birds}). El
+afinado con primates carga en el modelo recién construido todo tensor del preentrenado con el
+mismo nombre y forma (todo salvo las cabezas de clase) y sigue la receta de la propuesta
+(\file{notebooks/\allowbreak pretrain\_birds\_train.py}, RE2.2). \todocita{Powdermill
+(Chronister et al. 2021) y PteroSet, como fuentes del preentrenamiento; el preentrenamiento
+de detectores de audio con otras especies como precedente}
+
+\subsection{Hiperparámetros y tamaño}
+
+La Tabla~\ref{tab:hiperparametros} reúne los hiperparámetros de la propuesta tal como los
+declara el código, y la Tabla~\ref{tab:bloques} cuánto pesa cada bloque: el extractor
+concentra el 96,5\,\% de los \nParams{}\,M de parámetros, y la cabeza completa cabe
+en \nParamsHead{}\,M. Ese reparto importa para leer la comparación: cambiar de 22 a 25 clases
+o afinar la cabeza cuesta poco; lo que cuesta es afinar el AST.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Hiperparámetros de la propuesta (\file{src/models/deformable\_detr.py},
+        \file{backbone.py}, \file{criterion.py})}
+    \label{tab:hiperparametros}
+    \small
+    \begin{tabular}{@{}L{4.6cm}L{2.8cm}L{6.6cm}@{}}
+        \toprule
+        \textbf{Hiperparámetro} & \textbf{Valor} & \textbf{Motivo} \\
+        \midrule
+        Extractor & AST & \code{\astCheckpoint}, afinado entero \\
+        Paso temporal de parcheo & \timeStride{} & $\tokensFreq \times \tokensTime$ tokens; 5 no separó de 10 \\
+        Dimensión de la cabeza & \headDim{} & Cabeza pequeña sobre tokens de \hidden{} \\
+        Niveles de la pirámide & \nLevels{} & De \cellZero{} a \cellThree{}\,ms por celda \\
+        Consultas & \nQueries{} & $> 11$, el máximo de cajas por ventana \\
+        Capas del decodificador & \nDecoderLayers{} & Como Deformable DETR \\
+        Cabezas / puntos por nivel & \nHeads{} / \nPoints{} & Como Deformable DETR \\
+        FFN / \textit{dropout} & \ffn{} / \dropout{} & Como Deformable DETR \\
+        Focal $\alpha$, $\gamma$ & \focalAlpha{}, \focalGamma{} & Valores de RetinaNet \\
+        Costos de emparejamiento (clase, $L_1$, GIoU) & \costClass{}, \costBbox{}, \costIou{} & Zhu et al. (2021) \\
+        Pesos de la pérdida (clase, $L_1$, GIoU) & \weightClass{}, \costBbox{}, \costIou{} & La clase pesa el doble al asignar que al entrenar \\
+        Prior de las cabezas de clase & \priorProb{} & Casi nada dispara al inicio \\
+        Front-end & log-mel (referencia), PCEN & Ablación en RE2.3 \\
+        NMS por clase & IoU \nmsIou{} & Duplicados y cajas anidadas de las \nQueries{} consultas; el mismo postprocesado que las líneas base \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Parámetros por bloque de la propuesta}
+    \label{tab:bloques}
+    \small
+    \begin{tabular}{@{}L{6.4cm}rr@{}}
+        \toprule
+        \textbf{Bloque} & \thead{Parámetros (M)} & \thead{Fracción} \\
+        \midrule
+        \input{figures/RE_2-1/bloques} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Líneas base}
+\label{sec:baselines}
+
+Se declaran tres líneas base, y cada una controla una cosa distinta; con las tres variantes
+de la propuesta (log-mel, PCEN, cabeza preentrenada con aves) son seis configuraciones
+(Tabla~\ref{tab:configuraciones}, Figura~\ref{fig:baselines}). Las tres consumen el mismo mel
+del caché, pintado como imagen con el rango en dB de \file{meta.json}, y devuelven cajas en el
+mismo marco normalizado, de modo que comparten datos, particiones y protocolo con la
+propuesta.
+
+\begin{description}
+    \item[Faster R-CNN R50-FPN v2.] El detector de dos etapas de referencia, con
+          \textit{backbone} ResNet-50 y pirámide FPN preentrenados en COCO; el mel se
+          reescala a $512 \times 1024$ píxeles y se replica en tres canales. Se adaptan las
+          razones de aspecto de las anclas (\anchorRatios{}) porque las cajas de llamadas van
+          de muy anchas a muy altas, lejos de las razones de los objetos de COCO, y se afinan
+          \trainableLayers{} de las 5 etapas del ResNet. Es la línea base sobre espectrogramas
+          con precedente directo en bioacústica \citep{escobar-amado_computer_2024}.
+          \todocita{Faster R-CNN, Ren et al. (2015); FPN, Lin et al. (2017)}
+    \item[YOLO26s.] Un detector de una etapa, pequeño (10\,M de parámetros), entrenado con la
+          herramienta de Ultralytics desde sus pesos de COCO sobre una imagen gris de
+          $\yoloImageSize \times \yoloImageSize$; es la línea base de la familia YOLO sobre
+          espectrogramas \citep{gonzalez_yolo-based_2025}. Las aumentaciones de imagen que no
+          tienen sentido en un espectrograma se apagan (volteos, mosaico, tono y saturación)
+          y quedan un corrimiento de \yoloTranslate{}, una escala de \yoloScale{} y brillo;
+          se detiene con paciencia \yoloPatience{}. \todocita{YOLO26 / Ultralytics; si no hay
+          artículo, citar el repositorio con versión}
+    \item[ResNet-50 Deformable DETR.] El Deformable DETR completo de COCO
+          (\code{\detrCheckpoint}, dos etapas con refinamiento de cajas, 300 consultas) con su
+          propio ResNet-50, sobre el mel normalizado como imagen de ImageNet. Controla la
+          pregunta que la propuesta deja abierta: si la cabeza deformable rinde menos por ser
+          una cabeza DETR entrenada desde cero, o por el extractor de audio. Es la misma
+          política de preentrenamiento con la que \citet{zhu_sound_2025} reportan que un DETR
+          supera a Faster R-CNN.
+\end{description}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=2.5mm and 5mm, every node/.style={font=\footnotesize}]
+        \node[dato] (mel) {mel del caché\\$1 \times \nMels \times \nFrames$};
+        \node[etapa, right=of mel, yshift=20mm] (i1) {dB $\to [0,1]$, 3 canales\\$512 \times 1024$};
+        \node[etapa, right=of mel] (i2) {dB $\to$ gris\\$\yoloImageSize \times \yoloImageSize$};
+        \node[etapa, right=of mel, yshift=-20mm] (i3) {dB $\to$ ImageNet\\$512 \times 1024$};
+        \node[etapa, right=of i1, fill=ambar!15, draw=ambar!80!black] (m1) {Faster R-CNN R50-FPN v2\\anclas \anchorRatios{}\\NMS \nmsIou{}};
+        \node[etapa, right=of i2, fill=ambar!15, draw=ambar!80!black] (m2) {YOLO26s (Ultralytics)\\sin NMS propio\\\nmsIou{} sobre cajas anidadas};
+        \node[etapa, right=of i3, fill=ambar!15, draw=ambar!80!black] (m3) {ResNet-50 Deformable DETR\\300 consultas\\NMS \nmsIou{}};
+        \node[dato, right=of m2, xshift=6mm] (out) {cajas $c_x c_y w h$\\+ clase + score};
+        \draw[flecha] (mel) -- (i1);
+        \draw[flecha] (mel) -- (i2);
+        \draw[flecha] (mel) -- (i3);
+        \draw[flecha] (i1) -- (m1);
+        \draw[flecha] (i2) -- (m2);
+        \draw[flecha] (i3) -- (m3);
+        \draw[flecha] (m1) -- (out);
+        \draw[flecha] (m2) -- (out);
+        \draw[flecha] (m3) -- (out);
+    \end{tikzpicture}
+    \caption{Líneas base: mismo mel de entrada, mismo marco de salida que la propuesta}
+    \label{fig:baselines}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Configuraciones comparadas sobre el conjunto de 25 clases}
+        \label{tab:configuraciones}
+        \small
+        \begin{tabular}{@{}L{3.4cm}L{3.0cm}rL{2.6cm}L{3.2cm}@{}}
+            \toprule
+            \textbf{Configuración} & \textbf{Extractor} & \thead{Parám.\\(M)} & \textbf{Preentrenado} & \textbf{Qué controla} \\
+            \midrule
+            AST-Def-DETR log-mel (propuesta) & AST / AudioSet & 88,6 & extractor & --- \\
+            AST-Def-DETR PCEN & AST / AudioSet & 88,6 & extractor & front-end \\
+            AST-Def-DETR aves & AST / AudioSet; cabeza / aves & 88,6 & extractor y cabeza & preentrenamiento de la cabeza \\
+            ResNet-50 Def-DETR & ResNet-50 / COCO & 41,1 & detector entero & cabeza DETR vs.\ extractor de audio \\
+            Faster R-CNN R50-FPN v2 & ResNet-50 / COCO & 43,4 & detector entero & referencia de dos etapas \\
+            YOLO26s & CSP / COCO & 10,0 & detector entero & referencia de una etapa \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Parámetros según el registro de cada corrida (\file{runs/*/train.log}). En la
+            propuesta y en Faster R-CNN se entrena prácticamente todo; en el ResNet DETR, el
+            tallo y la primera etapa del ResNet quedan congelados.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\section{Diseño experimental}
+\label{sec:diseno}
+
+\subsection{Recetas de entrenamiento}
+
+Cada configuración se entrena con la receta de su preset (\file{src/train.py},
+Tabla~\ref{tab:recetas}). Los modelos del proyecto usan AdamW con decaimiento \weightDecay{},
+un programa OneCycle con \warmup{} de subida y recocido coseno, recorte del gradiente
+(\clipGrad{} para la propuesta) y las mismas aumentaciones sobre el audio: ganancia
+aleatoria, mezcla de una ventana vacía a un SNR dado, corrimiento temporal y pegado de llamadas
+de otras ventanas, además de un \textit{jitter} de las cajas objetivo. YOLO se entrena con la
+herramienta de Ultralytics y sus aumentaciones de imagen, restringidas como se dijo. Las recetas
+no están igualadas y se declara: cada framework usa la suya, y la comparación mide sistemas
+completos, no solo arquitecturas. \todocita{AdamW, Loshchilov y Hutter (2019); OneCycle,
+Smith (2018)}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Recetas de entrenamiento (\file{src/train.py: PRESETS})}
+    \label{tab:recetas}
+    \small
+    \begin{tabular}{@{}L{4.6cm}rrlL{2.6cm}L{2.6cm}@{}}
+        \toprule
+        \textbf{Configuración} & \thead{Épocas} & \thead{Lote} & \thead{lr} & \textbf{Optimizador} & \textbf{Elección de \textit{best.pt}} \\
+        \midrule
+        \input{figures/RE_2-1/recetas} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La configuración con la cabeza preentrenada usa la receta de la propuesta y parte de los
+pesos de \file{runs\_extra/detr\_birds} (sección~\ref{sec:aves}). El \emph{checkpoint} de
+cada corrida se elige en validación por mAP@\matchIou{}, la misma
+métrica libre de umbral que después se reporta; YOLO lo elige con la aptitud de Ultralytics
+(mAP@0,5:0,95 con su validador), y esa asimetría se declara como una diferencia de la receta,
+no del protocolo.
+
+\subsection{Protocolo de comparación}
+\label{sec:protocolo}
+
+El protocolo (\file{src/evaluation/protocol.py}, Figura~\ref{fig:protocolo}) se fija antes de
+mirar los resultados de prueba, y RE2.3 lo aplica sin cambios:
+
+\begin{enumerate}
+    \item \textbf{Se vuelcan predicciones, no métricas.} De cada \file{best.pt} se guardan,
+          por ventana de validación y de prueba, todas las cajas con confianza
+          $\geq$ \scoreFloor{}; toda cifra sale después de esos volcados.
+    \item \textbf{Mismo presupuesto.} Se conservan las \maxDetections{} mejores cajas por
+          ventana para todos: torchvision corta en 100 y Ultralytics en 300, y sin techo común
+          la cola de la curva precisión--\textit{recall} sería del framework, no del modelo.
+    \item \textbf{Acierto a IoU $\geq$ \matchIou{}, por clase.} Se mide si la llamada se
+          \emph{encontró}, no si la caja quedó ajustada: el eje de frecuencia lo dibuja el
+          anotador con criterio variable y las llamadas son cortas (mediana 0,4\,s). A IoU
+          0,5 el corrimiento temporal tolerado es un tercio del ancho de la caja; a 0,3 sube
+          a la mitad. No más abajo: a 0,25 una predicción de banda completa acertaría un
+          tercio de las cajas sin encuadrar nada. Un umbral de IoU bajo es razonable cuando las
+          fronteras de los eventos son borrosas \citep{zhu_sound_2025}. mAP@\matchIou{} es
+          la métrica libre de umbral. \todocita{definición de AP y de la interpolación de la
+          curva PR, Everingham et al. (2010) o Lin et al. (2014), sección de evaluación}
+    \item \textbf{Umbral por modelo, elegido en validación.} De la rejilla 0,01--0,99, el
+          umbral de mayor \textit{recall} entre los que cumplen una precisión mínima de
+          \minPrecision{} (objetivo declarado) y de \minPrecisionAlt{} (secundario). Un
+          umbral fijo compartido mide calibración, no detección: cada cabeza reparte sus
+          confianzas a su manera.
+    \item \textbf{Prueba se mide una vez}, en ese umbral, con intervalos de confianza al
+          95\,\% por \textit{bootstrap} de \nBootstrap{} remuestreos \emph{de grabaciones}:
+          las ventanas vecinas comparten la mitad del audio y la calidad de la grabación es
+          de la grabación entera. Remuestrear ventanas daría intervalos más angostos de lo que
+          corresponde. \todocita{bootstrap por grupos o \textit{cluster bootstrap}, Efron y
+          Tibshirani (1993)}
+    \item \textbf{Las clases de ventana van aparte.} Si la mediana del ancho de caja de una
+          clase ocupa al menos el \windowClassWidth{} de la ventana (\code{as/hc},
+          \code{pt/dc}), detectarla es clasificar la ventana: se reportan como
+          \textit{recall} y precisión de ventana y no entran al promedio por clase.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=3mm and 6mm, every node/.style={font=\footnotesize}]
+        \node[etapa] (train) {entrenamiento\\receta del preset};
+        \node[dato, right=of train] (best) {best.pt\\mAP@\matchIou{} en val};
+        \node[etapa, right=of best] (dump) {volcado val y test\\score $\geq$ \scoreFloor{}, \maxDetections{} cajas};
+        \node[etapa, below=of dump] (thr) {val elige el umbral\\P $\geq$ \minPrecision{}, máximo recall};
+        \node[etapa, left=of thr] (test) {test se mide una vez\\recall, precisión, IC 95\,\%};
+        \node[etapa, left=of test] (per) {por clase\\recall, AP@\matchIou{}};
+        \draw[flecha] (train) -- (best);
+        \draw[flecha] (best) -- (dump);
+        \draw[flecha] (dump) -- (thr);
+        \draw[flecha] (thr) -- (test);
+        \draw[flecha] (test) -- (per);
+        \node[nota, below=1mm of test] {\textit{bootstrap} por grabación};
+    \end{tikzpicture}
+    \caption{Protocolo de comparación: validación decide, prueba mide}
+    \label{fig:protocolo}
+\end{figure}
+
+\subsection{Métricas por eje}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Métricas por eje}
+    \label{tab:metricas}
+    \small
+    \begin{tabular}{@{}L{2.4cm}L{5.4cm}L{6.0cm}@{}}
+        \toprule
+        \textbf{Eje} & \textbf{Pregunta} & \textbf{Métrica} \\
+        \midrule
+        Detección & ¿Se encontró la llamada? & \textit{Recall} y precisión agnósticos a la clase, a IoU \matchIou{}, al punto de operación \\
+        Clasificación & ¿Se etiquetó bien lo que se encontró? & \textit{Recall} por clase, AP@\matchIou{} por clase y su promedio (mAP), matriz de confusión entre pares emparejados \\
+        Encuadre & ¿La caja está donde el anotador la dibujó? & Distribución del IoU de los pares emparejados; AP a IoU 0,25 y 0,5 como cotas \\
+        Operación & ¿Cuánto cuesta revisar? & Umbral elegido, F\textsubscript{1}, propuestas por hora (OE3) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Regla de decisión}
+
+La comparación se declara con su regla fijada. La métrica primaria es el \textit{recall} en
+prueba al punto de operación de precisión $\geq$ \minPrecision{}, con su intervalo; la
+secundaria es mAP@\matchIou{}. Dos configuraciones cuyos intervalos se solapan no se separan
+con este experimento, y se dice así. El modelo que se lleva a RE2.4 es el de mayor
+\textit{recall} primario; si dos no se separan, el más barato en inferencia. Hipótesis de
+diseño: un extractor preentrenado en audio con una cabeza de conjuntos iguala o supera a los
+detectores de imagen preentrenados en COCO.
+
+\todo{La supresión de no máximos de los DETR y la sexta configuración se añadieron después
+de una primera comparación de cinco configuraciones sin ella; RE2.3 reporta ambas.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

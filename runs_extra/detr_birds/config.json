@@ -1,0 +1,85 @@
+{
+  "architecture": "ast_deformable_detr",
+  "hparams": {
+    "n_frames": 331,
+    "time_stride": 10,
+    "dim": 128,
+    "n_queries": 100,
+    "frontend": "logmel"
+  },
+  "dataset": {
+    "seed": 42,
+    "min_pair_count": 100,
+    "empty_ratio": 0.25,
+    "split_ratios": [
+      0.85,
+      0.15,
+      0.0
+    ],
+    "sources": {
+      "powdermill": "/data/fcandia/powdermill",
+      "pteroset": "/data/fcandia/pteroset/audio"
+    },
+    "db_range": [
+      -37.66807186126709,
+      31.325519607544038
+    ],
+    "params": {
+      "clip_len_s": 3.0,
+      "clip_hop_s": 1.5,
+      "min_overlap": 0.5,
+      "pad_seed": 0,
+      "target_sr": 44100,
+      "n_fft": 4096,
+      "win_length": 1024,
+      "hop_length": 400,
+      "n_mels": 128,
+      "f_min": 25.0,
+      "f_max": 22050.0,
+      "mel_scale": "htk",
+      "mel_break_hz": 700.0,
+      "mel_scale_q": 2595.0,
+      "eps": 1e-06
+    }
+  },
+  "match_iou": 0.3,
+  "nms_iou": null,
+  "epochs": 30,
+  "batch_size": 8,
+  "learning_rate": 0.0002,
+  "weight_decay": 0.0001,
+  "warmup": 0.05,
+  "workers": 8,
+  "seed": 42,
+  "score_threshold": 0.5,
+  "jitter": {
+    "time_scale": 0.15,
+    "freq_scale": 0.15,
+    "time_shift": 0.1,
+    "freq_shift": 0.1,
+    "min_size": 0.0033333333333333335
+  },
+  "augment": {
+    "p_gain": 0.8,
+    "gain_db": [
+      -6.0,
+      6.0
+    ],
+    "p_background": 0.5,
+    "snr_db": [
+      6.0,
+      24.0
+    ],
+    "p_shift": 0.5,
+    "max_shift": 0.1,
+    "min_overlap": 0.5,
+    "p_paste": 0.5,
+    "max_events": 3,
+    "max_event_area": 0.25,
+    "paste_jitter_db": [
+      -3.0,
+      3.0
+    ],
+    "paste_max_iou": 0.3
+  }
+}

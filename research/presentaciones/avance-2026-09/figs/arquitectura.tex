@@ -1,0 +1,22 @@
+% extraído de research/reportes/RE_2-1_diseno-arquitectura.tex (fig:arquitectura) por armar_figuras.py
+\begin{tikzpicture}[node distance=3mm and 5mm, every node/.style={font=\footnotesize}]
+        \node[dato] (mel) {mel\\$1 \times \nMels \times \nFrames$};
+        \node[etapa, right=of mel] (fe) {front-end\\log-mel $|$ PCEN};
+        \node[etapa, right=of fe] (bn) {BatchNorm\\$\cdot\,1/2$};
+        \node[etapa, right=of bn, fill=celeste!15, draw=celeste!60!black] (ast) {AST\\parches $16 \times 16$\\paso $10 \times \timeStride$\\12 capas, \hidden-d};
+        \node[dato, right=of ast] (tok) {tokens\\$\tokensFreq \times \tokensTime \times \hidden$};
+        \node[etapa, below=14mm of tok] (proj) {proyección\\$\hidden \to \headDim$};
+        \node[etapa, left=of proj] (pyr) {pirámide\\$4\times, 2\times, 1\times, \tfrac{1}{2}\times$};
+        \node[etapa, left=of pyr, fill=celeste!15, draw=celeste!60!black] (dec) {decodificador deformable\\\nDecoderLayers{} capas, \nQueries{} consultas\\\nHeads{} cabezas, \nPoints{} puntos};
+        \node[dato, left=of dec] (out) {\nQueries{} $\times$ (25 logits\\+ caja $c_x c_y w h$)};
+        \draw[flecha] (mel) -- (fe);
+        \draw[flecha] (fe) -- (bn);
+        \draw[flecha] (bn) -- (ast);
+        \draw[flecha] (ast) -- (tok);
+        \draw[flecha] (tok) -- (proj);
+        \draw[flecha] (proj) -- (pyr);
+        \draw[flecha] (pyr) -- (dec);
+        \draw[flecha] (dec) -- (out);
+        \node[nota, above=1mm of ast] {preentrenado en AudioSet, se afina entero};
+        \node[nota, below=1mm of dec] {desde cero};
+    \end{tikzpicture}

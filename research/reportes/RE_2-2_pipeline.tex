@@ -1,0 +1,345 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_2-2/valores}
+\hypersetup{pdftitle={RE2.2 Pipeline reproducible de entrenamiento, evaluación e inferencia}}
+
+\begin{document}
+\reporte{RE2.2}{OE2}{Pipeline reproducible de entrenamiento, evaluación e inferencia}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Scripts de \file{src/}, \file{pyproject.toml} y este manual
+técnico; curvas y costos generados por \file{RE\_2-2\_\allowbreak pipeline.ipynb} sobre las
+corridas de \file{runs/}.
+
+\rotulo{Contenido.} El \emph{pipeline} completo, de las tablas de Raven a las tablas de
+Raven: instalación, comando de cada etapa, archivo que produce y cómo se reproduce. RE1.1,
+RE1.2 y RE2.1 documentan el porqué de cada decisión.
+
+\rotulo{Indicador.} El pipeline genera las particiones procesadas (sección~\ref{sec:datos}),
+entrena desde una configuración (sección~\ref{sec:entrenamiento}), evalúa un
+\emph{checkpoint} (sección~\ref{sec:evaluacion}) y ejecuta inferencia sobre un WAV
+(sección~\ref{sec:inferencia}), con dependencias y comandos declarados.
+
+\section{Esquema general}
+
+La Figura~\ref{fig:pipeline} recorre las etapas y los artefactos que las conectan. Cada
+etapa es un script de \file{src/} con su propio \code{--help}; ninguna etapa modifica los
+artefactos de la anterior, de modo que se puede volver a ejecutar cualquiera desde su entrada.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=2.6mm and 5mm, caja/.append style={font=\scriptsize, inner sep=3pt},
+                        dato/.append style={font=\scriptsize\ttfamily}]
+        \node[dato] (raw) {data/raw/};
+        \node[etapa, below=of raw] (pa) {prepare\_annotations.py};
+        \node[dato, below=of pa] (cleaned) {data/cleaned/};
+        \node[etapa, below=of cleaned] (pd) {prepare\_data.py};
+        \node[dato, below=of pd] (proc) {data/processed/};
+        \node[etapa, below=of proc] (train) {train.py --arch \{detr, detr\_resnet, frcnn, yolo\}};
+        \node[etapa, right=of proc] (yolo) {export\_yolo.py};
+        \node[dato, right=of yolo] (yolodir) {data/yolo/};
+        \node[dato, below=of train] (run) {runs/<name>/: best.pt, last.pt, config.json, metrics.jsonl, train.log};
+        \node[etapa, below=of run] (dump) {dump\_predictions.py};
+        \node[dato, below=of dump] (dumps) {runs/<name>/<name>\_val|test\_predictions.pt};
+        \node[etapa, below=of dumps] (cmp) {compare\_models.py};
+        \node[dato, below=of cmp] (cmpout) {runs/comparacion/*.txt, *.json};
+        \node[etapa, below=of cmpout] (detect) {detect.py $|$ main.py (visor)};
+        \node[dato, right=of detect] (op) {runs/<name>/operating\_point.json};
+        \node[dato, below=of detect] (raven) {<audio>.detections.txt (tabla de Raven)};
+        \foreach \a/\b in {raw/pa, pa/cleaned, cleaned/pd, pd/proc, proc/train, train/run, run/dump, dump/dumps, dumps/cmp, cmp/cmpout, cmpout/detect, detect/raven}
+            \draw[flecha] (\a) -- (\b);
+        \draw[flecha] (proc) -- (yolo);
+        \draw[flecha] (yolo) -- (yolodir);
+        \draw[flecha] (yolodir.south) |- (train.east);
+        \draw[flecha] (cmp.east) -| (op.north);
+        \draw[flecha] (op) -- (detect);
+        \draw[flecha] (run.east) -- ++(4mm, 0) |- ([yshift=1.5mm]detect.east);
+        \node[nota, left=2mm of pa.west, anchor=east] {RE1.1};
+        \node[nota, left=2mm of pd.west, anchor=east] {RE1.2};
+        \node[nota, left=2mm of train.west, anchor=east] {RE2.1};
+        \node[nota, left=2mm of cmp.west, anchor=east] {RE2.3};
+        \node[nota, left=2mm of detect.west, anchor=east] {RE2.4};
+        \node[nota, right=1mm of yolodir.east, anchor=west, align=left] {sólo YOLO:\\PNG para Ultralytics};
+    \end{tikzpicture}
+    \caption{Etapas (azul) y artefactos (gris) del pipeline}
+    \label{fig:pipeline}
+\end{figure}
+
+\section{Instalación}
+
+El proyecto se gestiona con \code{uv}; \file{pyproject.toml} declara Python
+$\geq$~\pythonVersion{}, las dependencias base (PyTorch \torchVersion{}, torchvision,
+torchaudio, pandas, soundfile, PyQt6) y dos extras: \code{detr} (transformers, timm) para las
+dos arquitecturas DETR y \code{yolo} (ultralytics, opencv) para YOLO. Los grupos
+\code{train} y \code{notebooks} añaden lo que hace falta para preparar datos, entrenar,
+comparar y ejecutar los cuadernos.
+
+\begin{lstlisting}[language=bash]
+git clone https://github.com/nhrot-fc/tesis-primate.git && cd tesis-primate
+uv sync --all-extras --all-groups        # investigación: todo
+uv sync --no-dev --extra detr --extra yolo   # sólo inferencia con cualquier checkpoint
+\end{lstlisting}
+
+Los pesos preentrenados (AST de AudioSet, Deformable DETR de COCO) se descargan de Hugging
+Face la primera vez y quedan en \file{hf/}; los de torchvision y Ultralytics, en sus cachés
+habituales. Hardware de referencia: una GPU de 24\,GB para entrenar (lote 8 del DETR ocupa
+$\approx$16\,GB); la inferencia corre en CPU. \todocita{PyTorch (Paszke et al. 2019),
+Hugging Face Transformers (Wolf et al. 2020) y Ultralytics, si el jurado pide citar el
+software}
+
+\section{Datos: \file{prepare\_annotations.py} y \file{prepare\_data.py}}
+\label{sec:datos}
+
+\begin{lstlisting}[language=bash]
+uv run python src/prepare_annotations.py [--force]   # RE1.1: raw/ -> cleaned/
+uv run python src/prepare_data.py [--force]          # RE1.2: cleaned/ -> processed/
+uv run python src/export_yolo.py                     # sólo para YOLO: processed/ -> yolo/
+\end{lstlisting}
+
+Ambos scripts se niegan a sobrescribir salvo con \code{--force}, escriben un registro con lo
+que descartaron y son deterministas (semilla en \file{meta.json}). El export de YOLO pinta cada
+ventana como PNG en gris de $512 \times 512$ con las cajas en el formato de Ultralytics, y
+guarda una copia de \file{meta.json} para negarse a entrenar sobre un export de otra versión del
+caché.
+
+\section{Entrenamiento: \file{train.py}}
+\label{sec:entrenamiento}
+
+\subsection{Interfaz}
+
+\begin{lstlisting}[language=bash]
+uv run python src/train.py --arch detr        --name detr_t10_logmel --hp frontend=logmel --device cuda:2
+uv run python src/train.py --arch detr_resnet --name detr_resnet
+uv run python src/train.py --arch frcnn       --name frcnn_v2
+uv run python src/train.py --arch yolo        --name yolo26s_v2 --hp model=yolo26s
+uv run python src/train.py --arch detr --limit 64 --cfg epochs=1 workers=0   # prueba de humo
+# preentrenar la cabeza con aves y afinar con primates (RE2.1); envuelve a train.py sin tocar src/
+uv run python notebooks/pretrain_birds_train.py --name detr_birds --device cuda:2
+uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds/best.pt --name detr_t10_logmel_birds
+\end{lstlisting}
+
+\code{--arch} elige un preset (RE2.1, Tabla de recetas): la arquitectura del registro
+\code{models.registry.ARCHITECTURES} más sus hiperparámetros y su \code{TrainConfig}.
+\code{--hp clave=valor} pisa un hiperparámetro del modelo y \code{--cfg clave=valor} uno del
+entrenamiento (épocas, lote, tasa de aprendizaje, \textit{workers}); \code{--limit} recorta
+el conjunto para una prueba de humo. Todo lo que se pisa queda escrito en el nombre de la
+corrida si no se da \code{--name}, y siempre en \file{config.json} y en el
+\emph{checkpoint}. \file{notebooks/pretrain\_birds\_train.py} llama a \code{train.main()}
+con el caché de aves (\file{data/processed\_extra/}) y la carpeta \file{runs\_extra/}, y
+para afinar carga en el modelo recién construido todo tensor del preentrenado con el mismo
+nombre y forma (queda fuera lo que depende del número de clases); la corrida resultante es una
+más de \file{runs/}.
+
+\subsection{Ciclo de entrenamiento}
+
+La Figura~\ref{fig:trainer} recorre una época del \code{Trainer}
+(\file{src/training/trainer.py}), común a las tres arquitecturas del proyecto; YOLO delega en
+\code{ultralytics} con las aumentaciones restringidas de RE2.1 y al terminar exporta su mejor
+época al formato de \emph{checkpoint} del proyecto, de modo que aguas abajo las cuatro se
+tratan igual.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[node distance=2.6mm and 6mm, caja/.append style={font=\scriptsize, inner sep=3pt},
+                        dato/.append style={font=\scriptsize\ttfamily}]
+        \node[dato] (data) {train.pt (SpectrogramDataset)};
+        \node[etapa, below=of data] (aug) {aumentación: ganancia, fondo, corrimiento, pegado; \textit{jitter} de cajas};
+        \node[etapa, below=of aug] (step) {paso: pérdida $\to$ retropropagación $\to$ recorte $\to$ AdamW};
+        \node[etapa, below=of step] (val) {validación: \code{detect} sobre val.pt $\to$ recall, precisión, mAP@0,3, pérdida};
+        \node[dato, below=of val] (log) {metrics.jsonl, train.log};
+        \node[decision, below=of log, xshift=-30mm] (best) {¿mejor mAP@0,3?};
+        \node[dato, below=of best] (bestpt) {best.pt};
+        \node[dato, below=of log, xshift=30mm] (lastpt) {last.pt (con optimizador y programa)};
+        \draw[flecha] (data) -- (aug);
+        \draw[flecha] (aug) -- (step);
+        \draw[flecha] (step) -- (val);
+        \draw[flecha] (val) -- (log);
+        \draw[flecha] (log) -- (best);
+        \draw[flecha] (log) -- (lastpt);
+        \draw[flecha] (best) -- node[left, nota] {sí} (bestpt);
+        \draw[flecha, dashed] (val.east) -- ++(5mm, 0) |- (aug.east) node[pos=0.25, right, nota] {siguiente época};
+        \node[nota, right=2mm of lastpt.east, anchor=west, align=left] {reanuda una corrida\\interrumpida};
+    \end{tikzpicture}
+    \caption{Una época del \code{Trainer}}
+    \label{fig:trainer}
+\end{figure}
+
+\subsection{Artefactos de una corrida}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Contenido de \file{runs/<name>/}}
+    \label{tab:run}
+    \small
+    \begin{tabular}{@{}L{5.4cm}L{8.8cm}@{}}
+        \toprule
+        \textbf{Archivo} & \textbf{Contenido} \\
+        \midrule
+        \file{config.json} & Arquitectura, hiperparámetros, \code{TrainConfig}, y el \file{meta.json} del caché con el que se entrenó \\
+        \file{train.log} & Registro con marca de tiempo: una línea por época con pérdidas y métricas de validación \\
+        \file{metrics.jsonl} & Lo mismo, una línea JSON por época, para las curvas \\
+        \file{best.pt} & \emph{Checkpoint} de la mejor época (Tabla~\ref{tab:checkpoint}) \\
+        \file{last.pt} & Última época, con optimizador y programa, para reanudar \\
+        \file{<name>\_val\_predictions.pt}, \file{<name>\_test\_predictions.pt} & Volcados de la evaluación (sección~\ref{sec:evaluacion}) \\
+        \file{operating\_point.json} & Umbral elegido en validación por la comparación, con sus cifras de prueba \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Claves de un \emph{checkpoint} (\file{best.pt} de \code{detr\_t10\_logmel\_v2})}
+    \label{tab:checkpoint}
+    \small
+    \begin{tabular}{@{}lL{9.6cm}@{}}
+        \toprule
+        \textbf{Clave} & \textbf{Contenido} \\
+        \midrule
+        \input{figures/RE_2-2/checkpoint} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Un \emph{checkpoint} es autocontenido: \code{models.registry.load\_checkpoint(path)}
+reconstruye el modelo a partir de \code{architecture}, \code{hparams} y el número de clases
+de \code{labels}, carga el \code{state\_dict} en modo estricto (ninguna clave puede faltar ni
+sobrar) y devuelve el modelo junto con las etiquetas, la configuración y el umbral de
+operación si existe. Es lo que abren \file{detect.py}, el visor y \file{dump\_predictions.py}.
+
+\subsection{Costo de entrenamiento}
+
+La Tabla~\ref{tab:costo} registra las \nRuns{} corridas de la comparación de RE2.3: cuántas
+épocas corrieron, en cuál quedó el \emph{checkpoint} elegido y cuánto costó cada una en la GPU
+del servidor (una RTX de 24\,GB compartida). La Figura~\ref{fig:curvas} muestra sus curvas.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Épocas, mejor época y costo de las corridas}
+        \label{tab:costo}
+        \small
+        \begin{tabular}{@{}L{4.6cm}rrrr@{}}
+            \toprule
+            \textbf{Configuración} & \thead{Épocas} & \thead{Mejor\\época} & \thead{Minutos\\por época} & \thead{Horas\\de GPU} \\
+            \midrule
+            \input{figures/RE_2-2/costo} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Minutos por época: mediana de las diferencias entre marcas de tiempo del
+            \file{train.log} (YOLO: tiempos de \file{results.csv}). Incluye la validación de
+            cada época. La GPU se compartió con otros procesos, de modo que son cotas
+            superiores y no comparables entre corridas. La corrida con aves cuenta sólo el
+            afinado con primates, no el preentrenamiento previo (\file{runs\_extra/}).
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/RE_2-2/curvas_perdida}
+        \caption{Pérdida de validación relativa a la primera época}
+    \end{subfigure}\\[1.5ex]
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/RE_2-2/curvas_map}
+        \caption{mAP@0,3 en validación; el punto marca la época elegida (YOLO: aptitud de
+            Ultralytics, punteada)}
+    \end{subfigure}
+    \caption{Curvas de las \nRuns{} corridas}
+    \label{fig:curvas}
+\end{figure}
+
+\section{Evaluación: \file{dump\_predictions.py} y \file{compare\_models.py}}
+\label{sec:evaluacion}
+
+\begin{lstlisting}[language=bash]
+uv run python src/dump_predictions.py --run detr_t10_logmel_v2 --device cuda:1
+uv run python src/compare_models.py runs/*/*_predictions.pt --output runs/comparacion/comparacion_modelos
+DEVICE=cuda:1 ./evaluation.sh [nombres...]     # las dos cosas, para las corridas con best.pt
+\end{lstlisting}
+
+El volcado guarda, por ventana de validación y de prueba, todas las cajas con confianza
+$\geq 0{,}001$ junto con las cajas anotadas y el mapa ventana $\to$ grabación; la comparación
+aplica el protocolo de RE2.1 sobre esos volcados y escribe un \file{.txt} legible, un
+\file{.json} con las mismas cifras y, en cada corrida, \file{operating\_point.json}.
+\file{evaluation.sh} encadena ambas cosas y vuelca solo lo que esté desactualizado respecto de
+su \file{best.pt}. Cambiar una métrica o un umbral no exige volver a pasar los modelos por
+la GPU.
+
+\section{Inferencia: \file{detect.py} y el visor}
+\label{sec:inferencia}
+
+\begin{lstlisting}[language=bash]
+uv run python src/detect.py grabaciones/ otra.wav --model runs/yolo26s_v2/best.pt [--score 0.10]
+uv run python src/main.py [audio.wav | carpeta/]                 # visor (Spectrogram | Batch)
+\end{lstlisting}
+
+\file{detect.py} recorre archivos o carpetas, corta cada grabación en las mismas ventanas de
+3\,s con salto de 1,5\,s del caché, ejecuta el modelo por lotes, funde los duplicados entre
+ventanas solapadas y escribe junto a cada audio una tabla de selección de Raven con las cajas
+por encima del umbral (por defecto, el punto de operación del modelo). RE2.4 documenta el
+formato de salida y la demostración; el visor y el paquete portable para Windows
+(\file{deploy/build\_windows.py}, que empaqueta un Python embebido con los lanzadores
+\file{Detector.exe} y \file{detect.exe}) se describen en RE2.5.
+
+\section{Reproducibilidad}
+
+\begin{itemize}
+    \item \textbf{Semillas.} Una semilla única (42) fija la partición, las ventanas vacías, el
+          orden de los lotes y las aumentaciones; YOLO recibe la misma y corre en modo
+          determinista.
+    \item \textbf{Trazabilidad.} Cada \emph{checkpoint} lleva el \file{meta.json} del caché
+          con el que se entrenó y sus hiperparámetros; cada corrida, su \file{config.json} y su
+          registro con marcas de tiempo. Las cifras de este documento salen del cuaderno homónimo
+          sobre esos archivos; \emph{commit} \code{\commit}.
+    \item \textbf{Fallo temprano.} \code{prepare\_*} se niegan a pisar salidas,
+          \code{train.py --arch yolo} se niega a entrenar sobre un export de otra versión del
+          caché, \code{compare\_models.py} se niega a comparar volcados que no evaluaron las
+          mismas ventanas, y \code{load\_checkpoint} carga en modo estricto.
+    \item \textbf{Pruebas de humo.} \code{--limit N --cfg epochs=1 workers=0} recorre el ciclo
+          completo en minutos; es la prueba que precede a cada corrida larga.
+    \item \textbf{Lo que no está fijado.} El orden de las operaciones en GPU no es determinista
+          en todos los núcleos de cuDNN: dos corridas con la misma semilla dan curvas parecidas,
+          no idénticas. El costo de una corrida depende de la carga de la GPU compartida.
+\end{itemize}
+
+\todocita{reproducibilidad en aprendizaje automático (Pineau et al. 2021, \emph{Improving
+reproducibility in machine learning research}) para encuadrar esta lista}
+
+\section{Mapa del código}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Módulos de \file{src/}}
+    \label{tab:modulos}
+    \small
+    \begin{tabular}{@{}L{4.0cm}L{10.2cm}@{}}
+        \toprule
+        \textbf{Módulo} & \textbf{Responsabilidad} \\
+        \midrule
+        \file{core/config.py} & Rutas, semilla, umbrales de detección y los parámetros del espectrograma (\code{P}) \\
+        \file{data/} & Lectura de Raven, protocolo de curación, vocabulario, ventaneo y partición, caché, aumentaciones, \code{Dataset} \\
+        \file{models/} & Registro de arquitecturas; AST-Deformable-DETR (\file{deformable\_detr.py}, \file{backbone.py}, \file{frontend.py}, \file{criterion.py}), Faster R-CNN, YOLO, ResNet Deformable DETR \\
+        \file{training/} & \code{Trainer}, \emph{checkpoints}, entrenamiento de YOLO vía Ultralytics \\
+        \file{evaluation/} & Métricas (IoU, AP), volcados, protocolo de comparación, reporte \\
+        \file{inference/} & Predicción sobre un WAV, procesamiento por lotes, catálogo de modelos (sin torch) \\
+        \file{viewer/} & Aplicación PyQt6: espectrograma, cajas, reproducción, vista por lotes \\
+        \file{utils/} & Audio (mel, escalas), cajas (conversiones, NMS de anidadas) \\
+        \file{prepare\_\allowbreak annotations.py}, \file{prepare\_\allowbreak data.py}, \file{export\_\allowbreak yolo.py}, \file{train.py}, \file{dump\_\allowbreak predictions.py}, \file{compare\_\allowbreak models.py}, \file{detect.py}, \file{main.py} & Los ocho puntos de entrada del pipeline, en el orden de la Figura~\ref{fig:pipeline} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\todo{Este manual documenta la versión \code{\commit}; si el pipeline vuelve a leer de
+\file{data/unified/} en lugar de \file{raw/} (\file{src/unify\_recordings.py}), actualizar la
+Figura~\ref{fig:pipeline} y RE1.1.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

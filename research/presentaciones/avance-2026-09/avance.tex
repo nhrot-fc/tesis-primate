@@ -1,0 +1,642 @@
+% Exposición de avance: resultados esperados RE1.1 a RE2.3 (OE1 y OE2).
+% Las cifras, tablas y figuras salen de research/reportes/figures/RE_x-y/ (los cuadernos de los
+% reportes) y de figs/ (armar_figuras.py: esquemas TikZ de los reportes, prototipo de 2024 y
+% estado de la corrida en curso). Compilar: tectonic --outdir build avance.tex
+\documentclass[aspectratio=169, 9pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-noquoting]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\input{../../reportes/estilos}
+
+\graphicspath{{../../reportes/}{./}}
+\newcommand{\valores}[1]{\input{../../reportes/figures/#1/valores}}
+\newcommand{\fragmento}[1]{\input{../../reportes/figures/#1}}
+
+% Los fragmentos de los cuadernos usan subfigure; aquí basta una minipage con rótulo pequeño,
+% con un factor de escala para que un bloque pensado para una página quepa en una diapositiva.
+\newcommand{\escala}{1}
+\newenvironment{subfigure}[2][t]{\begin{minipage}[#1]{\escala\dimexpr#2\relax}\centering\def\caption##1{\par\vspace{1pt}{\scriptsize ##1\par}}}{\end{minipage}}
+
+% === Aspecto ========================================================
+\usetheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{structure}{fg=azul}
+\setbeamercolor{frametitle}{fg=white, bg=azul}
+\setbeamerfont{frametitle}{size=\large, series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\small}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{footline}{%
+    \hspace{1em}{\scriptsize\color{gris}Avance de tesis\sep RE1.1 a RE2.3}\hfill
+    {\scriptsize\color{gris}\insertframenumber\,/\,\inserttotalframenumber}\hspace{1em}\vspace{4pt}}
+\setbeamersize{text margin left=0.8cm, text margin right=0.8cm}
+\setlength{\leftmargini}{1.2em}
+\renewcommand{\arraystretch}{1.1}
+\renewcommand{\theadfont}{\bfseries\scriptsize}
+\renewcommand{\theadalign}{br}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Estado de un entregable.
+\newcommand{\hecho}{\tikz\fill[verde!80!black] (0,0) circle (3.2pt);}
+\newcommand{\parcial}{\tikz{\draw[ambar!80!black, thick] (0,0) circle (2.8pt); \fill[ambar!80!black] (0,0) -- (90:2.8pt) arc (90:-90:2.8pt) -- cycle;}}
+\newcommand{\pendiente}{\tikz\draw[gris, thick] (0,0) circle (2.8pt);}
+% Cifra grande con rótulo debajo.
+\newcommand{\cifra}[2]{\begin{minipage}[t]{0.31\textwidth}\centering{\Large\bfseries\color{azul}#1}\\[1pt]{\scriptsize\color{gris}#2}\end{minipage}}
+
+\title{Detección de vocalizaciones de primates neotropicales\\mediante cajas tiempo--frecuencia}
+\subtitle{Exposición de avance: resultados esperados RE1.1 a RE2.3}
+\author{Fernando Nelson Candia Aroni\\{\small Asesor: Dr. Edwin Rafael Villanueva Talavera}}
+\institute{Pontificia Universidad Católica del Perú}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+% ===================================================================
+\begin{frame}{Objetivos y estado de los entregables}
+    \textbf{OG.} Un sistema de pre-anotación asistida que proponga cajas tiempo--frecuencia con
+    especie y tipo de llamada sobre grabaciones PAM de primates amazónicos, para maximizar la
+    cobertura de eventos anotados bajo una carga de revisión acotada.
+    \vspace{1.5ex}
+    \begin{center}
+        \small
+        \begin{tabular}{@{}clL{5.6cm}L{5.4cm}@{}}
+            \toprule
+            & \textbf{RE} & \textbf{Entregable} & \textbf{Estado} \\
+            \midrule
+            \multirow{3}{*}{\rotatebox{90}{\scriptsize OE1}}
+            & RE1.1 & Protocolo de curación y estandarización & \hecho{} documento y cuaderno \\
+            & RE1.2 & Conjunto curado y particionado & \hecho{} documento y cuaderno \\
+            & RE1.3 & Ficha del conjunto derivado & \hecho{} documento y cuaderno \\
+            \midrule
+            \multirow{5}{*}{\rotatebox{90}{\scriptsize OE2}}
+            & RE2.1 & Diseño experimental, arquitectura y líneas base & \hecho{} documento y cuaderno \\
+            & RE2.2 & Pipeline reproducible y manual técnico & \hecho{} documento y cuaderno \\
+            & RE2.3 & Informe comparativo de resultados & \hecho{} documento y cuaderno; seis configuraciones con el mismo postprocesado \\
+            & RE2.4 & Modelo final cargable y demostración & \parcial{} documento y cuaderno; falta la captura de Raven \\
+            & RE2.5 & Código y modelo en repositorio & \parcial{} índice; falta publicar el modelo final \\
+            \midrule
+            \rotatebox{90}{\scriptsize OE3}
+            & RE3.1--3.4 & Evaluación operativa & \pendiente{} pendiente \\
+            \bottomrule
+        \end{tabular}
+    \end{center}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{Del prototipo (2024) al sistema actual}
+    \valores{RE_1-2}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{Prototipo: clasificador binario de clips}
+            \begin{itemize}
+                \item Una especie (\textit{L.\ weddelli}), 682 anotaciones, clips de 0,5\,s.
+                \item CNN sobre mel; salida: una probabilidad por clip.
+                \item Partición por índice de clip: exactitud 0,99 en prueba, con clips vecinos
+                      de la misma llamada a ambos lados (fuga).
+            \end{itemize}
+            \vspace{0.5ex}
+            \includegraphics[width=\linewidth]{figs/prototipo_clips}\\[0.5ex]
+            \includegraphics[width=\linewidth]{figs/prototipo_prediccion}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Sistema actual: detector de cajas tiempo--frecuencia}
+            \begin{itemize}
+                \item 8 especies, 25 clases, \nExperiment{} anotaciones; partición por
+                      grabación.
+                \item Salida: cajas con especie, tipo de llamada y confianza, en tabla de Raven.
+                \item Seis configuraciones bajo un protocolo fijado antes de medir, con
+                      intervalos por remuestreo de grabaciones.
+            \end{itemize}
+            \vspace{0.5ex}
+            \centering
+            \includegraphics[width=\linewidth]{figures/RE_2-4/demo_2}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE1.1}{Protocolo de curación y estandarización}
+    \valores{RE_1-1}
+    \begin{columns}[T]
+        \begin{column}{0.56\textwidth}
+            \centering
+            \resizebox{!}{0.78\textheight}{\input{figs/protocolo}}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \vspace{2ex}
+            \cifra{\nRawRows}{filas crudas en \nPaired{} tablas}\hfill
+            \cifra{\nKept}{anotaciones conservadas (\pctKept)}\hfill
+            \cifra{\nUniqueRecordings}{grabaciones tras unir \nCopies{} copias}
+            \vspace{3ex}
+            \begin{itemize}
+                \item El protocolo es código: se vuelve a ejecutar y registra lo que descarta.
+                \item Tipo de llamada: de \nRawCallValues{} grafías a \nVocabCallValues{}
+                      códigos del vocabulario cerrado.
+                \item La especie la fija el directorio (\nSpeciesEmpty{} filas sin especie,
+                      \nSpeciesMismatch{} con otra).
+                \item Descartes: \nNoise{} \code{noise}, \nEmptyCall{} sin tipo, \nNyquist{}
+                      sobre Nyquist, \nDegenerate{} degeneradas.
+                \item \nReview{} filas de \nReviewPairs{} pares fuera de vocabulario: marcadas,
+                      no borradas.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE1.2}{Conjunto curado y particionado}
+    \valores{RE_1-2}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \centering
+            \resizebox{\linewidth}{!}{\input{figs/conjunto}}
+            \vspace{2ex}
+            \includegraphics[width=0.32\linewidth]{figures/RE_1-2/ventana_densa}\hfill
+            \includegraphics[width=0.32\linewidth]{figures/RE_1-2/ventana_larga}\hfill
+            \includegraphics[width=0.32\linewidth]{figures/RE_1-2/ventana_vacia}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \cifra{\nClasses}{clases de 7 especies}\hfill
+            \cifra{\nWindows}{ventanas de 3\,s}\hfill
+            \cifra{\nBoxes}{cajas normalizadas}
+            \vspace{3ex}
+            \begin{itemize}
+                \item Selección: sin frases anidadas, variantes fusionadas, al menos
+                      \minPairCount{} anotaciones por clase.
+                \item Partición por grabación, estratificada de la clase más rara a la más
+                      común: \nWindowsTrain{} / \nWindowsVal{} / \nWindowsTest{} ventanas.
+                \item Ventana de 3\,s con salto de 1,5\,s; un evento entra si la ventana cubre
+                      la mitad de su parte visible; \emptyRatio{} de ventanas vacías.
+                \item \file{meta.json}: semilla, umbral, exclusiones, proporciones y
+                      parámetros del mel.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE1.3}{Ficha del conjunto derivado}
+    \valores{RE_1-3}
+    \begin{columns}[T]
+        \begin{column}{0.58\textwidth}
+            \centering
+            \scriptsize
+            \setlength{\tabcolsep}{3pt}
+            \begin{tabular}{@{}L{2.9cm}lrrrrrr@{}}
+                \toprule
+                \textbf{Especie} & \textbf{Cód.} & \thead{Grab.} & \thead{Horas} & \thead{Anot.} & \thead{Pares} & \thead{Clases} & \thead{Anot.\\exp.} \\
+                \midrule
+                \fragmento{RE_1-3/especies} \\
+                \bottomrule
+            \end{tabular}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \begin{itemize}
+                \item \nRecordings{} grabaciones (\hours{}\,h, AudioMoth) y \nAnnotations{}
+                      anotaciones en Raven Pro.
+                \item Duración de \durMinMs{}\,ms a \durMaxS{}\,s (\durRatio$\times$); ancho
+                      de banda de \bwMin{} a \bwMax{}\,Hz.
+                \item Las especies se separan por banda; los tipos de llamada de una misma
+                      especie, no.
+                \item Limitaciones: un solo anotador, criterio variable en frecuencia,
+                      llamadas largas fragmentadas, once clases escasas.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \vspace{0.5ex}
+    \centering
+    {\renewcommand{\escala}{0.46}\input{figs/galeria_fila}}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.1}{Arquitectura propuesta: AST-Deformable-DETR}
+    \valores{RE_2-1}
+    \input{../../reportes/figures/RE_2-1/resolucion}
+    \centering
+    \resizebox{0.86\linewidth}{!}{\input{figs/arquitectura}}
+    \vspace{2ex}
+    \begin{columns}[T]
+        \begin{column}{0.31\textwidth}
+            \textbf{Extractor de audio.} AST preentrenado en AudioSet y afinado entero:
+            $\tokensFreq \times \tokensTime$ tokens de \hidden{} dimensiones.
+        \end{column}
+        \begin{column}{0.31\textwidth}
+            \textbf{Pirámide multiescala.} \nLevels{} niveles, de \cellZero{} a
+            \cellThree{}\,ms por celda, para llamadas de decenas de ms a decenas de segundos.
+        \end{column}
+        \begin{column}{0.31\textwidth}
+            \textbf{Decodificador deformable.} \nQueries{} consultas, \nDecoderLayers{}
+            capas, emparejamiento húngaro; \nParams{}\,M de parámetros.
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.1}{Líneas base y protocolo de comparación}
+    \valores{RE_2-1}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \centering
+            \scriptsize
+            \setlength{\tabcolsep}{3pt}
+            \begin{tabular}{@{}L{2.3cm}L{1.7cm}rL{1.9cm}@{}}
+                \toprule
+                \textbf{Configuración} & \textbf{Extractor} & \thead{Parám.\\(M)} & \textbf{Qué controla} \\
+                \midrule
+                AST-Def-DETR log-mel (propuesta) & AST / AudioSet & 88,6 & --- \\
+                AST-Def-DETR PCEN & AST / AudioSet & 88,6 & front-end \\
+                ResNet-50 Def-DETR & ResNet-50 / COCO & 41,1 & cabeza DETR vs.\ extractor de audio \\
+                Faster R-CNN R50-FPN v2 & ResNet-50 / COCO & 43,4 & referencia de dos etapas \\
+                YOLO26s & CSP / COCO & 10,0 & referencia de una etapa \\
+                AST-Def-DETR log-mel, cabeza preentrenada con aves & AST / AudioSet & 88,6 & preentrenar la cabeza \\
+                \bottomrule
+            \end{tabular}
+            \vspace{2ex}
+            \normalsize
+            \begin{itemize}
+                \item Mismo mel, mismas particiones, mismo marco de salida; cada una con la
+                      receta de su preset.
+                \item Regla fijada antes de medir: \textit{recall} al punto de operación como
+                      métrica primaria, mAP@\matchIou{} secundaria, costo de inferencia como
+                      desempate.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \resizebox{\linewidth}{!}{\input{figs/evaluacion}}
+            \vspace{1ex}
+            \small
+            \begin{itemize}
+                \item Acierto a IoU $\geq$ \matchIou{} y misma clase; \maxDetections{} cajas
+                      por ventana y el mismo postprocesado (NMS \nmsIou{} por clase, cajas
+                      anidadas fuera) para todos, DETR incluidos.
+                \item \textbf{Umbral}: score mínimo para aceptar una caja. Cada modelo lo
+                      calibra a su manera, así que se elige por modelo en validación con una
+                      regla común: máximo \textit{recall} con precisión $\geq$ \minPrecision{}.
+                \item \textbf{Punto de operación}: ese umbral y el \textit{recall} y la
+                      precisión que da en prueba; así funcionará en el visor.
+                \item Prueba una sola vez; IC 95\,\% por \nBootstrap{} remuestreos de
+                      grabaciones.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.2}{Pipeline reproducible}
+    \valores{RE_2-2}
+    \begin{columns}[T]
+        \begin{column}{0.46\textwidth}
+            \centering
+            \resizebox{!}{0.8\textheight}{\input{figs/pipeline}}
+        \end{column}
+        \begin{column}{0.52\textwidth}
+            \begin{itemize}
+                \item Ocho puntos de entrada en \file{src/}; ninguna etapa pisa la anterior sin
+                      \code{--force}; semilla única.
+                \item Un \emph{checkpoint} es autocontenido: arquitectura, hiperparámetros,
+                      etiquetas, \file{meta.json} del conjunto y umbral de operación.
+                \item Seis corridas en la GPU compartida del servidor (\emph{commit}
+                      \code{\commit}):
+            \end{itemize}
+            \vspace{1ex}
+            \centering
+            \scriptsize
+            \begin{tabular}{@{}L{3.0cm}rrrr@{}}
+                \toprule
+                \textbf{Configuración} & \thead{Épocas} & \thead{Mejor\\época} & \thead{Min por\\época} & \thead{Horas\\de GPU} \\
+                \midrule
+                \fragmento{RE_2-2/costo} \\
+                \bottomrule
+            \end{tabular}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Resultado principal en prueba}
+    \valores{RE_2-3}
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{@{}L{2.4cm}c|cL{2.6cm}L{2.6cm}c|ccc@{}}
+        \toprule
+        & & \multicolumn{4}{c|}{\textbf{Precisión $\geq 0{,}70$ en val}} & \multicolumn{3}{c}{\textbf{Precisión $\geq 0{,}50$}} \\
+        \textbf{Modelo} & \thead{mAP\\@0,3} & \thead{Umbral} & \thead[l]{Recall [IC 95\,\%]} & \thead[l]{Precisión [IC]} & \thead{F\textsubscript{1}} & \thead{Umbral} & \thead{Recall} & \thead{Prec.} \\
+        \midrule
+        \fragmento{RE_2-3/resumen} \\
+        \bottomrule
+    \end{tabular}
+    \vspace{0.5ex}
+    \begin{columns}[T]
+        \begin{column}{0.4\textwidth}
+            \includegraphics[width=\linewidth]{figures/RE_2-3/curvas_pr}
+        \end{column}
+        \begin{column}{0.58\textwidth}
+            \small
+            \vspace{1ex}
+            \begin{itemize}
+                \item Prueba: \nTestWindows{} ventanas, \nTestBoxes{} cajas,
+                      \nTestRecordings{} grabaciones no vistas.
+                \item \bestModel{}: mejor mAP (\bestMap) con \textit{recall} \bestRecall{}
+                      [\bestRecallLow, \bestRecallHigh]; su intervalo se separa de
+                      \separated{} y se solapa con \overlapping{}.
+                \item El mayor \textit{recall} es de \topRecallModel{} (\topRecall), dentro
+                      del intervalo de \bestModel{} y con menos mAP (\topRecallMap).
+                \item Los umbrales elegidos no se parecen (\yoloThreshold{}, \frcnnThreshold{},
+                      \logmelThreshold{}); log-mel supera a PCEN con la misma arquitectura
+                      (\logmelMap{} frente a \pcenMap{}).
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Mismo postprocesado para todos: los DETR también con supresión de duplicados}
+    \input{figs/valores}
+    \begin{columns}[T]
+        \begin{column}{0.58\textwidth}
+            \centering
+            \scriptsize
+            \setlength{\tabcolsep}{3pt}
+            \begin{tabular}{@{}L{2.5cm}cc|cL{2.0cm}c@{}}
+                \toprule
+                & \multicolumn{2}{c|}{\textbf{mAP@0,3}} & \multicolumn{3}{c}{\textbf{Recall a precisión $\geq 0{,}70$}} \\
+                \textbf{Modelo} & \thead{Sin} & \thead{Con} & \thead{Sin} & \thead[l]{Con [IC 95\,\%]} & \thead{Umbral\\sin $\to$ con} \\
+                \midrule
+                AST-DETR log-mel & \sinNmsLogmelMap & \conNmsLogmelMap & \sinNmsLogmelRecall & \conNmsLogmelRecall{} [\conNmsLogmelRecallLow, \conNmsLogmelRecallHigh] & \sinNmsLogmelThreshold{} $\to$ \conNmsLogmelThreshold \\
+                AST-DETR aves & \sinNmsBirdsMap & \conNmsBirdsMap & \sinNmsBirdsRecall & \conNmsBirdsRecall{} [\conNmsBirdsRecallLow, \conNmsBirdsRecallHigh] & \sinNmsBirdsThreshold{} $\to$ \conNmsBirdsThreshold \\
+                ResNet-50 DETR & \sinNmsResnetMap & \conNmsResnetMap & \sinNmsResnetRecall & \conNmsResnetRecall{} [\conNmsResnetRecallLow, \conNmsResnetRecallHigh] & \sinNmsResnetThreshold{} $\to$ \conNmsResnetThreshold \\
+                \midrule
+                YOLO26s (sin cambio) & \sinNmsYoloMap & \conNmsYoloMap & \sinNmsYoloRecall & \conNmsYoloRecall{} [\conNmsYoloRecallLow, \conNmsYoloRecallHigh] & \conNmsYoloThreshold \\
+                \bottomrule
+            \end{tabular}
+            \vspace{0.5ex}
+            {\scriptsize Prueba; umbral elegido en validación; los mismos \file{best.pt}, sólo
+            cambia lo que se hace con sus cajas. Todas las tablas de RE2.3 usan el postprocesado
+            común; la columna «sin» viene de la comparación guardada antes del cambio
+            (\file{comparacion\_modelos\_detr\_sin\_nms}).}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \small
+            \begin{itemize}
+                \item El diseño DETR no lleva NMS: el emparejamiento húngaro es uno a uno al
+                      entrenar. En inferencia, 100 consultas sobre una a tres llamadas dejan
+                      duplicados: el 42--47\,\% de las cajas del AST-DETR solapan otra de la
+                      misma clase o están anidadas; en el ResNet-DETR, 236 de 300.
+                \item Ahora los DETR reciben el mismo postprocesado que Faster R-CNN y YOLO:
+                      NMS 0,3 por clase y supresión de cajas anidadas. El visor lo hereda.
+                \item +0,02 de mAP en validación y en prueba para los cuatro DETR; al punto de
+                      operación, de +0,01 a +0,03 de \textit{recall}: sin duplicados, la misma
+                      precisión se alcanza con un umbral más bajo.
+                \item Con el mismo postprocesado, la propuesta entra en el intervalo de YOLO26s
+                      en \textit{recall}; YOLO26s conserva la ventaja en mAP.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Detección, encuadre y clasificación}
+    \valores{RE_2-3}
+    \begin{columns}[T]
+        \begin{column}{0.57\textwidth}
+            \centering
+            \scriptsize
+            \setlength{\tabcolsep}{2pt}
+            \begin{tabular}{@{}L{2.2cm}cc|ccc|cc@{}}
+                \toprule
+                & \multicolumn{2}{c|}{\textbf{Detección}} & \multicolumn{3}{c|}{\textbf{Encuadre}} & \multicolumn{2}{c}{\textbf{Clasificación}} \\
+                \textbf{Modelo} & \thead{Recall\\sin clase} & \thead{Prec.\\sin clase} & \thead{IoU\\mediano} & \thead{mAP\\@0,25} & \thead{mAP\\@0,5} & \thead{Clase\\correcta} & \thead{Especie\\correcta} \\
+                \midrule
+                \fragmento{RE_2-3/ejes} \\
+                \bottomrule
+            \end{tabular}
+            \vspace{3ex}
+            \normalsize
+            \begin{itemize}
+                \item Encontrada la llamada, la etiqueta es correcta en casi todos los pares:
+                      \pctOffDiagonal{} de confusión en \bestModel{}, casi toda dentro de la
+                      misma especie.
+                \item IoU mediano cerca de 0,8; la mAP cae unos diez puntos de IoU 0,3 a 0,5.
+                \item Las clases escasas (\code{sm/sc}, \code{ac/gc}, \code{ac/sc}) fallan en
+                      las seis configuraciones.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.41\textwidth}
+            \centering
+            \includegraphics[width=\linewidth]{figures/RE_2-3/confusion}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Carga de falsos positivos y de llamadas perdidas}
+    \valores{RE_2-3}
+    \begin{columns}[T]
+        \begin{column}{0.54\textwidth}
+            \centering
+            \includegraphics[width=\linewidth]{figures/RE_2-3/carga}
+            {\scriptsize Prueba, por hora de audio equivalente (\windowsPerHour{} ventanas);
+            marcadores: puntos de operación.}
+        \end{column}
+        \begin{column}{0.44\textwidth}
+            \begin{itemize}
+                \item Punto principal: \fpPerHourMin{}--\fpPerHourMax{} falsos positivos y
+                      \missedPerHourMin{}--\missedPerHourMax{} cajas perdidas por hora, sobre
+                      \boxesPerHour{} cajas anotadas por hora.
+                \item \bestModel{}: \bestFpBackgroundShare{} de sus falsos positivos son de
+                      fondo y \bestMissedBareShare{} de sus pérdidas no tienen ninguna caja
+                      encima. El error es de detección, no de etiqueta.
+                \item Con el postprocesado común los DETR ya no añaden duplicados
+                      (\logmelDuplicatesMain{} por hora en la propuesta).
+                \item Sobre ventanas vacías: \fpEmptyMin{}--\fpEmptyMax{} detecciones por
+                      1\,000 ventanas.
+                \item A igual tasa de falsos positivos, los seis quedan a menos de 100 cajas
+                      perdidas por hora: el umbral mueve la carga más que el modelo.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Carga de revisión por tipo de error}
+    \valores{RE_2-3}
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{@{}L{2.4cm}cc|r|rrrr|rrr|r@{}}
+        \toprule
+        & & & & \multicolumn{4}{c|}{\textbf{Falsos positivos por hora}} & \multicolumn{3}{c|}{\textbf{Cajas perdidas por hora}} & \\
+        \textbf{Modelo} & \thead{P mín.\\en val} & \thead{Umbral} & \thead{Cajas\\por hora} & \thead{Total} & \thead{Fondo} & \thead{Otra\\clase} & \thead{Dupli-\\cado} & \thead{Total} & \thead{Sin\\caja} & \thead{Con\\caja} & \thead{FP por\\1\,000\\vacías} \\
+        \midrule
+        \fragmento{RE_2-3/carga} \\
+        \bottomrule
+    \end{tabular}
+    \vspace{0.3ex}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \normalsize
+            \begin{itemize}
+                \item Prueba: \testHours{}\,h de audio equivalente, \boxesPerHour{} cajas
+                      anotadas por hora, \pctEmptyTest{} de ventanas vacías.
+                \item Falso positivo: caja aceptada que no acierta ninguna anotación de su
+                      clase. Casi todos son de \emph{fondo}: ni siquiera pisan una llamada.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \normalsize
+            \begin{itemize}
+                \item Caja perdida: anotación sin detección que la acierte. Casi todas quedan
+                      \emph{sin caja} encima: el modelo no las vio, no es que las etiquetó mal.
+                \item Bajar la precisión mínima de 0,70 a 0,50 duplica los falsos positivos y
+                      recupera un tercio de las perdidas: es el compromiso que fija el umbral.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Rendimiento por clase en prueba}
+    \valores{RE_2-3}
+    \begin{columns}[T]
+        \begin{column}{0.74\textwidth}
+            \centering
+            \tiny
+            \setlength{\tabcolsep}{2pt}
+            \renewcommand{\arraystretch}{0.92}
+            \begin{tabular}{@{}lr|cccccc|cccccc@{}}
+                \toprule
+                & & \multicolumn{6}{c|}{\textbf{Recall al punto de operación}} & \multicolumn{6}{c}{\textbf{AP@0,3}} \\
+                \textbf{Clase} & \thead{Cajas} & \thead{YOLO} & \thead{FRCNN} & \thead{AST\\logmel} & \thead{AST\\aves} & \thead{ResNet\\DETR} & \thead{AST\\PCEN} & \thead{YOLO} & \thead{FRCNN} & \thead{AST\\logmel} & \thead{AST\\aves} & \thead{ResNet\\DETR} & \thead{AST\\PCEN} \\
+                \midrule
+                \fragmento{RE_2-3/por_clase} \\
+                \bottomrule
+            \end{tabular}
+        \end{column}
+        \begin{column}{0.25\textwidth}
+            \scriptsize
+            \begin{itemize}
+                \item En negrita, el mejor de cada fila. Las dos clases de ventana
+                      (\code{as/hc}, \code{pt/dc}) van aparte.
+                \item Manda el tamaño de la clase: con cientos de cajas (\code{ac/bc},
+                      \code{lw/cs}, \code{sm/cc}, \code{aa/gc}, \code{pt/sqc}) el
+                      \textit{recall} pasa de 0,8 en casi todos; con menos de 60
+                      (\code{sm/sc}, \code{ac/gc}, \code{ac/sc}, \code{sb/sc}) no llega a
+                      0,5 en ninguno.
+                \item \code{as/bc} y \code{sb/ppc} tienen cientos de cajas y quedan en
+                      0,4--0,7: se confunden con \code{ac/bc} y entre las llamadas de
+                      \code{sb}.
+                \item YOLO26s gana más filas de \textit{recall}; los AST-DETR se reparten
+                      las de AP. Ninguno domina por clase.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Ejemplos en prueba: anotaciones en blanco, detecciones en color, un cuadrado por modelo}
+    \centering
+    \begin{minipage}{0.8\textwidth}\centering
+        {\renewcommand{\escala}{0.63}\let\footnotesize\scriptsize\fragmento{RE_2-3/ventanas}}
+    \end{minipage}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Sexta configuración: la cabeza preentrenada con cantos de aves}
+    \input{figs/valores}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \centering
+            \input{figs/curvas_aves}
+            {\scriptsize mAP@0,3 en validación por época; el punto marca la época de
+            \file{best.pt}. Preentrenamiento sobre Powdermill y PteroSet, luego afinado con
+            primates.}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \centering
+            \scriptsize
+            \setlength{\tabcolsep}{3pt}
+            \begin{tabular}{@{}L{2.6cm}ccc@{}}
+                \toprule
+                \textbf{AST-DETR log-mel} & \thead{Mejor val\\(época)} & \thead{Meseta\\val} & \thead{Prueba\\mAP} \\
+                \midrule
+                Cabeza desde cero & \logmelBestMap{} (\logmelBestEpoch) & \logmelPlateauMap & \conNmsLogmelMap \\
+                Cabeza preentrenada con aves & \birdsBestMap{} (\birdsBestEpoch) & \birdsPlateauMap & \conNmsBirdsMap \\
+                \bottomrule
+            \end{tabular}
+            \par\vspace{0.5ex}
+            {\scriptsize Meseta: mediana de las últimas diez épocas. Prueba con el postprocesado
+            común.\par}
+            \vspace{1ex}
+            \normalsize
+            \begin{itemize}
+                \item Converge antes (mAP \birdsEpochFive{} frente a \logmelEpochFive{} en la
+                      época 5) y llega al mismo techo.
+                \item El máximo de validación elige \file{best.pt} y por eso es optimista:
+                      \birdsBestMap{} es un pico aislado; las mesetas, \birdsPlateauMap{} y
+                      \logmelPlateauMap{}, no se distinguen.
+                \item Prueba: \textit{recall} \conNmsBirdsRecall{} [\conNmsBirdsRecallLow,
+                      \conNmsBirdsRecallHigh] frente a \conNmsLogmelRecall{}
+                      [\conNmsLogmelRecallLow, \conNmsLogmelRecallHigh]; los intervalos se
+                      solapan.
+                \item Acelera, no mejora: no justifica preentrenar las demás configuraciones.
+                      Queda como ablación de la propuesta; el k-fold decide.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ===================================================================
+\begin{frame}{RE2.3}{Selección del modelo}
+    \valores{RE_2-3}
+    \input{figs/valores}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{Modelo seleccionado: \bestModel{}}
+            \begin{itemize}
+                \item Regla fijada antes de medir: \textit{recall} al punto de operación,
+                      mAP como secundaria, costo de inferencia como desempate.
+                \item Primaria: \conNmsYoloRecall{} [\conNmsYoloRecallLow,
+                      \conNmsYoloRecallHigh]; con el mismo postprocesado, los AST-DETR log-mel
+                      quedan dentro de ese intervalo (\conNmsLogmelRecall{} y
+                      \conNmsBirdsRecall{}). La primaria no separa.
+                \item Secundaria: mAP \conNmsYoloMap{} frente a \conNmsBirdsMap{}, el mejor
+                      DETR. Decide la secundaria, y el costo de inferencia va en el mismo
+                      sentido.
+                \item Opera al umbral \bestThreshold{} elegido en validación y pasa a RE2.4
+                      con su \file{operating\_point.json}.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Condiciones de la comparación}
+            \begin{itemize}
+                \item Recetas no igualadas; la propuesta entrena su cabeza desde cero y las
+                      líneas base parten de un detector completo.
+                \item Una sola partición: el máximo de validación que elige cada
+                      \file{best.pt} es optimista y una partición no separa diferencias de
+                      0,01--0,02; el k-fold del seleccionado es el siguiente paso.
+                \item El conjunto va a cambiar: 54 anotaciones cuya especie no coincide con su
+                      carpeta y no se decide sin experto quedan fuera con sus ventanas, 6 filas
+                      pegadas de otra carpeta se quitan y las aves salen del caché. Las seis
+                      configuraciones se reentrenan sobre ese caché.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\end{document}
