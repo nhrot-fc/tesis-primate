@@ -81,7 +81,8 @@ HELP = {
         ("Ctrl+L", "clear the detections"),
         ("Ctrl+S", "save the visible stretch as an image"),
         ("Folder", "drop a folder on the window to process it in the Batch view"),
-        ("Zip", "drop a model zip on the window to add it to models\\"),
+        ("Zip", "unzip a model zip into the program folder, next to Detector.exe; "
+                "dropping it on the window does the same"),
     ],
     "View": [
         ("Wheel", "scroll through the audio"),

@@ -18,8 +18,8 @@ En [Releases](https://github.com/nhrot-fc/tesis-primate/releases), dos tipos de 
 | `detector-<versión>-model-<nombre>.zip` | un modelo; hacen falta uno o más | 25 MB – 0,7 GB |
 
 1. Descomprime **un** zip `win64` en una ruta corta, p. ej. `C:\detector\`.
-2. Arrastra cada zip `model` sobre `Detector.exe` (o sobre su ventana): queda en
-   `models\<nombre>\`.
+2. Descomprime cada zip `model` en esa misma carpeta, junto a `Detector.exe` (no dentro de
+   `models\`): el zip ya trae `models\<nombre>\`.
 
 Si un zip viene en partes (`.zip.001`, `.zip.002`, …), descárgalas todas en la misma carpeta
 con su `join.bat` y ejecútalo; deja el zip entero.

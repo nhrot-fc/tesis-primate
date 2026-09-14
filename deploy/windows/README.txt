@@ -21,9 +21,10 @@ short path (for example C:\detector\), add at least one model and run:
   detect.exe     The same batch detection from a console, for scripts:
                    detect.exe --model models\frcnn D:\recordings
 
-  Models         They come as separate zips (detector-*-model-*.zip). Drag the
-                 zip onto Detector.exe or onto its window, or use "Add model from
-                 zip..." in the Model list. Each model is a subfolder of models\.
+  Models         They come as separate zips (detector-*-model-*.zip). Unzip each
+                 one into THIS folder, the one with Detector.exe (not into models\):
+                 the zip already brings models\<name>\, and hf\ when the model
+                 needs it. Each model is a subfolder of models\.
 
   viewer.log     Appears next to this file if the viewer fails, and says why.
 

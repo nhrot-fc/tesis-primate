@@ -2978,7 +2978,7 @@ wheels = [
 
 [[package]]
 name = "tesis-primate"
-version = "0.1.0"
+version = "0.1.5"
 source = { virtual = "." }
 dependencies = [
     { name = "numpy" },
