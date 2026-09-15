@@ -55,7 +55,7 @@
 
 \title{Detección de vocalizaciones de primates neotropicales\\mediante cajas tiempo--frecuencia}
 \subtitle{Exposición de avance: resultados esperados RE1.1 a RE2.3}
-\author{Fernando Nelson Candia Aroni\\{\small Asesor: Dr. Edwin Rafael Villanueva Talavera}}
+\author{Fernando Nelson Candia Aroni\\{\small Asesor: Dr. Edwin Rafael Villanueva Talavera}\\{\small Coasesor: Dr. Victor Andres Ayma Quirita}}
 \institute{Pontificia Universidad Católica del Perú}
 \date{\today}
 
@@ -70,26 +70,30 @@
     \textbf{OG.} Un sistema de pre-anotación asistida que proponga cajas tiempo--frecuencia con
     especie y tipo de llamada sobre grabaciones PAM de primates amazónicos, para maximizar la
     cobertura de eventos anotados bajo una carga de revisión acotada.
-    \vspace{1.5ex}
+    \vspace{1ex}
     \begin{center}
-        \small
-        \begin{tabular}{@{}clL{5.6cm}L{5.4cm}@{}}
+        \footnotesize
+        \renewcommand{\arraystretch}{1.0}
+        \begin{tabular}{@{}clL{6.0cm}L{5.4cm}@{}}
             \toprule
             & \textbf{RE} & \textbf{Entregable} & \textbf{Estado} \\
             \midrule
-            \multirow{3}{*}{\rotatebox{90}{\scriptsize OE1}}
+            \multirow{4}{*}{\rotatebox{90}{\scriptsize OE1}}
+            & \multicolumn{3}{@{}l@{}}{\color{azul}\textbf{Protocolo y conjunto de datos curado}} \\
             & RE1.1 & Protocolo de curación y estandarización & \hecho{} documento y cuaderno \\
             & RE1.2 & Conjunto curado y particionado & \hecho{} documento y cuaderno \\
             & RE1.3 & Ficha del conjunto derivado & \hecho{} documento y cuaderno \\
             \midrule
-            \multirow{5}{*}{\rotatebox{90}{\scriptsize OE2}}
+            \multirow{6}{*}{\rotatebox{90}{\scriptsize OE2}}
+            & \multicolumn{3}{@{}l@{}}{\color{azul}\textbf{Detector y evaluación}} \\
             & RE2.1 & Diseño experimental, arquitectura y líneas base & \hecho{} documento y cuaderno \\
             & RE2.2 & Pipeline reproducible y manual técnico & \hecho{} documento y cuaderno \\
             & RE2.3 & Informe comparativo de resultados & \hecho{} documento y cuaderno; seis configuraciones con el mismo postprocesado \\
             & RE2.4 & Modelo final cargable y demostración & \parcial{} documento y cuaderno; falta la captura de Raven \\
             & RE2.5 & Código y modelo en repositorio & \parcial{} índice; falta publicar el modelo final \\
             \midrule
-            \rotatebox{90}{\scriptsize OE3}
+            \multirow{2}{*}{\rotatebox{90}{\scriptsize OE3}}
+            & \multicolumn{3}{@{}l@{}}{\color{azul}\textbf{Cobertura, carga de revisión y análisis de discrepancias}} \\
             & RE3.1--3.4 & Evaluación operativa & \pendiente{} pendiente \\
             \bottomrule
         \end{tabular}
@@ -203,6 +207,8 @@
                 \fragmento{RE_1-3/especies} \\
                 \bottomrule
             \end{tabular}
+            \vspace{0.5ex}
+            \input{figs/especies_fila}
         \end{column}
         \begin{column}{0.4\textwidth}
             \begin{itemize}
@@ -217,9 +223,9 @@
             \end{itemize}
         \end{column}
     \end{columns}
-    \vspace{0.5ex}
+    \vspace{-0.5ex}
     \centering
-    {\renewcommand{\escala}{0.46}\input{figs/galeria_fila}}
+    {\renewcommand{\escala}{0.40}\input{figs/galeria_fila}}
 \end{frame}
 
 % ===================================================================

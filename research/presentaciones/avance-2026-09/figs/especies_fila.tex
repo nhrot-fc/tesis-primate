@@ -1,0 +1,16 @@
+% Tira de retratos de las ocho especies, en el orden de la tabla de RE1.3.
+% Retratos en figs/especies/, recortados a cuadrado desde la presentación previa
+% (banana-web.onrender.com). Verificar atribución antes de publicar el PDF.
+\newcommand{\retrato}[2]{%
+    \begin{minipage}[t]{0.112\linewidth}\centering
+        \includegraphics[width=\linewidth]{figs/especies/#1}\\[0.2ex]
+        {\tiny\code{#2}}
+    \end{minipage}}
+\retrato{lw}{LW}\hfill
+\retrato{sm}{SM}\hfill
+\retrato{as}{AS}\hfill
+\retrato{ac}{AC}\hfill
+\retrato{sb}{SB}\hfill
+\retrato{pt}{PT}\hfill
+\retrato{aa}{AA}\hfill
+\retrato{cc}{CC}
