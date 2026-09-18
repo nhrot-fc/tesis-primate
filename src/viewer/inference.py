@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 # arriba: bajar el slider no vuelve a correr el modelo.
 DETECT_THRESHOLD = 0.05
 
-# Cache en memoria del checkpoint cargado, uno solo: el visor y la vista Batch comparten el
+# Cache en memoria del checkpoint cargado, uno solo: el visor y el panel Recordings comparten el
 # modelo, y con <= 400 MB por checkpoint cabe recargarlo al cambiar de modelo.
 LOADED: dict[Path, "LoadedModel"] = {}
 

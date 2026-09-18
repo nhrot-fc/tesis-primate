@@ -274,6 +274,19 @@ class ViewPanel(QWidget):
             layout.addWidget(control)
 
 
+# El botón de acento es el siguiente paso, y hay uno solo a la vez: Detect hasta que haya
+# detecciones, Review después, Accept durante la revisión.
+def emphasize(widget: QWidget, on: bool) -> None:
+    name = "primary" if on else ""
+    if widget.objectName() == name:
+        return
+    widget.setObjectName(name)
+    style = widget.style()
+    if style is not None:
+        style.unpolish(widget)
+        style.polish(widget)
+
+
 # Un botón que abre un panel en vez de un menú de acciones.
 class Popup(QToolButton):
     def __init__(self, text: str, panel: QWidget, tip: str = "") -> None:
@@ -302,7 +315,7 @@ class ModelPicker(QComboBox):
     def __init__(self) -> None:
         super().__init__()
         self.setPlaceholderText("Select a model…")
-        self.setToolTip("Model used by Detect and by the Batch view (Ctrl+M browses)")
+        self.setToolTip("Model used by Detect and Detect all (Ctrl+M browses)")
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.current: Path | None = None
@@ -311,6 +324,10 @@ class ModelPicker(QComboBox):
 
     def paths(self) -> list[Path]:
         return [self.itemData(i) for i in range(self.count()) if self.itemData(i) is not None]
+
+    # `findData` compara los Path por identidad: uno leído de los ajustes nunca aparecería.
+    def index_of(self, path: Path | None) -> int:
+        return next((i for i in range(self.count()) if self.itemData(i) == path), -1)
 
     # Relee `models\` conservando lo elegido a mano; `select` deja ese checkpoint elegido.
     def reload(self, select: Path | None = None) -> None:
@@ -329,8 +346,7 @@ class ModelPicker(QComboBox):
     def select(self, path: Path | None) -> None:
         if path is not None and path not in self.paths():
             self.insertItem(0, path.parent.name, path)
-        index = -1 if path is None else self.findData(path)
-        self.setCurrentIndex(index)
+        self.setCurrentIndex(self.index_of(path))
         if path != self.current:
             self.current = path
             self.chosen.emit(path)
@@ -341,7 +357,7 @@ class ModelPicker(QComboBox):
             self.select(path)
             return
         # Las acciones no son una selección: se vuelve a la que había.
-        self.setCurrentIndex(-1 if self.current is None else self.findData(self.current))
+        self.setCurrentIndex(self.index_of(self.current))
         if text == self.BROWSE:
             self.browse.emit()
         elif text == self.ADD:

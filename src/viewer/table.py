@@ -19,7 +19,7 @@ from viewer.session import SOURCES, Row, Session
 HEADERS = ("Start", "End", "Hz", "Label")
 LABEL_COLUMN = 3
 TRASH_WIDTH = 34
-PANEL_WIDTH = 400
+PANEL_WIDTH = 360
 ROW_HEIGHT = 22
 ROOT = QModelIndex()
 
@@ -157,6 +157,8 @@ class BoxTable(QDockWidget):
         self.setAllowedAreas(
             Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea
         )
+        # Un panel lateral, no una ventana flotante: sólo se cierra.
+        self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
         self.tables = {source: SourceTable(session, source) for source in SOURCES}
         self.tabs = QTabWidget()
         self.tabs.setMinimumWidth(PANEL_WIDTH)

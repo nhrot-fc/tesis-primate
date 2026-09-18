@@ -47,7 +47,7 @@ UV = os.environ.get("UV", "uv")
 ZIG_VERSION = "0.16.0"
 # Los dos lanzadores: nombre, macro con la que se compila launcher.c y ficha de versión
 LAUNCHERS = [
-    ("Detector.exe", "GUI", "Spectrogram viewer and batch detection"),
+    ("Detector.exe", "GUI", "Viewer, review and batch detection"),
     ("detect.exe", None, "Command-line batch detection"),
 ]
 ICON_SIZES = [(256, 256), (48, 48), (32, 32), (16, 16)]

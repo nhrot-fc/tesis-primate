@@ -4,19 +4,23 @@ Primate Vocalization Detector - {version} (Windows 64-bit, {variant})
 Everything is in this folder: no Python or libraries to install. Unzip it to a
 short path (for example C:\detector\), add at least one model and run:
 
-  Detector.exe   The program. Two views, switched at the top left:
+  Detector.exe   The program. One window: the folder's recordings on the left,
+                 the spectrogram in the middle, the table of boxes on the right.
 
-                 Spectrogram  one recording at a time. Drag and drop an audio
-                              (WAV, FLAC, MP3) or press Ctrl+O; choose a model in
-                              the toolbar and press Detect. Open a Raven table
-                              over it, filter by score, listen, remove boxes,
-                              save the table or an image. F1 lists the controls.
+                 One recording   drag and drop an audio (WAV, FLAC, MP3) or press
+                              Ctrl+O and press Detect (the model is remembered
+                              between runs). Open a Raven table over it the same
+                              way, filter by score, listen, remove boxes, save the
+                              table or an image. Review goes through the
+                              detections one by one: A/Enter accepts, R/Del
+                              rejects, Esc leaves; it picks up where you left off.
+                              F1 lists the controls.
 
-                 Batch        a whole folder. Drag and drop the folder (or click
-                              Browse), set the score, press Run: every recording
-                              gets a <name>.detections.txt next to it, ready for
-                              Raven Pro (File > Open Selection Table) or the
-                              Spectrogram view (double-click the row).
+                 A folder     drag and drop it (or Ctrl+Shift+O): its recordings
+                              are listed on the left, one click opens each. Detect
+                              all runs the model over the whole list and leaves a
+                              <name>.detections.txt next to every recording, ready
+                              for Raven Pro (File > Open Selection Table).
 
   detect.exe     The same batch detection from a console, for scripts:
                    detect.exe --model models\frcnn D:\recordings

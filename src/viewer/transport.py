@@ -1,5 +1,16 @@
+from typing import override
+
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QScrollBar, QWidget
+from PyQt6.QtGui import QColor, QPainter, QRegion
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QScrollBar,
+    QStyle,
+    QStyleOptionSlider,
+    QToolButton,
+    QWidget,
+)
 
 from viewer.player import AudioPlayer
 from viewer.spectrogram import Waveform, pcm16
@@ -8,6 +19,51 @@ TIME_STEP = 0.05
 # La llamada mediana dura 0,2 s: por debajo de 1 s también hace falta ventana.
 SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
+MARK_ALPHA = 150
+MARK_MIN_PX = 2
+
+
+# El scroll del tiempo con las cajas pintadas encima, como la barra de un editor: se ve dónde
+# hay llamadas en toda la grabación y se salta ahí de un clic.
+class Timeline(QScrollBar):
+    def __init__(self) -> None:
+        super().__init__(Qt.Orientation.Horizontal)
+        self.marks: list[tuple[float, float, str]] = []  # begin, end, color
+        self.duration = 0.0
+
+    def set_marks(self, marks: list[tuple[float, float, str]], duration: float) -> None:
+        self.marks = marks
+        self.duration = duration
+        self.update()
+
+    @override
+    def paintEvent(self, a0) -> None:
+        super().paintEvent(a0)
+        style = self.style()
+        if not self.marks or self.duration <= 0 or style is None:
+            return
+        option = QStyleOptionSlider()
+        self.initStyleOption(option)
+        groove = style.subControlRect(
+            QStyle.ComplexControl.CC_ScrollBar, option, QStyle.SubControl.SC_ScrollBarGroove, self
+        )
+        handle = style.subControlRect(
+            QStyle.ComplexControl.CC_ScrollBar, option, QStyle.SubControl.SC_ScrollBarSlider, self
+        )
+        # El asa queda limpia: es lo que se está viendo; las marcas dicen qué hay alrededor.
+        painter = QPainter(self)
+        painter.setClipRegion(QRegion(groove).subtracted(QRegion(handle)))
+        painter.setPen(Qt.PenStyle.NoPen)
+        scale = groove.width() / self.duration
+        for begin, end, color in self.marks:
+            tint = QColor(color)
+            tint.setAlpha(MARK_ALPHA)
+            painter.setBrush(tint)
+            x = groove.left() + begin * scale
+            painter.drawRect(
+                int(x), groove.top(), max(int((end - begin) * scale), MARK_MIN_PX), groove.height()
+            )
+        painter.end()
 
 
 # Qué tramo del tiempo se ve, dónde está el cabezal y qué suena. La banda de frecuencia es
@@ -16,6 +72,7 @@ class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga
     failed = pyqtSignal(str)
+    skipped = pyqtSignal(int)  # -1 / +1: detección anterior / siguiente
 
     def __init__(self) -> None:
         super().__init__()
@@ -28,7 +85,26 @@ class Transport(QWidget):
         self.player.stopped.connect(self.on_stopped)
         self.player.failed.connect(self.failed)
 
-        self.bar = QScrollBar(Qt.Orientation.Horizontal)
+        # Anterior / siguiente detección, como en un reproductor; sólo con detecciones.
+        style = self.style()
+        self.skips = QWidget()
+        skips = QHBoxLayout(self.skips)
+        skips.setContentsMargins(0, 0, 0, 0)
+        skips.setSpacing(2)
+        for direction, icon, tip in (
+            (-1, QStyle.StandardPixmap.SP_MediaSkipBackward, "Previous detection (P)"),
+            (1, QStyle.StandardPixmap.SP_MediaSkipForward, "Next detection (N)"),
+        ):
+            button = QToolButton()
+            button.setToolTip(tip)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            if style is not None:
+                button.setIcon(style.standardIcon(icon))
+            button.clicked.connect(lambda _, d=direction: self.skipped.emit(d))
+            skips.addWidget(button)
+        self.skips.hide()
+
+        self.bar = Timeline()
         self.bar.valueChanged.connect(self.on_scroll)
 
         self.spans = QComboBox()
@@ -44,6 +120,7 @@ class Transport(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
         layout.addWidget(self.player)
+        layout.addWidget(self.skips)
         layout.addWidget(self.bar, 1)
         layout.addWidget(self.spans)
 
@@ -54,7 +131,11 @@ class Transport(QWidget):
         self.bar.blockSignals(True)
         self.bar.setValue(0)
         self.bar.blockSignals(False)
+        self.bar.set_marks([], self.duration)
         self.rescale()
+
+    def set_marks(self, marks: list[tuple[float, float, str]]) -> None:
+        self.bar.set_marks(marks, self.duration)
 
     def span(self) -> float:
         return float(self.spans.currentData())
@@ -99,6 +180,13 @@ class Transport(QWidget):
 
     def center(self, seconds: float) -> None:
         self.bar.setValue(int(max(seconds - self.span() / 2, 0.0) / TIME_STEP))
+
+    # Encuadra un tramo: la ventana más angosta que lo deja con aire, centrada en él.
+    def fit(self, begin: float, end: float, margin: float = 2.5, floor: float = 1.0) -> None:
+        wanted = max((end - begin) * margin, floor)
+        index = next((i for i, span in enumerate(SPANS) if span >= wanted), len(SPANS) - 1)
+        self.spans.setCurrentIndex(index)
+        self.center(0.5 * (begin + end))
 
     def seek(self, seconds: float) -> None:
         self.player.seek(seconds)

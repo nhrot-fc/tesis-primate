@@ -4,8 +4,8 @@ from typing import override
 
 import pandas as pd
 import pyqtgraph as pg
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QActionGroup, QFontDatabase, QKeySequence
+from PyQt6.QtCore import QSettings, Qt
+from PyQt6.QtGui import QAction, QFontDatabase, QKeySequence
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.config import PROJECT_DIR, SCORE_THRESHOLD, P, score_grid
-from data.raven import BEGIN, renumber
+from data.raven import BEGIN, END, renumber
 from inference.catalog import (
     AUDIO_SUFFIXES,
     CHECKPOINT_SUFFIXES,
@@ -34,10 +34,10 @@ from inference.catalog import (
     output_for,
     read_operating_point,
 )
-from viewer.batch import BatchView
-from viewer.controls import Band, Layers, ModelPicker, Popup, Slider, ViewPanel
+from viewer.controls import Band, Layers, ModelPicker, Popup, Slider, ViewPanel, emphasize
 from viewer.inference import DETECT_THRESHOLD, detect, preload
 from viewer.plot import Layer, SpectrogramView
+from viewer.recordings import RecordingsPanel
 from viewer.review import ACCEPTED, REJECTED, ReviewBar, Reviewer
 from viewer.session import (
     ANNOTATIONS,
@@ -56,13 +56,14 @@ from viewer.tasks import Worker
 from viewer.transport import Transport
 
 BASE_TITLE = "Primate Vocalization Detector"
-REVIEW, BATCH = "Spectrogram", "Batch"
 SCORE_WIDTH = 220
 HELP_WIDTH = 560
 CARET = "▾"
 # En orden de preferencia; si no hay ninguna se queda la del escritorio.
 UI_FONTS = ("Inter", "Cantarell", "Noto Sans", "Ubuntu", "DejaVu Sans")
 UI_POINT_SIZE = 10
+# Al encuadrar una caja en revisión: la banda mide al menos el doble que la caja.
+REVIEW_BAND_MARGIN = 2.0
 
 AUDIO = "*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3"
 TABLES = "*.txt *.csv"
@@ -70,21 +71,27 @@ MODELS = "*.pth *.pt"
 TABLE_SUFFIXES = {".txt", ".csv"}
 MODEL_ZIP_SUFFIX = ".zip"
 PLACEHOLDER = (
-    "<div style='font-size:15pt'>Drag and drop an audio to start</div>"
+    "<div style='font-size:15pt'>Drop a recording to start</div>"
     "<div style='margin-top:8px'>or press Ctrl+O · WAV, FLAC, MP3</div>"
+    "<div style='margin-top:4px'>a folder lists its recordings on the left</div>"
+)
+PLACEHOLDER_LISTED = (
+    "<div style='font-size:15pt'>Pick a recording on the left</div>"
+    "<div style='margin-top:8px'>or press Detect all to process the whole folder</div>"
 )
 HELP = {
     "Files": [
-        ("Ctrl+O", "open an audio; drop one on the window does the same"),
-        ("Ctrl+T", "open a Raven table over the audio: with a Score column it goes to "
-                   "Detections, otherwise to Annotations"),
-        ("Ctrl+M", "browse for a model checkpoint; the toolbar lists the ones in models\\"),
-        ("Ctrl+R", "run the model over the open audio"),
+        ("Ctrl+O", "open a recording, or a Raven table over the open one; dropping a file on "
+                   "the window does the same"),
+        ("", "a table with a Score column goes to Detections, otherwise to Annotations; "
+             "the <tt>.detections.txt</tt> next to a recording opens with it"),
+        ("Ctrl+Shift+O", "open a folder: its recordings are listed in the Recordings panel, "
+                         "one click opens each; Detect all runs the model over the whole list"),
+        ("Ctrl+R", "run the model over the open recording"),
         ("Ctrl+L", "clear the detections"),
         ("Ctrl+S", "save the visible stretch as an image"),
-        ("Folder", "drop a folder on the window to process it in the Batch view"),
-        ("Zip", "unzip a model zip into the program folder, next to Detector.exe; "
-                "dropping it on the window does the same"),
+        ("Ctrl+1 / Ctrl+E", "show or hide the Recordings and Boxes panels"),
+        ("Zip", "drop a model zip on the window to add it next to the program"),
     ],
     "View": [
         ("Wheel", "scroll through the audio"),
@@ -93,8 +100,8 @@ HELP = {
                           "does the same"),
         ("↑ ↓", "move the band; the scroll on the right does the same"),
         ("F", "full band"),
-        ("View", "brightness, contrast and volume"),
-        ("", "the window width and the band only change when you change them"),
+        ("Adjust", "brightness, contrast and volume"),
+        ("Time bar", "the marks are the boxes: click near one to go there"),
     ],
     "Listen": [
         ("Space", "play or pause"),
@@ -105,7 +112,8 @@ HELP = {
         ("← →", "step forward and back"),
         ("PgUp / PgDn", "a whole window"),
         ("Home / End", "start and end of the audio"),
-        ("N / P", "next and previous detection"),
+        ("N / P", "next and previous detection; the ⏮ ⏭ buttons do the same"),
+        ("↑ ↓", "in the Recordings panel, previous and next recording"),
     ],
     "Boxes": [
         ("1 / 2", "show or hide the Annotations and Detections layers"),
@@ -115,12 +123,13 @@ HELP = {
     ],
     "Review": [
         ("Review", "go through the visible detections one by one, in time order; each box is "
-                   "framed and gets handles to drag it or its corners"),
-        ("A", "accept: the box, as framed and labelled in the list, moves to Annotations"),
-        ("R", "reject: the box is dropped"),
-        ("S", "skip; N / P move to the next or previous box"),
-        ("Journal", "every decision is written at once to a temporary file per recording "
-                    "(Save → Reviewed boxes… turns the accepted ones into an annotations table)"),
+                   "framed, gets handles to drag it or its corners, and the playhead waits at "
+                   "its start"),
+        ("A / Enter", "accept: the box, as framed and labelled, moves to Annotations"),
+        ("R / Del", "reject: the box is dropped"),
+        ("N / P", "next or previous box without deciding"),
+        ("Esc", "leave the review; every decision is kept, and opening the same recording "
+                "again picks up where you left off"),
     ],
 }  # fmt: skip
 
@@ -141,6 +150,20 @@ QToolBar QToolButton:hover:enabled {{ background: {hover}; }}
 QToolBar QToolButton:pressed:enabled {{ background: {press}; }}
 QToolBar QToolButton:checked {{ background: {press}; font-weight: 600; }}
 QToolBar QComboBox {{ padding: 3px 8px; min-width: 140px; }}
+QToolButton#primary, QPushButton#primary {{
+    background: {accent};
+    color: {accent_text};
+    border: 0;
+    border-radius: 5px;
+    padding: 5px 14px;
+    font-weight: 600;
+}}
+QToolButton#primary:hover:enabled, QPushButton#primary:hover:enabled {{ background: {accent_hover}; }}
+QToolButton#primary:disabled, QPushButton#primary:disabled {{
+    background: {press};
+    color: {muted};
+    font-weight: 400;
+}}
 #hint, #placeholder {{ color: {muted}; }}
 #readout, #clock {{ font-family: "{mono}"; }}
 QStatusBar {{ border-top: 1px solid {line}; }}
@@ -160,7 +183,9 @@ def apply_style(app: QApplication) -> None:
     font.setPointSize(UI_POINT_SIZE)
     app.setFont(font)
 
-    window = app.palette().window().color()
+    palette = app.palette()
+    window = palette.window().color()
+    accent = palette.highlight().color()
     dark = window.lightness() < 128
     app.setStyleSheet(
         QSS.format(
@@ -168,6 +193,9 @@ def apply_style(app: QApplication) -> None:
             hover=(window.lighter(125) if dark else window.darker(107)).name(),
             press=(window.lighter(145) if dark else window.darker(115)).name(),
             muted=(window.lighter(220) if dark else window.darker(165)).name(),
+            accent=accent.name(),
+            accent_hover=accent.lighter(112).name(),
+            accent_text=palette.highlightedText().color().name(),
             mono=QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont).family(),
         )
     )
@@ -200,18 +228,21 @@ class Viewer(QMainWindow):
         self.setMinimumSize(1000, 600)
         self.resize(1280, 820)
         self.setAcceptDrops(True)
+        # Lo que se recuerda entre sesiones: ventana, modelo y carpetas.
+        self.settings = QSettings("primate-detector", "viewer")
 
         self.session = Session()
         self.worker: Worker | None = None
         self.engine: bool | None = None  # None mientras carga
         self.pending_table: Path | None = None  # tabla que se abre en cuanto cargue su audio
-        self.dock_shown = False  # si el panel de cajas estaba abierto al pasar a Batch
+        self.pending_audio: Path | None = None  # la elegida en la lista mientras cargaba otra
 
         self.plot = SpectrogramView()
         self.plot.moved.connect(self.track)
 
         self.transport = Transport()
         self.transport.changed.connect(self.refresh)
+        self.transport.skipped.connect(self.skip)
         self.plot.scrolled.connect(self.transport.step)
         self.transport.playhead.connect(self.plot.set_playhead)
         self.transport.failed.connect(self.say)
@@ -230,54 +261,47 @@ class Viewer(QMainWindow):
         self.plot.band_zoomed.connect(self.band.zoom)
 
         self.table = BoxTable(self.session)
+        self.table.setObjectName("boxes")  # saveState identifica los paneles por nombre
         self.table.picked.connect(self.focus)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.table)
         self.table.hide()
 
         self.review_bar = ReviewBar()
-        self.reviewer = Reviewer(self.session, self.plot, self.review_bar, self.frame)
+        self.reviewer = Reviewer(self.session, self.plot, self.review_bar, self.present)
         self.reviewer.changed.connect(self.sync_review)
 
-        self.batch = BatchView()
-        self.batch.open_requested.connect(self.open_result)
-        self.batch.said.connect(self.say)
-        self.batch.state_changed.connect(self.sync_controls)
+        self.recordings = RecordingsPanel()
+        self.recordings.setObjectName("recordings")
+        self.recordings.opened.connect(self.open_recording)
+        self.recordings.finished_file.connect(self.table_written)
+        self.recordings.said.connect(self.say)
+        self.recordings.state_changed.connect(self.sync_controls)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.recordings)
+        self.recordings.hide()
 
         self.build_toolbar()
-        self.pages = QStackedWidget()
-        self.pages.addWidget(self.build_review())
-        self.pages.addWidget(self.batch)
-        self.setCentralWidget(self.pages)
+        self.setCentralWidget(self.build_page())
         self.build_status_bar()
 
         self.session.changed.connect(self.on_changed)
-        self.set_mode(REVIEW)
+        self.sync_controls()
+        self.restore()
         self.start_engine()
 
     # --- Construccion -----------------------------------------------------------
 
     def build_toolbar(self) -> None:
-        # Las dos vistas: un botón marcado por cada una.
-        self.modes = QActionGroup(self)
-        self.mode_actions = {}
-        for mode, tip in ((REVIEW, "One recording at a time"), (BATCH, "A whole folder")):
-            action = QAction(mode, self.modes)
-            action.setCheckable(True)
-            action.setToolTip(tip)
-            action.triggered.connect(lambda _, name=mode: self.set_mode(name))
-            self.mode_actions[mode] = action
-
-        self.open_audio_action = QAction("Open audio…", self)
-        self.open_audio_action.setShortcut(QKeySequence("Ctrl+O"))
-        self.open_audio_action.setToolTip("WAV, FLAC or MP3 (Ctrl+O)")
-        self.open_audio_action.triggered.connect(self.open_audio)
-        self.open_table_action = QAction("Open table…", self)
-        self.open_table_action.setShortcut(QKeySequence("Ctrl+T"))
-        self.open_table_action.setToolTip(
-            "Raven selection table over the open audio (Ctrl+T)\n"
-            "With a Score column it goes to Detections, otherwise to Annotations"
+        # Un solo Abrir: audio o tabla, igual que al soltar un archivo en la ventana.
+        self.open_action = QAction("Open…", self)
+        self.open_action.setShortcut(QKeySequence("Ctrl+O"))
+        self.open_action.setToolTip(
+            "A recording (WAV, FLAC, MP3) or a Raven table over the open one (Ctrl+O)"
         )
-        self.open_table_action.triggered.connect(self.open_table)
+        self.open_action.triggered.connect(self.open_file)
+        self.folder_action = QAction("Folder…", self)
+        self.folder_action.setShortcut(QKeySequence("Ctrl+Shift+O"))
+        self.folder_action.setToolTip("A folder of recordings, listed on the left (Ctrl+Shift+O)")
+        self.folder_action.triggered.connect(self.recordings.choose)
 
         self.picker = ModelPicker()
         self.picker.chosen.connect(self.model_chosen)
@@ -290,12 +314,11 @@ class Viewer(QMainWindow):
         self.run_action = QAction("Detect", self)
         self.run_action.setShortcut(QKeySequence("Ctrl+R"))
         self.run_action.triggered.connect(self.run_model)
-        self.clear_action = QAction("Clear", self)
+        self.clear_action = QAction("Clear detections", self)
         self.clear_action.setShortcut(QKeySequence("Ctrl+L"))
-        self.clear_action.setToolTip("Remove the detections (Ctrl+L)")
         self.clear_action.triggered.connect(lambda: self.session.set_table(DETECTIONS, None))
 
-        self.viewer_button = Popup(f"View {CARET}", self.view, "Brightness, contrast, volume")
+        self.adjust_button = Popup(f"Adjust {CARET}", self.view, "Brightness, contrast, volume")
 
         self.image_action = QAction("Image of this stretch…", self)
         self.image_action.setShortcut(QKeySequence("Ctrl+S"))
@@ -303,15 +326,11 @@ class Viewer(QMainWindow):
         self.save_actions = {source: QAction(f"{source} table…", self) for source in SOURCES}
         for source, action in self.save_actions.items():
             action.triggered.connect(lambda _, name=source: self.export_table(name))
-        self.reviewed_action = QAction("Reviewed boxes…", self)
-        self.reviewed_action.setToolTip("The boxes accepted in Review, as an annotations table")
-        self.reviewed_action.triggered.connect(self.export_reviewed)
         export_menu = QMenu(self)
-        export_menu.addAction(self.image_action)
-        export_menu.addSeparator()
         for action in self.save_actions.values():
             export_menu.addAction(action)
-        export_menu.addAction(self.reviewed_action)
+        export_menu.addSeparator()
+        export_menu.addAction(self.image_action)
         self.export_button = self.menu_button("Save", export_menu)
 
         self.help_action = QAction("Help", self)
@@ -319,6 +338,13 @@ class Viewer(QMainWindow):
         self.help_action.setToolTip("What every control does (F1)")
         self.help_action.triggered.connect(self.show_help)
 
+        # Los dos paneles, uno en cada punta como en Finder: la lista a la izquierda, el
+        # inspector a la derecha.
+        self.recordings_action = self.recordings.toggleViewAction()
+        if self.recordings_action is not None:
+            self.recordings_action.setText("Recordings")
+            self.recordings_action.setToolTip("The folder's recordings (Ctrl+1)")
+            self.recordings_action.setShortcut(QKeySequence("Ctrl+1"))
         self.boxes_action = self.table.toggleViewAction()
         if self.boxes_action is not None:
             self.boxes_action.setText("Boxes")
@@ -326,43 +352,35 @@ class Viewer(QMainWindow):
             self.boxes_action.setShortcut(QKeySequence("Ctrl+E"))
 
         toolbar = QToolBar()
+        toolbar.setObjectName("toolbar")
         toolbar.setMovable(False)
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        for action in self.mode_actions.values():
-            toolbar.addAction(action)
-        # Lo que sólo tiene sentido con un espectrograma delante se esconde en Batch.
-        # (`addAction(QAction)` no devuelve nada; `addSeparator` y `addWidget` sí.)
-        self.review_only: list[QAction] = []
-        separator = toolbar.addSeparator()
-        if separator is not None:
-            self.review_only.append(separator)
-        for action in (self.open_audio_action, self.open_table_action):
-            toolbar.addAction(action)
-            self.review_only.append(action)
+        if self.recordings_action is not None:
+            toolbar.addAction(self.recordings_action)
+        toolbar.addSeparator()
+        toolbar.addAction(self.open_action)
+        toolbar.addAction(self.folder_action)
         toolbar.addSeparator()
         toolbar.addWidget(QLabel("Model"))
         toolbar.addWidget(self.picker)
-        for action in (self.run_action, self.clear_action):
-            toolbar.addAction(action)
-            self.review_only.append(action)
+        toolbar.addAction(self.run_action)
+        self.run_button = toolbar.widgetForAction(self.run_action)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
-        for widget in (self.viewer_button, self.export_button):
-            placed = toolbar.addWidget(widget)
-            if placed is not None:
-                self.review_only.append(placed)
+        toolbar.addWidget(self.adjust_button)
+        toolbar.addWidget(self.export_button)
+        toolbar.addSeparator()
         if self.boxes_action is not None:
             toolbar.addAction(self.boxes_action)
-            self.review_only.append(self.boxes_action)
         toolbar.addAction(self.help_action)
         toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.addToolBar(toolbar)
-        # Los atajos del menú sólo llegan si sus acciones cuelgan de la ventana.
+        # Los atajos sin botón sólo llegan si sus acciones cuelgan de la ventana.
         for action in (
             self.browse_model_action,
+            self.clear_action,
             self.image_action,
-            self.reviewed_action,
             *self.save_actions.values(),
         ):
             self.addAction(action)
@@ -377,9 +395,9 @@ class Viewer(QMainWindow):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         return button
 
-    # La vista de espectrograma: el mensaje de bienvenida hasta que haya audio, y con audio
-    # el espectrograma, la barra de tiempo y la leyenda con el filtro de score.
-    def build_review(self) -> QWidget:
+    # El centro de la ventana: el mensaje de bienvenida hasta que haya audio; con audio, el
+    # espectrograma, la barra de tiempo y una fila de contexto (leyenda y score, o la revisión).
+    def build_page(self) -> QWidget:
         self.placeholder = QLabel(PLACEHOLDER)
         self.placeholder.setObjectName("placeholder")
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -395,7 +413,8 @@ class Viewer(QMainWindow):
         self.canvas.addWidget(self.spectrogram)
 
         # El ancho de ventana (en el transporte) y la altura de banda, lado a lado.
-        time_and_band = QHBoxLayout()
+        self.controls = QWidget()
+        time_and_band = QHBoxLayout(self.controls)
         time_and_band.setContentsMargins(0, 0, 0, 0)
         time_and_band.setSpacing(12)
         time_and_band.addWidget(self.transport, 1)
@@ -405,16 +424,15 @@ class Viewer(QMainWindow):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(10)
         layout.addWidget(self.canvas, 1)
-        layout.addLayout(time_and_band)
-        layout.addWidget(self.build_legend())
-        layout.addWidget(self.review_bar)
-        self.review_bar.hide()
+        layout.addWidget(self.controls)
+        layout.addWidget(self.build_context())
         page = QWidget()
         page.setLayout(layout)
         return page
 
-    # Leyenda de las capas y, sólo cuando hay detecciones, su umbral y el salto entre ellas.
-    def build_legend(self) -> QWidget:
+    # Leyenda de las capas y, a la derecha, el umbral y el botón de revisión cuando hay
+    # detecciones, o los mandos de la revisión mientras dura: una sola fila, nunca dos.
+    def build_context(self) -> QWidget:
         self.layers = Layers([(s, COLORS[s], STYLES[s], WIDTHS[s]) for s in SOURCES])
         self.layers.changed.connect(self.draw_boxes)
 
@@ -425,40 +443,29 @@ class Viewer(QMainWindow):
         )
         self.score.setFixedWidth(SCORE_WIDTH)
         self.score.changed.connect(lambda: self.session.set_score(self.score.value()))
-        self.prev_button = self.chevron("◀", "Previous detection (P)", lambda: self.jump(-1))
-        self.next_button = self.chevron("▶", "Next detection (N)", lambda: self.jump(1))
         self.review_button = QToolButton()
         self.review_button.setText("Review")
-        self.review_button.setCheckable(True)
         self.review_button.setToolTip("Go through the visible detections one by one")
         self.review_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.review_button.toggled.connect(self.toggle_review)
+        self.review_button.clicked.connect(self.reviewer.start)
 
         self.model_tools = QWidget()
         tools = QHBoxLayout(self.model_tools)
         tools.setContentsMargins(0, 0, 0, 0)
-        tools.setSpacing(8)
+        tools.setSpacing(12)
         tools.addWidget(self.score)
-        tools.addWidget(self.prev_button)
-        tools.addWidget(self.next_button)
         tools.addWidget(self.review_button)
 
-        self.legend = QWidget()
-        row = QHBoxLayout(self.legend)
+        self.context = QWidget()
+        row = QHBoxLayout(self.context)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(16)
         row.addWidget(self.layers)
         row.addStretch(1)
         row.addWidget(self.model_tools)
-        return self.legend
-
-    def chevron(self, text: str, tip: str, action) -> QToolButton:
-        button = QToolButton()
-        button.setText(text)
-        button.setToolTip(tip)
-        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.clicked.connect(lambda: action())
-        return button
+        row.addWidget(self.review_bar)
+        self.review_bar.hide()
+        return self.context
 
     def show_help(self) -> None:
         rows = "".join(
@@ -491,10 +498,44 @@ class Viewer(QMainWindow):
         self.bar.addPermanentWidget(self.readout)
         self.setStatusBar(self.bar)
 
+    # --- Ajustes recordados -----------------------------------------------------
+
+    def restore(self) -> None:
+        geometry = self.settings.value("geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        folder = self.settings.value("recordings", "")
+        if folder and Path(folder).is_dir():
+            self.recordings.set_folder(Path(folder))
+            self.recordings.show()
+        # Qué paneles estaban abiertos y cómo: después de la carpeta, para que mande.
+        state = self.settings.value("state")
+        if state is not None:
+            self.restoreState(state)
+        # El último modelo si sigue ahí; si no, el primero de la lista: casi nunca hay que elegir.
+        remembered = self.settings.value("model", "")
+        listed = self.picker.paths()
+        if remembered and is_checkpoint(Path(remembered)):
+            self.picker.select(Path(remembered))
+        elif listed:
+            self.picker.select(listed[0])
+
+    def remember(self) -> None:
+        self.settings.setValue("geometry", self.saveGeometry())
+        self.settings.setValue("state", self.saveState())
+        self.settings.setValue("model", str(self.session.model_path or ""))
+        self.settings.setValue("recordings", str(self.recordings.folder_path or ""))
+
+    # La carpeta de los diálogos: la del audio abierto, si no la última que se usó.
+    def folder(self) -> str:
+        if self.session.audio_path is not None:
+            return str(self.session.audio_path.parent)
+        return str(self.settings.value("folder", ""))
+
     # --- Motor ------------------------------------------------------------------
 
     def start_engine(self) -> None:
-        self.say("Loading the detection engine… you can open an audio meanwhile.")
+        self.say("Loading the detection engine… you can open a recording meanwhile.")
         self.progress.setRange(0, 0)
         self.progress.show()
         self.preloader = Worker(preload)
@@ -504,12 +545,12 @@ class Viewer(QMainWindow):
 
     def engine_ready(self, _) -> None:
         self.engine = True
-        self.batch.set_engine(True)
+        self.recordings.set_engine(True)
         self.finish()
-        if self.mode() == REVIEW and self.session.waveform is None:
-            self.say("Drag and drop an audio to start, or press Ctrl+O.")
+        if self.session.waveform is None:
+            self.say("Ready. Drop a recording to start, or press Ctrl+O.")
         else:
-            self.say("Detection engine ready.")
+            self.say("Ready.")
 
     def engine_failed(self, message: str) -> None:
         # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas.
@@ -526,23 +567,6 @@ class Viewer(QMainWindow):
         self.say("Error.")
         QMessageBox.critical(self, "Error", message)
 
-    def mode(self) -> str:
-        return BATCH if self.pages.currentWidget() is self.batch else REVIEW
-
-    def set_mode(self, mode: str) -> None:
-        self.mode_actions[mode].setChecked(True)
-        leaving_review = mode == BATCH and self.mode() == REVIEW
-        if leaving_review:
-            self.dock_shown = self.table.isVisible()
-            self.table.hide()
-        self.pages.setCurrentWidget(self.batch if mode == BATCH else self.pages.widget(0))
-        for action in self.review_only:
-            action.setVisible(mode == REVIEW)
-        if mode == REVIEW and self.dock_shown:
-            self.table.show()
-            self.dock_shown = False
-        self.sync_controls()
-
     def busy(self) -> bool:
         return self.worker is not None and self.worker.isRunning()
 
@@ -553,42 +577,44 @@ class Viewer(QMainWindow):
         detections = self.session.tables[DETECTIONS] is not None
         model = self.session.model_path
         engine = bool(self.engine)
-        review = self.mode() == REVIEW
-        self.open_audio_action.setEnabled(not busy)
-        self.open_table_action.setEnabled(not busy and loaded)
-        self.picker.setEnabled(not busy and not self.batch.running())
-        self.batch.set_blocked(busy)
-        self.browse_model_action.setEnabled(review and self.picker.isEnabled())
+        reviewing = self.reviewer.active
+        batch = self.recordings.running()
+        self.open_action.setEnabled(not busy)
+        self.folder_action.setEnabled(not busy and not batch)
+        self.picker.setEnabled(not busy and not batch)
+        self.recordings.set_blocked(busy)
+        self.recordings.set_leading(not loaded)
+        self.browse_model_action.setEnabled(self.picker.isEnabled())
         self.run_action.setEnabled(
-            review
-            and not busy
-            and not self.batch.running()
-            and loaded
-            and engine
-            and model is not None
+            not busy and not batch and loaded and engine and model is not None
         )
         self.run_action.setToolTip(
-            "Open an audio first (Ctrl+R)"
+            "Open a recording first (Ctrl+R)"
             if not loaded
             else "Choose a model first (Ctrl+R)"
             if model is None
             else "Waiting for the detection engine (Ctrl+R)"
             if not engine
-            else f"Run {model.parent.name} over the open audio (Ctrl+R)"
+            else "Detect all is running (Ctrl+R)"
+            if batch
+            else f"Run {model.parent.name} over the open recording (Ctrl+R)"
         )
-        self.clear_action.setEnabled(review and not busy and detections)
-        self.image_action.setEnabled(review and not busy and loaded)
+        self.clear_action.setEnabled(not busy and detections)
+        self.image_action.setEnabled(not busy and loaded)
         for source, action in self.save_actions.items():
-            action.setEnabled(review and not busy and self.session.tables[source] is not None)
-        self.reviewed_action.setEnabled(
-            review and not busy and self.reviewer.counts().get(ACCEPTED, 0) > 0
-        )
-        self.viewer_button.setEnabled(loaded)
-        self.export_button.setEnabled(review and loaded)
+            action.setEnabled(not busy and self.session.tables[source] is not None)
+        self.adjust_button.setEnabled(loaded)
+        self.export_button.setEnabled(loaded)
         self.canvas.setCurrentWidget(self.spectrogram if loaded else self.placeholder)
-        self.transport.setVisible(loaded)
-        self.legend.setVisible(loaded)
-        self.model_tools.setVisible(detections)
+        self.placeholder.setText(PLACEHOLDER_LISTED if self.recordings.listed() else PLACEHOLDER)
+        self.controls.setVisible(loaded)
+        self.context.setVisible(loaded)
+        self.transport.skips.setVisible(detections)
+        self.model_tools.setVisible(detections and not reviewing)
+        self.review_bar.setVisible(reviewing)
+        if self.run_button is not None:
+            emphasize(self.run_button, self.run_action.isEnabled() and not detections)
+        emphasize(self.review_button, detections and not reviewing)
 
     def on_changed(self) -> None:
         self.draw_boxes()
@@ -617,23 +643,20 @@ class Viewer(QMainWindow):
         if not self.busy() and self.engine is not None:
             self.progress.hide()
         self.sync_controls()
+        if self.pending_audio is not None and not self.busy():
+            path, self.pending_audio = self.pending_audio, None
+            self.load_audio(path)
 
     # --- Apertura de archivos ---------------------------------------------------
 
-    def open_audio(self) -> None:
-        folder = str(self.session.audio_path.parent) if self.session.audio_path else ""
-        chosen, _ = QFileDialog.getOpenFileName(self, "Open audio", folder, f"Audio ({AUDIO})")
+    def open_file(self) -> None:
+        filters = (
+            f"Recordings and tables ({AUDIO} {TABLES});;Recordings ({AUDIO});;Tables ({TABLES})"
+        )
+        chosen, _ = QFileDialog.getOpenFileName(self, "Open", self.folder(), filters)
         if chosen:
-            self.load_audio(Path(chosen))
-
-    def open_table(self) -> None:
-        if self.session.audio_path is None:
-            self.say("Open an audio first: tables are drawn over it.")
-            return
-        folder = str(self.session.audio_path.parent)
-        chosen, _ = QFileDialog.getOpenFileName(self, "Open table", folder, f"Tables ({TABLES})")
-        if chosen:
-            self.load_table(Path(chosen))
+            self.settings.setValue("folder", str(Path(chosen).parent))
+            self.open_path(Path(chosen))
 
     def browse_model(self) -> None:
         folder = str(MODELS_DIR if MODELS_DIR.is_dir() else PROJECT_DIR)
@@ -657,19 +680,17 @@ class Viewer(QMainWindow):
         self.picker.reload()
         self.say(f"Added {names}: choose it in the Model list.")
 
-    # Lo que se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
+    # Lo que se abre o se suelta en la ventana se enruta por extensión; una carpeta va a la lista.
     def open_path(self, path: Path) -> None:
         suffix = path.suffix.lower()
         if path.is_dir():
-            self.set_mode(BATCH)
-            self.batch.set_folder(path)
+            self.recordings.set_folder(path)
+            self.recordings.show()
         elif suffix in AUDIO_SUFFIXES:
-            self.set_mode(REVIEW)
             self.load_audio(path)
         elif suffix in TABLE_SUFFIXES:
-            self.set_mode(REVIEW)
             if self.session.audio_path is None:
-                self.say("Open an audio first: tables are drawn over it.")
+                self.say("Open a recording first: tables are drawn over it.")
             else:
                 self.load_table(path)
         elif is_checkpoint(path):
@@ -679,7 +700,10 @@ class Viewer(QMainWindow):
         else:
             self.say(f"Cannot open '{path.name}'.")
 
+    # Con el audio viene la tabla que el modelo le dejó al lado, si la hay.
     def load_audio(self, path: Path) -> None:
+        if self.pending_table is None and output_for(path).is_file():
+            self.pending_table = output_for(path)
         self.start(
             lambda: (path, load_audio(path, P.target_sr)),
             self.audio_loaded,
@@ -692,7 +716,7 @@ class Viewer(QMainWindow):
     def model_chosen(self, path: Path | None) -> None:
         self.session.model_path = path
         operating = None if path is None else read_operating_point(path.parent)
-        self.batch.set_model(path, operating)
+        self.recordings.set_model(path, operating)
         if path is not None:
             self.say(
                 f"Model: {path.parent.name}"
@@ -711,16 +735,24 @@ class Viewer(QMainWindow):
             reports=True,
         )
 
-    # Desde Batch: la grabación con la tabla que el modelo le dejó, si la tiene.
-    def open_result(self, path: Path) -> None:
-        table = output_for(path)
-        self.pending_table = table if table.is_file() else None
-        self.set_mode(REVIEW)
-        self.load_audio(path)
+    # Elegida en la lista: si otra está cargando, espera su turno (↓ ↓ ↓ rápido en la lista).
+    def open_recording(self, path: Path) -> None:
+        if path == self.session.audio_path:
+            return
+        if self.busy():
+            self.pending_audio = path
+        else:
+            self.load_audio(path)
+
+    # Detect all terminó la grabación que está abierta: su tabla nueva entra sola.
+    def table_written(self, path: Path) -> None:
+        if path == self.session.audio_path and not self.reviewer.active:
+            self.load_table(output_for(path))
 
     def audio_loaded(self, loaded: tuple) -> None:
         path, waveform = loaded
         self.session.set_audio(path, waveform, P.target_sr)
+        self.recordings.select(path)
         self.setWindowTitle(f"{path.name} - {BASE_TITLE}")
         self.plot.set_waveform(waveform, P.target_sr)
         self.transport.set_audio(waveform, P.target_sr)
@@ -734,7 +766,7 @@ class Viewer(QMainWindow):
         source, table = loaded
         self.session.set_table(source, table)
         if source == DETECTIONS:
-            self.say(f"{len(table)} detections loaded (Score column found).")
+            self.say(f"{len(table)} detections loaded.")
         else:
             self.say(f"{len(table)} annotations loaded.")
 
@@ -751,6 +783,13 @@ class Viewer(QMainWindow):
         )
 
     # --- Recorrido --------------------------------------------------------------
+
+    # Anterior / siguiente: en revisión es la caja en curso; si no, la primera fuera de pantalla.
+    def skip(self, direction: int) -> None:
+        if self.reviewer.active:
+            self.reviewer.step(direction)
+        else:
+            self.jump(direction)
 
     def jump(self, direction: int) -> None:
         # Centra la ventana en la primera detección que no esté en pantalla. La referencia
@@ -785,25 +824,27 @@ class Viewer(QMainWindow):
         if not (low <= row.low and row.high <= high):
             self.band.frame(row.low, row.high)
 
-    def toggle_review(self, on: bool) -> None:
-        if on:
-            self.reviewer.start()
-        else:
-            self.reviewer.stop()
+    # En revisión cada caja se presenta igual: encuadrada en tiempo y en banda, con el cabezal
+    # en su inicio para que Space la haga sonar.
+    def present(self, row: Row) -> None:
+        self.transport.fit(row.begin, row.end)
+        self.band.frame(row.low, row.high, margin=REVIEW_BAND_MARGIN)
+        self.transport.seek(row.begin)
 
     def sync_review(self) -> None:
-        active = self.reviewer.active
-        self.review_bar.setVisible(active)
-        if self.review_button.isChecked() != active:
-            self.review_button.blockSignals(True)
-            self.review_button.setChecked(active)
-            self.review_button.blockSignals(False)
-        if active:
-            counts = self.reviewer.counts()
-            journal = self.reviewer.journal
+        counts = self.reviewer.counts()
+        accepted, rejected = counts.get(ACCEPTED, 0), counts.get(REJECTED, 0)
+        if self.reviewer.active:
+            left = len(self.reviewer.rows())
+            resumed = self.reviewer.resumed
             self.say(
-                f"Review: {counts.get(ACCEPTED, 0)} accepted, {counts.get(REJECTED, 0)} rejected"
-                + ("" if journal is None else f"   Journal: {journal.path}")
+                f"Review: {accepted} accepted, {rejected} rejected · {left} left"
+                + (f"   ({resumed} picked up from an earlier review)" if resumed else "")
+            )
+        elif accepted or rejected:
+            self.say(
+                f"Review closed: {accepted} accepted, {rejected} rejected. "
+                "Save the Annotations table to keep the accepted ones."
             )
         self.sync_controls()
 
@@ -845,6 +886,14 @@ class Viewer(QMainWindow):
         for source, count in zip(SOURCES, shown, strict=True):
             table = self.session.visible(source)
             self.layers.set_state(source, count, 0 if table is None else len(table))
+        # Las mismas capas, en miniatura, sobre la barra de tiempo.
+        marks = [
+            (float(begin), float(end), layer.color)
+            for layer in layers
+            if layer.table is not None
+            for begin, end in zip(layer.table[BEGIN], layer.table[END], strict=True)
+        ]
+        self.transport.set_marks(marks)
 
     # --- Exportacion ------------------------------------------------------------
 
@@ -888,21 +937,6 @@ class Viewer(QMainWindow):
         else:
             self.say(f"{len(table)} rows saved to {path.name}")
 
-    def export_reviewed(self) -> None:
-        journal = self.reviewer.journal
-        if journal is None:
-            return
-        path = self.save_path("Save reviewed boxes", ".reviewed.txt", "Raven (*.txt);;CSV (*.csv)")
-        if path is None:
-            return
-        try:
-            table = journal.accepted()
-            table.to_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index=False)
-        except Exception as exc:
-            self.fail(f"Could not save the reviewed boxes:\n{type(exc).__name__}: {exc}")
-        else:
-            self.say(f"{len(table)} accepted boxes saved to {path.name}")
-
     # --- Eventos ----------------------------------------------------------------
 
     def dropped(self, event) -> Path | None:
@@ -930,20 +964,20 @@ class Viewer(QMainWindow):
 
     @override
     def keyPressEvent(self, a0) -> None:
-        if a0 is None or self.mode() != REVIEW or self.session.waveform is None:
+        if a0 is None or self.session.waveform is None:
             if a0 is not None:
                 super().keyPressEvent(a0)
             return
         key = a0.key()
         reviewing = self.reviewer.active and not a0.modifiers()
-        if reviewing and key == Qt.Key.Key_A:
+        if reviewing and key in (Qt.Key.Key_A, Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.reviewer.decide(ACCEPTED)
-        elif reviewing and key == Qt.Key.Key_R:
+        elif reviewing and key in (Qt.Key.Key_R, Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
             self.reviewer.decide(REJECTED)
-        elif reviewing and key == Qt.Key.Key_S:
-            self.reviewer.step(1)
-        elif reviewing and key in (Qt.Key.Key_N, Qt.Key.Key_P):
-            self.reviewer.step(1 if key == Qt.Key.Key_N else -1)
+        elif reviewing and key == Qt.Key.Key_Escape:
+            self.reviewer.stop()
+        elif key in (Qt.Key.Key_N, Qt.Key.Key_P):
+            self.skip(1 if key == Qt.Key.Key_N else -1)
         elif key == Qt.Key.Key_Space:
             self.transport.toggle_play()
         elif key == Qt.Key.Key_Left:
@@ -960,10 +994,6 @@ class Viewer(QMainWindow):
             self.band.pan(1 if key == Qt.Key.Key_Up else -1)
         elif key == Qt.Key.Key_F:
             self.band.full()
-        elif key == Qt.Key.Key_N:
-            self.jump(1)
-        elif key == Qt.Key.Key_P:
-            self.jump(-1)
         elif key in (Qt.Key.Key_1, Qt.Key.Key_2):
             self.layers.toggle(SOURCES[key - Qt.Key.Key_1])
         else:
@@ -973,18 +1003,19 @@ class Viewer(QMainWindow):
     def closeEvent(self, a0) -> None:
         if a0 is None:
             return
-        if self.batch.running():
+        if self.recordings.running():
             answer = QMessageBox.question(
                 self,
-                "Batch running",
-                "A batch is still running. Stop it and quit?\nTables already written are kept.",
+                "Detect all is running",
+                "Stop it and quit?\nTables already written are kept.",
             )
             if answer != QMessageBox.StandardButton.Yes:
                 a0.ignore()
                 return
-            self.batch.stop()
-        if self.batch.worker is not None:
-            self.batch.worker.wait()
+            self.recordings.stop()
+        self.remember()
+        if self.recordings.worker is not None:
+            self.recordings.worker.wait()
         if self.worker is not None:
             self.worker.stop()
             self.worker.wait()

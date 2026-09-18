@@ -2,10 +2,11 @@ Primate vocalization detector for Windows. Portable: extract and run, nothing to
 
 ### What's new
 
-- One program, `Detector.exe`, replaces the `.bat` files. Two views: **Spectrogram** (one
-  recording: detect, review, listen, save a Raven table) and **Batch** (a whole folder: one
-  `.detections.txt` per recording, written as each file finishes, only boxes above the chosen
-  score). `detect.exe` runs the batch from a console.
+- One program, `Detector.exe`, replaces the `.bat` files. One window: the folder's recordings
+  on the left (one click opens each; **Detect all** leaves one `.detections.txt` per recording,
+  written as each file finishes, only boxes above the chosen score), the spectrogram in the
+  middle (detect, review, listen, save a Raven table), the table of boxes on the right.
+  `detect.exe` runs the batch from a console.
 - Model chosen once, in the toolbar.
 - Every box shows its label and score; green = annotations, blue = detections. Loading an
   audio clears the previous tables; nothing is loaded automatically.

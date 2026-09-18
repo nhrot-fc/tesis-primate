@@ -1,3 +1,8 @@
+"""Panel lateral con las grabaciones de una carpeta: se elige una y se abre, y `Detect all`
+corre el modelo sobre toda la lista dejando `<audio>.detections.txt` junto a cada una. Es la
+vista Batch de antes convertida en navegador, como la lista de mensajes de un cliente de correo:
+no hay que cambiar de vista para pasar de una grabación a la siguiente."""
+
 import math
 import threading
 import time
@@ -10,12 +15,12 @@ from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt, QThread, pyqtSign
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QProgressBar,
     QPushButton,
     QStackedWidget,
@@ -26,6 +31,7 @@ from PyQt6.QtWidgets import (
 
 from core.config import SCORE_THRESHOLD
 from inference.catalog import collect_audio, output_for
+from viewer.controls import emphasize
 from viewer.tasks import Worker
 
 PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
@@ -37,27 +43,30 @@ PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
     "failed",
     "stopped",
 )
-STATUS_TEXT = {
-    PENDING: "Pending",
-    EXISTS: "Table exists",
-    DONE: "Done",
-    SKIPPED: "Skipped (table exists)",
-    STOPPED: "Stopped",
-}
-HEADERS = ("File", "Duration", "Status", "Detections")
-FILE_COLUMN, STATUS_COLUMN = 0, 2
+HEADERS = ("Recording", "Length", "Boxes")
+FILE_COLUMN, BOXES_COLUMN = 0, 2
 ROW_HEIGHT = 22
+PANEL_WIDTH = 300
 # La barra global avanza también dentro del archivo en curso, en centésimas
 PROGRESS_STEPS = 100
 SCORE_RANGE, SCORE_STEP = (0.05, 1.0), 0.05
 # Segundos de corrida antes de fiarse de la velocidad medida para el tiempo restante
 ETA_AFTER_S = 5.0
 ROOT = QModelIndex()
+# Teclas que la lista se queda: moverse por las grabaciones. Las demás van a la ventana.
+LIST_KEYS = {
+    Qt.Key.Key_Up,
+    Qt.Key.Key_Down,
+    Qt.Key.Key_PageUp,
+    Qt.Key.Key_PageDown,
+    Qt.Key.Key_Home,
+    Qt.Key.Key_End,
+}
 
 PLACEHOLDER = (
-    "<div style='font-size:15pt'>Drag and drop a folder here, or click Browse…</div>"
-    "<div style='margin-top:8px'>Every recording gets a <tt>&lt;name&gt;.detections.txt</tt> "
-    "next to it, ready for Raven Pro or the Spectrogram view.</div>"
+    "<div style='font-size:12pt'>Drop a folder here</div>"
+    "<div style='margin-top:6px'>Every recording in it will be listed; "
+    "<b>Detect all</b> leaves a <tt>.detections.txt</tt> next to each one.</div>"
 )
 
 
@@ -68,7 +77,7 @@ class Entry:
     duration: float  # NaN si no se pudo leer la cabecera
     status: str = PENDING
     fraction: float = 0.0  # avance del archivo en curso
-    detections: int | None = None
+    detections: int | None = None  # cajas de su tabla, si la tiene
     message: str = ""
 
 
@@ -88,13 +97,25 @@ def duration_of(path: Path) -> float:
         return float("nan")
 
 
-# Lista los audios de la carpeta con su duración; corre en un hilo porque en una carpeta de
-# red leer mil cabeceras tarda.
-def scan(folder: Path, recursive: bool) -> list[Entry]:
+# Cuántas cajas tiene una tabla ya escrita: filas menos la cabecera.
+def rows_in(table: Path) -> int | None:
+    try:
+        with table.open(encoding="utf-8", errors="replace") as handle:
+            return max(sum(1 for _ in handle) - 1, 0)
+    except OSError:
+        return None
+
+
+# Lista los audios de la carpeta con su duración y lo que ya tienen; corre en un hilo porque
+# en una carpeta de red leer mil cabeceras tarda.
+def scan(folder: Path) -> list[Entry]:
     entries = []
-    for path in collect_audio([folder], recursive):
-        status = EXISTS if output_for(path).is_file() else PENDING
-        entries.append(Entry(path, str(path.relative_to(folder)), duration_of(path), status))
+    for path in collect_audio([folder]):
+        table = output_for(path)
+        entry = Entry(path, str(path.relative_to(folder)), duration_of(path))
+        if table.is_file():
+            entry.status, entry.detections = EXISTS, rows_in(table)
+        entries.append(entry)
     return entries
 
 
@@ -130,9 +151,10 @@ class FileModel(QAbstractTableModel):
         entry = self.entries[index.row()]
         column = index.column()
         if role == Qt.ItemDataRole.ToolTipRole:
-            return entry.message if column == STATUS_COLUMN and entry.message else str(entry.path)
-        numeric = column not in (FILE_COLUMN, STATUS_COLUMN)
-        if role == Qt.ItemDataRole.TextAlignmentRole and numeric:
+            if column == BOXES_COLUMN and entry.message:
+                return entry.message
+            return str(entry.path)
+        if role == Qt.ItemDataRole.TextAlignmentRole and column != FILE_COLUMN:
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         if role != Qt.ItemDataRole.DisplayRole:
             return None
@@ -140,12 +162,13 @@ class FileModel(QAbstractTableModel):
             return entry.name
         if column == 1:
             return clock(entry.duration)
-        if column == STATUS_COLUMN:
-            if entry.status == RUNNING:
-                return f"Running {entry.fraction:.0%}"
-            if entry.status == FAILED:
-                return f"Error: {entry.message}"
-            return STATUS_TEXT[entry.status]
+        # La última columna cuenta el estado: cuántas cajas tiene, o qué le pasa.
+        if entry.status == RUNNING:
+            return f"{entry.fraction:.0%}"
+        if entry.status == FAILED:
+            return "error"
+        if entry.status == STOPPED:
+            return "stopped"
         return "" if entry.detections is None else f"{entry.detections:,}"
 
 
@@ -199,53 +222,45 @@ class BatchWorker(QThread):
             self.finished_file.emit(outcome)
 
 
-# Vista Batch: una carpeta de grabaciones, el modelo de la toolbar y un umbral; deja la tabla
-# de cada audio junto a él. El doble clic abre la grabación en la vista de espectrograma.
-class BatchView(QWidget):
-    open_requested = pyqtSignal(object)  # Path del audio
+# La lista: ↑ ↓ cambian de grabación; el resto de las teclas (Espacio, A, R, N…) siguen
+# siendo de la ventana aunque la lista tenga el foco.
+class RecordingList(QTableView):
+    @override
+    def keyPressEvent(self, e) -> None:
+        if e is not None and e.key() not in LIST_KEYS:
+            e.ignore()
+            return
+        super().keyPressEvent(e)
+
+
+class RecordingsPanel(QDockWidget):
+    opened = pyqtSignal(object)  # Path de la grabación elegida
+    finished_file = pyqtSignal(object)  # Path con tabla nueva
     state_changed = pyqtSignal()  # empezó o terminó una corrida
     said = pyqtSignal(str)  # para la barra de estado
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__("Recordings")
+        self.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
         self.folder_path: Path | None = None
         self.model_path: Path | None = None
         self.engine_ready = False
-        self.blocked = False  # la vista de espectrograma está detectando: un modelo a la vez
+        self.blocked = False  # el espectrograma está detectando: un modelo a la vez
+        self.leading = True  # sin grabación abierta, Detect all es el siguiente paso
         self.worker: BatchWorker | None = None
         self.scanner: Worker | None = None
         self.started_at = 0.0
         self.done_audio_s = 0.0
 
-        self.folder = QLineEdit()
-        self.folder.setPlaceholderText("Folder with recordings (WAV, FLAC, MP3)")
-        self.folder.returnPressed.connect(lambda: self.set_folder(Path(self.folder.text())))
-        self.browse_button = QPushButton("Browse…")
-        self.browse_button.clicked.connect(self.browse)
-        self.recursive = QCheckBox("Include subfolders")
-        self.recursive.setChecked(True)
-        self.recursive.toggled.connect(lambda _: self.rescan())
-
-        self.score = QDoubleSpinBox()
-        self.score.setRange(*SCORE_RANGE)
-        self.score.setSingleStep(SCORE_STEP)
-        self.score.setDecimals(2)
-        self.score.setValue(SCORE_THRESHOLD)
-        self.score.setToolTip(
-            "Only detections at or above this score are written. "
-            "Starts at the model's operating point."
-        )
-        self.overwrite = QCheckBox("Overwrite existing tables")
-        self.run_button = QPushButton("Run")
-        self.run_button.setDefault(True)
-        self.run_button.clicked.connect(self.run)
-        self.stop_button = QPushButton("Stop")
-        self.stop_button.clicked.connect(self.stop)
-        for button in (self.browse_button, self.run_button, self.stop_button):
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.title = QLabel("")
+        self.title.setObjectName("hint")
+        self.title.setTextFormat(Qt.TextFormat.PlainText)
 
         self.files = FileModel()
-        self.table = QTableView()
+        self.table = RecordingList()
         self.table.setModel(self.files)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -253,9 +268,6 @@ class BatchView(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
         self.table.setWordWrap(False)
-        self.table.doubleClicked.connect(
-            lambda index: self.open_requested.emit(self.files.entries[index.row()].path)
-        )
         vertical = self.table.verticalHeader()
         if vertical is not None:
             vertical.setVisible(False)
@@ -266,53 +278,70 @@ class BatchView(QWidget):
             for column in range(1, len(HEADERS)):
                 header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(FILE_COLUMN, QHeaderView.ResizeMode.Stretch)
+        selection = self.table.selectionModel()
+        if selection is not None:
+            selection.currentRowChanged.connect(self.on_current)
 
         self.placeholder = QLabel(PLACEHOLDER)
         self.placeholder.setObjectName("placeholder")
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.placeholder.setWordWrap(True)
+        self.choose_button = QPushButton("Choose a folder…")
+        self.choose_button.clicked.connect(self.choose)
+        empty = QWidget()
+        empty_layout = QVBoxLayout(empty)
+        empty_layout.addStretch(1)
+        empty_layout.addWidget(self.placeholder)
+        empty_layout.addWidget(self.choose_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        empty_layout.addStretch(1)
         self.pages = QStackedWidget()
-        self.pages.addWidget(self.placeholder)
+        self.pages.addWidget(empty)
         self.pages.addWidget(self.table)
+
+        self.score = QDoubleSpinBox()
+        self.score.setRange(*SCORE_RANGE)
+        self.score.setSingleStep(SCORE_STEP)
+        self.score.setDecimals(2)
+        self.score.setValue(SCORE_THRESHOLD)
+        self.score.setToolTip(
+            "Only detections at or above this score are written. "
+            "Starts at the model's operating point."
+        )
+        self.overwrite = QCheckBox("Redo existing")
+        self.overwrite.setToolTip("Run again over recordings that already have a table")
+        self.run_button = QPushButton("Detect all")
+        self.run_button.clicked.connect(self.run)
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.clicked.connect(self.stop)
+        for button in (self.choose_button, self.run_button, self.stop_button):
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
         self.summary = QLabel("")
         self.summary.setObjectName("hint")
-        self.hint = QLabel("Double-click a recording to open it in the Spectrogram view.")
-        self.hint.setObjectName("hint")
-
-        source = QHBoxLayout()
-        source.setSpacing(8)
-        source.addWidget(QLabel("Folder"))
-        source.addWidget(self.folder, 1)
-        source.addWidget(self.browse_button)
-        source.addSpacing(8)
-        source.addWidget(self.recursive)
 
         settings = QHBoxLayout()
         settings.setSpacing(8)
         settings.addWidget(QLabel("Score ≥"))
         settings.addWidget(self.score)
-        settings.addSpacing(8)
         settings.addWidget(self.overwrite)
         settings.addStretch(1)
         settings.addWidget(self.run_button)
         settings.addWidget(self.stop_button)
 
-        footer = QHBoxLayout()
-        footer.setSpacing(12)
-        footer.addWidget(self.progress, 1)
-        footer.addWidget(self.summary)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(10)
-        layout.addLayout(source)
-        layout.addLayout(settings)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(8, 6, 8, 8)
+        layout.setSpacing(8)
+        layout.addWidget(self.title)
         layout.addWidget(self.pages, 1)
-        layout.addLayout(footer)
-        layout.addWidget(self.hint)
+        layout.addLayout(settings)
+        layout.addWidget(self.progress)
+        layout.addWidget(self.summary)
+        body = QWidget()
+        body.setLayout(layout)
+        body.setMinimumWidth(PANEL_WIDTH)
+        self.setWidget(body)
         self.sync()
 
     # --- Estado -----------------------------------------------------------------
@@ -322,6 +351,9 @@ class BatchView(QWidget):
 
     def scanning(self) -> bool:
         return self.scanner is not None and self.scanner.isRunning()
+
+    def listed(self) -> bool:
+        return bool(self.files.entries)
 
     def set_model(self, path: Path | None, operating_point: float | None) -> None:
         self.model_path = path
@@ -336,12 +368,17 @@ class BatchView(QWidget):
         self.blocked = blocked
         self.sync()
 
+    # El acento va a Detect all sólo cuando no hay una grabación abierta que lo reclame.
+    def set_leading(self, leading: bool) -> None:
+        self.leading = leading
+        self.sync()
+
     def sync(self) -> None:
         running = self.running()
         listed = bool(self.files.entries)
-        for widget in (self.folder, self.browse_button, self.recursive, self.overwrite):
+        self.title.setVisible(self.folder_path is not None)
+        for widget in (self.score, self.overwrite):
             widget.setEnabled(not running)
-        self.score.setEnabled(not running)
         self.run_button.setEnabled(
             not running
             and not self.scanning()
@@ -355,18 +392,22 @@ class BatchView(QWidget):
             if self.model_path is None
             else "Waiting for the detection engine"
             if not self.engine_ready
-            else "The Spectrogram view is busy"
+            else "Wait for the current detection to finish"
             if self.blocked
             else "Run the model over every recording in the list"
         )
+        emphasize(self.run_button, self.leading and self.run_button.isEnabled())
+        # Un solo botón a la vista: Detect all, que mientras corre es Stop.
+        self.run_button.setVisible(not running)
+        self.stop_button.setVisible(running)
         self.stop_button.setEnabled(running)
-        self.pages.setCurrentWidget(self.table if listed else self.placeholder)
+        self.pages.setCurrentWidget(self.table if listed else self.pages.widget(0))
         self.progress.setVisible(running)
-        self.hint.setVisible(listed)
+        self.summary.setVisible(bool(self.summary.text()))
 
     # --- Carpeta ----------------------------------------------------------------
 
-    def browse(self) -> None:
+    def choose(self) -> None:
         start = str(self.folder_path) if self.folder_path else ""
         chosen = QFileDialog.getExistingDirectory(self, "Choose a folder with recordings", start)
         if chosen:
@@ -379,15 +420,15 @@ class BatchView(QWidget):
             self.said.emit(f"{folder} is not a folder.")
             return
         self.folder_path = folder
-        self.folder.setText(str(folder))
+        self.title.setText(f"{folder.name} · scanning…")
+        self.title.setToolTip(str(folder))
         self.rescan()
 
     def rescan(self) -> None:
         if self.folder_path is None or self.running() or self.scanning():
             return
-        folder, recursive = self.folder_path, self.recursive.isChecked()
-        self.said.emit(f"Scanning {folder}…")
-        self.scanner = Worker(lambda: scan(folder, recursive))
+        folder = self.folder_path
+        self.scanner = Worker(lambda: scan(folder))
         self.scanner.ok.connect(self.scanned)
         self.scanner.error.connect(lambda message: self.said.emit(f"Could not scan: {message}"))
         self.scanner.finished.connect(self.sync)
@@ -397,14 +438,35 @@ class BatchView(QWidget):
     def scanned(self, entries: list[Entry]) -> None:
         self.files.reset(entries)
         self.summary.setText("")
+        folder = self.folder_path.name if self.folder_path else ""
         existing = sum(e.status == EXISTS for e in entries)
         total_s = sum(e.duration for e in entries if not math.isnan(e.duration))
-        self.said.emit(
-            f"{len(entries)} recordings · {clock(total_s)} of audio"
-            + (f" · {existing} already have a table" if existing else "")
+        self.title.setText(
+            f"{folder} · {len(entries)} recordings · {clock(total_s)}"
+            + (f" · {existing} with a table" if existing else "")
             if entries
-            else "No recordings in that folder."
+            else f"{folder} · no recordings"
         )
+        self.sync()
+        self.state_changed.emit()
+
+    # La fila de la grabación abierta, sin volver a abrirla.
+    def select(self, path: Path | None) -> None:
+        selection = self.table.selectionModel()
+        if selection is None:
+            return
+        row = next((i for i, e in enumerate(self.files.entries) if e.path == path), -1)
+        selection.blockSignals(True)
+        if row < 0:
+            selection.clearSelection()
+        else:
+            self.table.selectRow(row)
+            self.table.scrollTo(self.files.index(row, 0))
+        selection.blockSignals(False)
+
+    def on_current(self, current, _previous) -> None:
+        if current.isValid():
+            self.opened.emit(self.files.entries[current.row()].path)
 
     # --- Corrida ----------------------------------------------------------------
 
@@ -413,7 +475,7 @@ class BatchView(QWidget):
             return
         for entry in self.files.entries:
             entry.status = EXISTS if output_for(entry.path).is_file() else PENDING
-            entry.fraction, entry.detections, entry.message = 0.0, None, ""
+            entry.fraction, entry.message = 0.0, ""
         self.files.reset(self.files.entries)
         self.started_at = time.perf_counter()
         self.done_audio_s = 0.0
@@ -431,7 +493,9 @@ class BatchView(QWidget):
         self.worker.failed.connect(lambda message: self.said.emit(f"Model failed: {message}"))
         self.worker.finished.connect(self.on_finished)
         self.worker.start()
-        self.said.emit(f"Running {self.model_path.parent.name}…")
+        self.said.emit(
+            f"Running {self.model_path.parent.name} over {len(self.files.entries)} recordings…"
+        )
         self.sync()
         self.state_changed.emit()
 
@@ -453,6 +517,7 @@ class BatchView(QWidget):
         self.files.touch(index)
         self.progress.setValue(int((index + entry.fraction) * PROGRESS_STEPS))
         self.summary.setText(self.eta(index))
+        self.summary.show()
 
     def on_outcome(self, outcome) -> None:
         entry = self.files.entries[outcome.index]
@@ -461,6 +526,7 @@ class BatchView(QWidget):
             entry.detections = outcome.detections
             if not math.isnan(entry.duration):
                 self.done_audio_s += entry.duration
+            self.finished_file.emit(entry.path)
         self.files.touch(outcome.index)
         self.progress.setValue((outcome.index + 1) * PROGRESS_STEPS)
 
@@ -498,6 +564,6 @@ class BatchView(QWidget):
         return f"{head} · {rate:.1f}× realtime · ~{clock(remaining / rate)} left"
 
     def queued(self, index: int) -> bool:
-        # Lo que aún va a procesarse: lo pendiente y, con Overwrite, lo que ya tiene tabla.
+        # Lo que aún va a procesarse: lo pendiente y, con Redo, lo que ya tiene tabla.
         status = self.files.entries[index].status
         return status == PENDING or (status == EXISTS and self.overwrite.isChecked())
