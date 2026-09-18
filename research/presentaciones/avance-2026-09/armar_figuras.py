@@ -29,9 +29,10 @@ RUNS = {"birds": "detr_t10_logmel_birds", "logmel": "detr_t10_logmel_v2"}
 EPOCH_LINE = re.compile(r"\[(?P<epoch>\d+)/(?P<total>\d+)\].*mAP30=(?P<map>[0-9.]+)")
 # Épocas de la meseta: la mediana de las últimas es la estimación de val que no elige el máximo.
 PLATEAU_EPOCHS = 10
-# Comparaciones de `compare_models.py`: con el postprocesado de los DETR (la vigente) y sin él
-# (copia guardada antes del cambio); modelo -> prefijo de macro.
-COMPARISONS = {"con": "comparacion_modelos", "sin": "comparacion_modelos_detr_sin_nms"}
+# Comparaciones de `compare_models.py` de las corridas v2 de la exposición, con el postprocesado
+# de los DETR y sin él (copias guardadas: el formato actual del JSON ya no trae `paired` ni el
+# intervalo); modelo -> prefijo de macro.
+COMPARISONS = {"con": "comparacion_modelos_v2", "sin": "comparacion_modelos_detr_sin_nms"}
 DETR_RUNS = {
     "detr_t10_logmel_v2": "Logmel",
     "detr_t10_logmel_birds": "Birds",

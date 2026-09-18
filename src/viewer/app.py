@@ -35,9 +35,10 @@ from inference.catalog import (
     read_operating_point,
 )
 from viewer.batch import BatchView
-from viewer.controls import Layers, ModelPicker, Popup, Slider, ViewPanel
+from viewer.controls import Band, Layers, ModelPicker, Popup, Slider, ViewPanel
 from viewer.inference import DETECT_THRESHOLD, detect, preload
 from viewer.plot import Layer, SpectrogramView
+from viewer.review import ACCEPTED, REJECTED, ReviewBar, Reviewer
 from viewer.session import (
     ANNOTATIONS,
     COLORS,
@@ -45,6 +46,7 @@ from viewer.session import (
     SOURCES,
     STYLES,
     WIDTHS,
+    Row,
     Session,
     read_table,
 )
@@ -86,11 +88,12 @@ HELP = {
     ],
     "View": [
         ("Wheel", "scroll through the audio"),
-        ("Ctrl + wheel", "window width, 0.25 to 30 s"),
-        ("Shift + wheel", "zoom in frequency around the pointer"),
-        ("↑ ↓", "move the visible band"),
+        ("Ctrl + wheel", "window width, 0.25 to 30 s; the list next to the time bar does the same"),
+        ("Shift + wheel", "band height, 200 Hz to full, around the pointer; the list next to it "
+                          "does the same"),
+        ("↑ ↓", "move the band; the scroll on the right does the same"),
         ("F", "full band"),
-        ("View", "brightness, contrast, volume and band limits"),
+        ("View", "brightness, contrast and volume"),
         ("", "the window width and the band only change when you change them"),
     ],
     "Listen": [
@@ -109,6 +112,15 @@ HELP = {
         ("Ctrl+E", "table of boxes; click a row to frame it"),
         ("Del", "in the table, remove the selected boxes"),
         ("Score ≥", "hide detections below that score; Save keeps the visible ones"),
+    ],
+    "Review": [
+        ("Review", "go through the visible detections one by one, in time order; each box is "
+                   "framed and gets handles to drag it or its corners"),
+        ("A", "accept: the box, as framed and labelled in the list, moves to Annotations"),
+        ("R", "reject: the box is dropped"),
+        ("S", "skip; N / P move to the next or previous box"),
+        ("Journal", "every decision is written at once to a temporary file per recording "
+                    "(Save → Reviewed boxes… turns the accepted ones into an annotations table)"),
     ],
 }  # fmt: skip
 
@@ -210,13 +222,21 @@ class Viewer(QMainWindow):
         self.view.brightness.changed.connect(self.draw_spectrogram)
         self.view.contrast.changed.connect(self.draw_spectrogram)
         self.view.volume.changed.connect(lambda: self.transport.set_gain(self.view.volume.value()))
-        self.view.band.changed.connect(lambda: self.plot.set_band(*self.view.band.values()))
-        self.plot.banded.connect(self.view.band.set_values)
+
+        # La banda: el control manda al espectrograma y este devuelve lo que pudo (recortado).
+        self.band = Band()
+        self.band.changed.connect(self.plot.set_band)
+        self.plot.banded.connect(self.band.set_values)
+        self.plot.band_zoomed.connect(self.band.zoom)
 
         self.table = BoxTable(self.session)
         self.table.picked.connect(self.focus)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.table)
         self.table.hide()
+
+        self.review_bar = ReviewBar()
+        self.reviewer = Reviewer(self.session, self.plot, self.review_bar, self.frame)
+        self.reviewer.changed.connect(self.sync_review)
 
         self.batch = BatchView()
         self.batch.open_requested.connect(self.open_result)
@@ -275,7 +295,7 @@ class Viewer(QMainWindow):
         self.clear_action.setToolTip("Remove the detections (Ctrl+L)")
         self.clear_action.triggered.connect(lambda: self.session.set_table(DETECTIONS, None))
 
-        self.viewer_button = Popup(f"View {CARET}", self.view, "Brightness, contrast, volume, band")
+        self.viewer_button = Popup(f"View {CARET}", self.view, "Brightness, contrast, volume")
 
         self.image_action = QAction("Image of this stretch…", self)
         self.image_action.setShortcut(QKeySequence("Ctrl+S"))
@@ -283,11 +303,15 @@ class Viewer(QMainWindow):
         self.save_actions = {source: QAction(f"{source} table…", self) for source in SOURCES}
         for source, action in self.save_actions.items():
             action.triggered.connect(lambda _, name=source: self.export_table(name))
+        self.reviewed_action = QAction("Reviewed boxes…", self)
+        self.reviewed_action.setToolTip("The boxes accepted in Review, as an annotations table")
+        self.reviewed_action.triggered.connect(self.export_reviewed)
         export_menu = QMenu(self)
         export_menu.addAction(self.image_action)
         export_menu.addSeparator()
         for action in self.save_actions.values():
             export_menu.addAction(action)
+        export_menu.addAction(self.reviewed_action)
         self.export_button = self.menu_button("Save", export_menu)
 
         self.help_action = QAction("Help", self)
@@ -335,7 +359,12 @@ class Viewer(QMainWindow):
         toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.addToolBar(toolbar)
         # Los atajos del menú sólo llegan si sus acciones cuelgan de la ventana.
-        for action in (self.browse_model_action, self.image_action, *self.save_actions.values()):
+        for action in (
+            self.browse_model_action,
+            self.image_action,
+            self.reviewed_action,
+            *self.save_actions.values(),
+        ):
             self.addAction(action)
 
     # La flecha va en el texto: la que dibuja el estilo se pierde en cuanto la hoja de
@@ -354,16 +383,32 @@ class Viewer(QMainWindow):
         self.placeholder = QLabel(PLACEHOLDER)
         self.placeholder.setObjectName("placeholder")
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # El espectrograma con el scroll de la banda pegado a su derecha.
+        self.spectrogram = QWidget()
+        with_scroll = QHBoxLayout(self.spectrogram)
+        with_scroll.setContentsMargins(0, 0, 0, 0)
+        with_scroll.setSpacing(4)
+        with_scroll.addWidget(self.plot, 1)
+        with_scroll.addWidget(self.band.bar)
         self.canvas = QStackedWidget()
         self.canvas.addWidget(self.placeholder)
-        self.canvas.addWidget(self.plot)
+        self.canvas.addWidget(self.spectrogram)
+
+        # El ancho de ventana (en el transporte) y la altura de banda, lado a lado.
+        time_and_band = QHBoxLayout()
+        time_and_band.setContentsMargins(0, 0, 0, 0)
+        time_and_band.setSpacing(12)
+        time_and_band.addWidget(self.transport, 1)
+        time_and_band.addWidget(self.band.heights)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(10)
         layout.addWidget(self.canvas, 1)
-        layout.addWidget(self.transport)
+        layout.addLayout(time_and_band)
         layout.addWidget(self.build_legend())
+        layout.addWidget(self.review_bar)
+        self.review_bar.hide()
         page = QWidget()
         page.setLayout(layout)
         return page
@@ -382,6 +427,12 @@ class Viewer(QMainWindow):
         self.score.changed.connect(lambda: self.session.set_score(self.score.value()))
         self.prev_button = self.chevron("◀", "Previous detection (P)", lambda: self.jump(-1))
         self.next_button = self.chevron("▶", "Next detection (N)", lambda: self.jump(1))
+        self.review_button = QToolButton()
+        self.review_button.setText("Review")
+        self.review_button.setCheckable(True)
+        self.review_button.setToolTip("Go through the visible detections one by one")
+        self.review_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.review_button.toggled.connect(self.toggle_review)
 
         self.model_tools = QWidget()
         tools = QHBoxLayout(self.model_tools)
@@ -390,6 +441,7 @@ class Viewer(QMainWindow):
         tools.addWidget(self.score)
         tools.addWidget(self.prev_button)
         tools.addWidget(self.next_button)
+        tools.addWidget(self.review_button)
 
         self.legend = QWidget()
         row = QHBoxLayout(self.legend)
@@ -528,9 +580,12 @@ class Viewer(QMainWindow):
         self.image_action.setEnabled(review and not busy and loaded)
         for source, action in self.save_actions.items():
             action.setEnabled(review and not busy and self.session.tables[source] is not None)
+        self.reviewed_action.setEnabled(
+            review and not busy and self.reviewer.counts().get(ACCEPTED, 0) > 0
+        )
         self.viewer_button.setEnabled(loaded)
         self.export_button.setEnabled(review and loaded)
-        self.canvas.setCurrentWidget(self.plot if loaded else self.placeholder)
+        self.canvas.setCurrentWidget(self.spectrogram if loaded else self.placeholder)
         self.transport.setVisible(loaded)
         self.legend.setVisible(loaded)
         self.model_tools.setVisible(detections)
@@ -669,7 +724,7 @@ class Viewer(QMainWindow):
         self.setWindowTitle(f"{path.name} - {BASE_TITLE}")
         self.plot.set_waveform(waveform, P.target_sr)
         self.transport.set_audio(waveform, P.target_sr)
-        self.view.band.set_limits(int(P.nyquist_hz))
+        self.band.set_limits(P.nyquist_hz)
         self.say(f"{path.name} · {self.session.duration:.1f} s")
         if self.pending_table is not None:
             table, self.pending_table = self.pending_table, None
@@ -717,10 +772,40 @@ class Viewer(QMainWindow):
         if row is None:
             self.plot.set_highlight(None)
             return
+        self.frame(row)
+        self.plot.set_highlight((row.begin, row.end, row.low, row.high))
+
+    # Trae la caja a la vista sin mover nada que ya la muestre: el tiempo se centra si se sale
+    # de la ventana y la banda se reencuadra si se sale de la visible.
+    def frame(self, row: Row) -> None:
         start, stop = self.transport.time_window()
         if not (start <= row.begin and row.end <= stop):
             self.transport.center(0.5 * (row.begin + row.end))
-        self.plot.set_highlight((row.begin, row.end, row.low, row.high))
+        low, high = self.band.current
+        if not (low <= row.low and row.high <= high):
+            self.band.frame(row.low, row.high)
+
+    def toggle_review(self, on: bool) -> None:
+        if on:
+            self.reviewer.start()
+        else:
+            self.reviewer.stop()
+
+    def sync_review(self) -> None:
+        active = self.reviewer.active
+        self.review_bar.setVisible(active)
+        if self.review_button.isChecked() != active:
+            self.review_button.blockSignals(True)
+            self.review_button.setChecked(active)
+            self.review_button.blockSignals(False)
+        if active:
+            counts = self.reviewer.counts()
+            journal = self.reviewer.journal
+            self.say(
+                f"Review: {counts.get(ACCEPTED, 0)} accepted, {counts.get(REJECTED, 0)} rejected"
+                + ("" if journal is None else f"   Journal: {journal.path}")
+            )
+        self.sync_controls()
 
     def track(self, seconds: float, hz: float) -> None:
         if self.session.waveform is not None:
@@ -803,6 +888,21 @@ class Viewer(QMainWindow):
         else:
             self.say(f"{len(table)} rows saved to {path.name}")
 
+    def export_reviewed(self) -> None:
+        journal = self.reviewer.journal
+        if journal is None:
+            return
+        path = self.save_path("Save reviewed boxes", ".reviewed.txt", "Raven (*.txt);;CSV (*.csv)")
+        if path is None:
+            return
+        try:
+            table = journal.accepted()
+            table.to_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index=False)
+        except Exception as exc:
+            self.fail(f"Could not save the reviewed boxes:\n{type(exc).__name__}: {exc}")
+        else:
+            self.say(f"{len(table)} accepted boxes saved to {path.name}")
+
     # --- Eventos ----------------------------------------------------------------
 
     def dropped(self, event) -> Path | None:
@@ -835,7 +935,16 @@ class Viewer(QMainWindow):
                 super().keyPressEvent(a0)
             return
         key = a0.key()
-        if key == Qt.Key.Key_Space:
+        reviewing = self.reviewer.active and not a0.modifiers()
+        if reviewing and key == Qt.Key.Key_A:
+            self.reviewer.decide(ACCEPTED)
+        elif reviewing and key == Qt.Key.Key_R:
+            self.reviewer.decide(REJECTED)
+        elif reviewing and key == Qt.Key.Key_S:
+            self.reviewer.step(1)
+        elif reviewing and key in (Qt.Key.Key_N, Qt.Key.Key_P):
+            self.reviewer.step(1 if key == Qt.Key.Key_N else -1)
+        elif key == Qt.Key.Key_Space:
             self.transport.toggle_play()
         elif key == Qt.Key.Key_Left:
             self.transport.step(-1)
@@ -848,9 +957,9 @@ class Viewer(QMainWindow):
         elif key in (Qt.Key.Key_Home, Qt.Key.Key_End):
             self.transport.to_edge(key == Qt.Key.Key_End)
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_Down):
-            self.plot.pan_band(1 if key == Qt.Key.Key_Up else -1)
+            self.band.pan(1 if key == Qt.Key.Key_Up else -1)
         elif key == Qt.Key.Key_F:
-            self.plot.set_band(0.0, P.nyquist_hz)
+            self.band.full()
         elif key == Qt.Key.Key_N:
             self.jump(1)
         elif key == Qt.Key.Key_P:

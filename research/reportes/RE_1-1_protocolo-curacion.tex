@@ -16,7 +16,8 @@
 \rotulo{Contenido.} Reglas con las que las anotaciones entregadas por el equipo de
 investigación se convierten en un conjunto consistente de cajas tiempo--frecuencia etiquetadas
 por especie y tipo de llamada: \emph{normalización} (columnas, etiquetas, especie),
-\emph{saneamiento} (ruido, cajas degeneradas, límite de Nyquist), \emph{vocabulario cerrado} y
+\emph{saneamiento} (ruido, cajas degeneradas, límite de Nyquist), \emph{marca de revisión}
+(vocabulario cerrado, tipo de llamada vacío, especie escrita distinta de la carpeta) y
 \emph{unión de copias} de una misma grabación. La selección de clases y el particionado son
 objeto de RE1.2; la ficha del conjunto, de RE1.3.
 
@@ -114,11 +115,11 @@ todas las carpetas a la vez.
         \node[descarte, right=of pair] (orphan) {sin \code{.wav}: se omite\\ilegible: se registra};
         \node[etapa, below=of pair] (cols) {Normalización de columnas\\\code{Begin Time (s)} $\to$ \code{begin\_time\_s}};
         \node[etapa, below=of cols] (labels) {Tipo de llamada: minúsculas y \code{\_}, mapa de sinónimos, nombre legible $\to$ código};
-        \node[etapa, below=of labels] (species) {Especie $:=$ código de la carpeta};
-        \node[etapa, below=of species] (noise) {Descarte de \code{noise} y vacíos};
-        \node[descarte, right=of noise] (noisedrop) {\nNoise{} + \nEmptyCall{} filas};
+        \node[etapa, below=of labels] (species) {Especie $:=$ código de la carpeta; escrita $\neq$ carpeta $\Rightarrow$ \code{requires\_review}};
+        \node[etapa, below=of species] (noise) {Descarte de \code{noise}};
+        \node[descarte, right=of noise] (noisedrop) {\nNoise{} filas};
         \node[etapa, below=of noise] (fix) {Corrección de pares imposibles};
-        \node[etapa, below=of fix] (vocab) {Vocabulario cerrado: par $\notin$ vocabulario $\Rightarrow$ \code{requires\_review}};
+        \node[etapa, below=of fix] (vocab) {Vocabulario cerrado: par $\notin$ vocabulario o tipo vacío $\Rightarrow$ \code{requires\_review}};
         \node[etapa, below=of vocab] (geom) {Saneamiento geométrico: recorte a Nyquist, descarte de cajas degeneradas};
         \node[descarte, right=of geom] (geomdrop) {\nDegenerate{} filas};
         \node[dato, below=of geom] (cleaned) {data/cleaned/<especie>\_\_<COD>/<grabación>.txt};
@@ -198,17 +199,20 @@ La columna \code{Species} se reemplaza por el código de la carpeta contenedora.
 del código de la carpeta (\code{AS} en la carpeta de AC y viceversa, \code{SN} por \code{SM},
 o residuos como \code{\}}, \code{8} o \code{AS---------------------AS}). El directorio se fija
 una vez por sesión de campo mientras que la columna se teclea en cada fila, y es donde se
-acumulan los errores. La consecuencia es que una llamada de otra
-especie anotada dentro de una carpeta recibe la especie de la carpeta; la unión de copias
-(sección~\ref{sec:copias}) corrige el caso en que esa llamada sí está anotada en su propia
-carpeta.
+acumulan los errores. Pero una llamada de otra especie anotada dentro de una carpeta, si es
+real, no debe recibir la especie de la carpeta: la fila conserva lo escrito en
+\code{written\_species} y se marca \code{requires\_review} (sección~\ref{sec:vocabulario}),
+de modo que ni entra al experimento con la especie de la carpeta ni se descarta. La unión de
+copias (sección~\ref{sec:copias}) resuelve el caso en que esa llamada sí está anotada en su
+propia carpeta.
 
-\subsection{Descarte de ruido y de vacíos}
+\subsection{Descarte de ruido}
 
 Las filas cuyo tipo de llamada normalizado es \code{noise} (\nNoise{}) marcan la ausencia de
-evento, no un evento, y se eliminan; lo mismo ocurre con las \nEmptyCall{} filas sin tipo de
-llamada, que no pueden asignarse a ninguna clase. El fondo que el detector debe aprender a no
-proponer entra al conjunto por otra vía, las ventanas vacías de RE1.2, y no por estas filas.
+evento, no un evento, y se eliminan. El fondo que el detector debe aprender a no proponer entra
+al conjunto por otra vía, las ventanas vacías de RE1.2, y no por estas filas. Las \nEmptyCall{}
+filas sin tipo de llamada, en cambio, son cajas que el analista dibujó sobre un evento: no se
+eliminan, se marcan \code{requires\_review} (sección~\ref{sec:vocabulario}).
 
 \subsection{Corrección de pares imposibles}
 
@@ -241,17 +245,18 @@ etiquetas distintas según quién la anote.
     \end{tabular}
 \end{table}
 
-Los pares fuera del vocabulario no se eliminan: se marcan con la bandera
-\code{requires\_review} y el registro de la ejecución informa cuántos son. La diferencia es
-deliberada. Un par fuera de vocabulario puede ser un error de escritura no previsto o un tipo
-de llamada legítimo aún no incorporado (\code{as/cp}, \code{as/pp} e \code{as/ip} encabezan
-los \nReviewPairs{} pares y \nReview{} filas de la Tabla~\ref{tab:review}), y solo el equipo
-de investigación puede distinguir uno de otro. Descartarlos en silencio destruiría esa
-evidencia: \file{cleaned/} los conserva, y quedan fuera del experimento porque ninguno alcanza
-el umbral de 100 anotaciones de RE1.2. \todo{La bandera no se escribe en \file{cleaned/}: la
-exclusión descansa hoy en el umbral de frecuencia y no en el vocabulario. Conviene guardarla
-como columna o filtrar por \code{VALID\_PAIRS} en \code{select\_experiment}, para que un par
-fuera de vocabulario con más de 100 filas no entre al experimento por accidente.}
+Toda fila que no pueda asignarse con certeza a un par del vocabulario se marca con la bandera
+\code{requires\_review}, sin eliminarla: el par (especie de la carpeta, tipo) no está en el
+vocabulario (\nReviewVocab{} filas), el tipo de llamada viene vacío (\nEmptyCall{}) o la
+especie escrita difiere de la carpeta (\nSpeciesMismatch{}). Son \nReview{} anotaciones
+(\pctReview{} de las conservadas), en \nReviewPairs{} pares (Tabla~\ref{tab:review}). La
+diferencia con descartarlas es deliberada: un par fuera de vocabulario puede ser un error de
+escritura no previsto o un tipo de llamada legítimo aún no incorporado (\code{as/cp},
+\code{as/pp} e \code{as/ip}), y solo el equipo de investigación puede distinguir uno de otro.
+\file{cleaned/} las conserva con la bandera y RE1.2 las deja fuera del experimento: no entran
+como clase y toda ventana que las pisa se descarta, para no enseñarlas tampoco como fondo. El
+cuaderno \file{notebooks/auditoria\_anotaciones.ipynb} muestra, para cada una, qué clase ve
+sobre ella un detector que no la entrenó, como apoyo para esa revisión.
 
 \begin{table}[htbp]
     \centering
@@ -341,9 +346,12 @@ tipo de llamada a \nVocabCallValues{} códigos del vocabulario.
 \subsection{Formato de \file{data/cleaned/}}
 
 Se escribe una tabla por grabación, con el mismo nombre que su \code{.wav} y en la misma
-carpeta relativa que en \file{raw/}, sin copiar audio. Las columnas son \code{species},
-\code{call\_type}, \code{begin\_time\_s}, \code{end\_time\_s}, \code{low\_freq\_hz} y
-\code{high\_freq\_hz}. Una grabación cuya tabla queda vacía tras el protocolo conserva su
+carpeta relativa que en \file{raw/}, sin copiar audio. Las columnas son \code{species} (la de
+la carpeta), \code{written\_species} (lo escrito en \code{Species}, en minúsculas),
+\code{call\_type}, \code{begin\_time\_s}, \code{end\_time\_s}, \code{low\_freq\_hz},
+\code{high\_freq\_hz} y \code{requires\_review}. Las carpetas de \file{raw/} cuyo código no es
+una especie del corpus (\file{birds\_\_AV}, canto de aves usado sólo para preentrenar) no se
+procesan. Una grabación cuya tabla queda vacía tras el protocolo conserva su
 archivo vacío: es evidencia de que se procesó y no quedó nada utilizable.
 
 \subsection{Comandos}
@@ -371,8 +379,8 @@ que el resto del pipeline (RE1.2) lee las anotaciones, e informa cuántas copias
           de etiquetado residual no puede separarse del error del modelo; RE1.3 lo declara como
           limitación. \todocita{fiabilidad de la anotación manual en bioacústica y necesidad de
           medir el acuerdo entre anotadores; \citet{leroy_reliability_2018} es candidata}
-    \item No decide qué hacer con los pares fuera de vocabulario: los marca y los deja al
-          equipo de investigación.
+    \item No decide qué hacer con las anotaciones marcadas \code{requires\_review}: las
+          conserva y las deja al equipo de investigación.
 \end{itemize}
 
 \todo{Confirmar con el equipo si \code{as/cp}, \code{as/pp} y \code{as/ip} son tipos de

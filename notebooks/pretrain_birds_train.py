@@ -3,14 +3,19 @@ y después lo afina con primates, sin tocar `src/`: sólo redirige el módulo `c
 corridas antes de llamar a `train.main()`.
 
     # 1. preentrenar: caché data/processed_extra, corrida en runs_extra/<name>
-    uv run python notebooks/pretrain_birds_train.py --name detr_birds --device cuda:2
+    uv run python notebooks/pretrain_birds_train.py --name detr_birds_v2 --device cuda:1
 
     # 2. afinar: caché y runs/ normales; arranca de los pesos del preentrenado salvo las cabezas
     #    de clase (otro número de clases) y entra a la comparación como cualquier corrida
-    uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds/best.pt \\
-        --name detr_t10_logmel_birds --device cuda:2
+    uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds_v2/best.pt \\
+        --name detr_t10_logmel_birds_v3 --device cuda:1
 
-Lo que siga a las opciones propias se pasa tal cual a train.py (`--cfg epochs=20`, `--limit`…).
+    # 3. k-fold sobre train con la misma inicialización (`src/kfold.py`, pliegues por grabación)
+    uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds_v2/best.pt \\
+        --kfold --name detr_t10_logmel_birds_v3_kfold5 --device cuda:1 --cfg epochs=20
+
+Lo que siga a las opciones propias se pasa tal cual a train.py o kfold.py (`--cfg epochs=20`,
+`--limit`, `--fold 1 3`…).
 """
 
 import argparse
@@ -24,6 +29,7 @@ import torch
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_DIR / "src"))
 
+import kfold  # noqa: E402
 import train  # noqa: E402
 from data import cache  # noqa: E402
 
@@ -40,6 +46,9 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
         description="Preentrena el AST-DETR con el caché de aves, o lo afina con primates."
     )
     parser.add_argument("--finetune", type=Path, help="best.pt de runs_extra/: afina con primates")
+    parser.add_argument(
+        "--kfold", action="store_true", help="con --finetune: corre kfold.py en vez de train.py"
+    )
     parser.add_argument("--name", required=True, help="nombre de la corrida")
     parser.add_argument("--device")
     return parser.parse_known_args()
@@ -76,16 +85,20 @@ def initializer(checkpoint: Path):
 def main() -> None:
     args, rest = parse_args()
     hparams = HPARAMS
+    entry = train
     if args.finetune is None:
+        if args.kfold:
+            raise SystemExit("--kfold necesita --finetune")
         cache.PROCESSED_DIR = PROCESSED_EXTRA
         train.RUNS_DIR = RUNS_EXTRA
     else:
         # Los mismos hiperparámetros del grafo que el preentrenado, para que los pesos calcen
-        train.build_model, hparams = initializer(args.finetune)
+        entry = kfold if args.kfold else train
+        entry.build_model, hparams = initializer(args.finetune)
     hp = [f"{key}={json.dumps(value)}" for key, value in hparams.items()]
     device = ["--device", args.device] if args.device else []
     sys.argv = [sys.argv[0], "--arch", "detr", "--hp", *hp, "--name", args.name, *device, *rest]
-    train.main()
+    entry.main()
 
 
 if __name__ == "__main__":

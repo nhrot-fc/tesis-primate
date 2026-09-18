@@ -11,7 +11,6 @@ class Species(Enum):
     PT = "toppins_titi_monkey"  # Plecturocebus toppini
     SB = "bolivian_squirrel_monkey"  # Saimiri boliviensis peruviensis
     SM = "large_headed_capuchin"  # Sapajus macrocephalus
-    AV = "bird"  # PteroSet, sólo como fondo
 
 
 # Código en la anotación -> nombre legible.
@@ -68,12 +67,7 @@ CALL_TYPES: dict[Species, dict[str, str]] = {
         "fc": "food_call",
         "fs": "food_syllable",
     },
-    Species.AV: {"voc": "bird_vocalization"},
 }
-
-# No son clase: sus ventanas entran al caché sin cajas, como sonido que no se propone.
-BACKGROUND_SPECIES: tuple[str, ...] = (Species.AV.name.lower(),)
-
 
 VALID_PAIRS: frozenset[tuple[str, str]] = frozenset(
     (species.name.lower(), code) for species, codes in CALL_TYPES.items() for code in codes

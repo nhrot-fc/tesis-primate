@@ -70,16 +70,16 @@ def build_manifest(
     params: Parameters = P,
     empty_ratio: float = 0.0,
     seed: int = SEED,
-    ignored: pd.DataFrame | None = None,
+    under_review: pd.DataFrame | None = None,
 ) -> list[ClipWindow]:
-    # `ignored`: anotaciones que no se pueden decidir (`MANUAL_IGNORE`); toda ventana que pise una
-    # se descarta, para no enseñarla como fondo.
+    # `under_review`: anotaciones con `requires_review`; toda ventana que pise una se descarta,
+    # para no enseñarla como fondo.
     if not 0.0 <= empty_ratio < 1.0:
         raise ValueError(f"empty_ratio debe estar en [0, 1): {empty_ratio}")
     unknown = {name for name in df["label"].unique() if name not in labels}
     if unknown:
         raise ValueError(f"etiquetas fuera del LabelSet: {sorted(unknown)}")
-    blocked = {} if ignored is None else dict(tuple(ignored.groupby("audio_path")))
+    blocked = {} if under_review is None else dict(tuple(under_review.groupby("audio_path")))
 
     positive: list[ClipWindow] = []
     empty: list[ClipWindow] = []
@@ -107,7 +107,7 @@ def build_manifest(
             "%d audios ilegibles, quedan fuera:\n  %s", len(unreadable), "\n  ".join(unreadable)
         )
     if skipped:
-        logger.info("%d ventanas descartadas por pisar una anotación ignorada", skipped)
+        logger.info("%d ventanas descartadas por pisar una anotación en revisión", skipped)
     if empty_ratio <= 0.0 or not empty:
         return positive
     n_empty = min(len(empty), round(len(positive) * empty_ratio / (1 - empty_ratio)))

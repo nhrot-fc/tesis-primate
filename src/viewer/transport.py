@@ -10,8 +10,8 @@ SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
 
 
-# Qué tramo del tiempo se ve, dónde está el cabezal y qué suena. La banda de frecuencia
-# se ajusta una vez y vive en el panel de vista, no acá.
+# Qué tramo del tiempo se ve, dónde está el cabezal y qué suena. La banda de frecuencia es
+# de `controls.Band`; la ventana la pone a su lado.
 class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga

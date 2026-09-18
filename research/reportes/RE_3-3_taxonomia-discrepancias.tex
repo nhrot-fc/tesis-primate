@@ -1,0 +1,279 @@
+\documentclass[12pt,a4paper]{article}
+\input{preambulo}
+\input{figures/RE_3-3/valores}
+\hypersetup{pdftitle={RE3.3 Taxonomía geométrica de discrepancias}}
+
+\begin{document}
+\reporte{RE3.3}{OE3}{Taxonomía geométrica de discrepancias}
+
+\section{Alcance}
+
+\rotulo{Medio de verificación.} Este informe; el volcado fuera de muestra de train en
+\file{runs/\allowbreak\kfold/} (\file{src/kfold.py}) y los volcados de val y test en
+\file{runs/\allowbreak\run/}; la tabla de hallazgos \file{hallazgos\_corpus.csv} en
+\file{figures/RE\_3-3/}; tablas y figuras generadas por el cuaderno
+\file{RE\_3-3\_\allowbreak taxonomia-\allowbreak discrepancias.ipynb}.
+
+\rotulo{Indicador.} Las predicciones de alta confianza del modelo seleccionado, sobre el
+corpus entero, repartidas entre las cuatro categorías de la taxonomía
+(Tabla~\ref{tab:taxonomia}); la categoría D caracterizada por duración, banda de frecuencia,
+puntuación y cercanía a las anotaciones de su clase (Tabla~\ref{tab:categoria-d},
+Figura~\ref{fig:categoria-d}); ejemplos de cada categoría sobre el espectrograma
+(Figura~\ref{fig:ejemplos}).
+
+\rotulo{Contenido.} A diferencia de RE2.3, que mide en prueba, aquí las predicciones cubren
+las tres particiones: train por validación cruzada de cinco pliegues por grabación (cada
+modelo predice las grabaciones que no vio), val y test con el modelo final. Así cada
+anotación del corpus queda confrontada con una predicción fuera de muestra, que es lo que
+hace falta para señalar cajas que faltan o etiquetas que no coinciden en cualquier grabación,
+no sólo en las de prueba.
+
+\section{Material y protocolo}
+
+\rotulo{Datos.} \nRecordings{} grabaciones, \hours{}\,h de audio en ventanas de 3\,s con
+salto de 1,5\,s, \nAnnotated{} cajas anotadas de las 25 clases de RE1.2. Las dos clases de
+ventana (\code{as/hc}, \code{pt/dc}) no entran en la taxonomía: su caja ocupa la ventana
+entera y la geometría no distingue nada.
+
+\rotulo{Predicciones.} Modelo \code{\run}, el seleccionado en RE2.3, con el postprocesado
+común (NMS 0,3 por clase, cajas anidadas fuera, tope de 100 por ventana) y su umbral de
+operación \threshold{}, elegido en validación como el de mayor \textit{recall} con precisión
+$\geq 0{,}70$. Sobre train predicen los cinco modelos del k-fold
+(\file{runs/\kfold/fold\{0..4\}/best.pt}), entrenados con la misma receta y el mismo umbral;
+en train ese umbral da \textit{recall} \trainRecall{} y precisión \trainPrecision{}, frente a
+\testRecall{} y \testPrecision{} en prueba. Predicción de alta confianza: la que supera el
+umbral; acierto: la que empareja a IoU $\geq \matchIou$ una anotación de su clase que ninguna
+otra predicción reclamó antes (el emparejamiento de RE2.1). \todo{El plan de OE3 (RE3.1) fija
+IoU 0,5 para el emparejamiento; el protocolo implementado y usado en RE2.3 empareja a
+\matchIou. Decidir cuál rige en OE3 y, si es 0,5, reejecutar el cuaderno con
+\code{MATCH\_IOU = 0.5}.}
+
+\rotulo{Categorías.} Cada predicción de alta confianza que no es un acierto se asigna a una
+sola categoría, en este orden, según las anotaciones que tiene debajo en su ventana:
+\begin{description}[leftmargin=2.2em, itemsep=2pt]
+    \item[B unidad] tiene una anotación de su clase con IoU $\geq \matchIou$ ya reclamada por
+          otra predicción (una anotación partida en varias predicciones), o cubre al menos la
+          mitad del área de dos o más anotaciones de su clase (varias anotaciones fundidas
+          en una predicción), los dos modos que documenta \citet{zhu_sound_2025};
+    \item[C clase] tiene una anotación de otra clase con IoU $\geq \matchIou$: encuadre
+          correcto, etiqueta distinta;
+    \item[A encuadre] solapa una anotación de su clase con IoU menor que \matchIou;
+    \item[D región sin anotación] no toca ninguna anotación de su clase ni ninguna de otra
+          clase con IoU $\geq \matchIou$.
+\end{description}
+Las tres primeras se resuelven con la geometría; la D queda abierta y se caracteriza en la
+sección~\ref{sec:d}.
+
+\section{Distribución}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Predicciones de alta confianza por partición y categoría (entre paréntesis,
+        porcentaje de las discrepancias)}
+    \label{tab:taxonomia}
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{@{}lrrrrrrr@{}}
+        \toprule
+        \textbf{Partición} & \thead{Predic-\\ciones} & \thead{Aciertos} & \thead{A\\encuadre} & \thead{B\\unidad} & \thead{C\\clase} & \thead{D sin\\anotación} & \thead{D por\\hora} \\
+        \midrule
+        \input{figures/RE_3-3/taxonomia} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Sobre el corpus, \nConfident{} predicciones de alta confianza: \nHits{} aciertos y
+\nDiscrepancies{} discrepancias (\pctDiscrepancies). De las discrepancias, \nA{} son de
+encuadre (\pctA), \nB{} de unidad (\pctB), \nC{} de clase (\pctC) y \nD{} caen en región sin
+anotación (\pctD), es decir \dPerHour{} por hora de audio. De las de clase,
+\pctCSameSpecies{} llevan otra llamada de la misma especie que la anotada.
+
+\subsection{Por clase}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Predicciones de alta confianza por clase en el corpus, ordenadas por la fracción
+        que cae en región sin anotación}
+    \label{tab:por-clase}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrrrrrrr@{}}
+        \toprule
+        \textbf{Clase} & \thead{Predic-\\ciones} & \thead{Aciertos} & \thead{A} & \thead{B} & \thead{C} & \thead{D} & \thead{\% D} \\
+        \midrule
+        \input{figures/RE_3-3/por_clase} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/RE_3-3/por_clase}
+    \caption{Discrepancias por clase, como porcentaje de las predicciones confiadas de la
+        clase}
+    \label{fig:por-clase}
+\end{figure}
+
+\section{Categoría D frente a las anotaciones}
+\label{sec:d}
+
+Para cada predicción D se comparan tres cosas con las cajas anotadas de su clase: si su
+duración y su ancho de banda caen dentro del rango P5--P95 de las anotaciones de la clase en
+train (\emph{compatible}); si en la misma grabación hay una anotación de su clase a menos de
+\nearS{}\,s (\emph{junto a su clase}); y su puntuación frente a la de los aciertos. Que una D
+se parezca geométricamente a las anotaciones de su clase y aparezca junto a ellas es un
+indicio, no una prueba, de un evento que la referencia omite
+\citep{gibb_2018,leroy_reliability_2018}; su resolución es objeto de RE3.4.
+
+Sobre el corpus, \pctDCompatible{} de las D son compatibles con su clase, \pctDNear{} están a
+menos de \nearS{}\,s de una anotación de su clase y \pctDWithClass{} caen en una grabación
+que tiene anotaciones de su clase; su puntuación mediana es \scoreD{} frente a \scoreTp{} en
+los aciertos. Tres clases (\topDClasses) reúnen \topDShare{} de las D.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Categoría D por clase: cantidad, fracción de las predicciones confiadas de la
+        clase, compatibilidad geométrica, cercanía a anotaciones de su clase y puntuación
+        mediana frente a la de los aciertos}
+    \label{tab:categoria-d}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrrrrrrr@{}}
+        \toprule
+        \textbf{Clase} & \thead{D} & \thead{Aciertos} & \thead{\% D} & \thead{Compa-\\tibles (\%)} & \thead{Junto a su\\clase (\%)} & \thead{Score\\D} & \thead{Score\\aciertos} \\
+        \midrule
+        \input{figures/RE_3-3/categoria_d} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/RE_3-3/categoria_d}
+    \caption{Duración y ancho de banda de las predicciones D (rojo) frente a las cajas
+        anotadas de su clase en train (gris), para las clases con más D}
+    \label{fig:categoria-d}
+\end{figure}
+
+\subsection{Concentración y tabla de hallazgos}
+
+\nRecordingsWithD{} de las \nRecordings{} grabaciones tienen alguna predicción D; \nHalf{}
+grabaciones (\pctHalf) reúnen la mitad. La tabla \file{figures/RE\_3-3/hallazgos\_corpus.csv}
+lista todas las D con su grabación, partición, clase, puntuación, tiempos en segundos,
+frecuencias en hercios, compatibilidad y distancia a la anotación más cercana de su clase:
+es el material de RE3.4 y se abre en Raven Pro o en el visor sobre cada grabación.
+
+\subsection{Contraste con las tablas crudas}
+
+Cada D se busca en la tabla de Raven de su grabación en \file{data/unified/}, la unión de las
+tablas de todas las copias de la grabación sin limpiar: la fila de mayor IoU bajo la
+predicción, recortada a la ventana y medida como el emparejamiento, y qué hizo con ella la
+limpieza de RE1.1 (Tabla~\ref{tab:contraste}). De las \nD{} D, \nDNoRow{} (\pctDNoRow) no tienen
+ninguna fila debajo: si son eventos, el anotador no los marcó. \nDDropped{} caen sobre filas
+que la limpieza descartó (ruido, caja degenerada): están anotadas en crudo y el modelo las
+recupera. \nDReview{} caen sobre anotaciones marcadas \code{requires\_review} (tipo de llamada
+fuera del vocabulario o vacío, especie escrita distinta de la carpeta), que el experimento no
+usa; \nDExcluded{} sobre anotaciones cuya clase no entró al conjunto (\code{lw/cc},
+\code{sm/fc}, \code{sb/pcs} o menos de 100 cajas) y \nDClean{} sobre anotaciones del conjunto
+que la ventana dejó fuera o con IoU $< 0{,}3$; ninguna de las tres es una omisión. Sólo las
+primeras quedan como candidatas en la tabla de hallazgos (columna \code{raw\_estado}).
+
+\begin{table}[htbp]
+    \centering
+    \caption{Las predicciones D según la fila cruda que tienen debajo (izquierda) y, para las
+        clases con más D, la fracción en cada estado (derecha)}
+    \label{tab:contraste}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrr@{}}
+        \toprule
+        \textbf{Fila cruda} & \thead{D} & \thead{\%} \\
+        \midrule
+        \input{figures/RE_3-3/contraste} \\
+        \bottomrule
+    \end{tabular}
+    \hfill
+    \begin{tabular}{@{}lrrrrrr@{}}
+        \toprule
+        \textbf{Clase} & \thead{D} & \thead{sin fila} & \thead{descartada} & \thead{en revisión} & \thead{sin clase} & \thead{limpia} \\
+        \midrule
+        \input{figures/RE_3-3/contraste_clase} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Anotaciones que el modelo contradice}
+
+El otro lado de la misma comparación: para cada anotación, si tiene encima una predicción
+confiada de su clase. Con las categorías de \file{src/find\_issues.py}, que sigue a CLOD
+(\emph{confident learning} para detección): \code{spurious}, anotación que ninguna predicción
+de ninguna clase toca (el modelo ve fondo); \code{label}, anotación cubierta por una predicción
+confiada de otra clase y no por una de la suya; \code{location}, anotación acertada con IoU
+$< 0{,}6$ \todocita{Chachu\l{}a et al.\ 2023, CLOD: confident learning para detección de
+objetos}. La confianza es por clase (el score medio que el modelo da a las anotaciones de esa
+clase), no el umbral de operación; una anotación con predicciones de su clase poco confiadas no
+es hallazgo, como en \emph{confident learning} lo que no es confiado en ninguna clase no cuenta.
+Sobre el corpus: \nSpurious{} \code{spurious}, \nLabel{} \code{label} y \nLocation{}
+\code{location}. Contrastadas con su fila cruda en \file{data/unified/}: \nWrittenDiffers{}
+de estas anotaciones llevan una \code{Species} escrita distinta de la carpeta (las discordantes
+de RE1.1) y, entre los \code{label} de ese grupo, en \nLabelWritten{} el modelo sugiere
+justamente la especie escrita.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Anotaciones por clase que el modelo no reproduce, con la categoría de CLOD
+        (entre paréntesis, porcentaje de las anotadas de la clase)}
+    \label{tab:anotaciones}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        \textbf{Clase} & \thead{Anotadas} & \thead{spurious} & \thead{label} & \thead{location} \\
+        \midrule
+        \input{figures/RE_3-3/anotaciones} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Ejemplos}
+
+Dos ventanas de prueba por categoría, elegidas entre las discrepancias de mayor puntuación
+en grabaciones distintas: anotaciones en blanco; predicciones confiadas en color según su
+categoría (aciertos en verde, continuos; discrepancias discontinuas, con su letra, clase y
+puntuación).
+
+\begin{figure}[htbp]
+    \centering
+    \input{figures/RE_3-3/ejemplos}
+    \caption{Ventanas de prueba con una discrepancia de cada categoría}
+    \label{fig:ejemplos}
+\end{figure}
+
+\section{Comandos}
+
+\begin{lstlisting}[language=bash]
+uv run python src/kfold.py --arch yolo --name yolo26s_v3_kfold5          # cinco pliegues sobre train
+uv run python src/find_issues.py runs/yolo26s_v3_kfold5/yolo26s_v3_kfold5_train_predictions.pt
+cd research/reportes && uv run jupyter nbconvert --to notebook --execute --inplace \
+    RE_3-3_taxonomia-discrepancias.ipynb
+\end{lstlisting}
+\file{kfold.py} reparte las grabaciones de train en cinco pliegues parejos en ventanas,
+entrena un modelo por pliegue con la receta de \file{train.py} (el \file{best.pt} de cada uno
+se elige sobre val, como en RE2.2), predice el pliegue retenido y funde los cinco volcados en
+uno con el formato de \file{dump\_predictions.py}. \file{find\_issues.py} escribe la tabla de
+hallazgos de CLOD sobre ese volcado (\file{hallazgos\_train.csv}), cada uno contrastado con la
+fila cruda de \file{data/unified/} (columnas \code{raw\_*}); el cuaderno repite el análisis
+sobre val y test con el modelo final y agrega las tres particiones.
+
+\section{Fuera de alcance}
+
+Las predicciones D no se resuelven aquí entre evento omitido y falso positivo genuino: eso
+requiere a un analista y es RE3.4, condicional. La cobertura frente a carga de revisión y el
+costo de inferencia son RE3.2. \todo{RE3.1 debe quedar redactado y fechado antes de dar por
+cerrado este informe: umbral de emparejamiento, punto de operación, fusión entre ventanas y
+esta taxonomía.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

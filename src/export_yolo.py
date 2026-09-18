@@ -11,6 +11,7 @@ from data import cache
 from data.datasets import YOLODataset
 from data.species import LABEL_SEPARATOR
 from models.yolo import IMAGE_SIZE
+from training.yolo import image_path
 
 logger = logging.getLogger("export_yolo")
 
@@ -32,11 +33,11 @@ def export_split(split: str, db_low: float, db_high: float) -> dict[str, int]:
     n_boxes = n_empty = 0
     for index in tqdm(range(len(dataset)), desc=f"exportando {split}", disable=None):
         image, lines = dataset[index]
-        stem = f"{split}_{index:06d}"
-        cv2.imwrite(
-            str(image_dir / f"{stem}.png"), image, [cv2.IMWRITE_PNG_COMPRESSION, PNG_COMPRESSION]
+        image_file = image_path(split, index)
+        cv2.imwrite(str(image_file), image, [cv2.IMWRITE_PNG_COMPRESSION, PNG_COMPRESSION])
+        (label_dir / image_file.with_suffix(".txt").name).write_text(
+            "\n".join(lines) + "\n" if lines else ""
         )
-        (label_dir / f"{stem}.txt").write_text("\n".join(lines) + "\n" if lines else "")
         n_boxes += len(lines)
         n_empty += not lines
     return {"windows": len(dataset), "boxes": n_boxes, "empty_windows": n_empty}

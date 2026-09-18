@@ -3,10 +3,12 @@
 Los pliegues van por grabación. Cada modelo elige su `best.pt` sobre val, como `train.py`; el
 pliegue retenido sólo se predice. Los volcados por pliegue se funden en
 `runs/<nombre>/<nombre>_train_predictions.pt`, con el formato de `dump_predictions.py`, que es
-lo que leen `find_issues.py` (CLOD) y `compare_models.py`.
+lo que leen `find_issues.py` (CLOD) y `compare_models.py`. YOLO entrena por Ultralytics sobre
+el export de `export_yolo.py`, restringido a las ventanas del pliegue.
 
     python src/kfold.py --arch detr --hp frontend=logmel --cfg epochs=20
     python src/kfold.py --arch detr --hp frontend=logmel --cfg epochs=20 --fold 1 3   # otra GPU
+    python src/kfold.py --arch yolo
 """
 
 import argparse
@@ -28,7 +30,7 @@ from evaluation.evaluator import RawPredictions, collect_detections, path_for
 from evaluation.metrics import Boxes, concat, sort_by_score
 from models.registry import ARCHITECTURES, build_model, load_checkpoint
 from train import PRESETS, overrides
-from training import checkpoint
+from training import checkpoint, yolo
 from training.trainer import Trainer
 
 logger = logging.getLogger("kfold")
@@ -144,8 +146,7 @@ def merge(name: str, n_folds: int, n_windows: int, labels: list[str]) -> Path:
 def main() -> None:
     args = parse_args()
     preset = PRESETS[args.arch]
-    if preset.arch == "yolo":
-        raise SystemExit("YOLO entrena por Ultralytics; el k-fold cubre FRCNN y DETR")
+    is_yolo = preset.arch == "yolo"
     hparams = preset.hparams | overrides(args.hp)
     if ARCHITECTURES[preset.arch].needs_db_range:
         hparams["db_low"], hparams["db_high"] = cache.db_range()
@@ -156,8 +157,13 @@ def main() -> None:
     device = resolve_device(args.device)
     labels = cache.labels()
 
-    train_set = SpectrogramDataset(
-        cache.split_path(cache.TRAIN), jitter=config.jitter, augment=config.augment
+    # YOLO no lee el caché al entrenar: sólo hace falta para predecir el pliegue retenido
+    train_set = (
+        SpectrogramDataset(cache.split_path(cache.TRAIN))
+        if is_yolo
+        else SpectrogramDataset(
+            cache.split_path(cache.TRAIN), jitter=config.jitter, augment=config.augment
+        )
     )
     n_windows = len(train_set)
     recording_of_window = cache.sources(cache.TRAIN, n_windows).recording_of_window
@@ -182,20 +188,31 @@ def main() -> None:
             len(held_out),
         )
         set_seed(config.seed)
-        model = build_model(preset.arch, len(labels), hparams).to(device)
-        Trainer(
-            model,
-            preset.arch,
-            hparams,
-            labels,
-            make_loader(Subset(train_set, seen), config.batch_size, config.workers, shuffle=True),
-            make_loader(val_set, config.batch_size, config.workers),
-            fold_dir,
-            config,
-            device,
-        ).fit()
-        del model
-        torch.cuda.empty_cache()
+        if is_yolo:
+            yolo.fit(
+                fold_dir,
+                hparams,
+                config,
+                device,
+                train_images=[yolo.image_path(cache.TRAIN, w) for w in seen],
+            )
+        else:
+            model = build_model(preset.arch, len(labels), hparams).to(device)
+            Trainer(
+                model,
+                preset.arch,
+                hparams,
+                labels,
+                make_loader(
+                    Subset(train_set, seen), config.batch_size, config.workers, shuffle=True
+                ),
+                make_loader(val_set, config.batch_size, config.workers),
+                fold_dir,
+                config,
+                device,
+            ).fit()
+            del model
+            torch.cuda.empty_cache()
         predict_held_out(fold_dir, train_set, held_out, config.batch_size, device)
 
     if all((run_dir / f"fold{k}" / HELD_OUT).is_file() for k in range(args.folds)):

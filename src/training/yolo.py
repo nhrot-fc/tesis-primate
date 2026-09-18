@@ -45,6 +45,28 @@ AUGMENTATION = {
 }
 
 
+def image_path(split: str, index: int) -> Path:
+    # Ventana `index` de `split` en el export; su etiqueta está en labels/ con el mismo nombre.
+    return YOLO_DIR / "images" / split / f"{split}_{index:06d}.png"
+
+
+def fold_dataset(run_dir: Path, train_images: list[Path]) -> Path:
+    # Un dataset.yaml propio de la corrida que entrena sólo con estas imágenes del export:
+    # Ultralytics acepta en `train:` un .txt con rutas y busca cada etiqueta en images/ -> labels/.
+    run_dir.mkdir(parents=True, exist_ok=True)
+    train_list = run_dir / "train.txt"
+    train_list.write_text("".join(f"{path}\n" for path in train_images))
+    lines = (YOLO_DIR / "dataset.yaml").read_text().splitlines()
+    dataset = run_dir / "dataset.yaml"
+    dataset.write_text(
+        "".join(
+            f"{'train: ' + str(train_list) if line.startswith('train:') else line}\n"
+            for line in lines
+        )
+    )
+    return dataset
+
+
 def check_export() -> dict:
     # El export tiene que ser del caché actual.
     if not (YOLO_DIR / "dataset.yaml").exists():
@@ -97,10 +119,14 @@ def fit(
     config: TrainConfig,
     device: str,
     limit: int | None = None,
+    train_images: list[Path] | None = None,  # k-fold: sólo estas ventanas del export de train
 ) -> Path:
     from ultralytics import YOLO
 
     meta = check_export()
+    dataset = YOLO_DIR / "dataset.yaml"
+    if train_images is not None:
+        dataset = fold_dataset(run_dir, train_images)
     labels = cache.labels()
     stem = Path(hparams["model"]).stem
     if meta["image_size"] != hparams["imgsz"]:
@@ -115,7 +141,7 @@ def fit(
     trainer = YOLO(str(last) if resume else f"{stem}.pt")  # desde los pesos de COCO
     n_train = meta["counts"][cache.TRAIN]["windows"]
     results = trainer.train(
-        data=str(YOLO_DIR / "dataset.yaml"),
+        data=str(dataset),
         epochs=config.epochs,
         batch=config.batch_size,
         imgsz=hparams["imgsz"],

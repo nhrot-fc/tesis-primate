@@ -84,6 +84,18 @@ class Session(QObject):
             return table
         return table.loc[table[SCORE] >= self.score]
 
+    # Una caja nueva al final de la tabla de `source`; si no había tabla, la crea con las
+    # columnas de la caja y la clase. La etiqueta de fila sigue a la mayor que hubiera, así las
+    # de las demás filas no cambian.
+    def add(self, source: str, values: dict[str, object]) -> None:
+        table = self.tables[source]
+        if table is None:
+            table = pd.DataFrame(columns=[*BOX_COLUMNS, SPECIES, CALL])
+        next_label = int(table.index.max()) + 1 if len(table) else 0
+        row = pd.DataFrame([values], index=[next_label])
+        self.tables[source] = pd.concat([table, row])
+        self.changed.emit()
+
     def remove(self, targets: list[tuple[str, Hashable]]) -> None:
         for source in SOURCES:
             indices = [index for target, index in targets if target == source]

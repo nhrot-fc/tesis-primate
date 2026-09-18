@@ -129,13 +129,15 @@ def average_precision(found: Tensor, n_gt: int) -> float | None:
     return float(((recall - previous_recall) * envelope).sum())
 
 
-def average_precision_per_class(predictions: Boxes, truth: Boxes, n_classes: int) -> PerClassAP:
+def average_precision_per_class(
+    predictions: Boxes, truth: Boxes, n_classes: int, iou: float = MATCH_IOU
+) -> PerClassAP:
     ap: PerClassAP = {}
     for class_id in range(n_classes):
         class_predictions = predictions.select(predictions.labels == class_id)
         class_truth = truth.select(truth.labels == class_id)
         found = hits(
-            overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), MATCH_IOU
+            overlaps(class_predictions, class_truth, False), len(class_predictions.boxes), iou
         )
         ap[class_id] = average_precision(found, len(class_truth.boxes))
     return ap

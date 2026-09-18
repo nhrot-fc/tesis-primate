@@ -11,20 +11,25 @@ Cómo se ponen Faster R-CNN, AST-Deformable DETR y YOLO en la misma tabla. El c�
 2. **Mismo presupuesto.** `equalize` deja las 100 mejores cajas por ventana (`MAX_DETECTIONS`)
    para todos: torchvision corta en 100 y ultralytics en 300, y sin techo común la cola de la
    curva PR es del framework, no del modelo. Ninguna ventana tiene más de 9 cajas anotadas.
-3. **Acierto a IoU 0,3** (`MATCH_IOU`), por clase. mAP@0,3 es la métrica libre de umbral.
+3. **Acierto a IoU 0,3** (`MATCH_IOU`), por clase. mAP@0,3 es la métrica libre de umbral;
+   mAP@0,5 (`STRICT_IOU`) mide además el encuadre.
 4. **Umbral por modelo, elegido en val.** De la rejilla 0,01–0,99, el de mayor recall entre los
-   que cumplen la precisión mínima: 0,70 (objetivo declarado) y 0,50 (secundario). Un umbral
-   fijo mide calibración, no detección: cada cabeza reparte sus scores a su manera.
-5. **Test se mide una vez**, en ese umbral, con IC 95 % por bootstrap de 1 000 remuestreos
-   **sobre grabaciones**: ventanas vecinas comparten la mitad del audio y la calidad (SNR,
-   distancia, viento) es de la grabación entera. Remuestrear ventanas da IC ~50 % más angostos
-   de lo que corresponde.
-6. **Las clases de ventana van aparte.** Si la mediana del ancho de caja de una clase ocupa
-   ≥ 95 % del clip (`as/hc`, `pt/dc`), detectarla es clasificar la ventana; se reportan como
-   recall/precisión de ventana y no entran al macro.
+   que cumplen precisión ≥ 0,70. Un umbral fijo mide calibración, no detección: cada cabeza
+   reparte sus scores a su manera. El reporte no lo muestra: es el único umbral que existe y
+   queda en `runs/<corrida>/operating_point.json`, con el que arranca el visor y el que usa
+   `detect.py`.
+5. **Test se mide una vez**, en ese umbral. Los intervalos de confianza (bootstrap sobre
+   grabaciones), el segundo umbral (precisión ≥ 0,50) y el acierto por ventana de las clases
+   de ventana se hacen en los cuadernos con `protocol.pair` y `protocol.window_level`, no en
+   el reporte.
+6. **Las clases de ventana se marcan.** Si la mediana del ancho de caja de una clase ocupa
+   ≥ 95 % del clip (`as/hc`, `pt/dc`), detectarla es clasificar la ventana: van en la tabla
+   por clase con `*` y no entran en la mAP.
 
-El umbral del primer criterio queda en `runs/<corrida>/operating_point.json`: es con el que
-arranca el visor y el que usa `detect.py`.
+El reporte tiene tres bloques: **global** (recall, precisión, mAP@0,3, mAP@0,5); **detección,
+encuadre y clasificación** (recall y precisión emparejando sin clase, IoU mediano de esos pares,
+recall con clase a IoU 0,5, y de lo encontrado qué fracción lleva la clase y la especie
+anotadas); y **por clase** (recall, precisión, AP@0,3 y AP@0,5 de cada especie/llamada).
 
 ## Por qué IoU 0,3
 
@@ -53,5 +58,4 @@ uv run python src/compare_models.py runs/*/*_predictions.pt --output runs/compar
 ```
 
 `./evaluation.sh` hace las dos cosas para todos los `runs/*/best.pt`. Sale un `.txt` legible y
-un `.json` con las mismas cifras: mAP@0,3, puntos pareados por criterio con IC, tabla por
-clase y clases de ventana.
+un `.json` con las mismas cifras (más el punto de operación de cada modelo en val y test).

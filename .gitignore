@@ -50,6 +50,7 @@ venv/
 /hf/
 /logs/
 /runs/
+/runs_extra/
 /secrets/
 /.vscode/
 *.zip
@@ -57,3 +58,6 @@ venv/
 # Add exceptions for research build artifacts
 !research/build/
 !research/build/main.pdf
+
+# Copias de decisiones de curación apartadas por el notebook al reiniciar
+curation/*.bak

@@ -34,11 +34,10 @@ BAND = 4.0
 RESOLUTIONS = [(512, 64), (1024, 128), (2048, 256), (4096, 512), (8192, 1024)]
 COLUMNS_ON_SCREEN = 900
 
-# Zoom del eje de frecuencia. La caja mediana de un hallazgo mide 2,7 kHz sobre los
-# 22 kHz del eje completo: sin acotar la banda ocupa un octavo de la pantalla.
+# La banda visible no baja de esto; sus alturas las elige `controls.Band`.
 MIN_BAND_HZ = 200.0
-BAND_STEP = 1.25
-PAN_FRACTION = 0.25
+# La caja en revisión se dibuja con asas más grandes que las de pyqtgraph.
+HANDLE_SIZE = 9
 
 
 class Layer(NamedTuple):
@@ -61,6 +60,7 @@ class SpectrogramView(pg.PlotWidget):
     moved = pyqtSignal(float, float)
     clicked = pyqtSignal(float)
     banded = pyqtSignal(float, float)
+    band_zoomed = pyqtSignal(int, float)  # paso y frecuencia bajo el puntero
 
     def __init__(self) -> None:
         super().__init__()
@@ -97,6 +97,25 @@ class SpectrogramView(pg.PlotWidget):
         self.highlight.setZValue(15)
         self.highlight.setVisible(False)
         self.vb.addItem(self.highlight)
+        # La caja en revisión: se arrastra entera o por cualquiera de sus cuatro esquinas.
+        self.roi = pg.RectROI(
+            [0.0, 0.0],
+            [1.0, 1.0],
+            pen=pg.mkPen(HIGHLIGHT_COLOR, width=2),
+            hoverPen=pg.mkPen(HIGHLIGHT_COLOR, width=3),
+            movable=True,
+            rotatable=False,
+            removable=False,
+        )
+        self.roi.handleSize = HANDLE_SIZE  # las que se agregan salen de este tamaño
+        for position, center in (([0, 0], [1, 1]), ([1, 0], [0, 1]), ([0, 1], [1, 0])):
+            self.roi.addScaleHandle(position, center)
+        for handle in self.roi.getHandles():  # y la que RectROI trae de fábrica
+            handle.radius = HANDLE_SIZE
+            handle.buildPath()
+        self.roi.setZValue(16)
+        self.roi.hide()
+        self.vb.addItem(self.roi)
         if self.sceneObj is not None:
             self.sceneObj.sigMouseMoved.connect(self.on_move)
 
@@ -120,6 +139,7 @@ class SpectrogramView(pg.PlotWidget):
         self.baseline_n_fft = 0
         self.band = None
         self.set_highlight(None)
+        self.set_editable(None)
         # La banda elegida se conserva de una grabación a otra: moverla es cosa del usuario.
         if sr != previous:
             self.set_band(0.0, sr / 2)
@@ -158,11 +178,6 @@ class SpectrogramView(pg.PlotWidget):
         center = min(max(0.5 * (low + high), span / 2), top - span / 2)
         self.vb.setYRange(center - span / 2, center + span / 2, padding=0)
         self.banded.emit(center - span / 2, center + span / 2)
-
-    def pan_band(self, direction: int) -> None:
-        low, high = self.vb.viewRange()[1]
-        step = direction * PAN_FRACTION * (high - low)
-        self.set_band(low + step, high + step)
 
     def covers(self, start: float, span: float, n_fft: int, hop: int) -> bool:
         if self.band is None:
@@ -251,6 +266,21 @@ class SpectrogramView(pg.PlotWidget):
         self.highlight.setRect(rect)
         self.highlight.setVisible(True)
 
+    # La caja que se está revisando, con asas; None la esconde.
+    def set_editable(self, box: tuple[float, float, float, float] | None) -> None:
+        if box is None:
+            self.roi.hide()
+            return
+        begin, end, low, high = box
+        self.roi.setPos([begin, low], update=False)
+        self.roi.setSize([end - begin, high - low])
+        self.roi.show()
+
+    def editable_box(self) -> tuple[float, float, float, float]:
+        position, size = self.roi.pos(), self.roi.size()
+        begin, low = float(position[0]), float(position[1])
+        return begin, begin + float(size[0]), low, low + float(size[1])
+
     def set_playhead(self, seconds: float | None) -> None:
         if seconds is None:
             self.playhead.hide()
@@ -284,10 +314,7 @@ class SpectrogramView(pg.PlotWidget):
         modifiers = ev.modifiers()
         if modifiers & Qt.KeyboardModifier.ShiftModifier:
             # Alrededor del puntero: se apunta a la caja y se acerca sin perderla.
-            hz = self.vb.mapSceneToView(ev.position()).y()
-            low, high = self.vb.viewRange()[1]
-            factor = BAND_STEP**direction
-            self.set_band(hz + (low - hz) * factor, hz + (high - hz) * factor)
+            self.band_zoomed.emit(direction, self.vb.mapSceneToView(ev.position()).y())
         elif modifiers & Qt.KeyboardModifier.ControlModifier:
             self.zoomed.emit(direction)
         else:

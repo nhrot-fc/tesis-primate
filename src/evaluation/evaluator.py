@@ -131,13 +131,7 @@ def load_dumps(paths: Sequence[Path]) -> list[ModelDumps]:
         by_model.setdefault(dump.model, {})[dump.split] = dump
         if dump.split == VAL:
             directories[dump.model] = path.parent
-        logger.info(
-            "%s %s: %d ventanas, %d cajas",
-            dump.model,
-            dump.split,
-            dump.n_images,
-            len(dump.predictions.boxes),
-        )
+        logger.debug("%s %s: %d ventanas", dump.model, dump.split, dump.n_images)
     incomplete = {m: sorted(s) for m, s in by_model.items() if not {VAL, TEST} <= s.keys()}
     if incomplete:
         raise ValueError(f"faltan volcados: {incomplete}; cada modelo necesita {VAL} y {TEST}")

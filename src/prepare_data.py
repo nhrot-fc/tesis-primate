@@ -14,7 +14,7 @@ from core.runtime import setup_logging
 from data import cache
 from data.annotations import load_annotations
 from data.manifest import ClipWindow, build_manifest, split_manifest
-from data.species import BACKGROUND_SPECIES, LABEL_SEPARATOR, LabelSet
+from data.species import LABEL_SEPARATOR, LabelSet
 from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
 logger = logging.getLogger("prepare_data")
@@ -28,7 +28,6 @@ SPLIT_RATIOS = (0.6, 0.225, 0.175)
 EXCLUDED_LABELS = ("lw/cc", "sm/fc", "sb/pcs")
 JOINED_LABELS = {
     "lw/tr": "lw/trino",
-    "lw/tj": "lw/trino",
     "lw/tt": "lw/trino",
     "lw/tf": "lw/trino",
     "sb/lpc": "sb/ppc",
@@ -36,10 +35,9 @@ JOINED_LABELS = {
 
 
 def select_experiment(annotations: pd.DataFrame) -> tuple[pd.DataFrame, LabelSet]:
-    # Las aves (PteroSet) no entran: son el preentrenamiento, no el experimento. Las filas con
-    # `ignore` tampoco: `build_manifest` las recibe aparte para descartar sus ventanas.
-    usable = ~annotations["species"].isin(BACKGROUND_SPECIES) & ~annotations["ignore"]
-    raven_df = annotations.loc[usable].copy()
+    # Las filas con `requires_review` no entran: `build_manifest` las recibe aparte para
+    # descartar sus ventanas, así no se enseñan ni como caja ni como fondo.
+    raven_df = annotations.loc[~annotations["requires_review"]].copy()
     raven_df["low_freq_hz"] = raven_df["low_freq_hz"].clip(lower=P.f_min)
     raven_df["label"] = (raven_df["species"] + LABEL_SEPARATOR + raven_df["call_type"]).replace(
         JOINED_LABELS
@@ -105,7 +103,7 @@ def main() -> None:
         labels,
         empty_ratio=EMPTY_RATIO,
         seed=SEED,
-        ignored=annotations.loc[annotations["ignore"]],
+        under_review=annotations.loc[annotations["requires_review"]],
     )
     splits = split_manifest(manifest, n_classes=len(labels), seed=SEED, ratios=SPLIT_RATIOS)
 

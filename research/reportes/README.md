@@ -15,6 +15,7 @@ tabla) que deja el cuaderno.
 | `RE_2-3_informe-comparativo.tex` | `RE_2-3_informe-comparativo.ipynb` | informe comparativo de resultados |
 | `RE_2-4_modelo-final.tex` | `RE_2-4_modelo-final.ipynb` | modelo final cargable y demostración |
 | `RE_2-5_repositorio.tex` | — | índice del repositorio y sus releases |
+| `RE_3-3_taxonomia-discrepancias.tex` | `RE_3-3_taxonomia-discrepancias.ipynb` | discrepancias A/B/C/D sobre todo el corpus (k-fold en train) y tabla de hallazgos |
 
 Las figuras de matplotlib son PNG a 200 ppp, una imagen por panel y del ancho con el que se
 imprimen (`reporte.TEXT_WIDTH_IN`, o una fracción), de modo que el `.tex` las coloca por
@@ -34,7 +35,9 @@ uv run jupyter nbconvert --to notebook --execute --inplace RE_1-1_protocolo-cura
 
 Los cuadernos de OE1 leen `data/cleaned/` y `data/processed/`; los de OE2 leen además `runs/*/`
 (checkpoints, volcados y `runs/comparacion/comparacion_modelos.json`, que produce
-`./evaluation.sh`). `RE_2-3` tarda unos minutos por el costo de inferencia en CPU.
+`./evaluation.sh`). `RE_2-3` tarda unos minutos por el costo de inferencia en CPU. `RE_3-3`
+necesita además el volcado fuera de muestra de train del modelo seleccionado
+(`python src/kfold.py --arch yolo --name <run>_kfold5`; `RUN` en la primera celda).
 
 ## Compilar
 

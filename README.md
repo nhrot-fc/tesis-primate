@@ -54,7 +54,7 @@ La interfaz está en inglés. Un solo programa con dos vistas, conmutables arrib
 
 | | Qué hace |
 |---|---|
-| `Detector.exe` → **Spectrogram** | Una grabación por vez. Arrastra un audio (WAV, FLAC, MP3) o `Ctrl+O`; elige el modelo en la barra y **Detect**. Encima se puede abrir una tabla de Raven (con columna `Score` va a la capa *Detections*, sin ella a *Annotations*), filtrar por score, oír, borrar cajas y guardar la tabla o una imagen. `F1` lista los controles |
+| `Detector.exe` → **Spectrogram** | Una grabación por vez. Arrastra un audio (WAV, FLAC, MP3) o `Ctrl+O`; elige el modelo en la barra y **Detect**. Encima se puede abrir una tabla de Raven (con columna `Score` va a la capa *Detections*, sin ella a *Annotations*), filtrar por score, oír, borrar cajas y guardar la tabla o una imagen. Como en Raven, el ancho de ventana y la altura de banda se eligen de dos listas y hay un scroll para cada eje. **Review** recorre las detecciones una por una: cada caja se encuadra y se puede arrastrar por sus esquinas y cambiar de especie antes de aceptarla (`A`), rechazarla (`R`) o saltarla (`S`); cada decisión se apunta al instante en un archivo temporal por grabación y *Save → Reviewed boxes…* vuelca las aceptadas como tabla de anotaciones. `F1` lista los controles |
 | `Detector.exe` → **Batch** | Una carpeta entera. Arrástrala sobre el `.exe` o sobre la ventana, fija el score (arranca en el punto de operación del modelo) y **Run**: cada grabación recibe su `<audio>.detections.txt` al terminar, con las cajas por encima del score. Doble clic en una fila la abre en *Spectrogram* |
 | `detect.exe` | Lo mismo que *Batch* desde consola, para scripts: `detect.exe --model models\frcnn D:\grabaciones` |
 | `README.txt` | Esto mismo, dentro del paquete |
@@ -73,14 +73,15 @@ corre el visor e inferencia con cualquier checkpoint; `uv sync --all-extras --al
 (datos, entrenamiento, notebooks, linters).
 
 ```bash
-uv run python src/prepare_annotations.py                 # data/raw -> data/cleaned
+uv run python src/prepare_annotations.py                 # data/raw -> data/cleaned (marca requires_review; notebooks/auditoria_anotaciones.ipynb las revisa)
 uv run python src/prepare_data.py                        # -> data/processed (ventanas, splits)
 uv run python src/train.py --arch frcnn                  # detr | detr_coco | yolo; --hp k=v, --cfg k=v
 ./evaluation.sh                                          # vuelca val/test de runs/*/best.pt y compara
 uv run python src/main.py [audio-o-carpeta]              # visor; sin models/ lista runs/
 uv run python src/detect.py --model runs/frcnn carpeta/  # por lotes
-uv run python src/kfold.py --arch detr --hp frontend=logmel --cfg epochs=20   # predicciones fuera de muestra sobre train
-uv run python src/find_issues.py runs/detr_kfold5/detr_kfold5_train_predictions.pt  # CLOD -> tabla de hallazgos
+uv run python src/kfold.py --arch yolo --name yolo26s_v3_kfold5                # predicciones fuera de muestra sobre train
+uv run python src/find_issues.py runs/yolo26s_v3_kfold5/yolo26s_v3_kfold5_train_predictions.pt  # CLOD -> hallazgos, contrastados con data/unified
+uv run python src/find_issues.py runs/yolo26s_v3/yolo26s_v3_val_predictions.pt              # ídem val y test; notebooks/curacion_iter1.ipynb los decide a ojo -> curation/
 ```
 
 Cómo se comparan los modelos: [docs/protocolo_comparacion.md](docs/protocolo_comparacion.md).

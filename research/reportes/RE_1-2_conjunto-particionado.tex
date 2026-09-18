@@ -55,10 +55,14 @@ de grabación en proporción \splitRatios{} (sección~\ref{sec:particion}).
 \label{sec:seleccion}
 
 Las anotaciones curadas cubren \nVocabPairs{} pares (especie, tipo de llamada) del vocabulario.
-No todos pueden ser clase de un detector, y el paso de uno a otro sigue tres reglas declaradas
+No todos pueden ser clase de un detector, y el paso de uno a otro sigue cuatro reglas declaradas
 en \file{src/prepare\_data.py}:
 
 \begin{enumerate}
+    \item \textbf{Anotaciones en revisión} (\code{requires\_review}, RE1.1). Las filas cuyo
+          tipo de llamada está fuera del vocabulario o vacío, o cuya especie escrita difiere de
+          la carpeta, no entran como clase, y toda ventana que las pisa se descarta del caché:
+          hasta que el equipo las resuelva no se enseñan ni como caja ni como fondo.
     \item \textbf{Exclusión por anidamiento} (\code{EXCLUDED\_LABELS}). Una \emph{frase} es
           una secuencia de \emph{sílabas} y los expertos anotan ambas: el mismo tramo de audio
           lleva una caja grande y varias pequeñas dentro de ella
@@ -69,8 +73,8 @@ en \file{src/prepare\_data.py}:
           \citealp{kershenbaum_acoustic_2016}). Se retiran las frases \code{lw/cc} y
           \code{sm/fc}; \code{sb/pcs}, la secuencia de píos de SB, no pertenece al
           vocabulario.
-    \item \textbf{Fusión de variantes} (\code{JOINED\_LABELS}). Los cuatro tipos de trino de
-          LW (\code{tr}, \code{tj}, \code{tt}, \code{tf}) se reúnen en \code{lw/trino}, y el
+    \item \textbf{Fusión de variantes} (\code{JOINED\_LABELS}). Los tres tipos de trino de
+          LW (\code{tr}, \code{tt}, \code{tf}) se reúnen en \code{lw/trino}, y el
           pío largo \code{sb/lpc} se une al pío de juego \code{sb/ppc}. Las variantes
           comparten banda y duración casi por completo (RE1.3) y por separado no alcanzan el
           umbral de la regla siguiente.
@@ -488,12 +492,6 @@ copia en su \file{config.json} y en el propio \emph{checkpoint}, de modo que un 
 consigo la descripción del conjunto con el que se entrenó.
 
 \lstinputlisting[caption={\file{meta.json} del caché actual}]{figures/RE_1-2/meta.json}
-
-\todo{\code{background\_species} y \code{background\_ratio} declaran el mecanismo para
-mezclar canto de aves (PteroSet) como fondo, pero \file{cleaned/} no contiene tablas de aves y
-el caché actual no tiene ninguna ventana de ese origen. O se regenera \file{cleaned/} con
-\file{birds\_\_AV} o se quita el mecanismo de \file{meta.json}; documentarlo tal cual está
-sería engañoso.}
 
 \subsection{Comandos}
 
