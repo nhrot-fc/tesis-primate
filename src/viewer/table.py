@@ -8,20 +8,31 @@ from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
     QHeaderView,
+    QLabel,
+    QStackedWidget,
     QStyle,
     QTableView,
     QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from data.raven import SCORE
-from viewer.session import SOURCES, Row, Session
+from viewer.controls import DockTitle, Panel
+from viewer.session import ANNOTATIONS, SOURCES, Row, Session
 
-HEADERS = ("Start", "End", "Hz", "Label")
+# La banda en kHz con un decimal: en Hz son once caracteres y se come la etiqueta.
+HEADERS = ("Start", "End", "kHz", "Label")
 LABEL_COLUMN = 3
 TRASH_WIDTH = 34
-PANEL_WIDTH = 360
-ROW_HEIGHT = 22
+PANEL_WIDTH, PANEL_LEAST = 360, 260
+ROW_HEIGHT = 24
 ROOT = QModelIndex()
+# Qué decir cuando una pestaña está vacía: lo que falta hacer, no el hecho de que falte.
+EMPTY = {
+    ANNOTATIONS: "No annotations yet.\nAccept boxes in Review, or open a Raven table.",
+}
+EMPTY_DEFAULT = "No detections yet.\nPress Detect, or lower the score."
 
 
 class BoxModel(QAbstractTableModel):
@@ -53,8 +64,13 @@ class BoxModel(QAbstractTableModel):
 
     @override
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+        if orientation != Qt.Orientation.Horizontal:
+            return None
+        if role == Qt.ItemDataRole.DisplayRole:
             return self.headers[section]
+        # El encabezado se alinea como su columna: si no, el número queda debajo de nada.
+        if role == Qt.ItemDataRole.TextAlignmentRole and section != LABEL_COLUMN:
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         return None
 
     @override
@@ -69,12 +85,14 @@ class BoxModel(QAbstractTableModel):
             return None
         if role == Qt.ItemDataRole.TextAlignmentRole and column != LABEL_COLUMN:
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        if role == Qt.ItemDataRole.ToolTipRole and column == LABEL_COLUMN:
+            return row.label
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         values = [
             f"{row.begin:.2f}",
             f"{row.end:.2f}",
-            f"{row.low:,.0f}–{row.high:,.0f}",
+            f"{row.low / 1000:.1f}–{row.high / 1000:.1f}",
             row.label,
             f"{row.score:.2f}",
         ]
@@ -95,6 +113,10 @@ class SourceTable(QTableView):
         self.setAlternatingRowColors(True)
         self.setShowGrid(False)
         self.setWordWrap(False)
+        # Por el medio: la etiqueta es `especie/llamada` y lo que distingue una fila de otra
+        # está al final, así que cortar por la derecha las deja todas iguales.
+        self.setTextElideMode(Qt.TextElideMode.ElideMiddle)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         vertical = self.verticalHeader()
         if vertical is not None:
             vertical.setVisible(False)
@@ -147,7 +169,34 @@ class SourceTable(QTableView):
             self.session.remove([(row.source, row.index) for row in rows])
 
 
-# Panel de cajas: una pestaña por origen, cada caja borrable con su papelera.
+# Una tabla y, en su lugar cuando no hay filas, una frase que dice cómo se llenan.
+class SourcePage(QStackedWidget):
+    def __init__(self, session: Session, source: str) -> None:
+        super().__init__()
+        self.rows = 0
+        self.table = SourceTable(session, source)
+        empty = QLabel(EMPTY.get(source, EMPTY_DEFAULT))
+        empty.setObjectName("placeholder")
+        empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty.setWordWrap(True)
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(20, 0, 20, 0)
+        layout.addWidget(empty)
+        self.addWidget(page)
+        self.addWidget(self.table)
+
+    def refresh(self) -> int:
+        self.rows = self.table.refresh()
+        self.setCurrentIndex(1 if self.rows else 0)
+        return self.rows
+
+    def count(self) -> int:
+        return self.rows
+
+
+# Panel de cajas: una pestaña por origen, cada caja borrable con su papelera. Es el inspector
+# de la ventana, y el único sitio donde las cajas se cuentan una por una.
 class BoxTable(QDockWidget):
     picked = pyqtSignal(object)
 
@@ -159,24 +208,51 @@ class BoxTable(QDockWidget):
         )
         # Un panel lateral, no una ventana flotante: sólo se cierra.
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
-        self.tables = {source: SourceTable(session, source) for source in SOURCES}
+        self.header = DockTitle(self, "Boxes")
+        self.pages = {source: SourcePage(session, source) for source in SOURCES}
         self.tabs = QTabWidget()
-        self.tabs.setMinimumWidth(PANEL_WIDTH)
         self.tabs.setDocumentMode(True)
-        for source, table in self.tables.items():
-            table.picked.connect(self.picked)
-            self.tabs.addTab(table, source)
+        for source, page in self.pages.items():
+            page.table.picked.connect(self.picked)
+            self.tabs.addTab(page, source)
+        self.pinned = False  # el usuario eligió pestaña: no se le cambia por debajo
         self.tabs.currentChanged.connect(self.on_tab)
-        self.setWidget(self.tabs)
+        tabbar = self.tabs.tabBar()
+        if tabbar is not None:
+            tabbar.tabBarClicked.connect(self.pin)
+        body = Panel(PANEL_WIDTH, PANEL_LEAST)
+        wrapper = QVBoxLayout(body)
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(self.tabs)
+        self.setWidget(body)
 
         session.changed.connect(self.refresh)
         self.refresh()
 
+    def pin(self, _index: int) -> None:
+        self.pinned = True
+
+    # La pestaña lleva el conteo de lo que se ve; si el score esconde filas, lo dice entero.
     def refresh(self) -> None:
-        for index, (source, table) in enumerate(self.tables.items()):
-            total = self.session.tables[source]
-            shown = table.refresh()
-            self.tabs.setTabText(index, f"{source}  {shown}/{0 if total is None else len(total)}")
+        for index, (source, page) in enumerate(self.pages.items()):
+            table = self.session.tables[source]
+            total = 0 if table is None else len(table)
+            shown = page.refresh()
+            label = source if not total else f"{source}  {shown}"
+            if shown != total:
+                label = f"{source}  {shown} of {total}"
+            self.tabs.setTabText(index, label)
+        self.show_filled()
+
+    # Abrir el panel en una pestaña vacía teniendo la otra llena es un clic de más; mientras
+    # nadie elija pestaña a mano, se muestra la que tiene cajas.
+    def show_filled(self) -> None:
+        pages = list(self.pages.values())
+        if self.pinned or pages[self.tabs.currentIndex()].count():
+            return
+        filled = next((i for i, page in enumerate(pages) if page.count()), None)
+        if filled is not None:
+            self.tabs.setCurrentIndex(filled)
 
     def on_tab(self, index: int) -> None:
-        list(self.tables.values())[index].emit_current()
+        list(self.pages.values())[index].table.emit_current()

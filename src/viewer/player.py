@@ -5,7 +5,7 @@ from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QStyle, QToolButton, QWidget
 
 TICK_MS = 30
-CLOCK_WIDTH = 132
+CLOCK_WIDTH = 118
 
 
 # Reproduccion del audio mono ya cargado en memoria.
@@ -46,11 +46,12 @@ class AudioPlayer(QWidget):
         self.clock.setFixedWidth(CLOCK_WIDTH)
         self.clock.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
+        # El reloj no entra en este layout: lo coloca el transporte, que es quien sabe qué
+        # va al lado de qué en su fila.
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(0)
         layout.addWidget(self.button)
-        layout.addWidget(self.clock)
 
         self.timer = QTimer(self)
         self.timer.setInterval(TICK_MS)

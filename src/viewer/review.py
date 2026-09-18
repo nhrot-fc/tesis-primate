@@ -22,7 +22,7 @@ DECISION = "Decision"
 ACCEPTED, REJECTED = "accepted", "rejected"
 JOURNAL_COLUMNS = [BEGIN, END, LOW, HIGH, SPECIES, CALL, SCORE, DECISION]
 JOURNAL_DIR = Path(tempfile.gettempdir()) / "primate-detector"
-SPECIES_WIDTH = 150
+SPECIES_WIDTH = 220
 # Una decisión del diario se casa con la detección que más se le parece; por debajo de esto
 # (la caja se retocó mucho o la tabla es otra) se deja la detección en la cola.
 RESUME_IOU = 0.5
@@ -75,11 +75,14 @@ class ReviewBar(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
+        # Dónde va la revisión, a la izquierda y con todas las letras: es lo único que hay
+        # que saber para seguir, y durante la revisión la fila es sólo suya.
         self.position = QLabel("")
-        self.position.setObjectName("hint")
+        self.score = QLabel("")
+        self.score.setObjectName("hint")
         self.species = QComboBox()
         self.species.setEditable(True)
-        self.species.setFixedWidth(SPECIES_WIDTH)
+        self.species.setMinimumWidth(SPECIES_WIDTH)
         self.species.setToolTip("Species/call the box is saved with; type to correct it")
         self.species.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         edit = self.species.lineEdit()
@@ -94,12 +97,12 @@ class ReviewBar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addWidget(self.position)
-        layout.addSpacing(8)
-        layout.addWidget(QLabel("as"))
+        layout.addWidget(self.score)
+        layout.addStretch(1)
         layout.addWidget(self.species)
         layout.addWidget(self.button("Reject", "Drop the box (R, Delete)", self.rejected.emit))
         layout.addWidget(self.accept_button)
-        layout.addSpacing(8)
+        layout.addSpacing(12)
         layout.addWidget(self.button("Done", "Leave the review (Esc)", self.done.emit))
 
     def button(self, text: str, tip: str, action: Callable[[], None]) -> QToolButton:
@@ -124,8 +127,8 @@ class ReviewBar(QWidget):
         return super().eventFilter(a0, a1)
 
     def show_row(self, row: Row, index: int, total: int, labels: list[str]) -> None:
-        score = "" if pd.isna(row.score) else f" · {row.score:.2f}"
-        self.position.setText(f"{index + 1} of {total}{score}")
+        self.position.setText(f"Detection {index + 1} of {total}")
+        self.score.setText("" if pd.isna(row.score) else f"score {row.score:.2f}")
         self.species.blockSignals(True)
         self.species.clear()
         self.species.addItems(labels)

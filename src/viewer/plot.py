@@ -23,8 +23,11 @@ HIGHLIGHT_MARGIN = 0.012
 FILL_ALPHA = 34
 CAPTION_ALPHA = 165
 CAPTION_POINT_SIZE = 8
-AXIS_PAD = 12
+AXIS_PAD = 10
 AXIS_SAMPLE = "00000"
+# Arriba y a la derecha el eje sólo cierra el marco: sin valores que escribir, cuanto más
+# fino, más espectrograma. Lo que se gana ahí es lo que más se mira.
+EDGE_AXIS = 2
 EXPORT_WIDTH = 2400
 # Se calcula una banda mas ancha que la ventana visible: mientras el scroll no salga
 # de ella, moverse no cuesta ni una FFT.
@@ -36,8 +39,20 @@ COLUMNS_ON_SCREEN = 900
 
 # La banda visible no baja de esto; sus alturas las elige `controls.Band`.
 MIN_BAND_HZ = 200.0
+# Separación entre marcas a partir de la cual el eje escribe kHz en vez de Hz.
+KHZ_FROM_HZ = 500.0
 # La caja en revisión se dibuja con asas más grandes que las de pyqtgraph.
 HANDLE_SIZE = 9
+
+
+# En banda ancha "20k" se lee de un vistazo y "20000" hay que contarlo. Cuando las marcas
+# caen a menos de 500 Hz el kilo ya no las distingue y vuelven los Hz enteros.
+class FrequencyAxis(pg.AxisItem):
+    @override
+    def tickStrings(self, values, scale, spacing) -> list[str]:
+        if spacing < KHZ_FROM_HZ:
+            return [f"{value:,.0f}" for value in values]
+        return [f"{value / 1000:g}k" if value else "0" for value in values]
 
 
 class Layer(NamedTuple):
@@ -63,7 +78,7 @@ class SpectrogramView(pg.PlotWidget):
     band_zoomed = pyqtSignal(int, float)  # paso y frecuencia bajo el puntero
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(axisItems={"left": FrequencyAxis(orientation="left")})
         item = self.getPlotItem()
 
         if item is None:
@@ -76,10 +91,15 @@ class SpectrogramView(pg.PlotWidget):
         item.hideButtons()
 
         metrics = QFontMetrics(self.font())
-        for key in ("left", "right"):
-            item.getAxis(key).setWidth(metrics.horizontalAdvance(AXIS_SAMPLE) + AXIS_PAD)
-        for key in ("top", "bottom"):
-            item.getAxis(key).setHeight(metrics.height() + AXIS_PAD)
+        item.getAxis("left").setWidth(metrics.horizontalAdvance(AXIS_SAMPLE) + AXIS_PAD)
+        item.getAxis("bottom").setHeight(metrics.height() + AXIS_PAD)
+        item.getAxis("right").setWidth(EDGE_AXIS)
+        item.getAxis("top").setHeight(EDGE_AXIS)
+        # Sin marco ni margen propios: el espectrograma llega al borde del hueco que le toca.
+        # El margen interno del PlotItem se queda: llegar a él es `item.layout`, un atributo
+        # que pyqtgraph pone encima del método `layout()` de Qt, y son dos píxeles.
+        self.setFrameStyle(0)
+        self.setContentsMargins(0, 0, 0, 0)
 
         self.vb = item.getViewBox()
         self.vb.setMouseEnabled(x=False, y=False)

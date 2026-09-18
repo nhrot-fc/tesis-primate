@@ -14,13 +14,12 @@ import soundfile as sf
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
     QDockWidget,
-    QDoubleSpinBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QStackedWidget,
@@ -31,7 +30,7 @@ from PyQt6.QtWidgets import (
 
 from core.config import SCORE_THRESHOLD
 from inference.catalog import collect_audio, output_for
-from viewer.controls import emphasize
+from viewer.controls import DockTitle, Panel, emphasize
 from viewer.tasks import Worker
 
 PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
@@ -46,10 +45,10 @@ PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
 HEADERS = ("Recording", "Length", "Boxes")
 FILE_COLUMN, BOXES_COLUMN = 0, 2
 ROW_HEIGHT = 22
-PANEL_WIDTH = 300
+PANEL_WIDTH, PANEL_LEAST = 300, 230
 # La barra global avanza también dentro del archivo en curso, en centésimas
 PROGRESS_STEPS = 100
-SCORE_RANGE, SCORE_STEP = (0.05, 1.0), 0.05
+RUN_WIDTH = 108
 # Segundos de corrida antes de fiarse de la velocidad medida para el tiempo restante
 ETA_AFTER_S = 5.0
 ROOT = QModelIndex()
@@ -63,10 +62,9 @@ LIST_KEYS = {
     Qt.Key.Key_End,
 }
 
+HEADLINE = "No folder open"
 PLACEHOLDER = (
-    "<div style='font-size:12pt'>Drop a folder here</div>"
-    "<div style='margin-top:6px'>Every recording in it will be listed; "
-    "<b>Detect all</b> leaves a <tt>.detections.txt</tt> next to each one.</div>"
+    "Drop a folder here, or choose one: its recordings are listed with what each already has."
 )
 
 
@@ -142,8 +140,12 @@ class FileModel(QAbstractTableModel):
 
     @override
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+        if orientation != Qt.Orientation.Horizontal:
+            return None
+        if role == Qt.ItemDataRole.DisplayRole:
             return HEADERS[section]
+        if role == Qt.ItemDataRole.TextAlignmentRole and section != FILE_COLUMN:
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         return None
 
     @override
@@ -245,6 +247,7 @@ class RecordingsPanel(QDockWidget):
             Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        self.header = DockTitle(self, "Recordings")
         self.folder_path: Path | None = None
         self.model_path: Path | None = None
         self.engine_ready = False
@@ -255,9 +258,12 @@ class RecordingsPanel(QDockWidget):
         self.started_at = 0.0
         self.done_audio_s = 0.0
 
+        self.operating = SCORE_THRESHOLD  # con qué score escribe: el del modelo elegido
         self.title = QLabel("")
         self.title.setObjectName("hint")
         self.title.setTextFormat(Qt.TextFormat.PlainText)
+        # Envuelve en vez de estirar: una línea larga aquí ensanchaba el panel entero.
+        self.title.setWordWrap(True)
 
         self.files = FileModel()
         self.table = RecordingList()
@@ -282,6 +288,9 @@ class RecordingsPanel(QDockWidget):
         if selection is not None:
             selection.currentRowChanged.connect(self.on_current)
 
+        headline = QLabel(HEADLINE)
+        headline.setObjectName("welcomeHeadline")
+        headline.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.placeholder = QLabel(PLACEHOLDER)
         self.placeholder.setObjectName("placeholder")
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -290,25 +299,19 @@ class RecordingsPanel(QDockWidget):
         self.choose_button.clicked.connect(self.choose)
         empty = QWidget()
         empty_layout = QVBoxLayout(empty)
+        empty_layout.setContentsMargins(16, 0, 16, 0)
         empty_layout.addStretch(1)
+        empty_layout.addWidget(headline)
+        empty_layout.addSpacing(6)
         empty_layout.addWidget(self.placeholder)
+        empty_layout.addSpacing(18)
         empty_layout.addWidget(self.choose_button, 0, Qt.AlignmentFlag.AlignHCenter)
         empty_layout.addStretch(1)
         self.pages = QStackedWidget()
         self.pages.addWidget(empty)
         self.pages.addWidget(self.table)
 
-        self.score = QDoubleSpinBox()
-        self.score.setRange(*SCORE_RANGE)
-        self.score.setSingleStep(SCORE_STEP)
-        self.score.setDecimals(2)
-        self.score.setValue(SCORE_THRESHOLD)
-        self.score.setToolTip(
-            "Only detections at or above this score are written. "
-            "Starts at the model's operating point."
-        )
-        self.overwrite = QCheckBox("Redo existing")
-        self.overwrite.setToolTip("Run again over recordings that already have a table")
+        self.redo = False  # lo decide el diálogo de Detect all, no una casilla permanente
         self.run_button = QPushButton("Detect all")
         self.run_button.clicked.connect(self.run)
         self.stop_button = QPushButton("Stop")
@@ -321,26 +324,24 @@ class RecordingsPanel(QDockWidget):
         self.summary = QLabel("")
         self.summary.setObjectName("hint")
 
-        settings = QHBoxLayout()
-        settings.setSpacing(8)
-        settings.addWidget(QLabel("Score ≥"))
-        settings.addWidget(self.score)
-        settings.addWidget(self.overwrite)
-        settings.addStretch(1)
-        settings.addWidget(self.run_button)
-        settings.addWidget(self.stop_button)
+        self.run_button.setMinimumWidth(RUN_WIDTH)
+        self.stop_button.setMinimumWidth(RUN_WIDTH)
+        actions = QHBoxLayout()
+        actions.setSpacing(8)
+        actions.addStretch(1)
+        actions.addWidget(self.run_button)
+        actions.addWidget(self.stop_button)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(8, 6, 8, 8)
+        layout.setContentsMargins(10, 0, 10, 10)
         layout.setSpacing(8)
         layout.addWidget(self.title)
         layout.addWidget(self.pages, 1)
-        layout.addLayout(settings)
         layout.addWidget(self.progress)
         layout.addWidget(self.summary)
-        body = QWidget()
+        layout.addLayout(actions)
+        body = Panel(PANEL_WIDTH, PANEL_LEAST)
         body.setLayout(layout)
-        body.setMinimumWidth(PANEL_WIDTH)
         self.setWidget(body)
         self.sync()
 
@@ -355,9 +356,12 @@ class RecordingsPanel(QDockWidget):
     def listed(self) -> bool:
         return bool(self.files.entries)
 
+    # Se escribe con el punto de operación del modelo, el que eligió la comparación en val;
+    # es lo mismo que hace `detect.py` sin `--score`. El `Score ≥` de la ventana no entra
+    # acá: ese sólo esconde cajas, y una tabla escrita de menos no se recupera.
     def set_model(self, path: Path | None, operating_point: float | None) -> None:
         self.model_path = path
-        self.score.setValue(SCORE_THRESHOLD if operating_point is None else operating_point)
+        self.operating = SCORE_THRESHOLD if operating_point is None else operating_point
         self.sync()
 
     def set_engine(self, ready: bool) -> None:
@@ -373,29 +377,37 @@ class RecordingsPanel(QDockWidget):
         self.leading = leading
         self.sync()
 
+    # Si Detect all puede correr ahora, y por qué no: la ventana lo usa para su propio menú,
+    # así que la razón se escribe una vez y se lee desde los dos sitios.
+    def can_run(self) -> bool:
+        return (
+            not self.running()
+            and not self.scanning()
+            and not self.blocked
+            and bool(self.files.entries)
+            and self.model_path is not None
+            and self.engine_ready
+        )
+
+    def why(self) -> str:
+        if self.running():
+            return "Detect all is already running"
+        if not self.files.entries:
+            return "Open a folder of recordings first"
+        if self.model_path is None:
+            return "Choose a model in the toolbar first"
+        if not self.engine_ready:
+            return "Waiting for the detection engine"
+        if self.blocked:
+            return "Wait for the current detection to finish"
+        return "Run the model over every recording in the list"
+
     def sync(self) -> None:
         running = self.running()
         listed = bool(self.files.entries)
         self.title.setVisible(self.folder_path is not None)
-        for widget in (self.score, self.overwrite):
-            widget.setEnabled(not running)
-        self.run_button.setEnabled(
-            not running
-            and not self.scanning()
-            and not self.blocked
-            and listed
-            and self.model_path is not None
-            and self.engine_ready
-        )
-        self.run_button.setToolTip(
-            "Choose a model in the toolbar first"
-            if self.model_path is None
-            else "Waiting for the detection engine"
-            if not self.engine_ready
-            else "Wait for the current detection to finish"
-            if self.blocked
-            else "Run the model over every recording in the list"
-        )
+        self.run_button.setEnabled(self.can_run())
+        self.run_button.setToolTip(self.why())
         emphasize(self.run_button, self.leading and self.run_button.isEnabled())
         # Un solo botón a la vista: Detect all, que mientras corre es Stop.
         self.run_button.setVisible(not running)
@@ -470,9 +482,35 @@ class RecordingsPanel(QDockWidget):
 
     # --- Corrida ----------------------------------------------------------------
 
+    # Lo que ya tiene tabla se decide acá, cuando hay algo que decidir, y no con una casilla
+    # que hay que entender antes de empezar.
+    def ask_redo(self) -> bool | None:
+        done = sum(output_for(e.path).is_file() for e in self.files.entries)
+        if not done:
+            return False
+        box = QMessageBox(self)
+        box.setWindowTitle("Detect all")
+        box.setText(f"{done} of {len(self.files.entries)} recordings already have a table.")
+        box.setInformativeText(f"Detections are written with Score ≥ {self.operating:.2f}.")
+        skip = box.addButton("Skip them", QMessageBox.ButtonRole.AcceptRole)
+        redo = box.addButton("Redo them", QMessageBox.ButtonRole.DestructiveRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(skip)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is skip:
+            return False
+        if clicked is redo:
+            return True
+        return None
+
     def run(self) -> None:
         if self.running() or self.model_path is None or not self.files.entries:
             return
+        redo = self.ask_redo()
+        if redo is None:
+            return
+        self.redo = redo
         for entry in self.files.entries:
             entry.status = EXISTS if output_for(entry.path).is_file() else PENDING
             entry.fraction, entry.message = 0.0, ""
@@ -484,8 +522,8 @@ class RecordingsPanel(QDockWidget):
         self.worker = BatchWorker(
             [e.path for e in self.files.entries],
             self.model_path,
-            self.score.value(),
-            self.overwrite.isChecked(),
+            self.operating,
+            self.redo,
         )
         self.worker.started_file.connect(self.on_started)
         self.worker.progressed.connect(self.on_progress)
@@ -566,4 +604,4 @@ class RecordingsPanel(QDockWidget):
     def queued(self, index: int) -> bool:
         # Lo que aún va a procesarse: lo pendiente y, con Redo, lo que ya tiene tabla.
         status = self.files.entries[index].status
-        return status == PENDING or (status == EXISTS and self.overwrite.isChecked())
+        return status == PENDING or (status == EXISTS and self.redo)

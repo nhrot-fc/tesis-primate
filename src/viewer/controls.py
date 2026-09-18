@@ -1,10 +1,12 @@
 from pathlib import Path
+from typing import override
 
-from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDockWidget,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -18,6 +20,7 @@ from PyQt6.QtWidgets import (
 
 from inference.catalog import available_models
 
+CARET = "\u25be"
 LABEL_WIDTH = 92
 READOUT_WIDTH = 48
 SLIDER_WIDTH = 168
@@ -135,10 +138,10 @@ class Layers(QWidget):
     def toggle(self, text: str) -> None:
         self.boxes[text].setChecked(not self.boxes[text].isChecked())
 
-    # `shown` son las cajas en pantalla; `total`, las de la tabla (filtrada por score).
-    def set_state(self, text: str, shown: int, total: int) -> None:
+    # La leyenda dice qué es cada trazo y lo apaga; cuántas cajas hay lo dicen el título de
+    # la ventana y el panel de cajas. Una capa sin tabla ni aparece.
+    def set_state(self, text: str, total: int) -> None:
         self.chips[text].setVisible(total > 0)
-        self.boxes[text].setText(f"{text}   {shown}/{total}" if total else text)
 
 
 # La banda de frecuencia como en Raven: una altura elegida de una lista (el zoom) y un scroll
@@ -160,7 +163,9 @@ class Band(QObject):
         self.bar.valueChanged.connect(self.emit_changed)
         self.heights = QComboBox()
         self.heights.setFixedWidth(HEIGHT_WIDTH)
-        self.heights.setToolTip("Band height (Shift + wheel); F shows the full band")
+        self.heights.setToolTip(
+            "How much of the frequency range fits on screen (Shift + wheel); F shows it all"
+        )
         self.heights.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.heights.currentIndexChanged.connect(self.rescale)
 
@@ -259,11 +264,11 @@ class Band(QObject):
 class ViewPanel(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.brightness = Slider("Brightness (dB)", *BRIGHTNESS)
+        self.brightness = Slider("Brightness", *BRIGHTNESS)
         self.contrast = Slider("Contrast", *CONTRAST)
         # 0 dB es la grabación llevada a su pico; por encima recorta, que es lo que
         # hace audible una llamada lejana.
-        self.volume = Slider("Volume (dB)", *VOLUME, fmt="{:+g}")
+        self.volume = Slider("Volume", *VOLUME, fmt="{:+g} dB")
         self.volume.setToolTip("0 dB is the recording normalized to its peak; above that it clips")
 
         layout = QVBoxLayout(self)
@@ -272,6 +277,90 @@ class ViewPanel(QWidget):
         for control in (self.brightness, self.contrast, self.volume):
             control.setMinimumWidth(LABEL_WIDTH + SLIDER_WIDTH + READOUT_WIDTH)
             layout.addWidget(control)
+
+
+# El centro de la barra dice qué documento está abierto, como el título de una ventana de
+# Finder: el nombre en el peso normal y, debajo, lo que hace falta saber de él. Sin grabación
+# no ocupa nada: la barra se ve entera.
+class TitleBlock(QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = QLabel("")
+        self.name.setObjectName("title")
+        self.name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.detail = QLabel("")
+        self.detail.setObjectName("subtitle")
+        self.detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 0, 12, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self.name)
+        layout.addWidget(self.detail)
+        self.set_document(None, "")
+
+    def set_document(self, name: str | None, detail: str = "") -> None:
+        self.name.setText(name or "")
+        self.detail.setText(detail)
+        self.setToolTip(name or "")
+
+
+# Un botón que abre un menú. La flecha va en el texto: la que dibuja el estilo se pierde en
+# cuanto la hoja de estilos toca el borde del botón, y sin ella nada dice que ahí hay un menú.
+class MenuButton(QToolButton):
+    def __init__(self, text: str, menu: QMenu, tip: str = "") -> None:
+        super().__init__()
+        self.setText(f"{text} {CARET}")
+        self.setToolTip(tip)
+        self.setMenu(menu)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+
+# El ancho de un panel lo decide el `sizeHint` de lo que lleva dentro, y el de una tabla es
+# mezquino: sin esto los dos paneles abren en su mínimo, que es el de una ventana chica.
+class Panel(QWidget):
+    def __init__(self, preferred: int, least: int) -> None:
+        super().__init__()
+        self.preferred = preferred
+        self.setMinimumWidth(least)
+
+    @override
+    def sizeHint(self) -> QSize:
+        # El ancho lo pone el panel, no la suma de sus tablas: una columna larga no debe
+        # robarle sitio al espectrograma, que es lo que se mira.
+        hint = super().sizeHint()
+        hint.setWidth(self.preferred)
+        return hint
+
+
+# La cabecera de un panel lateral: el nombre del panel, lo que haga falta a su derecha y la
+# cruz para cerrarlo. La de fábrica escribe el nombre con otra tipografía y otro alto que el
+# resto de la ventana, y el panel termina con dos cabeceras, la suya y la del contenido.
+class DockTitle(QWidget):
+    def __init__(self, dock: QDockWidget, text: str) -> None:
+        super().__init__()
+        self.setObjectName("dockTitle")
+        self.label = QLabel(text)
+        self.label.setObjectName("dockName")
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
+        close = QToolButton()
+        close.setObjectName("dockClose")
+        close.setText("\u2715")
+        close.setToolTip(f"Close {text}")
+        close.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        close.clicked.connect(dock.close)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 6, 6, 6)
+        layout.setSpacing(6)
+        layout.addWidget(self.label)
+        layout.addStretch(1)
+        layout.addWidget(close)
+        dock.setTitleBarWidget(self)
+
+    def set_text(self, text: str) -> None:
+        self.label.setText(text)
 
 
 # El botón de acento es el siguiente paso, y hay uno solo a la vez: Detect hasta que haya
@@ -288,18 +377,15 @@ def emphasize(widget: QWidget, on: bool) -> None:
 
 
 # Un botón que abre un panel en vez de un menú de acciones.
-class Popup(QToolButton):
+class Popup(MenuButton):
     def __init__(self, text: str, panel: QWidget, tip: str = "") -> None:
-        super().__init__()
-        self.setText(text)
-        self.setToolTip(tip)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        menu = QMenu(self)
-        action = QWidgetAction(menu)
+        # El menú se guarda acá: `setMenu` no se queda con él y Python lo recogería. Sin
+        # padre a propósito: como hijo del botón se dibujaría dentro de la barra.
+        self.popup = QMenu()
+        super().__init__(text, self.popup, tip)
+        action = QWidgetAction(self.popup)
         action.setDefaultWidget(panel)
-        menu.addAction(action)
-        self.setMenu(menu)
-        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.popup.addAction(action)
 
 
 # El modelo es uno para todo el programa: lo que hay en `models\` más lo que se busque a mano.

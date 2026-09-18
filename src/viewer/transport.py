@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import (
     QScrollBar,
     QStyle,
     QStyleOptionSlider,
-    QToolButton,
     QWidget,
 )
 
@@ -72,7 +71,6 @@ class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga
     failed = pyqtSignal(str)
-    skipped = pyqtSignal(int)  # -1 / +1: detección anterior / siguiente
 
     def __init__(self) -> None:
         super().__init__()
@@ -85,25 +83,6 @@ class Transport(QWidget):
         self.player.stopped.connect(self.on_stopped)
         self.player.failed.connect(self.failed)
 
-        # Anterior / siguiente detección, como en un reproductor; sólo con detecciones.
-        style = self.style()
-        self.skips = QWidget()
-        skips = QHBoxLayout(self.skips)
-        skips.setContentsMargins(0, 0, 0, 0)
-        skips.setSpacing(2)
-        for direction, icon, tip in (
-            (-1, QStyle.StandardPixmap.SP_MediaSkipBackward, "Previous detection (P)"),
-            (1, QStyle.StandardPixmap.SP_MediaSkipForward, "Next detection (N)"),
-        ):
-            button = QToolButton()
-            button.setToolTip(tip)
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            if style is not None:
-                button.setIcon(style.standardIcon(icon))
-            button.clicked.connect(lambda _, d=direction: self.skipped.emit(d))
-            skips.addWidget(button)
-        self.skips.hide()
-
         self.bar = Timeline()
         self.bar.valueChanged.connect(self.on_scroll)
 
@@ -112,17 +91,17 @@ class Transport(QWidget):
             self.spans.addItem(f"{value:g} s", value)
         self.spans.setCurrentIndex(SPANS.index(5.0))
         self.spans.setFixedWidth(SPAN_WIDTH)
-        self.spans.setToolTip("Window width (Ctrl + wheel)")
+        self.spans.setToolTip("How much time fits on screen (Ctrl + wheel)")
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
 
+        # Reproducir, la barra de tiempo con todo el sitio que sobra, y el reloj al final.
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
         layout.addWidget(self.player)
-        layout.addWidget(self.skips)
         layout.addWidget(self.bar, 1)
-        layout.addWidget(self.spans)
+        layout.addWidget(self.player.clock)
 
     def set_audio(self, waveform: Waveform, sr: int) -> None:
         self.duration = waveform.size / sr
