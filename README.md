@@ -25,9 +25,9 @@ If a zip comes in parts (`.zip.001`, `.zip.002`, …), download all the parts an
 
 ## Use
 
-<video src="https://github.com/nhrot-fc/tesis-primate/blob/main/resources/demo.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
+https://github.com/user-attachments/assets/9f210a78-f79b-4ccf-ab6d-6673dc4db4ad
 
-*(70 seconds, one recording from start to finish)*. The user guide with screenshots is [docs/manual/build/manual.pdf](docs/manual/build/manual.pdf); it is also inside the program folder as `Manual.pdf` and under *Help → User manual*. `F1` lists every control.
+The user guide with screenshots is [docs/manual/build/manual.pdf](docs/manual/build/manual.pdf); it is also inside the program folder as `Manual.pdf` and under *Help → User manual*. `F1` lists every control.
 
 `viewer.exe` has two views, switched from the *View* menu (dropping a file or a folder picks the right one):
 
@@ -59,15 +59,3 @@ The `Score` column lets you filter inside Raven.
 No admin rights and no internet connection. Processing speed per model:
 [docs/system_requirements.md](docs/system_requirements.md).
 
-## If something goes wrong
-
-- *Windows protected your PC* the first time: **More info → Run anyway**. It happens once.
-- The first launch is slow: the antivirus checks the new files.
-- The program does not open: read `viewer.log`, next to `viewer.exe`.
-- Errors while unzipping: use a shorter path, such as `C:\detector\`.
-
-## Building a release
-
-`deploy/release.sh v0.1.0 runs/frcnn` builds the zips and uploads them to GitHub (its header
-explains the options). `make manual` compiles the guide, `make screenshots` retakes its
-figures and `make demo` records the video.
