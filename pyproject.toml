@@ -1,6 +1,6 @@
 [project]
 name = "tesis-primate"
-version = "0.1.5"
+version = "0.2.5"
 description = "Detección de vocalizaciones de primates en espectrogramas"
 readme = "README.md"
 requires-python = ">=3.12"
