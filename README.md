@@ -18,7 +18,7 @@ En [Releases](https://github.com/nhrot-fc/tesis-primate/releases), dos tipos de 
 | `detector-<versión>-model-<nombre>.zip` | un modelo; hacen falta uno o más | 25 MB – 0,7 GB |
 
 1. Descomprime **un** zip `win64` en una ruta corta, p. ej. `C:\detector\`.
-2. Descomprime cada zip `model` en esa misma carpeta, junto a `Detector.exe` (no dentro de
+2. Descomprime cada zip `model` en esa misma carpeta, junto a `viewer.exe` (no dentro de
    `models\`): el zip ya trae `models\<nombre>\`.
 
 Si un zip viene en partes (`.zip.001`, `.zip.002`, …), descárgalas todas en la misma carpeta
@@ -43,21 +43,27 @@ Dos avisos de Windows:
 - Descomprime en una **ruta corta** (`C:\detector\`): el paquete tiene rutas largas y el
   explorador de Windows a veces falla con más de 260 caracteres.
 - El primer arranque es más lento: el antivirus revisa cientos de archivos nuevos.
-- `Detector.exe` no está firmado: la primera vez SmartScreen avisa ("Windows protegió tu PC");
+- `viewer.exe` no está firmado: la primera vez SmartScreen avisa ("Windows protegió tu PC");
   *Más información → Ejecutar de todas formas*. Es un lanzador de 80 KB
   ([deploy/launcher/launcher.c](deploy/launcher/launcher.c)) que arranca el `python.exe`
   firmado por python.org que va dentro del paquete.
 
 ## Uso
 
-La interfaz está en inglés. Una sola ventana, como un cliente de correo: la lista de grabaciones a la izquierda (*Recordings*), el espectrograma al centro y la tabla de cajas a la derecha (*Boxes*); los dos paneles se abren y cierran desde los extremos de la barra. En el centro de la barra está siempre lo que se tiene abierto: nombre, duración y cuántas cajas lleva. Debajo del espectrograma hay una sola fila de transporte, y una segunda que aparece sólo cuando hay detecciones (score y *Review*) o mientras dura la revisión.
+La interfaz está en inglés. La guía de usuario (en inglés, con capturas) está en
+[docs/manual/build/manual.pdf](docs/manual/build/manual.pdf) (viene también dentro del
+paquete como `Manual.pdf`, y el visor la abre desde *Help → User manual*), y hay un vídeo de
+demostración de minuto y medio en [resources/demo.mp4](resources/demo.mp4).
+
+`viewer.exe` tiene una barra de menús (*File*, *View*, *Detect*, *Help*, con sus atajos) y dos
+vistas que se cambian desde la barra de herramientas, como las dos ventanas de Raven:
 
 | | Qué hace |
 |---|---|
-| `Detector.exe` → una grabación | Arrastra un audio (WAV, FLAC, MP3) o `Ctrl+O` (*Open* abre también carpetas); el modelo ya viene elegido (el primero de `models\`) y hay **un solo botón de acento a la vez**, el siguiente paso: **Detect** hasta que hay detecciones, luego **Review**, y dentro de la revisión **Accept**. Encima se puede abrir una tabla de Raven con el mismo `Ctrl+O` o arrastrándola (con columna `Score` va a la capa *Detections*, sin ella a *Annotations*; el `.detections.txt` vecino se abre solo con el audio), oír, borrar cajas y guardar la tabla o una imagen. El *Score ≥* debajo del espectrograma sólo esconde las detecciones más flojas —nada de lo que se escribe depende de él— y arranca en el punto de operación del modelo. Como en Raven, *Window* y *Band* eligen de dos listas cuánto tiempo y cuánta frecuencia entran en pantalla, y hay un scroll para cada eje; la barra de tiempo lleva marcadas las cajas de toda la grabación y `N`/`P` saltan entre detecciones. **Review** recorre las detecciones una por una: cada caja se encuadra en tiempo y banda, con asas para retocarla y el cabezal en su inicio (`Espacio` la hace sonar); se acepta con `A`/`Enter` (tras corregir la especie si hace falta), se rechaza con `R`/`Supr`, `N`/`P` la saltan y `Esc` sale. Las decisiones se apuntan al instante en un archivo temporal por grabación y al volver a revisarla se retoman solas; *Save → Annotations table…* guarda las aceptadas junto a las demás. `F1` lista los controles |
-| `Detector.exe` → una carpeta | Arrástrala sobre el `.exe` o sobre la ventana, o `Ctrl+Shift+O`: sus grabaciones se listan a la izquierda con su duración y cuántas cajas tiene ya cada una. Un clic (o `↑`/`↓`) abre la grabación con su tabla; **Detect all** (o `Ctrl+Shift+R`) corre el modelo sobre toda la lista con el punto de operación del modelo, igual que `detect.exe`, y deja `<audio>.detections.txt` junto a cada una al terminar; si algunas ya tienen tabla, pregunta antes si saltarlas o rehacerlas; si la que está abierta recibe tabla, se carga sola |
-| `detect.exe` | Lo mismo que *Detect all* desde consola, para scripts: `detect.exe --model models\frcnn D:\grabaciones` |
-| `README.txt` | Esto mismo, dentro del paquete |
+| **Spectrogram** | Una grabación. Arrastra un audio (WAV, FLAC, MP3) o *File → Open audio* (`Ctrl+O`); el modelo ya viene elegido (el primero de `models\`) y hay **un solo botón de acento a la vez**, el siguiente paso: **Detect** hasta que hay detecciones, luego **Review**, y dentro de la revisión **Accept**. *File → Open annotations* (`Ctrl+T`) abre una tabla de Raven encima (con columna `Score` va a la capa *Detections*, sin ella a *Annotations*; el `.detections.txt` vecino se abre solo con el audio). El *Score ≥* debajo del espectrograma sólo esconde las detecciones más flojas —nada de lo que se escribe depende de él— y arranca en el punto de operación del modelo. Como en Raven, *Window* y *Band* eligen de dos listas cuánto tiempo y cuánta frecuencia entran en pantalla, con un scroll por eje; los atajos de zoom son los de Audacity (`Ctrl+1`/`Ctrl+3` en tiempo, `Ctrl+↑`/`Ctrl+↓` en frecuencia). La barra de tiempo lleva marcadas las cajas de toda la grabación y `N`/`P` saltan entre detecciones. **Review** recorre las detecciones una por una: cada caja se encuadra, con asas para retocarla y el cabezal en su inicio (`Espacio` la hace sonar); se acepta con `A`/`Enter` (tras corregir la especie si hace falta), se rechaza con `R`/`Supr`, `Esc` sale. Las decisiones se apuntan al instante en un archivo temporal por grabación y al volver a revisarla se retoman solas; *File → Save annotations table…* guarda las aceptadas. *Settings* tiene brillo, contraste, volumen y la salida de audio. `F1` lista los controles |
+| **Batch** | Una carpeta. Arrástrala sobre el `.exe` o sobre la ventana, o *File → Open folder* (`Ctrl+Shift+O`): sus grabaciones se listan con su duración, si ya tienen tabla y cuántas cajas hay en ella. **Run** corre el modelo sobre toda la lista con el *Score ≥* de la vista (arranca en el punto de operación del modelo, igual que `detect.exe`) y deja `<audio>.detections.txt` junto a cada una al terminar; las que ya tienen tabla se saltan salvo con *Overwrite*. Doble clic en una fila la abre en *Spectrogram*; si la que está abierta recibe tabla, se carga sola |
+| `detect.exe` | Lo mismo que *Batch* desde consola, para scripts: `detect.exe --model models\frcnn D:\grabaciones` |
+| `README.txt` | Lo esencial de esto, dentro del paquete |
 | `viewer.log` | Aparece si el visor falla; dice por qué |
 
 Cargar un audio descarga las capas anteriores: primero el audio, después sus tablas.
@@ -93,8 +99,8 @@ Especies y llamadas: [src/data/species.py](src/data/species.py) y
 ### Releases
 
 `deploy/build_windows.py` arma en `dist/` (ignorado por git) dos clases de zip, desde Linux:
-`runtime --variant cpu|cuda` (Python embebido, librerías, `src/`, `Detector.exe` y `detect.exe`,
-`models/` vacía) y `models runs/<corrida>…` (un zip por modelo con su `models/<corrida>/` y
+`runtime --variant cpu|cuda` (Python embebido, librerías, `src/`, `viewer.exe` y `detect.exe`,
+`Manual.pdf`, `models/` vacía) y `models runs/<corrida>…` (un zip por modelo con su `models/<corrida>/` y
 los `hf/` que necesite; sin carpeta raíz, se vuelca dentro del runtime). Los `.exe` son
 [deploy/launcher/launcher.c](deploy/launcher/launcher.c) compilado con zig (uv lo baja como
 paquete `ziglang`; no hace falta instalar nada). Los zips van como *assets* del release, no al
@@ -106,5 +112,8 @@ VARIANTS="cpu cuda" deploy/release.sh v0.1.0 runs/frcnn         # también el ru
 REPO=usuario/repo-privado deploy/release.sh v0.1.0 runs/frcnn   # publicar en otro repo
 ```
 
-Necesita `gh` autenticado. Antes de publicar, probar el zip en un Windows limpio (sin Python,
-sin red): `Detector.exe` con un audio, una carpeta y el zip de cada modelo; `detect.exe`.
+Necesita `gh` autenticado y el manual compilado (`make manual`; `make screenshots` regenera
+sus capturas desde el visor con `docs/manual/screenshots.py`; `make demo` graba el vídeo de
+`resources/`). Antes de publicar, probar el zip
+en un Windows limpio (sin Python, sin red): `viewer.exe` con un audio, una carpeta y el zip de
+cada modelo; `detect.exe`.

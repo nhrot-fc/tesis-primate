@@ -7,7 +7,11 @@ FIGURES      := $(wildcard $(RESEARCH_DIR)/figures/*)
 LATEX_FLAGS  := -interaction=nonstopmode -halt-on-error -file-line-error \
                 -output-directory=build
 
-.PHONY: all clean warnings help
+MANUAL_DIR   := docs/manual
+MANUAL_PDF   := $(MANUAL_DIR)/build/manual.pdf
+DEMO         := resources/demo.mp4
+
+.PHONY: all clean warnings help manual screenshots demo
 
 all: $(PDF)
 
@@ -29,11 +33,31 @@ warnings:
 	@grep -ao "Citation \`[^']*'" $(LOG) | sort -u || echo '  ninguna'
 	@grep -a 'Reference .* undefined' $(LOG) || true
 
+# La guía de usuario del paquete de Windows (viewer.exe y detect.exe). Sin bibliografía:
+# dos pasadas bastan para el índice y las referencias. build_windows.py la mete en el zip.
+manual: $(MANUAL_PDF)
+
+$(MANUAL_PDF): $(MANUAL_DIR)/manual.tex $(wildcard $(MANUAL_DIR)/fig/*.png)
+	@mkdir -p $(MANUAL_DIR)/build
+	cd $(MANUAL_DIR) && pdflatex $(LATEX_FLAGS) manual.tex
+	cd $(MANUAL_DIR) && pdflatex $(LATEX_FLAGS) manual.tex
+
+# Las capturas del manual, desde el propio visor (plataforma offscreen de Qt).
+screenshots:
+	uv run python $(MANUAL_DIR)/screenshots.py
+
+# El vídeo de demostración: el visor manejado por un guion fijo, YOLO en CPU, a ffmpeg.
+demo:
+	uv run python $(MANUAL_DIR)/demo.py --out $(DEMO)
+
 clean:
-	@rm -rf $(BUILD_DIR)
+	@rm -rf $(BUILD_DIR) $(MANUAL_DIR)/build
 
 help:
 	@printf '%s\n' \
 	  'make          Compila el documento y resume los avisos' \
 	  'make warnings Vuelve a mostrar los avisos del último log' \
+	  'make manual   Compila la guía de usuario (docs/manual/build/manual.pdf)' \
+	  'make screenshots  Regenera las capturas del manual desde el visor' \
+	  'make demo     Graba el vídeo de demostración (resources/demo.mp4)' \
 	  'make clean    Borra los archivos generados'
