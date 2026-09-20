@@ -22,7 +22,7 @@ from viewer.controls import DockTitle, Panel
 from viewer.session import ANNOTATIONS, SOURCES, Row, Session
 
 # La banda en kHz con un decimal: en Hz son once caracteres y se come la etiqueta.
-HEADERS = ("Start", "End", "kHz", "Label")
+HEADERS = ("Start (s)", "End (s)", "kHz", "Label")
 LABEL_COLUMN = 3
 TRASH_WIDTH = 34
 PANEL_WIDTH, PANEL_LEAST = 360, 260

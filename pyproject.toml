@@ -67,7 +67,12 @@ quote-style = "double"
 
 [tool.pyright]
 pythonVersion = "3.12"
-executionEnvironments = [{ root = "src" }]
+# deploy/ y docs/manual/ importan desde src/ metiéndolo en sys.path al arrancar
+executionEnvironments = [
+    { root = "src" },
+    { root = "deploy", extraPaths = ["src"] },
+    { root = "docs/manual", extraPaths = ["src"] },
+]
 
 [tool.ty.environment]
 python-version = "3.12"

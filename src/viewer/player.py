@@ -1,7 +1,7 @@
 import math
 
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QTimer, pyqtSignal
-from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
+from PyQt6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QStyle, QToolButton, QWidget
 
 TICK_MS = 30
@@ -22,6 +22,8 @@ class AudioPlayer(QWidget):
         self.sr = 1
         self.origin = 0.0
         self.paused = False
+        # None es la salida del sistema, leída en cada `play`: así sigue al sistema si cambia.
+        self.device: QAudioDevice | None = None
 
         # Los iconos del tema en vez de glifos de texto: el triangulo y la pausa se leen
         # igual en cualquier tipografia y a cualquier tamaño.
@@ -92,6 +94,15 @@ class AudioPlayer(QWidget):
         if resume:
             self.play()
 
+    # Otra salida (Settings): el sink se rehace sobre ella, desde el mismo punto.
+    def set_device(self, device: QAudioDevice | None) -> None:
+        at, resume = self.elapsed(), self.playing()
+        self.stop()
+        self.device = device
+        self.set_origin(at)
+        if resume:
+            self.play()
+
     def elapsed(self) -> float:
         if self.sink is None:
             return self.origin
@@ -119,15 +130,10 @@ class AudioPlayer(QWidget):
         if self.origin >= self.duration():
             self.origin = 0.0
 
-        device = QMediaDevices.defaultAudioOutput()
+        device = self.device if self.device is not None else QMediaDevices.defaultAudioOutput()
         if device.isNull():
             self.failed.emit("No audio output device.")
             return
-
-        fmt = QAudioFormat()
-        fmt.setSampleRate(self.sr)
-        fmt.setChannelCount(1)
-        fmt.setSampleFormat(QAudioFormat.SampleFormat.Int16)
 
         self.buffer.close()
         self.buffer.setData(self.pcm)
@@ -136,10 +142,17 @@ class AudioPlayer(QWidget):
 
         # Con padre, el sink lo destruye Qt cuando toca y no al soltar la referencia
         # de Python, que podia caer mientras su hilo de audio seguia leyendo.
-        self.sink = QAudioSink(device, fmt, self)
+        self.sink = QAudioSink(device, self.format(), self)
         self.sink.start(self.buffer)
         self.timer.start()
         self.show_playing(True)
+
+    def format(self) -> QAudioFormat:
+        fmt = QAudioFormat()
+        fmt.setSampleRate(self.sr)
+        fmt.setChannelCount(1)
+        fmt.setSampleFormat(QAudioFormat.SampleFormat.Int16)
+        return fmt
 
     def pause(self) -> None:
         if self.sink is None or self.paused:

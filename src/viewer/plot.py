@@ -43,6 +43,9 @@ MIN_BAND_HZ = 200.0
 KHZ_FROM_HZ = 500.0
 # La caja en revisión se dibuja con asas más grandes que las de pyqtgraph.
 HANDLE_SIZE = 9
+# El rótulo sólo se escribe si la caja mide al menos esta fracción de su ancho: en una
+# ventana de 30 s las cajas son de veinte píxeles y los rótulos se pisaban unos a otros.
+CAPTION_MIN_FILL = 0.6
 
 
 # En banda ancha "20k" se lee de un vistazo y "20000" hay que contarlo. Cuando las marcas
@@ -148,6 +151,9 @@ class SpectrogramView(pg.PlotWidget):
         self.pending: tuple[float, float, int, int] | None = None
         self.job = 0
         self.pool: list[tuple[QGraphicsRectItem, pg.TextItem]] = []
+        caption_font = QFont(self.font())
+        caption_font.setPointSize(CAPTION_POINT_SIZE)
+        self.caption_metrics = QFontMetrics(caption_font)
 
         self.renderer = Latest()
         self.renderer.done.connect(self.on_render)
@@ -236,6 +242,7 @@ class SpectrogramView(pg.PlotWidget):
         # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
         (view_x0, _), (view_y0, view_y1) = self.vb.viewRange()
+        seconds_per_px = float(self.vb.viewPixelSize()[0]) or 1.0
         for layer in layers:
             table = layer.table
             if table is None or table.empty:
@@ -267,7 +274,10 @@ class SpectrogramView(pg.PlotWidget):
                 text.setText(caption, color=layer.color)
                 text.setAnchor((0, 0) if layer.top else (0, 1))
                 text.setPos(x, y)
-                text.setVisible(True)
+                fits = width / seconds_per_px >= CAPTION_MIN_FILL * (
+                    self.caption_metrics.horizontalAdvance(caption)
+                )
+                text.setVisible(fits)
                 used += 1
         for rect, text in self.pool[used:]:
             rect.setVisible(False)

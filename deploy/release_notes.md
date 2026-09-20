@@ -2,26 +2,29 @@ Primate vocalization detector for Windows. Portable: extract and run, nothing to
 
 ### What's new
 
-- One program, `Detector.exe`, replaces the `.bat` files. One window: the folder's recordings
-  on the left (one click opens each; **Detect all** leaves one `.detections.txt` per recording,
-  written as each file finishes, only boxes above the chosen score), the spectrogram in the
-  middle (detect, review, listen, save a Raven table), the table of boxes on the right.
-  `detect.exe` runs the batch from a console.
-- Model chosen once, in the toolbar.
-- Every box shows its label and score; green = annotations, blue = detections. Loading an
-  audio clears the previous tables; nothing is loaded automatically.
-- Loading screen while the program starts; the detection engine loads in the background.
-- Interface in English.
-- Models: the same three as v0.1.0 (Faster R-CNN, AST-Deformable DETR, YOLO26), repackaged
-  under this version. If you already have them in `models\`, keep them.
+- `viewer.exe` (was `Detector.exe`): the same program, simpler name. `detect.exe` is the
+  console version.
+- A menu bar (File, View, Detect, Help) with every shortcut next to its action, as in Raven
+  and Audacity. Opening is split: **Open audio** (`Ctrl+O`), **Open annotations** (`Ctrl+T`)
+  and **Open folder** (`Ctrl+Shift+O`).
+- Two views again, switched from the toolbar: **Spectrogram** (one recording) and **Batch**
+  (a whole folder, with its own Score, Overwrite and Include subfolders; double-click a row to
+  open it in the Spectrogram view).
+- **Settings** replaces *Adjust*: brightness, contrast, volume and the **audio output
+  device**.
+- Zoom from the keyboard with Audacity's shortcuts: `Ctrl+1` / `Ctrl+3` in time,
+  `Ctrl+↑` / `Ctrl+↓` in frequency, `F` for the full band.
+- `Manual.pdf`, the user guide with screenshots, next to the program and under
+  *Help → User manual*.
+- Models: the same as before. If you already have them in `models\`, keep them.
 
 ### Install
 
 1. Extract **one** `win64` zip to a short path, e.g. `C:\detector\`. `cpu` runs anywhere;
    `cuda` uses an NVIDIA GPU and falls back to CPU without one.
-2. Unzip each `model` zip (at least one) into that same folder, next to `Detector.exe` —
+2. Unzip each `model` zip (at least one) into that same folder, next to `viewer.exe` —
    not into `models\`: the zip already brings `models\<name>\`.
-3. Run `Detector.exe`. Windows may warn about an unsigned program the first time: choose
+3. Run `viewer.exe`. Windows may warn about an unsigned program the first time: choose
    *More info → Run anyway*.
 
 A zip in parts (`.zip.001`, `.zip.002`): download all parts and its `join.bat` into one folder

@@ -21,6 +21,9 @@ class Worker(QThread):
         self.task = task
         self.reports = reports
         self.stopping = threading.Event()
+        # `ok` y `error` salen desde dentro del hilo, antes de que `isRunning` baje: quien
+        # los atiende y quiere arrancar otro trabajo mira esto y espera lo poco que queda.
+        self.done = False
 
     def stop(self) -> None:
         self.stopping.set()
@@ -33,11 +36,15 @@ class Worker(QThread):
     @override
     def run(self) -> None:
         try:
-            self.ok.emit(self.task(self.report) if self.reports else self.task())
+            result = self.task(self.report) if self.reports else self.task()
         except StopError:
-            pass  # quien paró ya sabe
+            self.done = True  # quien paró ya sabe
         except Exception as exc:
+            self.done = True
             self.error.emit(f"{type(exc).__name__}: {exc}")
+        else:
+            self.done = True
+            self.ok.emit(result)
 
 
 # Hilo de un solo trabajo a la vez: si llega otro mientras calcula, el que esperaba se

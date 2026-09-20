@@ -1,7 +1,7 @@
 """Arma los zips del release de Windows: el runtime por un lado y cada modelo por otro.
 
     runtime  detector-<versión>-win64-<cpu|cuda>.zip   (carpeta raíz del mismo nombre)
-               Detector.exe, detect.exe, README.txt
+               viewer.exe, detect.exe, README.txt, Manual.pdf
                python/   intérprete embebido de python.org, Lib/site-packages, DLLs de MSVC
                src/      este repo, tal cual (core.config resuelve hf/ y models/ desde acá)
                models/   vacía: acá van los modelos
@@ -32,6 +32,8 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES = Path(__file__).resolve().parent / "windows"
 LAUNCHER = Path(__file__).resolve().parent / "launcher"
+# La guía de usuario (`make manual`); el visor la abre desde Help > User manual
+MANUAL = PROJECT_DIR / "docs" / "manual" / "build" / "manual.pdf"
 BUILD_DIR = PROJECT_DIR / "build"  # descargas reutilizables
 DIST_DIR = PROJECT_DIR / "dist"
 
@@ -47,7 +49,7 @@ UV = os.environ.get("UV", "uv")
 ZIG_VERSION = "0.16.0"
 # Los dos lanzadores: nombre, macro con la que se compila launcher.c y ficha de versión
 LAUNCHERS = [
-    ("Detector.exe", "GUI", "Viewer, review and batch detection"),
+    ("viewer.exe", "GUI", "Viewer: spectrogram, review and batch detection"),
     ("detect.exe", None, "Command-line batch detection"),
 ]
 ICON_SIZES = [(256, 256), (48, 48), (32, 32), (16, 16)]
@@ -70,7 +72,7 @@ logger = logging.getLogger("build")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("--version", default=project_version(), help="va en el nombre del zip")
     parser.add_argument("--no-zip", action="store_true", help="deja sólo la carpeta en dist/")
     what = parser.add_subparsers(dest="what", required=True)
@@ -213,6 +215,12 @@ def copy_source(stage: Path) -> None:
     )
 
 
+def copy_manual(stage: Path) -> None:
+    if not MANUAL.is_file():
+        raise SystemExit(f"Falta {MANUAL.relative_to(PROJECT_DIR)}: corré `make manual` primero")
+    shutil.copy2(MANUAL, stage / "Manual.pdf")
+
+
 def copy_launchers(stage: Path, version: str, variant: str) -> None:
     # `deploy/windows/` se calca sobre el paquete: README.txt, models/README.txt…
     for template in TEMPLATES.rglob("*"):
@@ -282,6 +290,7 @@ def stage_runtime(version: str, variant: str) -> Path:
     python_dir = install_python(stage)
     install_packages(python_dir, variant)
     copy_launchers(stage, version, variant)
+    copy_manual(stage)
     build_launchers(stage, version)
     return stage
 

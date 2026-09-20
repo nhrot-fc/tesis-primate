@@ -3,7 +3,7 @@
  * los argumentos tal cual: una carpeta o un audio arrastrados sobre el .exe llegan al visor.
  *
  * Lo compila deploy/build_windows.py dos veces, con zig desde Linux:
- *   Detector.exe   -DGUI   pythonw.exe src\main.py     sin consola; si falla avisa con un cuadro
+ *   viewer.exe   -DGUI   pythonw.exe src\main.py     sin consola; si falla avisa con un cuadro
  *   detect.exe             python.exe  src\detect.py   con consola; devuelve el código del script
  */
 #include <wchar.h>

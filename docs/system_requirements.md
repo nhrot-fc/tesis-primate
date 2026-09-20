@@ -1,41 +1,40 @@
-# Requisitos de hardware
+# Hardware requirements
 
-Para correr el detector de vocalizaciones en un equipo propio (visor de escritorio o
-procesamiento por lotes). Se distribuye como carpeta autocontenida: no hay nada más que
-instalar.
+For running the detector on your own PC (the viewer or batch processing). The program is a
+self-contained folder: nothing else to install.
 
-## Resumen
+## Summary
 
-| | Mínimo (sólo CPU) | Recomendado (GPU) |
+| | Minimum (CPU only) | Recommended (GPU) |
 |---|---|---|
-| Procesador | 4 núcleos x86-64 | 6+ núcleos x86-64 |
-| Memoria RAM | 8 GB (6 GB libres al procesar) | 16 GB |
-| Tarjeta gráfica | no hace falta | NVIDIA con **4 GB+ de VRAM** (GTX 1650 / RTX 3050 o superior) y driver actualizado¹ |
-| Disco libre | 3 GB (paquete CPU) | 7 GB (paquete GPU) |
+| Processor | 4 cores, x86-64 | 6+ cores, x86-64 |
+| RAM | 8 GB (6 GB free while processing) | 16 GB |
+| Graphics card | not needed | NVIDIA with **4 GB+ of VRAM** (GTX 1650 / RTX 3050 or better) and an up-to-date driver¹ |
+| Free disk | 3 GB (CPU package) | 7 GB (GPU package) |
 
-¹ Sólo el driver de NVIDIA; el paquete trae sus propias librerías CUDA.
+¹ Only the NVIDIA driver: the package brings its own CUDA libraries.
 
-## Tiempo de procesamiento por modelo
+## Processing time per model
 
-Medido en CPU con 8 hilos sobre una grabación de 108 s a 44,1 kHz. En un portátil
-corriente esperá entre 1,5 y 2 veces más; con GPU los tres modelos procesan una hora de
-audio en menos de un minuto.
+Measured on a CPU with 8 threads over a 108 s recording at 44.1 kHz. On an ordinary laptop
+expect 1.5 to 2 times longer; with a GPU all three models process an hour of audio in under
+a minute.
 
-| Modelo | Tamaño | Velocidad en CPU | RAM que usa | 1 h de audio en CPU |
+| Model | Size | Speed on CPU | RAM used | 1 h of audio on CPU |
 |---|---|---|---|---|
-| Faster R-CNN (el más preciso) | 166 MB | 1,4× tiempo real | 4,8 GB | ~45 min |
-| AST-Deformable DETR | 340 MB (+ 380 MB de backbone) | 11× tiempo real | 1,5 GB | ~6 min |
-| YOLO26s (el más rápido) | 39 MB | 42× tiempo real | 1,4 GB | ~1,5 min |
+| Faster R-CNN (most accurate) | 166 MB | 1.4× real time | 4.8 GB | ~45 min |
+| AST-Deformable DETR | 340 MB (+ 380 MB backbone) | 11× real time | 1.5 GB | ~6 min |
+| YOLO26s (fastest) | 39 MB | 42× real time | 1.4 GB | ~1.5 min |
 
-Referencia de tamaños: un WAV mono de 44,1 kHz y 16 bits ocupa **~5,3 MB por minuto**, así que
-250 MB son unos 47 minutos de grabación (24 en estéreo).
+Size reference: a mono 44.1 kHz 16-bit WAV takes **~5.3 MB per minute**, so 250 MB is about
+47 minutes of recording (24 in stereo).
 
-## Disco por paquete
+## Disk per package
 
-| Paquete | Descomprimido | Para quién |
+| Package | Unzipped | For whom |
 |---|---|---|
-| CPU | ~2 GB | cualquier PC de 64 bits |
-| GPU (CUDA) | ~6 GB | PC con NVIDIA; también funciona sin GPU, usando la CPU |
+| CPU | ~2 GB | any 64-bit PC |
+| GPU (CUDA) | ~6 GB | a PC with an NVIDIA card; also works without one, on the CPU |
 
-Ambos incluyen el intérprete, las librerías, los modelos y el backbone. Extraer en una ruta
-corta (p. ej. `C:\detector\`): las rutas largas de Windows dan problemas al descomprimir.
+Both include the interpreter and the libraries; models come as separate zips. Unzip into a
+short path (for example `C:\detector\`): long Windows paths cause errors when unzipping.

@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import override
 
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QPixmap
+from PyQt6.QtGui import QColor, QFontMetrics, QPainter, QPen, QPixmap
+from PyQt6.QtMultimedia import QAudioDevice, QMediaDevices
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -11,6 +12,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMenu,
     QScrollBar,
+    QSizePolicy,
     QSlider,
     QToolButton,
     QVBoxLayout,
@@ -164,10 +166,14 @@ class Band(QObject):
         self.heights = QComboBox()
         self.heights.setFixedWidth(HEIGHT_WIDTH)
         self.heights.setToolTip(
-            "How much of the frequency range fits on screen (Shift + wheel); F shows it all"
+            "How much of the frequency range fits on screen "
+            "(Shift + wheel, Ctrl+↑ / Ctrl+↓); F shows it all"
         )
         self.heights.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.heights.currentIndexChanged.connect(self.rescale)
+        self.heights_label = QLabel("Band")
+        self.heights_label.setObjectName("hint")
+        self.heights_label.setToolTip(self.heights.toolTip())
 
     # Sólo se rehace cuando cambia el tope (otra frecuencia de muestreo); queda en banda entera.
     def set_limits(self, top: float) -> None:
@@ -259,9 +265,13 @@ class Band(QObject):
         self.move_to(0.5 * (low + high) - self.height() / 2)
 
 
-# Cómo se ve y cómo se oye: se ajusta una vez por grabación, así que vive en un desplegable
-# en lugar de ocupar filas fijas debajo del espectrograma. La banda va con el transporte.
-class ViewPanel(QWidget):
+# Cómo se ve y cómo se oye: se ajusta una vez por sesión, así que vive en un desplegable en
+# lugar de ocupar filas fijas debajo del espectrograma. La banda va con el transporte.
+class SettingsPanel(QWidget):
+    device_changed = pyqtSignal(object)  # QAudioDevice elegido; None es el del sistema
+
+    SYSTEM_DEFAULT = "System default"
+
     def __init__(self) -> None:
         super().__init__()
         self.brightness = Slider("Brightness", *BRIGHTNESS)
@@ -271,26 +281,76 @@ class ViewPanel(QWidget):
         self.volume = Slider("Volume", *VOLUME, fmt="{:+g} dB")
         self.volume.setToolTip("0 dB is the recording normalized to its peak; above that it clips")
 
+        # La salida de audio, como en Audacity. La lista se pide después de que cargue el
+        # motor de detección (`reload_outputs`), no acá: en Linux, tocar QMediaDevices antes
+        # de que torch importe triton rompe el `dlopen` de libtriton. Hasta entonces sólo
+        # está la del sistema, que es la que usa el reproductor sin elegir nada.
+        self.output = QComboBox()
+        self.output.setToolTip("Where the audio plays")
+        self.output.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.output.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.output.addItem(self.SYSTEM_DEFAULT, None)
+        self.devices: QMediaDevices | None = None  # avisa cuando enchufan o quitan una salida
+        self.output.currentIndexChanged.connect(
+            lambda _: self.device_changed.emit(self.output.currentData())
+        )
+        output_row = QWidget()
+        row = QHBoxLayout(output_row)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        name = QLabel("Audio output")
+        name.setFixedWidth(LABEL_WIDTH)
+        row.addWidget(name)
+        row.addWidget(self.output, 1)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(10)
-        for control in (self.brightness, self.contrast, self.volume):
+        for control in (self.brightness, self.contrast, self.volume, output_row):
             control.setMinimumWidth(LABEL_WIDTH + SLIDER_WIDTH + READOUT_WIDTH)
             layout.addWidget(control)
+
+    # Se conserva lo elegido si sigue enchufado; si no, vuelve al del sistema.
+    def reload_outputs(self) -> None:
+        if self.devices is None:
+            self.devices = QMediaDevices(self)
+            self.devices.audioOutputsChanged.connect(self.reload_outputs)
+        chosen = self.output.currentData()
+        chosen_id = chosen.id() if isinstance(chosen, QAudioDevice) else None
+        self.output.blockSignals(True)
+        self.output.clear()
+        self.output.addItem(self.SYSTEM_DEFAULT, None)
+        for device in QMediaDevices.audioOutputs():
+            self.output.addItem(device.description(), device)
+            if chosen_id is not None and device.id() == chosen_id:
+                self.output.setCurrentIndex(self.output.count() - 1)
+        self.output.blockSignals(False)
+        if self.output.currentData() is not chosen:
+            self.device_changed.emit(self.output.currentData())
 
 
 # El centro de la barra dice qué documento está abierto, como el título de una ventana de
 # Finder: el nombre en el peso normal y, debajo, lo que hace falta saber de él. Sin grabación
 # no ocupa nada: la barra se ve entera.
 class TitleBlock(QWidget):
+    LEAST_WIDTH = 140
+
     def __init__(self) -> None:
         super().__init__()
+        self.full_name = ""
+        self.full_detail = ""
         self.name = QLabel("")
         self.name.setObjectName("title")
         self.name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.detail = QLabel("")
         self.detail.setObjectName("subtitle")
         self.detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # El texto no impone ancho: el bloque toma el que la barra le deja y recorta con
+        # puntos suspensivos, así los botones del final nunca caen fuera de la barra.
+        for label in (self.name, self.detail):
+            label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.setMinimumWidth(self.LEAST_WIDTH)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 0, 12, 0)
@@ -300,9 +360,24 @@ class TitleBlock(QWidget):
         self.set_document(None, "")
 
     def set_document(self, name: str | None, detail: str = "") -> None:
-        self.name.setText(name or "")
-        self.detail.setText(detail)
+        self.full_name = name or ""
+        self.full_detail = detail
         self.setToolTip(name or "")
+        self.fit()
+
+    def fit(self) -> None:
+        width = max(self.name.width(), 1)
+        metrics = QFontMetrics(self.name.font())
+        self.name.setText(metrics.elidedText(self.full_name, Qt.TextElideMode.ElideMiddle, width))
+        metrics = QFontMetrics(self.detail.font())
+        self.detail.setText(
+            metrics.elidedText(self.full_detail, Qt.TextElideMode.ElideRight, width)
+        )
+
+    @override
+    def resizeEvent(self, a0) -> None:
+        super().resizeEvent(a0)
+        self.fit()
 
 
 # Un botón que abre un menú. La flecha va en el texto: la que dibuja el estilo se pierde en

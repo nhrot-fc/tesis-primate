@@ -59,5 +59,10 @@ venv/
 !research/build/
 !research/build/main.pdf
 
+# La guía de usuario compilada va al repo: el visor la abre desde Help y el paquete la lleva
+!docs/manual/build/
+docs/manual/build/*
+!docs/manual/build/manual.pdf
+
 # Copias de decisiones de curación apartadas por el notebook al reiniciar
 curation/*.bak

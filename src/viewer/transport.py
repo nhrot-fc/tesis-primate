@@ -5,9 +5,11 @@ from PyQt6.QtGui import QColor, QPainter, QRegion
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
+    QLabel,
     QScrollBar,
     QStyle,
     QStyleOptionSlider,
+    QToolButton,
     QWidget,
 )
 
@@ -18,8 +20,29 @@ TIME_STEP = 0.05
 # La llamada mediana dura 0,2 s: por debajo de 1 s también hace falta ventana.
 SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
+SKIP_WIDTH = 28
 MARK_ALPHA = 150
 MARK_MIN_PX = 2
+
+
+# Un rótulo apagado delante de un mando: dice qué es sin competir con el valor.
+def caption(text: str, tip: str = "") -> QLabel:
+    label = QLabel(text)
+    label.setObjectName("hint")
+    label.setToolTip(tip)
+    return label
+
+
+def skip_button(parent: QWidget, pixmap: QStyle.StandardPixmap, fallback: str) -> QToolButton:
+    button = QToolButton()
+    button.setFixedWidth(SKIP_WIDTH)
+    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    style = parent.style()
+    if style is None:
+        button.setText(fallback)
+    else:
+        button.setIcon(style.standardIcon(pixmap))
+    return button
 
 
 # El scroll del tiempo con las cajas pintadas encima, como la barra de un editor: se ve dónde
@@ -91,15 +114,30 @@ class Transport(QWidget):
             self.spans.addItem(f"{value:g} s", value)
         self.spans.setCurrentIndex(SPANS.index(5.0))
         self.spans.setFixedWidth(SPAN_WIDTH)
-        self.spans.setToolTip("How much time fits on screen (Ctrl + wheel)")
+        self.spans.setToolTip("How much time fits on screen (Ctrl + wheel, Ctrl+1 / Ctrl+3)")
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
+        # El rótulo va con el combo: "5 s" solo no dice que es el ancho de la ventana.
+        self.spans_label = caption("Window", self.spans.toolTip())
+
+        # Al principio y al final, a los lados de Play, como en Audacity.
+        self.to_start = skip_button(self, QStyle.StandardPixmap.SP_MediaSkipBackward, "⏮")
+        self.to_start.setToolTip("Go to the start (Home)")
+        self.to_start.clicked.connect(lambda: self.to_edge(False))
+        self.to_end = skip_button(self, QStyle.StandardPixmap.SP_MediaSkipForward, "⏭")
+        self.to_end.setToolTip("Go to the end (End)")
+        self.to_end.clicked.connect(lambda: self.to_edge(True))
 
         # Reproducir, la barra de tiempo con todo el sitio que sobra, y el reloj al final.
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
-        layout.addWidget(self.player)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(2)
+        buttons.addWidget(self.to_start)
+        buttons.addWidget(self.player)
+        buttons.addWidget(self.to_end)
+        layout.addLayout(buttons)
         layout.addWidget(self.bar, 1)
         layout.addWidget(self.player.clock)
 

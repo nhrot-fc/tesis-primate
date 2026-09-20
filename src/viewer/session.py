@@ -31,8 +31,10 @@ def read_table(path: Path) -> tuple[str, pd.DataFrame]:
     return (DETECTIONS if SCORE in table.columns else ANNOTATIONS), table
 
 
+# `especie/llamada`; una celda vacía (NaN en la tabla) no escribe "nan".
 def label(row: pd.Series) -> str:
-    return "/".join(str(row[c]) for c in (SPECIES, CALL) if c in row.index)
+    parts = [row[c] for c in (SPECIES, CALL) if c in row.index]
+    return "/".join(str(p) for p in parts if not pd.isna(p) and str(p).strip())
 
 
 @dataclass(frozen=True)
