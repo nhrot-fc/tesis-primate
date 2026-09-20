@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from PyQt6.QtCore import QEventLoop, QPoint, QPointF, QRect, Qt, QTimer  # noqa: E402
 from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen, QPixmap, QPolygonF  # noqa: E402
-from PyQt6.QtWidgets import QApplication, QMenu, QTableView, QToolButton, QWidget  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QMenu, QTableView, QWidget  # noqa: E402
 
 PROJECT = Path(__file__).resolve().parents[2]
 DEFAULT_AUDIO = PROJECT / "data/raw/bolivian_squirrel_monkey__SB/20231218.wav"
@@ -192,12 +192,20 @@ class Recorder:
             action()
         self.run(150)
 
-    # Abre el menú de un botón, resalta una entrada y lo cierra: lo que se ve al elegirla.
-    def pick(self, button: QToolButton, text: str, hold_ms: int = 1100) -> None:
-        menu = button.menu()
+    # Abre un menú de la barra (File, View, …) bajo su título, resalta una entrada y lo
+    # cierra: lo que se ve al elegirla.
+    def pick(self, title: str, text: str, hold_ms: int = 1100) -> None:
+        bar = self.viewer.menuBar()
+        assert bar is not None
+        heading = next(a for a in bar.actions() if a.text().replace("&", "") == title)
+        menu = heading.menu()
         assert menu is not None
-        self.click(button)
-        at = button.mapTo(self.viewer, QPoint(0, button.height()))
+        slot = bar.actionGeometry(heading)
+        self.target = QPointF(bar.mapTo(self.viewer, slot.center()))
+        self.run(600)
+        self.click_frames = CLICK_FRAMES
+        self.run(100)
+        at = bar.mapTo(self.viewer, slot.bottomLeft())
         menu.popup(self.viewer.mapToGlobal(at))
         action = next(a for a in menu.actions() if a.text().startswith(text))
         self.run(300)
@@ -231,13 +239,6 @@ def cell_center(viewer, table: QTableView, row: int) -> QPointF:
     return QPointF(viewport.mapTo(viewer, table.visualRect(model.index(row, 0)).center()))
 
 
-def toolbar_button(viewer, action) -> QWidget:
-    toolbar = viewer.open_button.parentWidget()
-    button = toolbar.widgetForAction(action)
-    assert button is not None
-    return button
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("--audio", type=Path, default=DEFAULT_AUDIO)
@@ -267,7 +268,7 @@ def main() -> None:
     # 1. Abrir la grabación
     rec.say("viewer.exe — open a recording, detect, review, save")
     rec.run(2200)
-    rec.pick(viewer.open_button, "Open audio")
+    rec.pick("File", "Open audio")
     rec.say(f"Open audio…  (Ctrl+O)   {audio.relative_to(PROJECT)}")
     rec.press("Ctrl+O")
     viewer.open_path(audio)
@@ -289,7 +290,7 @@ def main() -> None:
     # 3. Las anotaciones hechas a mano, encima; la ventana va donde hay varias
     annotations = audio.with_suffix(".txt")
     if annotations.is_file():
-        rec.pick(viewer.open_button, "Open annotations")
+        rec.pick("File", "Open annotations")
         rec.say("Open annotations…  (Ctrl+T): a Raven table drawn in green")
         rec.press("Ctrl+T")
         viewer.open_path(annotations)
@@ -330,11 +331,11 @@ def main() -> None:
     viewer.score.set_value(0.2)
     rec.run(1200)
 
-    # 6. La lista de cajas
-    boxes_button = toolbar_button(viewer, viewer.boxes_action)
+    # 6. La lista de cajas, y N / P para recorrerla
+    rec.pick("View", "Boxes")
     rec.say("Boxes  (Ctrl+E): the list; a click frames the box")
-    rec.click(boxes_button, viewer.table.show)
     rec.press("Ctrl+E")
+    viewer.table.show()
     rec.run(1200)
     table = viewer.table.pages[DETECTIONS].table
     for row in (2, 5):
@@ -343,7 +344,14 @@ def main() -> None:
         rec.click_frames = CLICK_FRAMES
         table.selectRow(row)
         rec.run(1100)
-    rec.click(boxes_button, viewer.table.hide)
+    rec.say("N and P go to the next and previous box")
+    rec.target = rec.center_of(viewer.plot)
+    for key in ("N", "N", "P"):
+        rec.press(key)
+        viewer.skip(1 if key == "N" else -1)
+        rec.run(1000)
+    rec.press("Ctrl+E")
+    viewer.table.hide()
     rec.run(500)
 
     # 7. Revisar
@@ -377,7 +385,7 @@ def main() -> None:
     rec.run(1800)
 
     # 8. Guardar (el diálogo de archivo no se puede mostrar: se escribe donde iría)
-    rec.pick(viewer.export_button, "Save annotations")
+    rec.pick("File", "Save annotations")
     rec.say("Save annotations table…: a Raven table with the accepted boxes")
     saved = scratch / f"{audio.stem}.annotations.txt"
     table_out = viewer.session.visible(ANNOTATIONS)
@@ -388,7 +396,8 @@ def main() -> None:
 
     # 9. Batch: una carpeta entera
     rec.say("Batch: a whole folder")
-    rec.click(toolbar_button(viewer, viewer.mode_actions[BATCH]), lambda: viewer.set_mode(BATCH))
+    rec.pick("View", "Batch")
+    viewer.set_mode(BATCH)
     rec.run(600)
     rec.say("Drop a folder on the window, or Choose a folder…")
     rec.click(viewer.batch.choose_button, lambda: viewer.batch.set_folder(scratch))

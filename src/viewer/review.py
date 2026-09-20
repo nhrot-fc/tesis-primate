@@ -12,7 +12,7 @@ from typing import override
 import pandas as pd
 from PyQt6.QtCore import QEvent, QObject, Qt, pyqtSignal
 from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QToolButton, QWidget
+from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from data.raven import BEGIN, CALL, END, HIGH, LOW, SCORE, SPECIES
 from viewer.plot import SpectrogramView
@@ -79,7 +79,6 @@ class ReviewBar(QWidget):
         # que saber para seguir, y durante la revisión la fila es sólo suya.
         self.position = QLabel("")
         self.score = QLabel("")
-        self.score.setObjectName("hint")
         self.species = QComboBox()
         self.species.setEditable(True)
         self.species.setMinimumWidth(SPECIES_WIDTH)
@@ -88,13 +87,11 @@ class ReviewBar(QWidget):
         edit = self.species.lineEdit()
         if edit is not None:
             edit.installEventFilter(self)
-        # La tecla va en el botón: la revisión se hace con el teclado y así se aprende sola.
+        # Las teclas van en el tooltip: la revisión se hace con el teclado.
         self.accept_button = self.button(
-            "Accept  A", "Keep the box as framed and labelled (A or Enter)", self.accepted.emit
+            "Accept", "Keep the box as framed and labelled (A or Enter)", self.accepted.emit
         )
-        self.accept_button.setObjectName("primary")
         label = QLabel("Label")
-        label.setObjectName("hint")
         label.setToolTip(self.species.toolTip())
 
         layout = QHBoxLayout(self)
@@ -106,14 +103,13 @@ class ReviewBar(QWidget):
         layout.addWidget(label)
         layout.addWidget(self.species)
         layout.addSpacing(8)
-        layout.addWidget(self.button("Reject  R", "Drop the box (R or Delete)", self.rejected.emit))
+        layout.addWidget(self.button("Reject", "Drop the box (R or Delete)", self.rejected.emit))
         layout.addWidget(self.accept_button)
         layout.addSpacing(12)
-        layout.addWidget(self.button("Done  Esc", "Leave the review (Esc)", self.done.emit))
+        layout.addWidget(self.button("Done", "Leave the review (Esc)", self.done.emit))
 
-    def button(self, text: str, tip: str, action: Callable[[], None]) -> QToolButton:
-        button = QToolButton()
-        button.setText(text)
+    def button(self, text: str, tip: str, action: Callable[[], None]) -> QPushButton:
+        button = QPushButton(text)
         button.setToolTip(tip)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.clicked.connect(lambda: action())

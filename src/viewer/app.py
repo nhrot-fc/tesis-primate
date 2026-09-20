@@ -23,16 +23,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
-    QSizePolicy,
     QStackedWidget,
     QStatusBar,
     QTextBrowser,
-    QToolBar,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -48,17 +44,7 @@ from inference.catalog import (
     read_operating_point,
 )
 from viewer.batch import BatchView
-from viewer.controls import (
-    Band,
-    Layers,
-    MenuButton,
-    ModelPicker,
-    Popup,
-    SettingsPanel,
-    Slider,
-    TitleBlock,
-    emphasize,
-)
+from viewer.controls import Band, Layers, ModelPicker, SettingsPanel, Slider, headline_font
 from viewer.inference import DETECT_THRESHOLD, detect, preload
 from viewer.plot import Layer, SpectrogramView
 from viewer.review import ACCEPTED, REJECTED, ReviewBar, Reviewer
@@ -82,15 +68,11 @@ BASE_TITLE = "Primate Vocalization Detector"
 # Las dos vistas, como las dos ventanas de Raven: una grabación o una carpeta entera.
 SPECTROGRAM, BATCH = "Spectrogram", "Batch"
 SCORE_WIDTH = 200
-PAGE_MIN_WIDTH = 460
 # La ayuda es una ventana aparte con scroll: la lista es más alta que muchas pantallas.
 HELP_SIZE = (640, 620)
 # El emblema de la bienvenida: el mismo dibujo que el icono del .exe (deploy/build_windows.py).
 EMBLEM_SIZE = 96
 EMBLEM_BACKGROUND, EMBLEM_STROKE = "#1c1b22", 5
-# En orden de preferencia; si no hay ninguna se queda la del escritorio.
-UI_FONTS = ("Inter", "Cantarell", "Noto Sans", "Ubuntu", "DejaVu Sans")
-UI_POINT_SIZE = 10
 # Al encuadrar una caja en revisión: la banda mide al menos el doble que la caja.
 REVIEW_BAND_MARGIN = 2.0
 
@@ -119,7 +101,8 @@ HELP = {
         ("Zip", "drop a model zip on the window to add it next to the program"),
     ],
     "Detect": [
-        ("Ctrl+R", "run the model over the open recording"),
+        ("Ctrl+R", "run the model (the Model list under the spectrogram) over the open "
+                   "recording"),
         ("Ctrl+Shift+R", "the Batch view: Run leaves a <tt>.detections.txt</tt> next to every "
                          "recording of the folder, with the boxes at or above its Score"),
         ("Score ≥", "in the Spectrogram view only hides the weaker detections; Save keeps what "
@@ -133,7 +116,7 @@ HELP = {
         ("Ctrl+↑ / Ctrl+↓", "zoom in and out in frequency (Shift + wheel, around the pointer): "
                             "Band is how much of the range fits"),
         ("↑ ↓", "move the band; F shows it all"),
-        ("Settings", "brightness, contrast, volume and the audio output"),
+        ("View > Settings", "brightness, contrast, volume and the audio output"),
         ("Time bar", "the marks are the boxes: click near one to go there"),
         ("Ctrl+E", "show or hide the Boxes panel"),
         ("Ctrl+S", "save the visible stretch as an image"),
@@ -147,13 +130,14 @@ HELP = {
         ("← →", "step forward and back"),
         ("PgUp / PgDn", "a whole window"),
         ("Home / End", "start and end of the audio"),
-        ("N / P", "next and previous detection"),
+        ("N / P", "next and previous box: it is framed and its row is selected in Boxes"),
     ],
     "Boxes": [
         ("1 / 2", "show or hide the Annotations and Detections layers"),
-        ("Ctrl+E", "table of boxes; click a row to frame it"),
+        ("Ctrl+E", "table of boxes; click a row to frame it, N / P walk through the tab "
+                   "that is showing"),
         ("Del", "in the table, remove the selected boxes"),
-        ("Save", "keeps the boxes that are visible"),
+        ("File > Save", "keeps the boxes that are visible"),
     ],
     "Review": [
         ("Review", "go through the visible detections one by one, in time order; each box is "
@@ -166,88 +150,6 @@ HELP = {
                 "again picks up where you left off"),
     ],
 }  # fmt: skip
-
-# Lo mínimo para que la ventana no sea la suma de los ajustes de fábrica de cada control:
-# espaciado de la barra, el botón de acento y los tres papeles del texto. Todo lo demás lo
-# dibuja el escritorio, que es lo que el usuario ya reconoce.
-QSS = """
-QToolBar {{
-    border: 0;
-    border-bottom: 1px solid {line};
-    padding: 6px 10px;
-    spacing: 4px;
-}}
-QToolBar QToolButton {{
-    padding: 5px 11px;
-    border: 0;
-    border-radius: 5px;
-}}
-QToolBar QToolButton:hover:enabled {{ background: {hover}; }}
-QToolBar QToolButton:pressed:enabled {{ background: {press}; }}
-QToolBar QToolButton:checked {{ background: {press}; }}
-/* La flecha va escrita en el texto del botón: la del estilo se dibuja suelta al lado. */
-QToolBar QToolButton::menu-indicator {{ image: none; width: 0; }}
-QToolBar QComboBox {{ padding: 3px 8px; }}
-
-QToolButton#primary, QPushButton#primary {{
-    background: {accent};
-    color: {accent_text};
-    border: 0;
-    border-radius: 5px;
-    padding: 5px 14px;
-    font-weight: 600;
-}}
-QToolButton#primary:hover:enabled, QPushButton#primary:hover:enabled {{
-    background: {accent_hover};
-}}
-QToolButton#primary:disabled, QPushButton#primary:disabled {{
-    background: {press};
-    color: {muted};
-    font-weight: 400;
-}}
-
-#title {{ font-weight: 600; }}
-#subtitle, #hint, #placeholder, #dockName {{ color: {muted}; }}
-#welcomeHeadline {{ font-size: {headline}pt; }}
-#readout, #clock {{ font-family: "{mono}"; color: {muted}; }}
-#dockTitle {{ border-bottom: 1px solid {line}; }}
-QToolButton#dockClose {{ border: 0; padding: 2px; }}
-
-QStatusBar {{ border-top: 1px solid {line}; }}
-QStatusBar, QStatusBar QLabel {{ color: {muted}; }}
-QStatusBar::item {{ border: 0; }}
-QToolTip {{ padding: 4px 6px; }}
-"""
-
-
-# Una tipografía y un espaciado para toda la ventana: sin esto cada control trae el suyo.
-def apply_style(app: QApplication) -> None:
-    families = set(QFontDatabase.families())
-    font = app.font()
-    for name in UI_FONTS:
-        if name in families:
-            font.setFamily(name)
-            break
-    font.setPointSize(UI_POINT_SIZE)
-    app.setFont(font)
-
-    palette = app.palette()
-    window = palette.window().color()
-    accent = palette.highlight().color()
-    dark = window.lightness() < 128
-    app.setStyleSheet(
-        QSS.format(
-            line=(window.lighter(140) if dark else window.darker(112)).name(),
-            hover=(window.lighter(125) if dark else window.darker(107)).name(),
-            press=(window.lighter(145) if dark else window.darker(115)).name(),
-            muted=(window.lighter(220) if dark else window.darker(165)).name(),
-            accent=accent.name(),
-            accent_hover=accent.lighter(112).name(),
-            accent_text=palette.highlightedText().color().name(),
-            headline=UI_POINT_SIZE + 4,
-            mono=QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont).family(),
-        )
-    )
 
 
 # Un zip de modelo trae `models/<nombre>/…` y, si hace falta, `hf/…`; se vuelca sobre la raíz
@@ -306,14 +208,12 @@ class Welcome(QWidget):
         emblem.setPixmap(emblem_pixmap(EMBLEM_SIZE))
         emblem.setAlignment(Qt.AlignmentFlag.AlignCenter)
         headline = QLabel(WELCOME[0])
-        headline.setObjectName("welcomeHeadline")
+        headline.setFont(headline_font(headline))
         headline.setAlignment(Qt.AlignmentFlag.AlignCenter)
         detail = QLabel(WELCOME[1])
-        detail.setObjectName("placeholder")
         detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         open_button = QPushButton("Open audio…")
-        open_button.setObjectName("primary")
         open_button.clicked.connect(lambda: open_audio())
         folder_button = QPushButton("Open folder…")
         folder_button.clicked.connect(lambda: open_folder())
@@ -365,7 +265,7 @@ class Viewer(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(BASE_TITLE)
-        self.setMinimumSize(1000, 600)
+        # Sin mínimo propio: lo pone el contenido, así nada se corta al estrechar.
         self.resize(1280, 820)
         self.setAcceptDrops(True)
         # La ventana no deja nada escrito al cerrarse: cada arranque es igual al anterior.
@@ -392,6 +292,7 @@ class Viewer(QMainWindow):
         self.plot.clicked.connect(self.transport.seek)
         self.plot.zoomed.connect(self.transport.zoom)
 
+        # Cómo se ve y cómo se oye, en una ventana aparte que se deja abierta al lado.
         self.settings = SettingsPanel()
         self.settings.brightness.changed.connect(self.draw_spectrogram)
         self.settings.contrast.changed.connect(self.draw_spectrogram)
@@ -399,6 +300,10 @@ class Viewer(QMainWindow):
             lambda: self.transport.set_gain(self.settings.volume.value())
         )
         self.settings.device_changed.connect(self.transport.player.set_device)
+        self.settings_dialog = QDialog(self)
+        self.settings_dialog.setWindowTitle("Settings")
+        self.settings_dialog.setWindowFlag(Qt.WindowType.Tool)
+        QVBoxLayout(self.settings_dialog).addWidget(self.settings)
 
         # La banda: el control manda al espectrograma y este devuelve lo que pudo (recortado).
         self.band = Band()
@@ -421,9 +326,16 @@ class Viewer(QMainWindow):
         self.batch.said.connect(self.say)
         self.batch.state_changed.connect(self.sync_controls)
 
+        # El modelo es uno: cada vista tiene su lista y la ventana las mantiene iguales.
+        self.picker = ModelPicker()
+        self.pickers = (self.picker, self.batch.picker)
+        for picker in self.pickers:
+            picker.chosen.connect(self.model_chosen)
+            picker.browse.connect(self.browse_model)
+            picker.add.connect(self.add_model)
+
         self.build_actions()
         self.build_menus()
-        self.build_toolbar()
         self.pages = QStackedWidget()
         self.page = self.build_page()
         self.pages.addWidget(self.page)
@@ -532,8 +444,9 @@ class Viewer(QMainWindow):
         self.addAction(action)
         return action
 
-    # Una barra de menús como la de Raven o Audacity: todo lo que se puede hacer, con su
-    # atajo al lado. La barra de herramientas de abajo es el subconjunto de cada día.
+    # Una barra de menús como la de Raven o Audacity, y ninguna otra barra: todo lo que se
+    # puede hacer está acá, con su atajo al lado. Lo de cada día (el modelo, Detect, el
+    # score, Review) va debajo del espectrograma, que es donde se usa.
     def build_menus(self) -> None:
         bar = self.menuBar()
         if bar is None:
@@ -576,85 +489,6 @@ class Viewer(QMainWindow):
             help_menu.addAction(self.help_action)
             help_menu.addAction(self.manual_action)
 
-    # Tres zonas, como la barra de una ventana de Finder: a la izquierda las vistas y lo que
-    # trae archivos, al centro qué está abierto, a la derecha lo que se hace con ello. Cada
-    # grupo va separado del siguiente, y ningún botón repite lo que hace el de al lado.
-    def build_toolbar(self) -> None:
-        open_menu = QMenu(self)
-        open_menu.addAction(self.open_audio_action)
-        open_menu.addAction(self.open_table_action)
-        open_menu.addAction(self.open_folder_action)
-        self.open_button = MenuButton("Open", open_menu, "Open audio, annotations or a folder")
-
-        self.title_block = TitleBlock()
-
-        self.picker = ModelPicker()
-        self.picker.chosen.connect(self.model_chosen)
-        self.picker.browse.connect(self.browse_model)
-        self.picker.add.connect(self.add_model)
-        self.picker_label = QLabel("Model")
-        self.picker_label.setObjectName("hint")
-        self.picker_label.setToolTip(self.picker.toolTip())
-
-        self.run_button = QToolButton()
-        self.run_button.setDefaultAction(self.run_action)
-        self.run_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-        self.settings_button = Popup(
-            "Settings", self.settings, "Brightness, contrast, volume and audio output"
-        )
-
-        export_menu = QMenu(self)
-        for action in self.save_actions.values():
-            export_menu.addAction(action)
-        export_menu.addSeparator()
-        export_menu.addAction(self.image_action)
-        self.export_button = MenuButton("Save", export_menu, "Save a table or an image")
-
-        toolbar = QToolBar()
-        toolbar.setMovable(False)
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        for action in self.mode_actions.values():
-            toolbar.addAction(action)
-        toolbar.addSeparator()
-        toolbar.addWidget(self.open_button)
-        # Lo que sólo tiene sentido con un espectrograma delante se esconde en Batch.
-        # (`addAction(QAction)` no devuelve nada; `addSeparator` y `addWidget` sí.)
-        # El título es elástico y se queda con el hueco; en Batch, donde no hay título, el
-        # hueco lo ocupa el espaciador para que el resto no se corra.
-        self.spectrogram_only: list[QAction] = []
-        placed = toolbar.addWidget(self.title_block)
-        if placed is not None:
-            self.spectrogram_only.append(placed)
-        self.batch_only: list[QAction] = []
-        placed = toolbar.addWidget(self.stretch())
-        if placed is not None:
-            self.batch_only.append(placed)
-        toolbar.addWidget(self.picker_label)
-        toolbar.addWidget(self.picker)
-        placed = toolbar.addWidget(self.run_button)
-        if placed is not None:
-            self.spectrogram_only.append(placed)
-        toolbar.addSeparator()
-        for widget in (self.settings_button, self.export_button):
-            placed = toolbar.addWidget(widget)
-            if placed is not None:
-                self.spectrogram_only.append(placed)
-        separator = toolbar.addSeparator()
-        if separator is not None:
-            self.spectrogram_only.append(separator)
-        if self.boxes_action is not None:
-            toolbar.addAction(self.boxes_action)
-            self.spectrogram_only.append(self.boxes_action)
-        toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.addToolBar(toolbar)
-
-    # Hueco elástico: dos de estos, uno a cada lado, dejan el título en el centro.
-    def stretch(self) -> QWidget:
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        return spacer
-
     # La vista de espectrograma: el mensaje de bienvenida hasta que haya audio; con audio, el
     # espectrograma, la barra de tiempo y una fila de contexto (leyenda y score, o la revisión).
     def build_page(self) -> QWidget:
@@ -680,14 +514,21 @@ class Viewer(QMainWindow):
         layout.addWidget(self.build_context())
         page = QWidget()
         page.setLayout(layout)
-        # El centro manda sobre el panel: al estrechar la ventana encoge él primero.
-        page.setMinimumWidth(PAGE_MIN_WIDTH)
+        # Sin mínimo propio: el que sale de sus filas es el que vale, y al estrechar la
+        # ventana es el panel de cajas el que encoge primero. Con un mínimo fijo más chico
+        # la fila de abajo se cortaba por la derecha.
         return page
 
-    # Una sola fila debajo del transporte, y sólo cuando hay algo que decir: la leyenda de
-    # las capas a la izquierda, el umbral y Review a la derecha. Durante la revisión la fila
-    # entera pasa a ser la revisión: es lo único que se está haciendo.
+    # Una sola fila debajo del transporte, de izquierda a derecha en el orden en que se usa:
+    # el modelo y Detect, el umbral y la leyenda de las capas, y Review al final. Durante la
+    # revisión la fila entera pasa a ser la revisión: es lo único que se está haciendo.
     def build_context(self) -> QWidget:
+        picker_label = QLabel("Model")
+        picker_label.setToolTip(self.picker.toolTip())
+        self.run_button = QPushButton("Detect")
+        self.run_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.run_button.clicked.connect(self.run_action.trigger)
+
         self.layers = Layers([(s, COLORS[s], STYLES[s], WIDTHS[s]) for s in SOURCES])
         self.layers.changed.connect(self.draw_boxes)
 
@@ -700,21 +541,23 @@ class Viewer(QMainWindow):
         self.score.setMaximumWidth(SCORE_WIDTH)
         self.score.setToolTip("Hide detections below this score")
         self.score.changed.connect(lambda: self.session.set_score(self.score.value()))
-        self.review_button = QToolButton()
-        self.review_button.setText("Review")
+        self.review_button = QPushButton("Review")
         self.review_button.setToolTip("Go through the visible detections one by one")
         self.review_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.review_button.clicked.connect(self.reviewer.start)
 
-        # Una fila con dos caras y nunca las dos a la vez: mirar o revisar. Mirando, el
-        # umbral a la izquierda y el paso siguiente a la derecha, con la fila entera de por
-        # medio; revisando, la revisión se la queda toda porque es lo único que se hace.
+        # Una fila con dos caras y nunca las dos a la vez: mirar o revisar.
         self.model_tools = QWidget()
         row = QHBoxLayout(self.model_tools)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(16)
-        row.addWidget(self.layers)
+        row.setSpacing(8)
+        row.addWidget(picker_label)
+        row.addWidget(self.picker)
+        row.addWidget(self.run_button)
+        row.addSpacing(16)
         row.addWidget(self.score)
+        row.addSpacing(8)
+        row.addWidget(self.layers)
         row.addStretch(1)
         row.addWidget(self.review_button)
 
@@ -724,7 +567,9 @@ class Viewer(QMainWindow):
         return self.context
 
     def show_settings(self) -> None:
-        self.settings_button.showMenu()
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
+        self.settings_dialog.activateWindow()
 
     def manual(self) -> Path | None:
         return next((path for path in MANUAL_PATHS if path.is_file()), None)
@@ -755,7 +600,6 @@ class Viewer(QMainWindow):
             text.setFrameStyle(0)
             text.setHtml(f"<table cellspacing='0' cellpadding='2'>{rows}</table>")
             close = QPushButton("Close")
-            close.setObjectName("primary")
             dialog = QDialog(self)
             dialog.setWindowTitle("Controls")
             dialog.setWindowFlag(Qt.WindowType.Tool)
@@ -778,12 +622,11 @@ class Viewer(QMainWindow):
     # no dice qué espera.
     def build_status_bar(self) -> None:
         self.task = QLabel("")
-        self.task.setObjectName("hint")
         self.progress = QProgressBar()
         self.progress.setFixedWidth(180)
         self.progress.setTextVisible(False)
         self.readout = QLabel("")
-        self.readout.setObjectName("readout")
+        self.readout.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.readout.setMinimumWidth(160)
         self.readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.bar = QStatusBar()
@@ -865,10 +708,6 @@ class Viewer(QMainWindow):
             self.dock_shown = self.table.isVisible()
             self.table.hide()
         self.pages.setCurrentWidget(self.batch if mode == BATCH else self.page)
-        for action in self.spectrogram_only:
-            action.setVisible(mode == SPECTROGRAM)
-        for action in self.batch_only:
-            action.setVisible(mode == BATCH)
         if mode == SPECTROGRAM and self.dock_shown:
             self.table.show()
             self.dock_shown = False
@@ -905,6 +744,8 @@ class Viewer(QMainWindow):
             if batch
             else f"Run {model.parent.name} over the open recording (Ctrl+R)"
         )
+        self.run_button.setEnabled(self.run_action.isEnabled())
+        self.run_button.setToolTip(self.run_action.toolTip())
         self.batch_action.setEnabled(not batch)
         self.clear_action.setEnabled(spectrogram and not busy and detections)
         self.image_action.setEnabled(spectrogram and not busy and loaded)
@@ -920,28 +761,13 @@ class Viewer(QMainWindow):
             action.setEnabled(spectrogram and loaded)
         if self.boxes_action is not None:
             self.boxes_action.setEnabled(spectrogram)
-        self.export_button.setEnabled(loaded)
         self.canvas.setCurrentWidget(self.spectrogram if loaded else self.welcome)
         self.controls.setVisible(loaded)
-        self.context.setVisible(loaded and (detections or reviewing))
+        self.context.setVisible(loaded)
         self.context.setCurrentIndex(1 if reviewing else 0)
-        emphasize(self.run_button, self.run_action.isEnabled() and not detections)
-        emphasize(self.review_button, detections and not reviewing)
-        self.show_title()
-
-    # Lo que está abierto, en el centro de la barra: el nombre y, debajo, su duración y lo
-    # que se lleva encontrado. La barra de título del sistema queda para el gestor de ventanas.
-    def show_title(self) -> None:
-        path = self.session.audio_path
-        if path is None:
-            self.title_block.set_document(None)
-            return
-        parts = [f"{self.session.duration:.0f} s"]
-        for source in SOURCES:
-            table = self.session.visible(source)
-            if table is not None and len(table):
-                parts.append(f"{len(table)} {source.lower()}")
-        self.title_block.set_document(path.name, " · ".join(parts))
+        # El umbral y Review sólo tienen sentido con detecciones delante.
+        self.score.setEnabled(detections and not busy)
+        self.review_button.setEnabled(detections and not busy)
 
     def on_changed(self) -> None:
         self.draw_boxes()
@@ -1023,7 +849,8 @@ class Viewer(QMainWindow):
         self.start(lambda: add_model_zip(archive), self.model_added, f"Adding {archive.name}…")
 
     def model_added(self, names: str) -> None:
-        self.picker.reload()
+        for picker in self.pickers:
+            picker.reload()
         self.say(f"Added {names}: choose it in the Model list.")
 
     # Lo que se abre o se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
@@ -1061,7 +888,13 @@ class Viewer(QMainWindow):
     def load_table(self, path: Path) -> None:
         self.start(lambda: read_table(path), self.table_loaded, f"Loading {path.name}…")
 
+    # Lo elige una de las dos listas; la otra se pone igual (`select` no emite si ya lo
+    # está), y el resto se hace una sola vez.
     def model_chosen(self, path: Path | None) -> None:
+        for picker in self.pickers:
+            picker.select(path)
+        if path == self.session.model_path:
+            return
         self.session.model_path = path
         operating = None if path is None else read_operating_point(path.parent)
         self.batch.set_model(path, operating)
@@ -1145,28 +978,16 @@ class Viewer(QMainWindow):
 
     # --- Recorrido --------------------------------------------------------------
 
-    # Anterior / siguiente: en revisión es la caja en curso; si no, la primera fuera de pantalla.
+    # Anterior / siguiente: en revisión es la caja en curso; si no, la fila siguiente de la
+    # tabla de cajas, que al elegirse se encuadra y se marca (`focus`). Con el panel abierto
+    # se ve la fila avanzar; cerrado, la caja igual se marca en el espectrograma.
     def skip(self, direction: int) -> None:
         if self.reviewer.active:
             self.reviewer.step(direction)
-        else:
-            self.jump(direction)
-
-    def jump(self, direction: int) -> None:
-        # Centra la ventana en la primera detección que no esté en pantalla. La referencia
-        # es el borde y no el centro: al principio y al final del audio la barra no puede
-        # centrar la caja, y con el centro la misma detección volvía a salir elegida.
-        table = self.session.visible(DETECTIONS)
-        if table is None or table.empty:
             return
         start, stop = self.transport.time_window()
-        times = table[BEGIN].to_numpy()
-        candidates = times[times >= stop] if direction > 0 else times[times < start]
-        if candidates.size == 0:
-            self.say("No more detections that way.")
-            return
-        target = float(candidates[0] if direction > 0 else candidates[-1])
-        self.transport.center(target)
+        if not self.table.step(direction, start if direction > 0 else stop):
+            self.say("No more boxes that way.")
 
     def focus(self, row) -> None:
         if row is None:
@@ -1394,7 +1215,6 @@ def run(app: QApplication, paths: list[Path]) -> Viewer:
     style = app.style()
     if style is not None:
         app.setPalette(style.standardPalette())
-    apply_style(app)
     palette = app.palette()
     pg.setConfigOptions(
         imageAxisOrder="row-major",

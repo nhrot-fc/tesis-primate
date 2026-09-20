@@ -1,7 +1,8 @@
-"""Vista Batch: una carpeta de grabaciones, el modelo de la toolbar y un umbral; deja la tabla
-de Raven de cada audio junto a él (`<audio>.detections.txt`), igual que `detect.exe`. Es una
-página aparte de la del espectrograma, con sus propios mandos: se ve la lista entera, el
-estado de cada archivo y cuánto falta. El doble clic abre la grabación en el espectrograma."""
+"""Vista Batch: una carpeta de grabaciones, el modelo (la misma lista que en el espectrograma)
+y un umbral; deja la tabla de Raven de cada audio junto a él (`<audio>.detections.txt`), igual
+que `detect.exe`. Es una página aparte de la del espectrograma, con sus propios mandos: se ve
+la lista entera, el estado de cada archivo y cuánto falta. El doble clic abre la grabación en
+el espectrograma."""
 
 import math
 import threading
@@ -31,7 +32,7 @@ from PyQt6.QtWidgets import (
 
 from core.config import SCORE_THRESHOLD
 from inference.catalog import collect_audio, output_for
-from viewer.controls import emphasize
+from viewer.controls import ModelPicker, headline_font
 from viewer.tasks import Worker
 
 PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
@@ -252,6 +253,10 @@ class BatchView(QWidget):
         self.recursive.setChecked(True)
         self.recursive.toggled.connect(lambda _: self.rescan())
 
+        # El modelo es el mismo que el del espectrograma: la ventana mantiene los dos
+        # selectores iguales. Acá hay uno para no tener que cambiar de vista para elegirlo.
+        self.picker = ModelPicker()
+
         # Se escribe con este score, que arranca en el punto de operación del modelo (el que
         # eligió la comparación en val); es lo mismo que `detect.exe --score`.
         self.score = QDoubleSpinBox()
@@ -298,14 +303,12 @@ class BatchView(QWidget):
 
         # Sin carpeta: una frase, una aclaración y el botón, como la bienvenida del espectrograma.
         headline = QLabel(HEADLINE)
-        headline.setObjectName("welcomeHeadline")
+        headline.setFont(headline_font(headline))
         headline.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder = QLabel(PLACEHOLDER)
-        placeholder.setObjectName("placeholder")
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder.setWordWrap(True)
         self.choose_button = QPushButton("Choose a folder…")
-        self.choose_button.setObjectName("primary")
         self.choose_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.choose_button.clicked.connect(self.browse)
         empty = QWidget()
@@ -325,9 +328,7 @@ class BatchView(QWidget):
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
         self.summary = QLabel("")
-        self.summary.setObjectName("hint")
         self.hint = QLabel(HINT)
-        self.hint.setObjectName("hint")
 
         source = QHBoxLayout()
         source.setSpacing(8)
@@ -339,6 +340,9 @@ class BatchView(QWidget):
 
         settings = QHBoxLayout()
         settings.setSpacing(8)
+        settings.addWidget(QLabel("Model"))
+        settings.addWidget(self.picker)
+        settings.addSpacing(8)
         settings.addWidget(QLabel("Score ≥"))
         settings.addWidget(self.score)
         settings.addSpacing(8)
@@ -404,7 +408,7 @@ class BatchView(QWidget):
         if not self.listed():
             return "Open a folder of recordings first"
         if self.model_path is None:
-            return "Choose a model in the toolbar first"
+            return "Choose a model first"
         if not self.engine_ready:
             return "Waiting for the detection engine"
         if self.blocked:
@@ -417,9 +421,9 @@ class BatchView(QWidget):
         for widget in (self.folder, self.browse_button, self.recursive, self.overwrite):
             widget.setEnabled(not running)
         self.score.setEnabled(not running)
+        self.picker.setEnabled(not running and not self.blocked)
         self.run_button.setEnabled(self.can_run())
         self.run_button.setToolTip(self.why())
-        emphasize(self.run_button, self.run_button.isEnabled())
         # Un solo botón a la vista: Run, que mientras corre es Stop.
         self.run_button.setVisible(not running)
         self.stop_button.setVisible(running)

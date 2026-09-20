@@ -25,12 +25,11 @@ If a zip comes in parts (`.zip.001`, `.zip.002`, …), download all the parts an
 
 ## Use
 
-**Watch the demo: [resources/demo.mp4](resources/demo.mp4)** (70 seconds, one recording
-from start to finish). The user guide with screenshots is
-[docs/manual/build/manual.pdf](docs/manual/build/manual.pdf); it is also inside the
-program folder as `Manual.pdf` and under *Help → User manual*. `F1` lists every control.
+<video src="resources/demo.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
-`viewer.exe` has two views, switched from the toolbar:
+*(70 seconds, one recording from start to finish)*. The user guide with screenshots is [docs/manual/build/manual.pdf](docs/manual/build/manual.pdf); it is also inside the program folder as `Manual.pdf` and under *Help → User manual*. `F1` lists every control.
+
+`viewer.exe` has two views, switched from the *View* menu (dropping a file or a folder picks the right one):
 
 - **Spectrogram** — one recording. Drag an audio file (WAV, FLAC, MP3) onto the window, press
   **Detect**, then **Review** the detections one by one (`A` accepts, `R` rejects, `Esc`

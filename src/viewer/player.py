@@ -1,6 +1,7 @@
 import math
 
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink, QMediaDevices
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QStyle, QToolButton, QWidget
 
@@ -43,8 +44,9 @@ class AudioPlayer(QWidget):
         self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.button.clicked.connect(self.toggle)
         self.show_playing(False)
+        # Monoespaciada: los dígitos no bailan al correr el tiempo.
         self.clock = QLabel("0.00 / 0.00 s")
-        self.clock.setObjectName("clock")
+        self.clock.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.clock.setFixedWidth(CLOCK_WIDTH)
         self.clock.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 

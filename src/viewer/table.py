@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from data.raven import SCORE
-from viewer.controls import DockTitle, Panel
+from viewer.controls import Panel
 from viewer.session import ANNOTATIONS, SOURCES, Row, Session
 
 # La banda en kHz con un decimal: en Hz son once caracteres y se come la etiqueta.
@@ -153,6 +153,34 @@ class SourceTable(QTableView):
             row = self.boxes.rows[index.row()]
             self.session.remove([(row.source, row.index)])
 
+    # La fila siguiente o anterior, que al volverse la actual se encuadra sola (`picked`).
+    # Sin fila elegida arranca desde `near`: hacia adelante la primera caja que empieza ahí o
+    # después, hacia atrás la última que empieza antes. Falso cuando no queda ninguna.
+    def step(self, direction: int, near: float) -> bool:
+        rows = self.boxes.rows
+        if not rows:
+            return False
+        current = self.currentIndex()
+        if current.isValid():
+            target = current.row() + direction
+        else:
+            later = next((i for i, row in enumerate(rows) if row.begin >= near), len(rows))
+            target = later if direction > 0 else later - 1
+        if not 0 <= target < len(rows):
+            return False
+        self.selectRow(target)
+        self.scrollTo(self.boxes.index(target, 0))
+        return True
+
+    # Las teclas del espectrograma que la tabla se comería (N y P buscan por letra, Space
+    # marca la fila) siguen su camino hasta la ventana, que es quien las atiende.
+    @override
+    def keyPressEvent(self, e) -> None:
+        if e is not None and e.key() in (Qt.Key.Key_N, Qt.Key.Key_P, Qt.Key.Key_Space):
+            e.ignore()
+            return
+        super().keyPressEvent(e)
+
     def on_current(self, current, _previous) -> None:
         self.picked.emit(self.boxes.rows[current.row()] if current.isValid() else None)
 
@@ -208,7 +236,6 @@ class BoxTable(QDockWidget):
         )
         # Un panel lateral, no una ventana flotante: sólo se cierra.
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
-        self.header = DockTitle(self, "Boxes")
         self.pages = {source: SourcePage(session, source) for source in SOURCES}
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
@@ -256,3 +283,8 @@ class BoxTable(QDockWidget):
 
     def on_tab(self, index: int) -> None:
         list(self.pages.values())[index].table.emit_current()
+
+    # Siguiente o anterior caja de la pestaña que se está viendo (N / P).
+    def step(self, direction: int, near: float) -> bool:
+        page = list(self.pages.values())[self.tabs.currentIndex()]
+        return page.table.step(direction, near)

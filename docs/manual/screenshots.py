@@ -158,9 +158,6 @@ def main() -> None:
     shot.settle(300)
     full = shot.window()
     shot.save("spectrogram", full)
-    toolbar = viewer.open_button.parentWidget()
-    assert toolbar is not None
-    shot.crop("toolbar", full, toolbar)
     shot.crop("transport", full, viewer.controls)
     shot.crop("context", full, viewer.context)
     # Bajo su título en la barra de menús, como cuando se despliega con el ratón.
@@ -177,9 +174,12 @@ def main() -> None:
     shot.crop("boxes_panel", with_boxes, viewer.table)
     viewer.table.hide()
 
-    # 4. Settings desplegado, con la lista de salidas abierta.
+    # 4. La ventana de Settings.
     viewer.settings.reload_outputs()
-    shot.save("settings", viewer.settings.grab())
+    viewer.show_settings()
+    wait(200)
+    shot.save("settings", viewer.settings_dialog.grab())
+    viewer.settings_dialog.hide()
 
     # 5. Revisión: la primera detección encuadrada, con asas y su fila de mandos.
     viewer.reviewer.start()

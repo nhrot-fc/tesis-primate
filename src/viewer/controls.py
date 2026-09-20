@@ -2,30 +2,27 @@ from pathlib import Path
 from typing import override
 
 from PyQt6.QtCore import QObject, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFontMetrics, QPainter, QPen, QPixmap
+from PyQt6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPen, QPixmap
 from PyQt6.QtMultimedia import QAudioDevice, QMediaDevices
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDockWidget,
     QHBoxLayout,
     QLabel,
-    QMenu,
     QScrollBar,
-    QSizePolicy,
     QSlider,
-    QToolButton,
     QVBoxLayout,
     QWidget,
-    QWidgetAction,
 )
 
 from inference.catalog import available_models
 
-CARET = "\u25be"
 LABEL_WIDTH = 92
+# Caracteres que se ven del nombre del modelo en la lista cerrada.
+MODEL_NAME_LENGTH = 14
 READOUT_WIDTH = 48
 SLIDER_WIDTH = 168
+SLIDER_LEAST = 72
 SWATCH_W, SWATCH_H = 20, 12
 # Alturas de la banda visible en Hz, de más cerca a más lejos; la última entrada es la banda
 # entera. La caja mediana de un hallazgo mide 2,7 kHz: con la banda entera ocupa un octavo.
@@ -42,6 +39,15 @@ BRIGHTNESS = (list(range(-60, 61, 2)), 30)
 # y el contraste lo baja a negro sin llegar a comerse las llamadas debiles.
 CONTRAST = ([round(0.2 + 0.05 * i, 2) for i in range(97)], 28)
 VOLUME = (list(range(-20, 31, 2)), 10)
+# Cuánto más grande que el texto normal va el titular de una página vacía.
+HEADLINE_POINTS = 4
+
+
+# El titular de una página vacía: la tipografía de la ventana, unos puntos más grande.
+def headline_font(widget: QWidget) -> QFont:
+    font = QFont(widget.font())
+    font.setPointSize(font.pointSize() + HEADLINE_POINTS)
+    return font
 
 
 class Slider(QWidget):
@@ -57,11 +63,12 @@ class Slider(QWidget):
         name = QLabel(text)
         name.setFixedWidth(label_width)
         self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setMinimumWidth(SLIDER_LEAST)
         self.slider.setRange(0, len(values) - 1)
         self.slider.setValue(index)
         self.slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.readout = QLabel(fmt.format(values[index]))
-        self.readout.setObjectName("readout")
+        self.readout.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.readout.setFixedWidth(READOUT_WIDTH)
         self.readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
@@ -100,39 +107,28 @@ def swatch(color: str, style: Qt.PenStyle, width: int) -> QPixmap:
     return pixmap
 
 
-# Leyenda con interruptor: identifica el origen de cada caja y lo oculta. Una capa sin
-# tabla no aparece: sin anotaciones ni modelo la fila queda vacía.
+# Leyenda con interruptor: un checkbox por capa, con su trazo de icono, que la oculta. Una
+# capa sin tabla no aparece: sin anotaciones ni modelo la fila queda vacía.
 class Layers(QWidget):
     changed = pyqtSignal()
 
     def __init__(self, entries: list[tuple[str, str, Qt.PenStyle, int]]) -> None:
         super().__init__()
         self.boxes: dict[str, QCheckBox] = {}
-        self.chips: dict[str, QWidget] = {}
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(18)
+        layout.setSpacing(12)
         for text, color, style, width in entries:
-            mark = QLabel()
-            mark.setPixmap(swatch(color, style, width))
             box = QCheckBox(text)
+            box.setIcon(QIcon(swatch(color, style, width)))
             box.setChecked(True)
             box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             # Lambda: `toggled` emite el estado y `changed` no lleva argumentos.
             box.toggled.connect(lambda _: self.changed.emit())
-
-            chip = QWidget()
-            inner = QHBoxLayout(chip)
-            inner.setContentsMargins(0, 0, 0, 0)
-            inner.setSpacing(7)
-            inner.addWidget(mark)
-            inner.addWidget(box)
-            chip.setVisible(False)
-
+            box.setVisible(False)
             self.boxes[text] = box
-            self.chips[text] = chip
-            layout.addWidget(chip)
+            layout.addWidget(box)
 
     def enabled(self, text: str) -> bool:
         return self.boxes[text].isChecked()
@@ -143,7 +139,7 @@ class Layers(QWidget):
     # La leyenda dice qué es cada trazo y lo apaga; cuántas cajas hay lo dicen el título de
     # la ventana y el panel de cajas. Una capa sin tabla ni aparece.
     def set_state(self, text: str, total: int) -> None:
-        self.chips[text].setVisible(total > 0)
+        self.boxes[text].setVisible(total > 0)
 
 
 # La banda de frecuencia como en Raven: una altura elegida de una lista (el zoom) y un scroll
@@ -172,7 +168,6 @@ class Band(QObject):
         self.heights.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.heights.currentIndexChanged.connect(self.rescale)
         self.heights_label = QLabel("Band")
-        self.heights_label.setObjectName("hint")
         self.heights_label.setToolTip(self.heights.toolTip())
 
     # Sólo se rehace cuando cambia el tope (otra frecuencia de muestreo); queda en banda entera.
@@ -329,71 +324,8 @@ class SettingsPanel(QWidget):
             self.device_changed.emit(self.output.currentData())
 
 
-# El centro de la barra dice qué documento está abierto, como el título de una ventana de
-# Finder: el nombre en el peso normal y, debajo, lo que hace falta saber de él. Sin grabación
-# no ocupa nada: la barra se ve entera.
-class TitleBlock(QWidget):
-    LEAST_WIDTH = 140
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.full_name = ""
-        self.full_detail = ""
-        self.name = QLabel("")
-        self.name.setObjectName("title")
-        self.name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.detail = QLabel("")
-        self.detail.setObjectName("subtitle")
-        self.detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # El texto no impone ancho: el bloque toma el que la barra le deja y recorta con
-        # puntos suspensivos, así los botones del final nunca caen fuera de la barra.
-        for label in (self.name, self.detail):
-            label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.setMinimumWidth(self.LEAST_WIDTH)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 0, 12, 0)
-        layout.setSpacing(0)
-        layout.addWidget(self.name)
-        layout.addWidget(self.detail)
-        self.set_document(None, "")
-
-    def set_document(self, name: str | None, detail: str = "") -> None:
-        self.full_name = name or ""
-        self.full_detail = detail
-        self.setToolTip(name or "")
-        self.fit()
-
-    def fit(self) -> None:
-        width = max(self.name.width(), 1)
-        metrics = QFontMetrics(self.name.font())
-        self.name.setText(metrics.elidedText(self.full_name, Qt.TextElideMode.ElideMiddle, width))
-        metrics = QFontMetrics(self.detail.font())
-        self.detail.setText(
-            metrics.elidedText(self.full_detail, Qt.TextElideMode.ElideRight, width)
-        )
-
-    @override
-    def resizeEvent(self, a0) -> None:
-        super().resizeEvent(a0)
-        self.fit()
-
-
-# Un botón que abre un menú. La flecha va en el texto: la que dibuja el estilo se pierde en
-# cuanto la hoja de estilos toca el borde del botón, y sin ella nada dice que ahí hay un menú.
-class MenuButton(QToolButton):
-    def __init__(self, text: str, menu: QMenu, tip: str = "") -> None:
-        super().__init__()
-        self.setText(f"{text} {CARET}")
-        self.setToolTip(tip)
-        self.setMenu(menu)
-        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-
 # El ancho de un panel lo decide el `sizeHint` de lo que lleva dentro, y el de una tabla es
-# mezquino: sin esto los dos paneles abren en su mínimo, que es el de una ventana chica.
+# mezquino: sin esto el panel abre en su mínimo, que es el de una ventana chica.
 class Panel(QWidget):
     def __init__(self, preferred: int, least: int) -> None:
         super().__init__()
@@ -409,60 +341,6 @@ class Panel(QWidget):
         return hint
 
 
-# La cabecera de un panel lateral: el nombre del panel, lo que haga falta a su derecha y la
-# cruz para cerrarlo. La de fábrica escribe el nombre con otra tipografía y otro alto que el
-# resto de la ventana, y el panel termina con dos cabeceras, la suya y la del contenido.
-class DockTitle(QWidget):
-    def __init__(self, dock: QDockWidget, text: str) -> None:
-        super().__init__()
-        self.setObjectName("dockTitle")
-        self.label = QLabel(text)
-        self.label.setObjectName("dockName")
-        self.label.setTextFormat(Qt.TextFormat.PlainText)
-        close = QToolButton()
-        close.setObjectName("dockClose")
-        close.setText("\u2715")
-        close.setToolTip(f"Close {text}")
-        close.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        close.clicked.connect(dock.close)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 6, 6, 6)
-        layout.setSpacing(6)
-        layout.addWidget(self.label)
-        layout.addStretch(1)
-        layout.addWidget(close)
-        dock.setTitleBarWidget(self)
-
-    def set_text(self, text: str) -> None:
-        self.label.setText(text)
-
-
-# El botón de acento es el siguiente paso, y hay uno solo a la vez: Detect hasta que haya
-# detecciones, Review después, Accept durante la revisión.
-def emphasize(widget: QWidget, on: bool) -> None:
-    name = "primary" if on else ""
-    if widget.objectName() == name:
-        return
-    widget.setObjectName(name)
-    style = widget.style()
-    if style is not None:
-        style.unpolish(widget)
-        style.polish(widget)
-
-
-# Un botón que abre un panel en vez de un menú de acciones.
-class Popup(MenuButton):
-    def __init__(self, text: str, panel: QWidget, tip: str = "") -> None:
-        # El menú se guarda acá: `setMenu` no se queda con él y Python lo recogería. Sin
-        # padre a propósito: como hijo del botón se dibujaría dentro de la barra.
-        self.popup = QMenu()
-        super().__init__(text, self.popup, tip)
-        action = QWidgetAction(self.popup)
-        action.setDefaultWidget(panel)
-        self.popup.addAction(action)
-
-
 # El modelo es uno para todo el programa: lo que hay en `models\` más lo que se busque a mano.
 # Las dos entradas de acción van al final de la lista, y al elegirlas la selección vuelve
 # al modelo que había.
@@ -476,9 +354,12 @@ class ModelPicker(QComboBox):
     def __init__(self) -> None:
         super().__init__()
         self.setPlaceholderText("Select a model…")
-        self.setToolTip("Model used by Detect and Detect all (Ctrl+M browses)")
+        self.setToolTip("Model used by Detect and by Batch (Ctrl+M browses)")
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        # El ancho no lo fijan las dos entradas de acción del final, que son las más largas:
+        # la lista desplegada sí las escribe enteras.
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.setMinimumContentsLength(MODEL_NAME_LENGTH)
         self.current: Path | None = None
         self.reload()
         self.activated.connect(self.on_activated)
