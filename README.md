@@ -25,7 +25,7 @@ If a zip comes in parts (`.zip.001`, `.zip.002`, …), download all the parts an
 
 ## Use
 
-<video src="resources/demo.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
+<video src="https://github.com/nhrot-fc/tesis-primate/blob/main/resources/demo.mp4" controls="controls" muted="muted" style="max-width: 100%;"></video>
 
 *(70 seconds, one recording from start to finish)*. The user guide with screenshots is [docs/manual/build/manual.pdf](docs/manual/build/manual.pdf); it is also inside the program folder as `Manual.pdf` and under *Help → User manual*. `F1` lists every control.
 
