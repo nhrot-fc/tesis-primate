@@ -152,7 +152,8 @@ A model is a folder inside \file{models\textbackslash}. There are three models: 
   \item Download its zip, \file{detector-\version-model-\emph{name}.zip}.
   \item Unzip it into the program folder (next to \viewer{}), or just drop the zip on the
     program's window.
-  \item Pick it in the \ui{Model} list of the toolbar.
+  \item Pick it in the \ui{Model} list, under the spectrogram (the \ui{Batch} view has the
+    same list).
 \end{enumerate}
 
 With one model installed, it is already picked.
@@ -167,26 +168,24 @@ With one model installed, it is already picked.
   \begin{tikzpicture}
     \node[anchor=south west,inner sep=0] (img) {\includegraphics[width=0.9\textwidth]{spectrogram}};
     \begin{scope}[x={(img.south east)},y={(img.north west)}]
-      \node[callout] at (-0.025,0.983) {1};
-      \node[callout] at (-0.025,0.93)  {2};
-      \node[callout] at (-0.025,0.52)  {3};
-      \node[callout] at (-0.025,0.127) {4};
-      \node[callout] at (-0.025,0.075) {5};
-      \node[callout] at (-0.025,0.02)  {6};
+      \node[callout] at (-0.025,0.985) {1};
+      \node[callout] at (-0.025,0.55)  {2};
+      \node[callout] at (-0.025,0.117) {3};
+      \node[callout] at (-0.025,0.071) {4};
+      \node[callout] at (-0.025,0.02)  {5};
     \end{scope}
   \end{tikzpicture}
   \caption{A recording with annotations (green) and detections (blue, with score).}
 \end{figure}
 
 \begin{enumerate}[label=\protect\callout{\arabic*}, leftmargin=*]
-  \item \textbf{Menus.} Everything the program does, with its keyboard shortcut.
-  \item \textbf{Toolbar.} The two views (\ui{Spectrogram}, \ui{Batch}), \ui{Open}, the
-    open recording, the \ui{Model}, \ui{Detect}, \ui{Settings}, \ui{Save}, \ui{Boxes}.
-    The blue button is always the next step.
+  \item \textbf{Menus.} Everything the program does, with its keyboard shortcut: open,
+    save, the two views (\ui{Spectrogram}, \ui{Batch}), zoom, \ui{Boxes}, \ui{Settings}.
   \item \textbf{Spectrogram.} Time left to right, frequency bottom to top.
   \item \textbf{Transport.} Play, the time bar (the marks are the boxes), \ui{Window} (how
     many seconds you see) and \ui{Band} (how many Hz you see).
-  \item \textbf{Score and Review.} Appears when there are detections.
+  \item \textbf{Detection.} The \ui{Model}, \ui{Detect}, the \ui{Score} filter, the two
+    layers and \ui{Review}.
   \item \textbf{Status bar.} What just happened, and what is running.
 \end{enumerate}
 
@@ -203,7 +202,7 @@ It shows in green.
 \subsection{Detect}
 
 \begin{enumerate}
-  \item Press \ui{Detect} (\keys{\ctrl+R}).
+  \item Press \ui{Detect}, under the spectrogram (\keys{\ctrl+R}).
   \item Wait. The status bar shows the progress.
   \item The boxes appear in blue with their score.
 \end{enumerate}
@@ -211,14 +210,15 @@ It shows in green.
 \begin{figure}[H]
   \centering
   \shot{context}
-  \caption{Below the spectrogram: the layers, the \ui{Score} filter and \ui{Review}.}
+  \caption{Below the spectrogram: \ui{Model} and \ui{Detect}, the \ui{Score} filter, the
+    layers and \ui{Review}.}
 \end{figure}
 
 \ui{Score $\geq$} hides the boxes with a lower score. It starts at the best value for the
 model. Move it left to see more boxes, right to see fewer.
 
-\ui{Boxes} (\keys{\ctrl+E}) opens the list of boxes. Click a row to go to that box. Press
-\keys{Del} to remove it.
+\menu{View > Boxes} (\keys{\ctrl+E}) opens the list of boxes. Click a row to go to that
+box; \keys{N} and \keys{P} go to the next and previous one. Press \keys{Del} to remove it.
 
 \subsection{Review}
 
@@ -264,8 +264,9 @@ Table}.
 \end{figure}
 
 \begin{enumerate}
-  \item Click \ui{Batch} in the toolbar.
-  \item Drag a folder onto the window, or \ui{Choose a folder\ldots}.
+  \item \menu{View > Batch}.
+  \item Drag a folder onto the window, or \ui{Choose a folder\ldots}
+    (\menu{File > Open folder\ldots}, \keys{\ctrl+\shift+O}, does both).
   \item Click \ui{Run}.
 \end{enumerate}
 
@@ -284,7 +285,7 @@ are kept. Double-click a file to open it in the \ui{Spectrogram} view.
   \keys{\arrowkeyup} \keys{\arrowkeydown} & move the frequency band; \keys{F} shows all \\
   \keys{\arrowkeyleft} \keys{\arrowkeyright}, \keys{PgUp} \keys{PgDn} & step, page \\
   \keys{Home} \keys{End} & start, end \\
-  \keys{N} \keys{P} & next, previous detection \\
+  \keys{N} \keys{P} & next, previous box (its row is selected in \ui{Boxes}) \\
   \keys{Space} & play / pause \\
   Click on the spectrogram & move the playhead \\
   \bottomrule
@@ -339,7 +340,7 @@ detect.exe --model models\frcnn D:\field\2024-02 D:\field\2024-03 > run.log
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.55\textwidth]{settings}
-  \caption{\ui{Settings}, in the toolbar.}
+  \caption{\menu{View > Settings\ldots}}
 \end{figure}
 
 \begin{itemize}
@@ -352,7 +353,8 @@ detect.exe --model models\frcnn D:\field\2024-02 D:\field\2024-03 > run.log
 \section{If something goes wrong}
 
 \begin{itemize}
-  \item \textbf{No sound}: \ui{Settings} $\to$ \ui{Audio output}, pick your device.
+  \item \textbf{No sound}: \menu{View > Settings\ldots} $\to$ \ui{Audio output}, pick your
+    device.
   \item \textbf{\ui{Detect} is grey}: wait for \emph{Ready} in the status bar.
   \item \textbf{No model in the list}: the model zip must be unzipped next to \viewer{},
     not inside \file{models\textbackslash}.
