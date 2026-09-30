@@ -1,0 +1,621 @@
+\chapter{Detección y Evaluación del Modelo (OE2)}
+\label{cap:deteccion}
+
+% ===================================================================
+\section{Introducción}
+% ===================================================================
+
+Este capítulo presenta los resultados alcanzados para el segundo objetivo
+específico:
+
+\begin{quote}
+    \textbf{OE2.} Implementar y evaluar un detector que reciba un espectrograma y
+    devuelva cajas tiempo--frecuencia con especie, tipo de llamada y confianza,
+    comparándolo con una línea base establecida.
+\end{quote}
+
+Los cinco resultados comprometidos en la Tabla~\ref{tab:iov-oe2} ocupan una
+sección cada uno: el diseño experimental y la arquitectura (RE2.1,
+sección~\ref{sec:re21}), el pipeline reproducible (RE2.2,
+sección~\ref{sec:re22}), el informe comparativo (RE2.3,
+sección~\ref{sec:re23}), el modelo final y su demostración (RE2.4,
+sección~\ref{sec:re24}) y la publicación del código y del modelo (RE2.5,
+sección~\ref{sec:re25}). Cada sección describe el resultado, cómo se alcanzó con
+los métodos y procedimientos del Capítulo~\ref{cap:generalidades}, cómo
+reproducirlo, y la verificación y las mediciones con que se comprueba su
+indicador. La sección~\ref{sec:discusion-oe2} discute los cinco en conjunto.
+
+El conjunto sobre el que se entrena y se mide es el que produce el
+Capítulo~\ref{cap:curacion}; el costo de revisión que genera el modelo elegido
+aquí se mide en el Capítulo~\ref{cap:utilidad}.
+
+\section{Diseño experimental, arquitectura propuesta y línea base (RE2.1)}
+\label{sec:re21}
+\label{sec:arquitectura}
+% TODO Redactar.
+% NOTA: el informe E3 documenta un prototipo previo basado en YOLOv2 con
+% anchor boxes calculadas por K-Means sobre (duration_s, bandwidth_hz),
+% k=5 por par (especie, tipo de llamada), y un tensor objetivo
+% S x S x k x (5+C). Ese material NO se trasladó al cuerpo porque
+% contradice la arquitectura sin anclas que plantea este capítulo.
+% Decide antes de redactar: o se recupera como línea base explícita
+% (y entonces la figura figures/image14.png entra aquí), o se menciona
+% solo en el capítulo de conclusiones como iteración descartada.
+% TODO TABLA 5.1: desviaciones respecto de la receta estándar, con la
+%                  falla que cada una corrige. Las cuatro figuras de
+%                  abajo la ilustran; la tabla sigue haciendo falta.
+% ===================================================================
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/architecture.png}
+    \caption{Arquitectura propuesta.}
+    \label{fig:architecture}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/multiscale_pyramid.png}
+    \caption{Pirámide multiescala.}
+    \label{fig:multiscale-pyramid}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/decoder_layer.png}
+    \caption{Capa del decodificador.}
+    \label{fig:decoder-layer}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/deformable_sampling.png}
+    \caption{Muestreo deformable.}
+    \label{fig:deformable-sampling}
+\end{figure}
+
+\section{Pipeline reproducible de entrenamiento, evaluación e inferencia (RE2.2)}
+\label{sec:re22}
+% TODO Redactar: parámetros de preprocesamiento, función de pérdida,
+% emparejamiento, selección de checkpoint.
+% TODO TABLA 5.2: parámetros de preprocesamiento con su justificación.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/training_pipeline.png}
+    \caption{Pipeline de entrenamiento.}
+    \label{fig:training-pipeline}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/hungarian_matching.png}
+    \caption{Emparejamiento húngaro.}
+    \label{fig:hungarian-matching}
+\end{figure}
+
+% FIGURA PENDIENTE: figures/training_curves.png
+% Falta el metrics.jsonl de la corrida: `train.py` lo escribe en
+% logs/<fecha>/ de la máquina donde se entrena. Copiá esa carpeta a
+% logs/ y volvé a correr la sección 7.7 del cuaderno.
+% ===================================================================
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/inference_pipeline.png}
+    \caption{Pipeline de inferencia.}
+    \label{fig:inference-pipeline}
+\end{figure}
+
+\section{Protocolo de evaluación}
+% TODO Redactar: los tres ejes (detección, encuadre, clasificación) y
+% por qué se puntúan por separado.
+% TODO TABLA 5.3: eje / pregunta que responde / métrica.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{capitulos/05_oe2_detector/figures/score_sweep.png}
+    \caption{Umbral de confianza.}
+    \label{fig:score-sweep}
+\end{figure}
+
+\section{Informe comparativo de resultados (RE2.3)}
+\label{sec:re23}
+\label{sec:resultados-deteccion}
+
+Esta sección compara cuatro configuraciones entrenadas sobre el mismo conjunto
+derivado de 25 clases, con la misma partición y el mismo protocolo de evaluación.
+Las cifras de validación sirvieron para elegir el \textit{checkpoint}; las de
+prueba se reportan una sola vez, sobre el modelo ya elegido.
+
+% TODO TABLA: estudio de ablación acumulativo (PCEN vs. log-mel, niveles de la
+% pirámide, backbone congelado vs. fine-tune). La rama de control existe en el
+% repositorio pero ninguna corrida la midió todavía.
+% TODO FIGURA 5.3: ejemplos cualitativos de detección, incluyendo AL MENOS UN
+% CASO DIFÍCIL (escena densa con especies solapadas). Mostrar solo los aciertos
+% debilita el capítulo ante el jurado.
+
+\subsection{Configuraciones comparadas}
+
+La Tabla~\ref{tab:configuraciones} resume qué se compara. Las cuatro
+configuraciones comparten datos y protocolo, pero no presupuesto de
+entrenamiento, y esa asimetría condiciona toda lectura posterior: la arquitectura
+propuesta ajusta 3,1 millones de parámetros sobre un extractor congelado,
+mientras que las dos líneas base ajustan todos los suyos partiendo de pesos de
+COCO.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption[Configuraciones comparadas]{Configuraciones comparadas sobre el conjunto de 25 clases}
+        \label{tab:configuraciones}
+        \begin{tabular}{@{}L{3.5cm}L{3.4cm}rrL{3.4cm}@{}}
+            \toprule
+            \textbf{Configuración}                & \textbf{Extractor}          & \thead{Parám.\\totales} & \thead{Parám.\\entren.} & \textbf{Selección del \textit{checkpoint}} \\
+            \midrule
+            AST-Def-DETR \textit{ts}5 (propuesta) & AST/AudioSet congelado      & 88,7\,M                 & 3,1\,M                  & F\textsubscript{3} en validación (época 13 de 30) \\
+            \addlinespace
+            AST-Def-DETR \textit{ts}10            & AST/AudioSet congelado      & 88,7\,M                 & 3,1\,M                  & F\textsubscript{3} en validación (época 18 de 30) \\
+            \addlinespace
+            Faster R-CNN R50-FPN v2               & ResNet-50/COCO              & 43,4\,M                 & 43,2\,M                 & F\textsubscript{3} en validación (época 4 de 30) \\
+            \addlinespace
+            YOLO26s                               & YOLO26s/COCO                & 10,0\,M                 & 10,0\,M                 & Aptitud de Ultralytics, basada en mAP (época 18 de 48) \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{ts} es el paso temporal del parcheado del AST: con
+            \textit{ts}\,=\,5 la ventana de 3\,s produce $12 \times 64$ tokens
+            (47\,ms por token) y con \textit{ts}\,=\,10, $12 \times 32$ (94\,ms).
+            \item Del AST solo se entrena la proyección de parches; el resto
+            queda congelado en los pesos de AudioSet. La normalización de energía
+            por canal (PCEN) que lo precede sí es entrenable.
+            \item La última fila registra una \textbf{inconsistencia
+            metodológica} de esta comparación: YOLO se entrena con la
+            herramienta de Ultralytics, que elige su \textit{checkpoint} con una
+            aptitud basada en mAP y no con la F\textsubscript{3} declarada en la
+            sección~\ref{sec:metricas}. La consecuencia se analiza más abajo.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsection{Desempeño al punto de operación declarado}
+
+La Tabla~\ref{tab:resultados-op} reporta las magnitudes del protocolo al punto de
+comparación común: confianza $\geq 0{,}5$ y emparejamiento a IoU $\geq 0{,}5$. Lo
+primero que conviene registrar es que \textbf{validación y prueba coinciden}:
+ninguna configuración se mueve más de 0,008 en \textit{recall} ni más de 0,005 en
+F\textsubscript{3} entre una partición y otra, y la precisión, que es la magnitud
+más inestable, se mueve como máximo 0,022.
+La selección de \textit{checkpoint} sobre validación no se transfirió como
+optimismo a la prueba, y las diferencias entre modelos que siguen son mayores que
+esa dispersión.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption[Resultados al punto de operación]{Resultados al punto de operación común (confianza $\geq 0{,}5$, IoU $\geq 0{,}5$)}
+        \label{tab:resultados-op}
+        \setlength{\tabcolsep}{4pt}
+        \begin{tabular}{@{}L{3.0cm}cccccccc@{}}
+            \toprule
+            \textbf{Configuración} & \textbf{Part.} & \thead{Recall} & \thead{Prec.} & \thead{F\textsubscript{3}} & \thead{mAP50} & \thead{mAP\\50-95} & \thead{FP/TP} & \thead{Prop.\\por h} \\
+            \midrule
+            Faster R-CNN           & val            & 0,770          & 0,500         & 0,731                      & 0,474         & 0,205              & 1,00          & 3\,952                  \\
+                                   & test           & \textbf{0,777} & 0,499         & \textbf{0,736}             & 0,487         & 0,211              & 1,01          & 3\,731                  \\
+            \addlinespace
+            AST-Def-DETR \textit{ts}5 & val         & 0,694          & 0,532         & 0,674                      & 0,362         & 0,136              & 0,88          & 3\,345                  \\
+                                   & test           & 0,694          & 0,517         & 0,671                      & 0,373         & 0,143              & 0,94          & 3\,217                  \\
+            \addlinespace
+            AST-Def-DETR \textit{ts}10 & val        & 0,677          & 0,521         & 0,657                      & 0,357         & 0,138              & 0,92          & 3\,329                  \\
+                                   & test           & 0,682          & 0,499         & 0,658                      & 0,347         & 0,138              & 1,00          & 3\,271                  \\
+            \addlinespace
+            YOLO26s                & val            & 0,533          & 0,819         & 0,552                      & 0,531         & 0,263              & 0,22          & 1\,669                  \\
+                                   & test           & 0,532          & \textbf{0,805} & 0,550                     & \textbf{0,520} & \textbf{0,264}    & \textbf{0,24} & \textbf{1\,582}         \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Recall} y precisión son agnósticos a la clase, como fija
+            la sección~\ref{sec:metricas}; mAP50 y mAP50-95 sí exigen la etiqueta
+            correcta.
+            \item Las propuestas por hora se cuentan sobre ventanas de 3\,s con
+            salto de 1,5\,s y \emph{antes} de agregar entre ventanas, de modo que
+            un evento en la zona de solapamiento se cuenta dos veces. Es una cota
+            superior de la carga real, útil para comparar entre modelos.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+Leída sin más, la tabla dice dos cosas incompatibles. Por \textit{recall} y por
+F\textsubscript{3} —la métrica principal y el criterio de selección de esta
+tesis— el orden es Faster R-CNN, la propuesta con \textit{ts}5, la propuesta con
+\textit{ts}10 y, último y por mucho, YOLO: 0,777 contra 0,532 son 6\,207 eventos recuperados
+contra 4\,246, es decir 1\,961 de diferencia sobre los 7\,985 anotados de la
+partición de prueba. Por mAP y por
+precisión el orden se invierte casi por completo: YOLO obtiene el mejor mAP50
+(0,520) y casi duplica a la propuesta en mAP50-95 (0,264 contra 0,143), con una
+precisión de 0,805 que implica un cuarto de falso positivo por acierto donde
+Faster R-CNN paga uno entero.
+
+La contradicción es aparente y su origen es metodológico: \textbf{el umbral fijo
+    de 0,5 no compara arquitecturas, compara puntos distintos de curvas
+    distintas}. El apartado siguiente lo separa.
+
+\subsection{Confianza calibrada y comparación a carga igual}
+\label{sec:carga-igual}
+
+La confianza que emite un detector no es una probabilidad comparable entre
+arquitecturas: depende de la función de pérdida, del número de propuestas que la
+cabeza produce y de cómo se normaliza la puntuación. Sobre la partición de
+prueba, YOLO emite 29\,174 detecciones por encima de 0,001 y solo 5\,277 —el
+18\,\%— sobreviven al umbral de 0,5; Faster R-CNN emite 176\,423 y conserva
+12\,447, el 7\,\%. Fijar 0,5 para los dos no los sitúa en el mismo régimen de
+operación: sitúa a YOLO en la parte conservadora de su curva y a Faster R-CNN en
+la permisiva.
+
+El techo de \textit{recall} de cada modelo lo muestra sin ambigüedad. Bajando el
+umbral hasta 0,001, YOLO recupera 6\,774 de los 7\,985 eventos anotados
+(0,848), por encima de los 6\,322 (0,792) de la propuesta con \textit{ts}5.
+\emph{YOLO no tiene un problema de cobertura: tiene un umbral mal elegido para
+    esta tarea.} Su déficit de \textit{recall} en la
+Tabla~\ref{tab:resultados-op} no mide una limitación de la arquitectura sino la
+consecuencia de haber elegido su \textit{checkpoint} y su punto de operación con
+un criterio —la aptitud basada en mAP de Ultralytics— que pondera precisión y
+cobertura de forma distinta a la F\textsubscript{3} declarada por esta tesis.
+
+La comparación honesta, entonces, no fija el umbral sino la \textbf{carga}: se
+pregunta cuántos eventos recupera cada modelo cuando a todos se les permite
+proponer la misma cantidad de cajas por hora de audio. La
+Tabla~\ref{tab:carga-igual} responde esa pregunta barriendo el umbral de cada
+configuración desde 0,001 hasta 1 sobre la partición de prueba.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption[Cobertura a carga igual]{Cobertura (\textit{recall} agnóstico a IoU 0,5) a igual número de propuestas por hora de audio}
+        \label{tab:carga-igual}
+        \begin{tabular}{@{}rcccc@{}}
+            \toprule
+            \thead{Propuestas\\por hora} & \thead{Faster\\R-CNN} & \thead{Def-DETR\\\textit{ts}5} & \thead{Def-DETR\\\textit{ts}10} & \thead{YOLO26s} \\
+            \midrule
+            1\,582                       & 0,508                 & 0,481                          & 0,472                           & \textbf{0,532}  \\
+            2\,000                       & 0,595                 & 0,561                          & 0,552                           & \textbf{0,628}  \\
+            3\,000                       & 0,728                 & 0,680                          & 0,666                           & \textbf{0,758}  \\
+            3\,731                       & 0,777                 & 0,719                          & 0,703                           & \textbf{0,795}  \\
+            5\,000                       & 0,817                 & 0,749                          & 0,736                           & \textbf{0,821}  \\
+            7\,500                       & \textbf{0,845}        & 0,773                          & 0,762                           & 0,843           \\
+            10\,000                      & \textbf{0,855}        & 0,782                          & 0,772                           & 0,848           \\
+            \midrule
+            Techo (sin umbral)           & \textbf{0,921}        & 0,792                          & 0,780                           & 0,848           \\
+            Carga en el techo            & 52\,877               & 19\,243                        & 14\,439                         & \textbf{8\,745} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Cada columna es la curva de un modelo leída a la misma abscisa.
+            Las cuatro se calculan sobre las mismas 8\,007 ventanas (3,34 horas
+            de audio) y con el mismo tope de 64 detecciones por ventana, de modo
+            que ninguna consigue cola por poder emitir más cajas que las otras.
+            \item El techo es el \textit{recall} con el umbral en 0,001, esto es,
+            con todo lo que el modelo es capaz de proponer.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+El resultado invierte por completo la lectura de la
+Tabla~\ref{tab:resultados-op}. \textbf{YOLO recupera más eventos que cualquier
+    otra configuración en todo el rango de carga que un revisor humano podría
+    absorber}, hasta unas 5\,000 propuestas por hora; por encima de esa cifra
+Faster R-CNN lo alcanza y termina superándolo, a costa de una carga que ya no es
+operativa. Para igualar el 0,777 de cobertura que Faster R-CNN entrega en su
+punto de operación, YOLO necesita 3\,252 propuestas por hora contra las 3\,727 de
+Faster R-CNN: la misma cobertura con un 13\,\% menos de material que revisar.
+
+La arquitectura propuesta queda última en todo el rango. No es que rinda menos a
+un umbral desfavorable: rinde menos \emph{a cualquier carga}, y su techo —0,792
+con \textit{ts}5— queda por debajo del que YOLO alcanza con menos de la mitad de
+propuestas. Los 1\,663 eventos que la propuesta no recupera ni con el umbral en
+0,001 son eventos para los que nunca emitió una caja con IoU $\geq 0{,}5$; el
+problema no está en la puntuación sino en la localización.
+
+Conviene extraer de aquí la lección metodológica, porque condiciona todo el
+Capítulo y el protocolo de OE3: \textbf{un umbral compartido no es un punto de
+    operación compartido}. La confianza de cada arquitectura vive en una escala
+propia, y comparar cuatro modelos en 0,5 mide dónde cae cada escala tanto como
+mide la calidad de cada modelo. La magnitud comparable es la curva de cobertura
+frente a carga, y las dos cifras que la resumen son la cobertura al presupuesto
+de revisión elegido y el techo. El umbral de 0,5 conserva un solo uso legítimo:
+ser el punto fijo con el que se comparan \textit{checkpoints} de una \emph{misma}
+configuración durante el entrenamiento.
+
+
+
+\subsection{Lectura por clase}
+
+El agregado de la Tabla~\ref{tab:resultados-op} está dominado por dos clases.
+\texttt{as/hc} y \texttt{pt/dc} aportan el 33\,\% de las cajas de prueba y son,
+por la fragmentación que documenta la sección~\ref{sec:ventaneo}, las más fáciles
+del conjunto: sus cajas ocupan la ventana entera. Por eso la
+Tabla~\ref{tab:recall-clase} reporta también el promedio por clase, que trata
+igual a \texttt{sb/sc} —37 cajas de prueba— que a \texttt{as/hc}.
+
+El promedio por clase separa las configuraciones mucho más que el agregado:
+Faster R-CNN 0,645, la propuesta 0,509 y 0,505, YOLO 0,360. Y el orden se
+sostiene si en lugar de promediar se excluye \texttt{as/hc} del agregado: 0,705,
+0,606, 0,591 y 0,409 respectivamente. La ventaja de Faster R-CNN no proviene de
+las clases fáciles.
+
+\begin{table}[htbp]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption[Recall por clase]{\textit{Recall} por clase al punto de operación (prueba, confianza $\geq 0{,}5$)}
+        \label{tab:recall-clase}
+        \begin{tabular}{@{}L{2.0cm}rrcccc@{}}
+            \toprule
+            \textbf{Clase} & \thead{Cajas\\train} & \thead{Cajas\\test} & \thead{Faster\\R-CNN} & \thead{Def-DETR\\\textit{ts}5} & \thead{Def-DETR\\\textit{ts}10} & \thead{YOLO26s} \\
+            \midrule
+            \texttt{as/hc}         &   6933 &  2023 & \textbf{0,947} & 0,928 & 0,911 & 0,879 \\
+            \texttt{ac/bc}         &   2886 &   842 & 0,652 & \textbf{0,654} & 0,646 & 0,589 \\
+            \texttt{lw/cs}         &   2706 &   792 & \textbf{0,880} & 0,799 & 0,802 & 0,674 \\
+            \texttt{sm/cc}         &   2359 &   688 & \textbf{0,719} & 0,625 & 0,580 & 0,249 \\
+            \texttt{as/bc}         &   2233 &   651 & \textbf{0,702} & 0,548 & 0,485 & 0,313 \\
+            \texttt{pt/dc}         &   1950 &   568 & \textbf{0,819} & 0,794 & 0,798 & 0,704 \\
+            \texttt{sb/ppc}        &   1300 &   472 & \textbf{0,585} & 0,449 & 0,417 & 0,104 \\
+            \texttt{aa/gc}         &    924 &   269 & \textbf{0,781} & 0,732 & 0,736 & 0,290 \\
+            \texttt{sb/spc}        &    860 &   251 & \textbf{0,641} & 0,542 & 0,494 & 0,096 \\
+            \texttt{sm/fs}         &    801 &   232 & \textbf{0,655} & 0,504 & 0,500 & 0,530 \\
+            \texttt{lw/trino}      &    739 &   222 & \textbf{0,761} & 0,604 & 0,644 & 0,532 \\
+            \texttt{pt/sqc}        &    465 &   138 & \textbf{0,841} & 0,536 & 0,616 & 0,036 \\
+            \texttt{sb/pcc}        &    342 &    99 & \textbf{0,475} & 0,263 & 0,253 & 0,202 \\
+            \texttt{lw/ta}         &    312 &    91 & \textbf{0,703} & 0,626 & 0,549 & 0,352 \\
+            \texttt{sm/hic}        &    295 &    87 & \textbf{0,402} & 0,391 & \textbf{0,402} & 0,207 \\
+            \texttt{sm/pc}         &    283 &    83 & \textbf{0,627} & 0,253 & 0,289 & 0,024 \\
+            \texttt{ac/chc}        &    276 &    80 & \textbf{0,713} & 0,438 & 0,400 & 0,362 \\
+            \texttt{sm/sc}         &    200 &    58 & \textbf{0,224} & 0,103 & 0,121 & 0,017 \\
+            \texttt{ac/gc}         &    191 &    56 & \textbf{0,250} & 0,143 & 0,179 & 0,089 \\
+            \texttt{ac/sc}         &    188 &    54 & \textbf{0,296} & 0,148 & 0,204 & 0,222 \\
+            \texttt{aa/sc}         &    183 &    53 & \textbf{0,849} & 0,679 & 0,679 & 0,585 \\
+            \texttt{lw/sqc}        &    182 &    54 & \textbf{0,667} & 0,463 & 0,444 & 0,500 \\
+            \texttt{aa/hm}         &    148 &    44 & \textbf{0,773} & 0,750 & 0,727 & 0,750 \\
+            \texttt{lw/vc}         &    140 &    41 & \textbf{0,780} & 0,366 & 0,488 & 0,488 \\
+            \texttt{sb/sc}         &    126 &    37 & \textbf{0,378} & \textbf{0,378} & 0,270 & 0,216 \\
+            \midrule
+            \textbf{Promedio por clase} & \textbf{27\,022} & \textbf{7\,985} & \textbf{0,645} & \textbf{0,509} & \textbf{0,505} & \textbf{0,360} \\
+            Agregado (micro)       &        &       & 0,767 & 0,687 & 0,672 & 0,528 \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Este \textit{recall} sí exige la etiqueta correcta, a
+            diferencia del agregado agnóstico de la
+            Tabla~\ref{tab:resultados-op}. La distancia entre ambos mide el costo
+            de clasificar: 0,777 frente a 0,767 en Faster R-CNN, 0,694 frente a
+            0,687 en la propuesta. \textbf{Una vez que el evento se localiza, la
+                etiqueta casi nunca se pierde}, y el cuello de botella de este
+            sistema está en la detección y no en la clasificación.
+            \item En negrita, el mejor de las cuatro configuraciones en cada clase.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+Tres patrones se leen en la tabla.
+
+\rotulo{Las clases escasas fallan en todas las configuraciones.} \texttt{sm/sc}
+(200 cajas de entrenamiento), \texttt{ac/gc} (191) y \texttt{ac/sc} (188) quedan
+por debajo de 0,30 incluso en el mejor modelo. Cuando las cuatro arquitecturas
+fallan por igual sobre una clase, la causa razonable es el material y no el
+diseño: son las clases que el umbral de 100 anotaciones dejó entrar y cuyo
+desempeño la sección~\ref{sec:revision} anticipó como no atribuible a la
+arquitectura.
+
+\rotulo{La escasez no lo explica todo.} \texttt{aa/sc} (183 cajas) alcanza 0,849
+y \texttt{lw/vc} (140) llega a 0,780 con Faster R-CNN. Ambas ocupan bandas de
+frecuencia estrechas y bien separadas, lo que sugiere que la separabilidad
+geométrica de la sección~\ref{sec:geometria} pesa más que el volumen de
+ejemplos. La comparación de \texttt{pt/sqc} lo hace evidente en la otra
+dirección: 0,841 en Faster R-CNN y 0,036 en YOLO sobre la misma clase de 465
+cajas. Es la caja más pequeña del conjunto —mediana de 267\,ms por 666\,Hz, esto es
+$0{,}088 \times 0{,}038$ del marco normalizado— y la diferencia mide qué tan
+lejos llega cada arquitectura en objetos diminutos, no cuánto material vieron.
+
+\rotulo{Los dos pasos temporales del AST se comportan casi igual.} La diferencia
+entre \textit{ts}5 y \textit{ts}10 es de 0,012 en \textit{recall} agregado y de
+0,004 en promedio por clase, muy por debajo de lo que separa a cualquiera de las
+dos de las líneas base. Duplicar la resolución temporal del parcheado —de 94 a
+47\,ms por token, y con ella el costo de atención— no compra cobertura. El
+resultado es informativo: si el cuello de botella estuviera en la resolución
+temporal del extractor, \textit{ts}5 debería separarse de \textit{ts}10, y no lo
+hace.
+
+\subsection{Qué establece esta comparación}
+
+Sobre el conjunto de 25 clases y con el presupuesto de entrenamiento descrito, la
+arquitectura propuesta \textbf{no supera a ninguna de las dos líneas base}. Al
+punto de operación declarado queda segunda, detrás de Faster R-CNN por 8 puntos
+de \textit{recall} agregado y por 14 de promedio por clase; a carga igual
+(Tabla~\ref{tab:carga-igual}) queda última en todo el rango, y también es última
+en calidad de encuadre, con un mAP50-95 de 0,143 frente a 0,264 de YOLO.
+Registrarlo así es parte del resultado: la comparación se declaró antes de
+correrla, con su regla de decisión fijada, y el desenlace no la cambia.
+
+El costo de inferencia refuerza la misma conclusión. Medido sobre las mismas
+8\,007 ventanas de prueba y en la misma GPU (RTX 4060 Laptop, 8\,GB), incluyendo
+preprocesamiento y supresión de no máximos, YOLO consume \textbf{0,17 minutos de
+GPU por hora de audio}; la propuesta, 0,56 con \textit{ts}10 y 1,22 con
+\textit{ts}5; Faster R-CNN, 2,38. YOLO procesa el conjunto de prueba unas 360
+veces más rápido que en tiempo real y Faster R-CNN unas 25 veces: los cuatro son
+viables para PAM, pero separados por un factor de catorce entre extremos.
+
+La configuración que este trabajo llevaría a producción es, con la evidencia
+disponible, \textbf{YOLO26s operado a un umbral mucho más bajo que su 0,5 de
+fábrica}: es la que más cobertura entrega por propuesta revisada en todo el
+régimen de carga plausible, la que mejor encuadra y la más barata en inferencia.
+También es la más barata de entrenar entre las que este trabajo cronometró: 3,7
+horas de GPU para 48 épocas, frente a las 20 horas que Faster R-CNN consumió
+hasta la época 17 —de las cuales solo las cuatro primeras aportaron algo, porque
+su mejor \textit{checkpoint} es el de la época 4 y a partir de la quinta el
+\textit{recall} de validación cae mientras la precisión sube. Y lo consigue en su
+variante pequeña:
+\texttt{yolo26s} es el segundo modelo más chico de su familia, de modo que la
+comparación ni siquiera enfrenta a la propuesta con la mejor línea base
+disponible.
+
+Tres factores acotan qué se puede concluir de esa derrota, y ninguno de los tres
+se resuelve con la evidencia disponible:
+
+\begin{enumerate}[nosep]
+    \item \textbf{El presupuesto de ajuste es un orden de magnitud menor.} La
+          propuesta entrena 3,1\,M de parámetros sobre un extractor congelado; Faster
+          R-CNN ajusta 43,2\,M y YOLO 10,0\,M, ambos partiendo de COCO. La comparación
+          mide, en rigor, ``características de AudioSet congeladas más una cabeza
+          pequeña'' contra ``detectores de imagen ajustados por completo'', no una
+          arquitectura contra otra.
+
+    \item \textbf{El programa de entrenamiento es corto para un decodificador de
+              tipo DETR.} El mejor \textit{checkpoint} aparece en las épocas 13 y 18 de un
+          programa de 30, mientras que la literatura de Deformable DETR trabaja con
+          programas de 50 épocas sobre COCO y el DETR original con 500
+          \citep{zhu_deformable_2021}. El emparejamiento húngaro necesita muchas épocas
+          para estabilizar la asignación consulta--objeto, y detenerse antes penaliza
+          justamente el encuadre, que es donde la propuesta pierde por más.
+
+    \item \textbf{El extractor congelado puede no transferir.} El AST se
+          preentrenó sobre AudioSet a 16\,kHz con un parcheado de 10\,ms, y aquí recibe
+          un mel de 44,1\,kHz con otra rejilla temporal y otra escala de frecuencia,
+          con la incrustación posicional interpolada. La ablación que separa
+          ``congelado'' de ``ajustado'' está implementada y no medida, y es el
+          experimento que decide si el problema es el extractor o la cabeza.
+\end{enumerate}
+
+El punto es relevante porque el precedente directo de esta arquitectura reporta
+lo contrario. \citet{zhu_sound_2025} combinan un AST \emph{autosupervisado} con
+un decodificador deformable y superan a un Faster R-CNN con \textit{backbone}
+residual sobre un conjunto de silbidos de aspas de aerogenerador. Las dos
+diferencias entre aquella configuración y esta —extractor autosupervisado y
+ajustado frente a extractor supervisado y congelado, y un dominio de una sola
+clase de sonido frente a 25 clases con desbalance de dos órdenes de magnitud—
+son exactamente las que la ablación pendiente debe separar. Este trabajo no
+contradice ese precedente: muestra que no se traslada sin más a un repertorio de
+primates con el extractor congelado.
+
+Lo que la comparación sí establece con la evidencia disponible es más útil que un
+ganador:
+
+\begin{itemize}[nosep]
+    \item \textbf{La tarea es viable con detectores de objetos sobre
+              espectrogramas.} Dentro de un presupuesto de 3\,700 propuestas por hora de
+          audio, las cuatro configuraciones recuperan más de dos tercios de los eventos
+          anotados de 25 clases a IoU 0,5, sobre un conjunto con más de un orden de
+          magnitud de desbalance y un rango de duraciones de 2\,134$\times$.
+
+    \item \textbf{El cuello de botella es la detección, no la clasificación.}
+          Distinguir 25 pares de especie y tipo de llamada cuesta alrededor de un punto
+          de \textit{recall} una vez que el evento fue localizado. La decisión de
+          puntuar localización y etiquetado por separado (sección~\ref{sec:metricas})
+          queda respaldada por los datos.
+
+    \item \textbf{La elección del punto de operación pesa más que la elección de
+              arquitectura.} La sección~\ref{sec:carga-igual} muestra que mover el umbral
+          de un mismo modelo cambia su cobertura más que cambiar de arquitectura al
+          umbral fijo, y que el orden entre modelos se invierte según dónde se los mida.
+          Es la razón por la que OE3 elige el punto de operación barriendo el umbral y
+          no heredando un 0,5.
+\end{itemize}
+
+
+% ATENCIÓN: las cuatro figuras que siguen se generaron con la configuración
+% anterior de diez clases y NO corresponden a las cifras de esta sección.
+% Hay que regenerarlas desde la evaluación de 25 clases antes de entregar.
+% La de recall por clase queda comentada porque la Tabla~\ref{tab:recall-clase}
+% la reemplaza y su versión vieja rotula como "inalcanzables" eventos que el
+% ventaneo actual sí alcanza.
+
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/recall_per_class.png}
+%     \caption{Recall por clase.}
+%     \label{fig:recall-per-class}
+% \end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/qualitative_detections.png}
+    \caption{Detecciones cualitativas.}
+    \label{fig:qualitative-detections}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/confusion_matrix.png}
+    \caption{Matriz de confusión.}
+    \label{fig:confusion-matrix}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{capitulos/05_oe2_detector/figures/iou_distribution.png}
+    \caption{Distribución de IoU.}
+    \label{fig:iou-distribution}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{capitulos/05_oe2_detector/figures/ablation_progression.png}
+    \caption{Ablación acumulada.}
+    \label{fig:ablation-progression}
+\end{figure}
+
+
+\section{Modelo final cargable y demostración funcional (RE2.4)}
+\label{sec:re24}
+% TODO Redactar.
+% TODO FIGURA 5.4: captura de Raven abriendo una tabla de selección
+%                  generada por el modelo. Es la prueba visual de que
+%                  el sistema cierra el ciclo con el analista.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/detection_timeline.png}
+    \caption{Línea de tiempo de detecciones.}
+    \label{fig:detection-timeline}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/05_oe2_detector/figures/raven_table_preview.png}
+    \caption{Previsualización de la tabla de Raven.}
+    \label{fig:raven-table-preview}
+\end{figure}
+
+\section{Código y modelo disponibles en un repositorio (RE2.5)}
+\label{sec:re25}
+% TODO Redactar (breve, media página): URL del repositorio, contenido
+% (código del pipeline, pesos del modelo final, instrucciones de
+% inferencia), licencia y condiciones de uso. Esta sección faltaba: RE2.5
+% se comprometía en el capítulo 1 y en la EDT del anexo, pero ningún
+% apartado del cuerpo lo entregaba.
+
+% ===================================================================
+\section{Discusión}
+\label{sec:discusion-oe2}
+% ===================================================================
+% TODO Redactar siguiendo las pautas, sin introducir resultados nuevos:
+%   (1) resumen de los resultados principales: qué modelo se selecciona y con
+%       qué margen sobre la línea base declarada;
+%   (2) qué significan: dónde está el error -detección, encuadre o
+%       clasificación- y qué implica para el uso asistido;
+%   (3) consistencia con la literatura del Capítulo~\ref{cap:estado}: detección
+%       bidimensional en bioacústica \citep{escobar-amado_computer_2024,
+%       airale_nbm_2025}, línea base YOLO sobre espectrogramas
+%       \citep{gonzalez_yolo-based_2025}, brecha de modalidad y representación
+%       de escala única \citep{zhu_sound_2025};
+%   (4) generalización: qué se sostiene con otras especies o con otro material
+%       de PAM y qué depende de este corpus;
+%   (5) limitaciones: clases con soporte escaso, clases de ventana, ausencia de
+%       acuerdo entre anotadores como techo de la evaluación.
+% ===================================================================
+

@@ -1,7 +1,7 @@
 # Protocolo de comparación
 
 Cómo se ponen Faster R-CNN, AST-Deformable DETR y YOLO en la misma tabla. El código es
-[src/evaluation/protocol.py](../src/evaluation/protocol.py); esto son las decisiones y su porqué.
+[src/evaluation/protocol.py](../../../src/evaluation/protocol.py); esto son las decisiones y su porqué.
 
 ## Pasos
 
