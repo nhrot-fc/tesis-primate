@@ -1,0 +1,149 @@
+\chapter{Tiempo de Revisión y Análisis de Errores (OE3)}
+\label{cap:utilidad}
+
+% ===================================================================
+\section{Introducción}
+% ===================================================================
+
+Este capítulo presenta los resultados alcanzados para el tercer objetivo
+específico:
+
+\begin{quote}
+    \textbf{OE3.} Cuantificar la reducción del tiempo de revisión que aporta el
+    sistema y caracterizar sus errores mediante revisión experta de una muestra de
+    predicciones.
+\end{quote}
+
+Los tres resultados comprometidos en la Tabla~\ref{tab:iov-oe3} ocupan una sección
+cada uno: la metodología de validación comparativa (RE3.1,
+sección~\ref{sec:re31}), la medición comparativa del tiempo de revisión (RE3.2,
+sección~\ref{sec:re32}) y el análisis cualitativo de errores y hallazgos (RE3.3,
+sección~\ref{sec:re33}). Cada sección describe el resultado, cómo se alcanzó con
+los métodos y procedimientos del Capítulo~\ref{cap:generalidades}, cómo
+reproducirlo, y la verificación y las mediciones con que se comprueba su
+indicador. La sección~\ref{sec:discusion-oe3} discute los tres en conjunto.
+
+El material de entrada es el modelo seleccionado en el
+Capítulo~\ref{cap:deteccion} y la partición de prueba construida en el
+Capítulo~\ref{cap:curacion}: OE3 no entrena ni vuelve a ajustar nada, mide lo que
+cuesta usar el sistema.
+
+% ===================================================================
+\section{Metodología de validación comparativa (RE3.1)}
+\label{sec:re31}
+% ===================================================================
+% TODO Redactar. El documento de metodología se fecha ANTES de ejecutar la
+% evaluación; fijarlo de antemano impide elegir a posteriori el umbral o la
+% métrica que mejor favorezcan al resultado ya obtenido.
+%
+% El IOV comprometido (Tabla~\ref{tab:iov-oe3}) obliga a especificar, en este
+% orden:
+%   (1) el subconjunto de prueba, particionado por archivo de grabación y sin
+%       solapamiento con entrenamiento ni validación;
+%   (2) el punto de operación: confianza 0,5 y NMS IoU 0,3;
+%   (3) el umbral IoU 0,5 para contar un verdadero positivo;
+%   (4) las métricas que se reportan;
+%   (5) el emparejamiento entre predicción y anotación;
+%   (6) el procedimiento para revisar discrepancias y eventos potencialmente
+%       omitidos por la anotación de referencia.
+%
+% ATENCIÓN, CONFLICTO A RESOLVER ANTES DE REDACTAR.
+% El protocolo implementado (src/evaluation/protocol.py, descrito en
+% capitulos/05_oe2_detector/protocolo_comparacion.md) NO usa este punto de
+% operación: empareja a IoU 0,3 y elige el umbral por modelo en validación como
+% el de mayor recall con precisión >= 0,70. Eso es correcto para comparar
+% arquitecturas entre sí (RE2.3), pero el IOV de RE3.1 está comprometido con
+% confianza 0,5, NMS IoU 0,3 y verdadero positivo a IoU 0,5. Este capítulo
+% reporta en el punto de operación comprometido; si se añade el umbral elegido
+% en validación, va como lectura secundaria y rotulada como tal, nunca en su
+% lugar.
+%
+% El protocolo de revisión experta es parte del medio de verificación de RE3.1:
+% describir qué se le entrega al revisor (muestra, formato, orden), qué decide y
+% cómo se registra su decisión.
+% ===================================================================
+
+% ===================================================================
+\section{Medición comparativa del tiempo de revisión (RE3.2)}
+\label{sec:re32}
+% ===================================================================
+% TODO Redactar. Es el núcleo del capítulo y la única cifra que responde al
+% objetivo general: minutos por hora de audio en condición MANUAL y en condición
+% ASISTIDA, medidos sobre material comparable.
+%
+% El IOV comprometido exige:
+%   - minutos por hora de audio en cada condición;
+%   - la descripción del material comparable y del orden de revisión (para que el
+%     aprendizaje del revisor no se confunda con el efecto de la asistencia);
+%   - el tiempo de procesamiento del modelo por hora de audio, que es parte del
+%     costo de la condición asistida;
+%   - no fijar un porcentaje de ahorro antes de medirlo.
+%
+% TODO TABLA: condición (manual / asistida) x minutos por hora de audio, con el
+%             material, el revisor y el orden en que revisó cada bloque.
+% TODO TABLA: costo de inferencia por hora de audio en CPU y en GPU
+%             (docs/system_requirements.md ya tiene las mediciones por modelo;
+%             aquí van las del modelo seleccionado).
+% TODO FIGURA: cobertura (recall por evento a IoU 0,5) frente a propuestas por
+%              hora de audio, con el punto de operación comprometido marcado.
+%              Es la magnitud que explica POR QUÉ baja el tiempo: cuántas
+%              propuestas hay que inspeccionar y cuánto audio queda sin ninguna.
+%
+% El precedente para el indicador derivado de la salida del sistema (reducción
+% de 22 veces del volumen que un operador debe procesar) es
+% \citep{Campos_Krofel_Rio-Maior_Renna_2025}; el precedente para el ahorro de
+% tiempo humano en primates es \citet{heinicke_2015}. El primero no sustituye a
+% la medición cronometrada que este RE compromete: la acompaña.
+% ===================================================================
+
+% ===================================================================
+\section{Análisis cualitativo de errores y hallazgos (RE3.3)}
+\label{sec:re33}
+% ===================================================================
+% TODO Redactar. Clasificar una muestra de predicciones de ALTA CONFIANZA en las
+% tres categorías comprometidas por el IOV: evento no anotado, ruido y error de
+% encuadre. La taxonomía geométrica A/B/C/D de la Tabla~\ref{tab:taxonomia-fp} es
+% el instrumento con que se separan; el reporte debe poder leerse en las tres
+% categorías comprometidas:
+%   error de encuadre  <- A (y B, división/fusión, si se declara la equivalencia)
+%   evento no anotado  <- D resuelto por el revisor como evento válido
+%   ruido              <- D resuelto por el revisor como falso positivo genuino
+% Decidir y declarar explícitamente esa correspondencia; C (clase incorrecta) no
+% entra en ninguna de las tres y necesita su propio párrafo.
+%
+% TODO TABLA: conteo y porcentaje por categoría sobre la muestra revisada.
+% TODO FIGURA: ejemplos visuales sobre el espectrograma de (a) aciertos,
+%              (b) errores comunes y (c) detecciones correctas ausentes de la
+%              anotación de referencia. Las tres las pide el IOV.
+% TODO FIGURA: distribución de banda de frecuencia, duración y puntuación de las
+%              predicciones sin anotación, superpuesta a la de los eventos
+%              anotados de cada clase.
+%
+% CUIDADO CON LA REDACCIÓN: mientras el revisor no resuelva una predicción de
+% tipo D, su parecido geométrico con los eventos anotados es INDICIO de una
+% omisión en la referencia, no prueba. Con revisión experta -que este RE sí
+% compromete- la afirmación pasa a ser una medición; sin ella, se declara como
+% limitación.
+%
+% MATERIAL YA EXISTENTE: research/reportes/RE_3-3_taxonomia-discrepancias.tex y
+% su cuaderno reparten las discrepancias A/B/C/D sobre todo el corpus (k-fold en
+% train) y dejan la tabla de hallazgos; ahí están las figuras y las cifras que
+% esta sección tiene que absorber.
+% ===================================================================
+
+% ===================================================================
+\section{Discusión}
+\label{sec:discusion-oe3}
+% ===================================================================
+% TODO Redactar siguiendo las pautas, sin introducir resultados nuevos:
+%   (1) resumen de los resultados principales, pasando de las cifras a su
+%       lectura descriptiva;
+%   (2) qué significan: si el tiempo de revisión baja lo suficiente para que el
+%       equipo de investigación adopte el flujo asistido, y a costa de qué;
+%   (3) consistencia con la literatura del Capítulo~\ref{cap:estado}
+%       (Heinicke et al. 2015 y Campos et al. 2025 como puntos de comparación);
+%   (4) generalización: qué se sostiene con otro corpus, otro revisor u otras
+%       especies, y qué no;
+%   (5) limitaciones: tamaño de la muestra revisada, un solo revisor, efecto de
+%       aprendizaje y dependencia del punto de operación.
+% ===================================================================

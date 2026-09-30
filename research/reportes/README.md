@@ -1,5 +1,16 @@
 # Reportes por resultado esperado
 
+> **Material de referencia, en vías de traslado.** Desde la reorganización de
+> `research/capitulos/`, cada resultado esperado se redacta **completo dentro del
+> capítulo de su objetivo**. Estos documentos siguen siendo, en casi todo, la
+> versión más detallada que existe: se conservan mientras se traslada lo que
+> sirve y se descarta lo que no, y se borran cuando no quede nada útil en ellos.
+> El README de cada capítulo dice qué reporte alimenta qué sección.
+>
+> Al trasladar: prefijar los `\label` (hay colisiones entre reportes y con el
+> cuerpo), bajar un nivel los encabezados y llevarse las macros de cifras de
+> `figures/RE_x-y/valores.tex`.
+
 Un documento LaTeX por resultado esperado de OE1 y OE2, cada uno con un cuaderno homónimo que
 genera sus figuras, tablas y cifras en `figures/RE_x-y/`. El `.tex` nunca lleva un número a
 mano: los toma de `figures/RE_x-y/valores.tex` (macros) y de los fragmentos `*.tex` (filas de

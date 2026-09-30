@@ -1,0 +1,301 @@
+\chapter{Estado del Arte}
+\label{cap:estado}
+
+\section{Metodología de la revisión}
+
+\subsection{Objetivos y preguntas de revisión}
+
+La revisión busca identificar y evaluar el estado del arte en técnicas de
+aprendizaje profundo aplicables a una solución automatizada que produzca
+anotaciones detalladas, que incluyen localización tiempo--frecuencia,
+identificación de especie y clasificación del tipo de vocalización, sobre grabaciones de
+monitoreo acústico pasivo de primates amazónicos. Se organiza en torno a cinco
+preguntas:
+
+\begin{description}
+    \item[P1.] ¿Qué estrategias de aprendizaje profundo han obtenido mejores
+          resultados en la detección tiempo--frecuencia de vocalizaciones en
+          grabaciones de monitoreo acústico pasivo capturadas en entornos ruidosos?
+
+    \item[P2.] ¿Qué estrategias han obtenido mejores resultados en la
+          clasificación jerárquica fina de los eventos detectados, identificando de
+          forma simultánea la especie y el tipo específico de vocalización?
+
+    \item[P3.] ¿Qué técnicas de procesamiento resultan más efectivas para
+          mitigar el ruido ambiental y la variabilidad propia de sensores de bajo
+          costo como AudioMoth?
+
+    \item[P4.] ¿Qué conjuntos de datos públicos existen con vocalizaciones
+          etiquetadas, qué formatos de anotación emplean, y qué estrategias de aumento
+          de datos compensan mejor la escasez y el desbalance de clases?
+
+    \item[P5.] ¿Cómo se adaptan mediante transferencia de aprendizaje los
+          modelos preentrenados en audio general o en bioacústica de aves a las tareas
+          de detección (P1) y clasificación jerárquica (P2)?
+\end{description}
+
+\subsection{Estrategia de búsqueda}
+
+La búsqueda se ejecutó sobre dos bases indexadas. Scopus cubre publicaciones
+seriadas de más de cinco mil editores en 140 países e incorpora una herramienta
+de búsqueda asistida que agrupa los artículos relacionados con una consulta. Web
+of Science aporta herramientas de visualización sobre la relevancia y las
+tendencias de las revistas dentro de sus categorías temáticas. La
+Tabla~\ref{tab:cadenas} recoge las cadenas empleadas y el número de documentos
+recuperado en cada motor.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption[Cadenas de búsqueda]{Cadenas de búsqueda y documentos recuperados por motor}
+        \label{tab:cadenas}
+        \begin{tabular}{@{}L{2.4cm}L{9.8cm}r@{}}
+            \toprule
+            \textbf{Motor}                  & \textbf{Cadena de búsqueda} & \thead{Docs.} \\
+            \midrule
+            Scopus                          &
+            \texttt{TITLE-ABS-KEY} (\textit{deep learning} OR \textit{neural
+                network*} OR \textit{artificial intelligence} OR
+            \textit{transformer*} OR \textit{machine learning}) AND
+            \texttt{TITLE-ABS-KEY} (\textit{sound event detection} OR
+            \textit{acoustic event detection} OR \textit{audio event
+                localization} OR \textit{bioacoustic detection}) AND
+            \texttt{TITLE-ABS-KEY} (\textit{biodiversity} OR \textit{wildlife} OR
+            \textit{animal vocalizations} OR \textit{primates} OR
+            \textit{anthropogenic noise} OR \textit{forest monitoring} OR
+            \textit{ecological monitoring}) & 33                                          \\
+            \addlinespace
+            Web of Science                  &
+            \texttt{TS} = (mismos tres bloques de términos, unidos por
+            \texttt{AND})                   & 6                                           \\
+            \midrule
+            \textbf{Total}                  &                             & \textbf{39}   \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item Los tres bloques combinan técnica, tarea y dominio de
+            aplicación. El asterisco es el comodín de truncamiento de ambos
+            motores.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsection{Criterios de inclusión y exclusión}
+
+Los resultados se cribaron con los criterios de la Tabla~\ref{tab:criterios}.
+Dos de ellos hacen el trabajo principal de filtrado y merecen explicitarse: el
+criterio de detección de eventos descarta los trabajos que solo clasifican la
+grabación completa sin localizar nada dentro de ella, y el criterio de
+clasificación jerárquica descarta los clasificadores binarios o de un solo nivel
+taxonómico. Son precisamente los dos ejes en los que se sitúa el vacío descrito
+en la sección~\ref{sec:vacio}.
+
+\begin{table}[htbp]
+    \centering
+    \caption[Criterios de inclusión y exclusión]{Criterios de inclusión y exclusión aplicados a los resultados}
+    \label{tab:criterios}
+    \small
+    \begin{tabular}{@{}L{2.8cm}L{5.6cm}L{5.6cm}@{}}
+        \toprule
+        \textbf{Criterio} & \textbf{Inclusión}                                         & \textbf{Exclusión}                                        \\
+        \midrule
+        Temporalidad      & Publicaciones de 2020 en adelante                          & Anteriores a 2020                                         \\
+        \addlinespace
+        Calidad           & Revistas Q1 o conferencias de alto impacto                 & Revistas no indexadas o de cuartiles inferiores           \\
+        \addlinespace
+        Enfoque           & Técnicas de aprendizaje profundo                           & Aprendizaje automático clásico sin componente profundo    \\
+        \addlinespace
+        Análisis de señal & Análisis tiempo--frecuencia                                & Análisis exclusivamente temporal o frecuencial            \\
+        \addlinespace
+        Dominio           & Bioacústica, con preferencia por mamíferos y primates      & Reconocimiento de voz humana sin transferencia al dominio \\
+        \addlinespace
+        Entorno           & Entornos naturales ruidosos, preferentemente tropicales    & Entornos exclusivamente de laboratorio                    \\
+        \addlinespace
+        Detección         & Métodos que localizan el evento en tiempo y frecuencia     & Métodos que clasifican la grabación completa              \\
+        \addlinespace
+        Clasificación     & Clasificación multinivel de especie y tipo de vocalización & Clasificadores binarios o de un solo nivel                \\
+        \addlinespace
+        Desbalance        & Técnicas para desbalance de clases y escasez de datos      & Métodos que exigen grandes volúmenes etiquetados          \\
+        \addlinespace
+        Evaluación        & Métricas completas de precisión, \textit{recall} y F1      & Trabajos sin evaluación cuantitativa                      \\
+        \addlinespace
+        Idioma            & Inglés o español                                           & Otros idiomas                                             \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Resultados de la revisión}
+
+Ninguno de los trabajos recuperados evalúa arquitecturas de aprendizaje profundo
+para la detección y clasificación de vocalizaciones de primates en el contexto
+amazónico. Los resultados que siguen se apoyan, por tanto, en la extrapolación
+desde dominios bioacústicos adyacentes pero más desarrollados, sobre todo la
+detección de aves y la localización de eventos sonoros, que enfrentan
+desafíos análogos de ruido ambiental, variabilidad entre sensores y escasez de
+datos etiquetados \citep{lostanlen_robust_2019,meedeniya_survey_2023}.
+
+\subsection{P1: Estrategias de detección tiempo--frecuencia}
+
+Las redes convolucionales son la base de los sistemas que operan sobre
+espectrogramas. Un modelo convolucional de arquitectura relativamente simple ya
+supera de forma clara a métodos tradicionales como el flujo espectral o los
+detectores basados en energía, aunque adolece de falta de robustez y de
+generalización ante la variabilidad del ruido \citep{lostanlen_robust_2019}. Las
+redes convolucionales recurrentes añaden capas recurrentes para modelar
+dependencias temporales más largas y fueron la arquitectura predominante en las
+ediciones iniciales de los desafíos de localización y detección de eventos
+sonoros \citep{politis_dataset_2020}. Las variantes residuales facilitan el
+entrenamiento de redes más profundas sin degradación \citep{he_deep_2016}, y son
+la base de BirdNET \citep{kahl_birdnet_2021}.
+
+Los transformadores aparecen como innovación arquitectónica en detección
+bioacústica de pocos ejemplos, si bien la mayoría de sistemas exitosos de ese
+desafío siguieron usando redes convolucionales \citep{nolasco_learning_2023}. En
+detección con salida bidimensional, el trabajo relevante sustituye los
+\textit{backbones} preentrenados en imágenes por representaciones nativas de
+audio y añade una pirámide multiescala, precisamente porque las arquitecturas de
+tipo transformador de espectrograma producen representaciones de una sola escala
+\citep{zhu_sound_2025}.
+
+Del lado de la representación de entrada, la normalización de energía por canal
+fue el contribuyente principal a la mejora de precisión sobre la línea base de
+espectrograma log-mel \citep{lostanlen_robust_2019}, y también la representación
+mayoritaria entre los sistemas exitosos del desafío de detección con pocos
+ejemplos \citep{nolasco_learning_2023}. La elección de la representación
+resultó, en esos trabajos, tan determinante como la elección de la arquitectura
+\citep{bonet-sola_comparative_2021}.
+
+\subsection{P2: Clasificación jerárquica fina}
+
+La revisión no identificó estrategias diseñadas y evaluadas explícitamente para
+la clasificación jerárquica fina que asigna de forma simultánea la especie y el
+tipo de vocalización. La literatura recuperada se concentra en tres tareas
+vecinas pero distintas: la detección de eventos, que localiza sin etiquetar en
+detalle \citep{lostanlen_robust_2019,politis_dataset_2020}; la clasificación de
+especie, multiclase o multietiqueta, que identifica qué especies están presentes
+BirdNET reconoce 984 especies de aves \citep{kahl_birdnet_2021}, y
+\citet{kath_leveraging_2024} entrenan clasificadores lineales sobre
+\textit{embeddings} para anuros; y la clasificación de eventos ya detectados
+en un conjunto plano de clases predefinidas \citep{politis_dataset_2020}.
+
+La necesidad de distinguir tipos de llamada o sílabas se reconoce como un
+desafío de clasificación de grano fino en bioacústica, pero se enuncia como
+problema abierto y no como capacidad demostrada \citep{nolasco_learning_2023}.
+Este es, en la revisión, el hueco más nítido y el que sostiene el eje de tarea
+de la sección~\ref{sec:vacio}.
+
+\subsection{P3: Mitigación de ruido y variabilidad entre sensores}
+
+Ningún trabajo recuperado prueba técnicas específicamente sobre ruido amazónico,
+pero varios abordan el ruido ambiental heterogéneo y la variabilidad entre
+sensores en despliegues de monitoreo acústico pasivo. Dos resultados son
+directamente aplicables.
+
+El primero es la normalización de energía por canal como preprocesamiento del
+espectrograma: al combinar compresión de rango dinámico y control adaptativo de
+ganancia, suprime el ruido estacionario y realza los eventos transitorios, y con
+sus parámetros ajustados a entornos exteriores ruidosos produce distribuciones
+de magnitud consistentes y cuasi-gaussianas entre sensores distintos
+\citep{lostanlen_robust_2019}. El segundo son las redes adaptativas al contexto,
+que procesan en una rama auxiliar estadísticas espectrales resumidas a largo
+plazo, mediante percentiles del espectrograma, y adaptan el modelo a las condiciones
+de cada punto de monitoreo, mejorando la robustez frente a la variabilidad
+espacial del ruido \citep{lostanlen_robust_2019}. Ambas técnicas resultaron
+complementarias: su combinación fue lo que produjo detección robusta a escala de
+red de sensores.
+
+\subsection{P4: Conjuntos de datos y aumento de datos}
+
+Los conjuntos públicos disponibles se concentran de forma abrumadora en aves:
+BirdVox, Xeno-canto y la Macaulay Library. Fuera de ese taxón, la revisión
+identificó AnuraSet para anuros, la base de Watkins para mamíferos marinos y los
+conjuntos de DCASE para sonidos generales. No se encontró ningún conjunto
+público a gran escala etiquetado específicamente para vocalizaciones de
+primates, lo que confirma por una segunda vía el eje de dominio de la
+sección~\ref{sec:vacio}.
+
+En cuanto a formatos, los eventos localizados en tiempo se distribuyen
+típicamente como archivos delimitados con tiempo de inicio, tiempo de fin y
+etiqueta de clase \citep{nolasco_learning_2023}; en tareas de localización se
+añade la dirección de llegada \citep{politis_dataset_2020}; y en repositorios
+grandes como Xeno-canto lo habitual son etiquetas débiles de presencia o
+ausencia a nivel de grabación completa \citep{kahl_birdnet_2021}. Ninguno de
+esos formatos registra la banda de frecuencia del evento.
+
+Frente a la escasez y al desbalance, las técnicas reportadas son la adición de
+ruido de fondo realista, el desplazamiento de tono, el estiramiento temporal, el
+enmascaramiento de bloques de tiempo o frecuencia sobre el espectrograma y el
+entrenamiento con mezcla de ejemplos
+\citep{kahl_birdnet_2021,lostanlen_robust_2019,politis_dataset_2020}. El
+sobremuestreo de clases minoritarias es la respuesta habitual al desbalance,
+mientras que el aprendizaje sensible al costo fue probado sin mejora apreciable
+\citep{kahl_birdnet_2021}. Cuando los ejemplos etiquetados son muy escasos, las
+redes prototípicas permiten adaptarse a clases nuevas con apenas cinco ejemplos
+\citep{nolasco_learning_2023}.
+
+\subsection{P5: Transferencia de aprendizaje}
+
+La transferencia de aprendizaje es la estrategia central cuando los datos
+etiquetados son limitados \citep{kath_leveraging_2024}. El hallazgo más útil de
+la revisión es que la proximidad del dominio de origen importa más que el tamaño
+del modelo: BirdNET, entrenado en aves, transfiere mejor a la clasificación de
+anuros que modelos entrenados en audio general o en imágenes
+\citep{kath_leveraging_2024}. Eso lo posiciona como candidato razonable para
+transferir a primates.
+
+Sobre el método de adaptación, la revisión distingue dos rutas. La extracción de
+características usa el modelo preentrenado como extractor fijo y entrena un
+clasificador simple sobre sus \textit{embeddings}; la penúltima capa de BirdNET
+resultó particularmente efectiva en esa función \citep{kath_leveraging_2024}. El
+ajuste fino reentrena parcial o totalmente los pesos con los pocos datos de la
+tarea objetivo, y exige cuidado para no sobreajustar \citep{nolasco_learning_2023}.
+Ninguno de los trabajos documenta la adaptación de estos modelos a la detección
+con salida bidimensional ni a la clasificación jerárquica de primates.
+
+\rotulo{Detección y robustez (P1, P3).} No se identificó ningún estudio que
+aplique y evalúe modelos de aprendizaje profundo a la detección
+tiempo--frecuencia de primates amazónicos. La literatura de dominios vecinos sí
+ofrece estrategias trasladables: las arquitecturas convolucionales y
+convolucionales recurrentes como base
+\citep{lostanlen_robust_2019,politis_dataset_2020}, las variantes residuales y
+los transformadores para secuencias largas
+\citep{he_deep_2016,nolasco_learning_2023}, y, frente a la variabilidad del
+ruido, la normalización de energía por canal junto con las redes adaptativas
+al contexto, cuya combinación resultó la más efectiva a escala de red de
+sensores \citep{lostanlen_robust_2019}.
+
+\rotulo{Clasificación jerárquica (P2).} No se hallaron estrategias explícitamente
+diseñadas y evaluadas para asignar de forma conjunta especie y tipo de
+vocalización. Existen enfoques de clasificación multietiqueta sobre
+\textit{embeddings} preentrenados \citep{kath_leveraging_2024}, pero la tarea
+jerárquica específica sigue requiriendo desarrollo propio.
+
+\rotulo{Datos y anotaciones (P4).} Se confirma la ausencia de conjuntos públicos
+a gran escala etiquetados para primates y adecuados para aprendizaje profundo:
+el esfuerzo de la comunidad se concentra en aves. Los formatos de anotación de
+uso común registran tiempo de inicio, tiempo de fin y clase
+\citep{nolasco_learning_2023}, y descartan la banda de frecuencia, lo que
+significa que incluso los conjuntos disponibles no servirían como referencia
+para la tarea de esta tesis sin reanotación.
+
+\rotulo{Transferencia (P5).} La transferencia desde dominios cercanos es la
+respuesta más viable a la escasez de datos etiquetados, con evidencia de
+transferencia exitosa de aves a otros taxones
+\citep{kath_leveraging_2024,nolasco_learning_2023}. Queda abierto cómo aplicarla
+cuando la salida deseada no es una etiqueta por segmento sino una caja
+tiempo--frecuencia, que es exactamente el problema que aborda el
+Capítulo~\ref{cap:deteccion}.
+
+Los dos ejes del vacío descrito en la sección~\ref{sec:vacio} quedan
+confirmados de forma independiente por esta
+revisión: no hay trabajo publicado sobre primates neotropicales en este
+contexto (eje de dominio) y no hay estrategias establecidas para la salida
+bidimensional con etiquetado jerárquico (eje de tarea). El cruce de ambos ejes
+es la posición que ocupa esta tesis.
+
+
+% ===================================================================
+% CAPÍTULO 4
+% ===================================================================

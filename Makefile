@@ -3,7 +3,9 @@ RESEARCH_DIR := research
 BUILD_DIR    := $(RESEARCH_DIR)/build
 PDF          := $(BUILD_DIR)/$(MAIN).pdf
 LOG          := $(BUILD_DIR)/$(MAIN).log
-FIGURES      := $(wildcard $(RESEARCH_DIR)/figures/*)
+CHAPTERS     := $(wildcard $(RESEARCH_DIR)/capitulos/*/*.tex)
+FIGURES      := $(wildcard $(RESEARCH_DIR)/capitulos/*/figures/*) \
+                $(wildcard $(RESEARCH_DIR)/figures/*)
 LATEX_FLAGS  := -interaction=nonstopmode -halt-on-error -file-line-error \
                 -output-directory=build
 
@@ -15,7 +17,7 @@ DEMO         := resources/demo.mp4
 
 all: $(PDF)
 
-$(PDF): $(RESEARCH_DIR)/$(MAIN).tex $(RESEARCH_DIR)/references.bib $(FIGURES)
+$(PDF): $(RESEARCH_DIR)/$(MAIN).tex $(CHAPTERS) $(RESEARCH_DIR)/references.bib $(FIGURES)
 	@mkdir -p $(BUILD_DIR)
 	cd $(RESEARCH_DIR) && pdflatex $(LATEX_FLAGS) $(MAIN).tex
 	cd $(RESEARCH_DIR) && bibtex build/$(MAIN)

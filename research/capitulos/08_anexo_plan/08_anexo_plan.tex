@@ -1,0 +1,421 @@
+\chapter{Plan del Proyecto}
+\label{anx:plan}
+
+\section{Justificación y viabilidad}
+
+\subsection{Justificación}
+
+La investigación es conveniente porque ataca directamente el cuello de botella
+descrito en el Capítulo~\ref{cap:generalidades}: el análisis manual del audio
+recolectado. El monitoreo acústico pasivo con sensores de bajo costo permite
+recolectar a gran escala, pero ese potencial queda desaprovechado mientras el
+análisis siga siendo lento, costoso y laborioso. Un sistema de pre-anotación
+asistida hace que el monitoreo a gran escala resulte operativamente viable y
+permite que el tiempo experto se dedique a la interpretación ecológica en lugar
+de al procesamiento.
+
+En el plano práctico, el proyecto reduce la infrautilización del material acústico
+acumulado y, con ella, la latencia entre la recolección y la generación de
+conocimiento. En el plano teórico, aborda dos vacíos confirmados de forma
+independiente por la revisión del Capítulo~\ref{cap:estado}: la ausencia de
+modelos y de conjuntos de datos con anotación tiempo--frecuencia para primates
+neotropicales, y la falta de estrategias establecidas para el etiquetado
+jerárquico de especie y tipo de llamada sobre eventos detectados.
+
+\subsection{Beneficios esperados}
+
+\begin{itemize}[nosep]
+    \item Reducir la carga de revisión por hora de audio analizada: menos
+          material que inspeccionar para la misma cobertura de eventos.
+    \item Poner en uso el audio ya grabado que hoy permanece sin anotar.
+    \item Acortar la latencia entre la recolección y la obtención de resultados
+          ecológicos.
+    \item Disminuir el costo y el error humano asociados al análisis manual.
+    \item Entregar una herramienta reutilizable, con código y pesos públicos,
+          integrable al flujo de trabajo existente en Raven.
+\end{itemize}
+
+\subsection{Viabilidad técnica}
+
+El proyecto no depende de ningún desarrollo previo inexistente. Las
+arquitecturas necesarias están disponibles y documentadas
+\citep{he_deep_2016,kahl_birdnet_2021,nolasco_learning_2023}; las herramientas
+son software libre de uso extendido (Tabla~\ref{tab:herramientas}); los
+recursos de cómputo se cubren con acceso a GPU en la nube; los datos iniciales,
+aproximadamente 10\,GB de grabaciones WAV capturadas con AudioMoth, con sus
+anotaciones de Raven, ya están entregados; y la metodología de trabajo
+(CRISP-DM) está establecida y es la que estructura el documento.
+
+\subsection{Viabilidad temporal}
+
+El cronograma es factible dentro del calendario académico, con dos puntos de
+tensión identificados. El primero es OE1: la curación y estandarización del
+conjunto es meticulosa y cualquier retraso ahí se propaga a todo lo que sigue.
+El segundo es OE2, que consume tiempo tanto de cómputo como de análisis humano
+en la experimentación. Juega a favor que no haya recolección de datos en campo:
+el material de partida ya existe.
+
+\subsection{Viabilidad económica}
+
+El grueso del software es de código abierto y sin costo. Los sensores ya están
+desplegados y su costo no recae sobre este proyecto. El desembolso real se
+concentra en cómputo en la nube y en servicios de almacenamiento; el resto del
+presupuesto es una valorización del tiempo dedicado, no un pago efectivo.
+
+\section{Definición y alcance del proyecto}
+
+\subsection{Alcance}
+
+El proyecto desarrolla y evalúa un sistema de pre-anotación asistida que produce
+cajas tiempo--frecuencia etiquetadas sobre grabaciones de monitoreo acústico
+pasivo, para las ocho especies de la Tabla~\ref{tab:especies}. El sistema debe
+cumplir tres tareas: localizar el evento en tiempo y frecuencia, identificar la
+especie y clasificar el tipo de vocalización. Una parte central del alcance es
+la caracterización cuantitativa de su comportamiento operativo: el tiempo de
+revisión que cuesta una hora de audio con y sin la asistencia del sistema, la
+carga de propuestas que genera y la naturaleza de sus discrepancias. La medición
+cronometrada y la revisión experta de una muestra de predicciones están dentro
+del alcance y dependen de la disponibilidad del equipo de investigación, que es
+el riesgo R3 de la sección~\ref{sec:riesgos}. El proyecto
+recorre el ciclo completo de CRISP-DM, desde la preparación de los datos hasta el
+procesamiento de grabaciones nuevas.
+
+\subsection{Entregables y criterios de aceptación}
+
+Los entregables son los resultados esperados enumerados en la
+sección~\ref{sec:resultados}. La Tabla~\ref{tab:aceptacion} recoge el criterio
+de aceptación de cada uno: la condición verificable que permite declararlo
+terminado.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Criterios de aceptación}
+    \label{tab:aceptacion}
+    \small
+    \begin{tabular}{@{}L{1.5cm}L{12.9cm}@{}}
+        \toprule
+        \textbf{Entreg.} & \textbf{Criterio de aceptación}                                                                                                                                                                                  \\
+        \midrule
+        RE1.1            & El protocolo define reglas de sintaxis para las etiquetas de especie y tipo de llamada, y especifica el tratamiento de errores, duplicados e inconsistencias de las anotaciones originales.                      \\
+        \addlinespace
+        RE1.2            & Todas las anotaciones del conjunto final cumplen las reglas de RE1.1, y se entrega un manifiesto con la asignación de cada archivo de grabación a una partición.                                                 \\
+        \addlinespace
+        RE1.3            & La ficha describe la estructura de directorios, incluye un diccionario de datos por columna y declara transformaciones, sesgos y limitaciones conocidas.                                                         \\
+        \addlinespace
+        RE2.1            & El documento justifica la arquitectura propuesta y la línea base a partir del estado del arte, y fija la configuración e hiperparámetros iniciales de ambas.                                                     \\
+        \addlinespace
+        RE2.2            & El \textit{pipeline} ejecuta el ciclo completo de entrenamiento, evaluación e inferencia, e incluye instrucciones de instalación y ejecución.                                                                    \\
+        \addlinespace
+        RE2.3            & El informe presenta las métricas de los tres ejes para la propuesta y la línea base, discute los resultados y concluye con una recomendación justificada.                                                        \\
+        \addlinespace
+        RE2.4            & Los pesos del modelo se cargan sin error y un script de demostración produce predicciones en el formato de tabla de selección de Raven sobre un clip de prueba.                                                  \\
+        \addlinespace
+        RE2.5            & El repositorio público contiene el código del \textit{pipeline}, los pesos del modelo final y las instrucciones para reproducir la inferencia.                                                                   \\
+        \addlinespace
+        RE3.1            & La metodología, fechada antes de la evaluación, especifica el subconjunto de prueba, el punto de operación (confianza 0,5 y NMS IoU 0,3), el umbral IoU 0,5 que define un verdadero positivo, las métricas, el emparejamiento y el procedimiento de revisión de discrepancias. \\
+        \addlinespace
+        RE3.2            & Se reportan los minutos por hora de audio en condición manual y asistida sobre material comparable, con el orden de revisión declarado, y el tiempo de procesamiento del modelo por hora de audio.                                                  \\
+        \addlinespace
+        RE3.3            & El informe clasifica la muestra de predicciones de alta confianza en evento no anotado, ruido y error de encuadre, e incluye ejemplos sobre el espectrograma de aciertos, de errores comunes y de detecciones correctas ausentes de la referencia.  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Exclusiones}
+
+\begin{itemize}[nosep]
+    \item No se desarrolla un sistema de monitoreo en tiempo real desplegable en
+          campo; el alcance es el procesamiento de grabaciones existentes.
+    \item El análisis detallado de sonidos antropogénicos queda fuera del foco
+          primario, más allá de su detección y categorización general.
+    \item El estudio se limita a las ocho especies declaradas.
+    \item No se desarrolla hardware de adquisición.
+    \item No se realiza nueva recolección de datos en campo.
+\end{itemize}
+
+\subsection{Limitaciones y restricciones}
+
+\rotulo{Limitaciones.} La ausencia de conjuntos etiquetados a gran escala para
+primates neotropicales obliga a invertir un esfuerzo considerable en OE1, y la
+calidad de las anotaciones manuales recibidas es subjetiva y variable. El
+entorno acústico amazónico es denso y presenta con frecuencia baja relación
+señal-ruido. La variabilidad intraespecífica de las vocalizaciones y su
+naturaleza graduada dificultan definir categorías discretas, y las llamadas
+superpuestas o de baja intensidad son especialmente difíciles de modelar. Los
+sensores de bajo costo añaden variabilidad entre dispositivos. Por último, sin
+revisión experta las predicciones de alta confianza situadas en regiones sin
+anotación (tipo D de la Tabla~\ref{tab:taxonomia-fp}) no pueden clasificarse de
+forma concluyente entre eventos omitidos por la referencia y falsos positivos
+genuinos: esta tesis las caracteriza geométricamente y las reporta como una
+cantidad acotada, y deja su resolución como trabajo futuro condicionado a la
+disponibilidad del equipo de investigación.
+
+\rotulo{Restricciones.} El desarrollo está sujeto al calendario académico. El
+proyecto depende del conjunto de datos entregado y de la verificación de su
+calidad. El acceso a GPU limita la escala de la experimentación, en particular
+la búsqueda exhaustiva de hiperparámetros. El desarrollo, la implementación y la
+evaluación recaen sobre el autor, con la supervisión del asesor.
+
+\section{Planificación del proyecto}
+
+\subsection{Estructura de desglose del trabajo}
+
+La estructura de desglose se organiza según las fases de CRISP-DM y los
+objetivos específicos. La Tabla~\ref{tab:edt} resume los paquetes de trabajo y
+el entregable asociado a cada uno.
+
+\begin{table}[htbp]
+    \centering
+    \caption{EDT del proyecto}
+    \label{tab:edt}
+    \small
+    \begin{tabular}{@{}L{0.8cm}L{4.4cm}L{6.6cm}L{2.2cm}@{}}
+        \toprule
+        \textbf{ID} & \textbf{Paquete}                 & \textbf{Contenido}                                                                                 & \textbf{Entregable} \\
+        \midrule
+        1           & Gestión del proyecto             & Planificación, seguimiento, comunicación con el asesor, gestión de riesgos y de la calidad, cierre & N/A                 \\
+        \addlinespace
+        2           & Comprensión de la investigación  & Objetivos, formulación del problema de detección y criterios de éxito                              & N/A                 \\
+        \addlinespace
+        3           & Comprensión de los datos         & Acceso al corpus, descripción del formato, análisis exploratorio y verificación de calidad         & N/A                 \\
+        \addlinespace
+        4.1         & Limpieza y estandarización       & Corrección de etiquetas, tratamiento de audios dañados                                             & RE1.1               \\
+        4.2         & Curación del conjunto            & Aplicación del protocolo, vocabulario cerrado, partición por grabación                             & RE1.2               \\
+        4.3         & Ingeniería de características    & Preprocesamiento, representación tiempo--frecuencia, ventaneo, aumento de datos                    & N/A                 \\
+        4.4         & Documentación del conjunto       & Ficha del conjunto derivado                                                                        & RE1.3               \\
+        \addlinespace
+        5.1         & Diseño del detector              & Arquitectura propuesta y línea base, con justificación                                             & RE2.1               \\
+        5.2         & Implementación                   & \textit{Pipeline} de entrenamiento, evaluación e inferencia                                        & RE2.2               \\
+        5.3         & Publicación del código           & Repositorio con código y pesos                                                                     & RE2.5               \\
+        \addlinespace
+        6.1         & Evaluación cuantitativa          & Métricas por eje, comparación con la línea base, análisis de errores                               & RE2.3               \\
+        6.2         & Selección del modelo final       & Modelo elegido y exportador a tabla de selección de Raven                                          & RE2.4               \\
+        6.3         & Metodología de validación        & Subconjunto de prueba, punto de operación, emparejamiento, métricas y protocolo de revisión experta & RE3.1               \\
+        6.4         & Medición del tiempo de revisión  & Cronometraje de la revisión manual y asistida sobre material comparable, y costo de inferencia      & RE3.2               \\
+        6.5         & Análisis de errores              & Clasificación de las predicciones de alta confianza y ejemplos sobre el espectrograma               & RE3.3               \\
+        6.6         & Revisión experta de la muestra   & Resolución con el equipo de investigación de las predicciones sin anotación                         & RE3.2, RE3.3        \\
+        \addlinespace
+        7           & Despliegue                       & Inferencia por lotes sobre grabaciones no vistas y generación de tablas de anotación               & N/A                 \\
+        \addlinespace
+        8           & Documentación y difusión         & Redacción de la tesis y preparación de la defensa                                                  & N/A                 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/08_anexo_plan/figures/wbs_tree.png}
+    \caption{EDT en árbol.}
+    \label{fig:wbs-tree}
+\end{figure}
+
+\subsection{Cronograma}
+
+El cronograma se ajusta al calendario académico y se organiza en bloques que
+respetan las dependencias entre paquetes: la preparación de datos precede al
+modelado, el modelado precede a la evaluación, y la fijación del punto de operación
+precede a la medición del tiempo y al análisis de errores, porque ambos se
+realizan sobre las predicciones del modelo ya seleccionado en ese punto. La
+sesión de revisión con el equipo de investigación se agenda con holgura, porque
+alimenta a la vez la condición asistida de RE3.2 y la muestra resuelta de RE3.3.
+
+
+\subsection{Estimación de costos}
+
+Los costos se presentan en dólares estadounidenses y distinguen desembolso real
+de valorización. Las Tablas~\ref{tab:costos-hw} a~\ref{tab:costos-ind} detallan
+cada categoría, y la Tabla~\ref{tab:costos-resumen} las consolida.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption{Costos de equipos y hardware}
+        \label{tab:costos-hw}
+        \begin{tabular}{@{}L{4.2cm}L{6.4cm}r@{}}
+            \toprule
+            \textbf{Categoría}     & \textbf{Descripción}                                               & \thead{USD}        \\
+            \midrule
+            Almacenamiento externo & SSD de 512\,GB para el conjunto de datos y sus derivados           & 150,00             \\
+            \addlinespace
+            Equipo de desarrollo   & Laptop con GPU dedicada\tnote{a}                                   & 1\,500,00          \\
+            \addlinespace
+            Cómputo en la nube     & Instancia con GPU de 48\,GiB de memoria, estimada por horas de uso & 600,00             \\
+            \midrule
+            \textbf{Subtotal}      &                                                                    & \textbf{2\,250,00} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item[a] Equipo preexistente propiedad del tesista. No representa un
+            desembolso del proyecto, pero sí un recurso valorizado.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption[Capital intelectual]{Valorización del capital intelectual}
+        \label{tab:costos-rrhh}
+        \begin{tabular}{@{}L{5.0cm}rrr@{}}
+            \toprule
+            \textbf{Recurso}         & \thead{Horas} & \thead{USD/h} & \thead{Total USD}  \\
+            \midrule
+            Tesista\tnote{a}         & 600           & 5,00          & 2\,500,00          \\
+            Asesor de tesis\tnote{b} & 40            & 25,00         & 1\,000,00          \\
+            \midrule
+            \textbf{Subtotal}        &               &               & \textbf{3\,500,00} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item[a] Valorización del tiempo dedicado; no implica un pago real.
+            \item[b] Cubierto por la institución.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption[Costos de software y servicios]{Costos de software, licencias y servicios en la nube}
+    \label{tab:costos-sw}
+    \small
+    \begin{tabular}{@{}L{5.0cm}L{3.2cm}rrr@{}}
+        \toprule
+        \textbf{Software o servicio}      & \textbf{Licencia}      & \thead{Meses} & \thead{USD/mes} & \thead{Total USD} \\
+        \midrule
+        Python, uv, Pandas, NumPy         & Código abierto         & 12            & 0,00            & 0,00              \\
+        PyTorch, torchaudio, Transformers & Código abierto         & 12            & 0,00            & 0,00              \\
+        Visual Studio Code                & Código abierto         & 12            & 0,00            & 0,00              \\
+        Zotero                            & Gratuito               & 12            & 0,00            & 0,00              \\
+        Raven Lite                        & Licencia de estudiante & 12            & 0,00            & 0,00              \\
+        Entorno de cómputo con GPU        & Suscripción            & 12            & 9,99            & 119,88            \\
+        Almacenamiento en la nube         & Suscripción            & 12            & 1,67            & 20,00             \\
+        \midrule
+        \textbf{Subtotal}                 &                        &               &                 & \textbf{139,88}   \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Costos indirectos}
+    \label{tab:costos-ind}
+    \small
+    \begin{tabular}{@{}L{5.4cm}L{4.6cm}rr@{}}
+        \toprule
+        \textbf{Categoría}  & \textbf{Descripción}                           & \thead{Meses} & \thead{Total USD} \\
+        \midrule
+        Internet            & Conexión para investigación y acceso a la nube & 12            & 480,00            \\
+        Electricidad        & Consumo del equipo y periféricos               & 12            & 360,00            \\
+        Impresiones y otros & Materiales de estudio e impresiones            & 12            & 120,00            \\
+        \midrule
+        \textbf{Subtotal}   &                                                &               & \textbf{960,00}   \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Resumen de costos}
+    \label{tab:costos-resumen}
+    \small
+    \begin{tabular}{@{}L{7.0cm}r@{}}
+        \toprule
+        \textbf{Categoría}              & \thead{Total USD}  \\
+        \midrule
+        Equipamiento (hardware)         & 2\,250,00          \\
+        Recursos humanos (valorización) & 3\,500,00          \\
+        Software y servicios            & 139,88             \\
+        Costos indirectos               & 960,00             \\
+        \midrule
+        \textbf{Total}                  & \textbf{6\,849,88} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Lista de recursos}
+
+\rotulo{Personas.} El tesista, responsable del desarrollo, la implementación y
+el análisis; y el asesor, que aporta guía, supervisión y validación experta.
+
+\rotulo{Equipamiento.} Equipo de desarrollo con GPU dedicada, almacenamiento
+externo para el conjunto de datos y sus derivados, y acceso a servidores con GPU
+para el entrenamiento.
+
+\rotulo{Herramientas.} Las de la Tabla~\ref{tab:herramientas}, más el acceso a
+Raven para la validación cualitativa de las predicciones.
+
+\subsection{Gestión de riesgos}
+\label{sec:riesgos}
+
+La Tabla~\ref{tab:riesgos} recoge los riesgos identificados con su probabilidad,
+impacto, severidad y las acciones previstas.
+
+\begin{table}[htbp]
+    \centering
+    \caption[Riesgos del proyecto]{Riesgos del proyecto, mitigación y contingencia}
+    \label{tab:riesgos}
+    \small
+    \begin{tabular}{@{}L{2.8cm}ccL{4.4cm}L{4.2cm}@{}}
+        \toprule
+        \textbf{Riesgo}                                                       & \thead{Prob.} & \thead{Sever.} & \textbf{Mitigación} & \textbf{Contingencia} \\
+        \midrule
+        R1. Calidad de los datos: anotaciones inconsistentes y audios dañados &
+        Baja                                                                  & Media         &
+        Validación cruzada de una muestra con el asesor; detección automática de
+        archivos corruptos o vacíos                                           &
+        Excluir el material bajo umbral mínimo de calidad y documentar la
+        inconsistencia como limitación                                                                                                                       \\
+        \addlinespace
+        R2. Recursos de cómputo insuficientes                                 &
+        Baja                                                                  & Media         &
+        Espectrogramas precalculados; \textit{pipeline} de datos optimizado;
+        planificación de las corridas largas                                  &
+        Reducir la complejidad de las configuraciones menos prometedoras;
+        acotar la búsqueda de hiperparámetros; parada temprana                                                                                               \\
+        \addlinespace
+        R3. Baja disponibilidad de revisores expertos para la validación      &
+        Media                                                                 & Baja          &
+        Sesión de revisión agendada con holgura y con el material ya preparado; la
+        muestra se dimensiona para que una sola sesión la resuelva               &
+        Reducir el tamaño de la muestra revisada y declarar de forma explícita
+        la limitación de alcance de RE3.2 y RE3.3                                                                                                            \\
+        \addlinespace
+        R4. Falla del equipo de desarrollo                                    &
+        Alta                                                                  & Media         &
+        Código, datos y documentos sincronizados en repositorio remoto; entorno
+        replicable por archivo de configuración                               &
+        Reinstalar el sistema, clonar el repositorio y recrear el entorno desde
+        su especificación                                                                                                                                    \\
+        \addlinespace
+        R5. Incompatibilidad del entorno de ejecución                         &
+        Media                                                                 & Media         &
+        Requerimientos explícitos y versionados; contenedor de ejecución;
+        versiones estables de las bibliotecas clave                           &
+        Proveer un entorno preconfigurado listo para ejecutar; migrar a
+        versiones compatibles                                                                                                                                \\
+        \addlinespace
+        R6. Aumento del costo de cómputo en la nube                           &
+        Baja                                                                  & Baja          &
+        Desarrollo y depuración en recursos locales o gratuitos; uso eficiente
+        de la GPU; priorización de experimentos                               &
+        Reducir el alcance de la experimentación; solicitar créditos académicos;
+        usar recursos de la universidad                                                                                                                      \\
+        \addlinespace
+        R7. Retrasos por disponibilidad limitada del tesista                  &
+        Alta                                                                  & Alta          &
+        Cronograma con holgura basado en la EDT; bloques de tiempo protegidos;
+        seguimiento semanal del avance                                        &
+        Replanificar al detectar la desviación; negociar reducción de alcance
+        con el asesor; priorizar la ruta crítica                                                                                                             \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+% ===================================================================
+% REFERENCIAS BIBLIOGRÁFICAS
+% ===================================================================
