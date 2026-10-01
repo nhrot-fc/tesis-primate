@@ -1,0 +1,33 @@
+% Estilos compartidos por los capítulos: paleta, estilos TikZ y macros tipográficas.
+% Lo carga main.tex después de los paquetes. Requiere xcolor y tikz ya cargados.
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+
+% Separador tipográfico (el «·» directo no existe en T1).
+\newcommand{\sep}{\,\textperiodcentered\,}
+
+% === Paleta de los esquemas ========================================
+% Las figuras de matplotlib de los cuadernos usan estos mismos hexadecimales.
+\definecolor{azul}{HTML}{1E40AF}
+\definecolor{celeste}{HTML}{00B4D8}
+\definecolor{verde}{HTML}{22C55E}
+\definecolor{rosa}{HTML}{FF5FA2}
+\definecolor{ambar}{HTML}{F59E0B}
+\definecolor{gris}{HTML}{6B7280}
+
+\tikzset{
+    caja/.style={draw=black!60, rounded corners=2pt, fill=white, align=center,
+                 minimum height=7mm, inner sep=4pt, font=\small},
+    etapa/.style={caja, fill=azul!8, draw=azul!70},
+    dato/.style={caja, fill=black!4, draw=black!50, font=\small\ttfamily},
+    decision/.style={caja, fill=ambar!15, draw=ambar!80!black},
+    descarte/.style={caja, fill=rosa!12, draw=rosa!70!black, font=\footnotesize},
+    flecha/.style={-{Stealth[length=2.2mm]}, thick, draw=black!65},
+    nota/.style={font=\footnotesize, text=black!70, align=left},
+}
+
+% === Marcas de trabajo pendiente ===================================
+% Visibles en el PDF a propósito; se apagan redefiniéndolas vacías.
+\newcommand{\todocita}[1]{\textcolor{red!75!black}{\small[\textsc{cita}: #1]}}
+\newcommand{\todo}[1]{\textcolor{orange!80!black}{\small[\textsc{todo}: #1]}}

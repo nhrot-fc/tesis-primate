@@ -229,8 +229,8 @@ esa dispersión.
 \end{table}
 
 Leída sin más, la tabla dice dos cosas incompatibles. Por \textit{recall} y por
-F\textsubscript{3} —la métrica principal y el criterio de selección de esta
-tesis— el orden es Faster R-CNN, la propuesta con \textit{ts}5, la propuesta con
+F\textsubscript{3} ---la métrica principal y el criterio de selección de esta
+tesis--- el orden es Faster R-CNN, la propuesta con \textit{ts}5, la propuesta con
 \textit{ts}10 y, último y por mucho, YOLO: 0,777 contra 0,532 son 6\,207 eventos recuperados
 contra 4\,246, es decir 1\,961 de diferencia sobre los 7\,985 anotados de la
 partición de prueba. Por mAP y por
@@ -249,8 +249,8 @@ La contradicción es aparente y su origen es metodológico: \textbf{el umbral fi
 La confianza que emite un detector no es una probabilidad comparable entre
 arquitecturas: depende de la función de pérdida, del número de propuestas que la
 cabeza produce y de cómo se normaliza la puntuación. Sobre la partición de
-prueba, YOLO emite 29\,174 detecciones por encima de 0,001 y solo 5\,277 —el
-18\,\%— sobreviven al umbral de 0,5; Faster R-CNN emite 176\,423 y conserva
+prueba, YOLO emite 29\,174 detecciones por encima de 0,001 y solo 5\,277 ---el
+18\,\%--- sobreviven al umbral de 0,5; Faster R-CNN emite 176\,423 y conserva
 12\,447, el 7\,\%. Fijar 0,5 para los dos no los sitúa en el mismo régimen de
 operación: sitúa a YOLO en la parte conservadora de su curva y a Faster R-CNN en
 la permisiva.
@@ -262,7 +262,7 @@ umbral hasta 0,001, YOLO recupera 6\,774 de los 7\,985 eventos anotados
     esta tarea.} Su déficit de \textit{recall} en la
 Tabla~\ref{tab:resultados-op} no mide una limitación de la arquitectura sino la
 consecuencia de haber elegido su \textit{checkpoint} y su punto de operación con
-un criterio —la aptitud basada en mAP de Ultralytics— que pondera precisión y
+un criterio ---la aptitud basada en mAP de Ultralytics--- que pondera precisión y
 cobertura de forma distinta a la F\textsubscript{3} declarada por esta tesis.
 
 La comparación honesta, entonces, no fija el umbral sino la \textbf{carga}: se
@@ -315,8 +315,8 @@ punto de operación, YOLO necesita 3\,252 propuestas por hora contra las 3\,727 
 Faster R-CNN: la misma cobertura con un 13\,\% menos de material que revisar.
 
 La arquitectura propuesta queda última en todo el rango. No es que rinda menos a
-un umbral desfavorable: rinde menos \emph{a cualquier carga}, y su techo —0,792
-con \textit{ts}5— queda por debajo del que YOLO alcanza con menos de la mitad de
+un umbral desfavorable: rinde menos \emph{a cualquier carga}, y su techo ---0,792
+con \textit{ts}5--- queda por debajo del que YOLO alcanza con menos de la mitad de
 propuestas. Los 1\,663 eventos que la propuesta no recupera ni con el umbral en
 0,001 son eventos para los que nunca emitió una caja con IoU $\geq 0{,}5$; el
 problema no está en la puntuación sino en la localización.
@@ -340,7 +340,7 @@ El agregado de la Tabla~\ref{tab:resultados-op} está dominado por dos clases.
 por la fragmentación que documenta la sección~\ref{sec:ventaneo}, las más fáciles
 del conjunto: sus cajas ocupan la ventana entera. Por eso la
 Tabla~\ref{tab:recall-clase} reporta también el promedio por clase, que trata
-igual a \texttt{sb/sc} —37 cajas de prueba— que a \texttt{as/hc}.
+igual a \texttt{sb/sc} ---37 cajas de prueba--- que a \texttt{as/hc}.
 
 El promedio por clase separa las configuraciones mucho más que el agregado:
 Faster R-CNN 0,645, la propuesta 0,509 y 0,505, YOLO 0,360. Y el orden se
@@ -409,7 +409,7 @@ Tres patrones se leen en la tabla.
 por debajo de 0,30 incluso en el mejor modelo. Cuando las cuatro arquitecturas
 fallan por igual sobre una clase, la causa razonable es el material y no el
 diseño: son las clases que el umbral de 100 anotaciones dejó entrar y cuyo
-desempeño la sección~\ref{sec:revision} anticipó como no atribuible a la
+desempeño la sección~\ref{sec:limitaciones} anticipó como no atribuible a la
 arquitectura.
 
 \rotulo{La escasez no lo explica todo.} \texttt{aa/sc} (183 cajas) alcanza 0,849
@@ -418,15 +418,15 @@ frecuencia estrechas y bien separadas, lo que sugiere que la separabilidad
 geométrica de la sección~\ref{sec:geometria} pesa más que el volumen de
 ejemplos. La comparación de \texttt{pt/sqc} lo hace evidente en la otra
 dirección: 0,841 en Faster R-CNN y 0,036 en YOLO sobre la misma clase de 465
-cajas. Es la caja más pequeña del conjunto —mediana de 267\,ms por 666\,Hz, esto es
-$0{,}088 \times 0{,}038$ del marco normalizado— y la diferencia mide qué tan
+cajas. Es la caja más pequeña del conjunto ---mediana de 267\,ms por 666\,Hz, esto es
+$0{,}088 \times 0{,}038$ del marco normalizado--- y la diferencia mide qué tan
 lejos llega cada arquitectura en objetos diminutos, no cuánto material vieron.
 
 \rotulo{Los dos pasos temporales del AST se comportan casi igual.} La diferencia
 entre \textit{ts}5 y \textit{ts}10 es de 0,012 en \textit{recall} agregado y de
 0,004 en promedio por clase, muy por debajo de lo que separa a cualquiera de las
-dos de las líneas base. Duplicar la resolución temporal del parcheado —de 94 a
-47\,ms por token, y con ella el costo de atención— no compra cobertura. El
+dos de las líneas base. Duplicar la resolución temporal del parcheado ---de 94 a
+47\,ms por token, y con ella el costo de atención--- no compra cobertura. El
 resultado es informativo: si el cuello de botella estuviera en la resolución
 temporal del extractor, \textit{ts}5 debería separarse de \textit{ts}10, y no lo
 hace.
@@ -456,7 +456,7 @@ fábrica}: es la que más cobertura entrega por propuesta revisada en todo el
 régimen de carga plausible, la que mejor encuadra y la más barata en inferencia.
 También es la más barata de entrenar entre las que este trabajo cronometró: 3,7
 horas de GPU para 48 épocas, frente a las 20 horas que Faster R-CNN consumió
-hasta la época 17 —de las cuales solo las cuatro primeras aportaron algo, porque
+hasta la época 17 ---de las cuales solo las cuatro primeras aportaron algo, porque
 su mejor \textit{checkpoint} es el de la época 4 y a partir de la quinta el
 \textit{recall} de validación cae mientras la precisión sube. Y lo consigue en su
 variante pequeña:
@@ -495,9 +495,9 @@ El punto es relevante porque el precedente directo de esta arquitectura reporta
 lo contrario. \citet{zhu_sound_2025} combinan un AST \emph{autosupervisado} con
 un decodificador deformable y superan a un Faster R-CNN con \textit{backbone}
 residual sobre un conjunto de silbidos de aspas de aerogenerador. Las dos
-diferencias entre aquella configuración y esta —extractor autosupervisado y
+diferencias entre aquella configuración y esta ---extractor autosupervisado y
 ajustado frente a extractor supervisado y congelado, y un dominio de una sola
-clase de sonido frente a 25 clases con desbalance de dos órdenes de magnitud—
+clase de sonido frente a 25 clases con desbalance de dos órdenes de magnitud---
 son exactamente las que la ablación pendiente debe separar. Este trabajo no
 contradice ese precedente: muestra que no se traslada sin más a un repertorio de
 primates con el extractor congelado.

@@ -4,7 +4,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[spanish,es-tabla]{babel}
+% es-noquoting: sin él, babel spanish deja activos < y >, y las flechas <-> de
+% los esquemas TikZ dejan de compilar.
+\usepackage[spanish,es-tabla,es-noquoting]{babel}
 
 % === Tipografía =====================================================
 % microtype ajusta el espaciado dentro del renglón (protrusión y
@@ -30,6 +32,37 @@
 % === Geometría ======================================================
 \usepackage{geometry}
 \geometry{left=3cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+% === Subfiguras, código y esquemas ==================================
+% subcaption va después de caption; listings para los comandos de consola;
+% tikz/pgfplots dibujan los esquemas y los histogramas de pocas barras dentro
+% del documento, con la tipografía del texto (las figuras de datos densos son
+% PNG de matplotlib, generados por el cuaderno de cada capítulo).
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,backgrounds,
+                decorations.pathreplacing,matrix,chains,quotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots,statistics}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    columns=fullflexible,
+    keepspaces=true,
+    frame=leftline,
+    framerule=0.6pt,
+    rulecolor=\color{black!35},
+    xleftmargin=1em,
+    aboveskip=1ex,
+    belowskip=1ex,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+             {→}{{$\to$}}1 {≥}{{$\geq$}}1 {·}{{$\cdot$}}1,
+}
+\renewcommand{\lstlistingname}{Listado}
 
 % === Citas y enlaces (hyperref se carga al final) ====================
 \usepackage[round,authoryear]{natbib}
@@ -91,6 +124,15 @@
 % Encabezados de tabla de varias líneas, alineados por abajo.
 \renewcommand{\theadfont}{\bfseries}
 \renewcommand{\theadalign}{br}
+
+% ===================================================================
+% ESTILOS Y CIFRAS DE LOS CAPÍTULOS
+% ===================================================================
+% estilos.tex: paleta, estilos TikZ y \code/\file/\sep.
+% valores.tex: las cifras que cita cada capítulo, generadas por su cuaderno.
+% Ningún número se escribe a mano en el cuerpo.
+\input{estilos}
+\input{capitulos/04_oe1_curacion/figures/valores}
 
 % ===================================================================
 % NOTA DE MANTENIMIENTO
