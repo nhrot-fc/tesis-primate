@@ -28,6 +28,7 @@ SPLIT_RATIOS = (0.6, 0.225, 0.175)
 EXCLUDED_LABELS = ("lw/cc", "sm/fc", "sb/pcs")
 JOINED_LABELS = {
     "lw/tr": "lw/trino",
+    "lw/tj": "lw/trino",
     "lw/tt": "lw/trino",
     "lw/tf": "lw/trino",
     "sb/lpc": "sb/ppc",

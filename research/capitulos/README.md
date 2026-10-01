@@ -60,7 +60,8 @@ trabajar en un solo capítulo, descomenta el `\includeonly` de `main.tex`.
 
 Cada `README.md` de capítulo termina con su propia lista. En grande:
 
-- OE1 (cap. 4) está casi redactado; le falta la discusión y absorber sus reportes.
+- OE1 (cap. 4) está **redactado entero**, con sus tres reportes ya absorbidos y todas
+  sus cifras generadas por su cuaderno. Sirve de modelo para los capítulos 5 y 6.
 - OE2 (cap. 5) solo tiene redactado RE2.3.
 - OE3 (cap. 6) está sin redactar, y **RE3.2 necesita una medición de tiempo que
   todavía no se ha hecho**.

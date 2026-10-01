@@ -7,6 +7,10 @@
 > sirve y se descarta lo que no, y se borran cuando no quede nada útil en ellos.
 > El README de cada capítulo dice qué reporte alimenta qué sección.
 >
+> **Ya trasladados:** `RE_1-1`, `RE_1-2` y `RE_1-3` están absorbidos en
+> `capitulos/04_oe1_curacion/`, con sus cifras regeneradas por el cuaderno del
+> capítulo. Se pueden borrar en cuanto se confirme que no queda nada útil en ellos.
+>
 > Al trasladar: prefijar los `\label` (hay colisiones entre reportes y con el
 > cuerpo), bajar un nivel los encabezados y llevarse las macros de cifras de
 > `figures/RE_x-y/valores.tex`.
