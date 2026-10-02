@@ -7,9 +7,16 @@
 > sirve y se descarta lo que no, y se borran cuando no quede nada útil en ellos.
 > El README de cada capítulo dice qué reporte alimenta qué sección.
 >
-> **Ya trasladados:** `RE_1-1`, `RE_1-2` y `RE_1-3` están absorbidos en
-> `capitulos/04_oe1_curacion/`, con sus cifras regeneradas por el cuaderno del
-> capítulo. Se pueden borrar en cuanto se confirme que no queda nada útil en ellos.
+> **Ya trasladados:** `RE_1-1`, `RE_1-2` y `RE_1-3` en
+> `capitulos/04_oe1_curacion/`; `RE_2-1`, `RE_2-2`, `RE_2-3`, `RE_2-4` y `RE_2-5`
+> en `capitulos/05_oe2_detector/` (30-09-2026). Las cifras de los ocho se
+> regeneran desde el cuaderno del capítulo correspondiente, no desde estos
+> documentos. **Sólo queda `RE_3-3` sin trasladar**, y espera a que se redacte el
+> capítulo 6.
+>
+> **Ojo al leerlos:** `RE_2-1` y `RE_2-3` describen una comparación anterior (seis
+> configuraciones, otra partición). La vigente es la del capítulo 5, sobre
+> `runs/comparacion/comparacion_modelos_v3`.
 >
 > Al trasladar: prefijar los `\label` (hay colisiones entre reportes y con el
 > cuerpo), bajar un nivel los encabezados y llevarse las macros de cifras de

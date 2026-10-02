@@ -44,18 +44,34 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> "ASTModel":
 
 
 class ASTBackbone(nn.Module):
-    # Se afina entero, a la misma tasa que la cabeza
+    # Se afina entero, a la misma tasa que la cabeza, salvo que se pida congelarlo.
     def __init__(
         self,
         n_frames: int | None = None,
         time_stride: int = TIME_STRIDE,
         checkpoint: str = AST_CHECKPOINT,
+        frozen: bool = False,
     ) -> None:
         super().__init__()
         self.model = load_ast_model(checkpoint)
         self.n_frames = n_frames if n_frames is not None else P.n_frames
         self.time_stride = time_stride
         self.interpolate_position_embeddings(self.n_frames, time_stride)
+        # Ablación: el extractor queda como está y sólo aprende la cabeza. Separa lo que
+        # aporta el preentrenamiento en audio de lo que aporta afinarlo sobre este corpus.
+        self.frozen = frozen
+        if frozen:
+            for parameter in self.model.parameters():
+                parameter.requires_grad_(False)
+
+    def train(self, mode: bool = True) -> "ASTBackbone":
+        # Congelado también significa sin dropout ni estadísticas de lote nuevas: si el
+        # extractor no aprende, tiene que dar la misma salida en entrenamiento y en
+        # validación, o la comparación mediría ruido de regularización.
+        super().train(mode)
+        if self.frozen:
+            self.model.eval()
+        return self
 
     @property
     def hidden_size(self) -> int:

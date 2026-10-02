@@ -23,12 +23,17 @@ significa detectar una caja sobre un espectrograma.
   clases de frase en el Capítulo 4: mantener ese hilo explícito.
 
 ## Imágenes
+> **30-09-2026.** Los diagramas de globos y flechas (árbol de problemas, CRISP-DM, cadena de la señal, EDT) se pasaron de matplotlib a **TikZ dentro del `.tex`**: usan la tipografía del documento, no se pixelan y el flotante se coloca donde corresponde. Los PNG se borraron; no hay que regenerarlos.
 
-De `notebook/figuras_02_marco_referencial.ipynb`, salvo `image3.png`.
+
+De `notebook/figuras_02_marco_referencial.ipynb`, salvo `image3.png`. La celda de
+`signal_chain` se eliminó porque esa cadena hoy se dibuja en TikZ dentro del
+`.tex`, y las de `annotation_example`, `output_forms` e `iou_criterion` se mudaron
+al cuaderno del capítulo 1 el 02-10-2026: las usa ese capítulo, no este, y había
+copias idénticas en las dos carpetas.
 
 | Figura | Qué muestra | Origen |
 |---|---|---|
-| `signal_chain.png` | Cadena de la señal, de la onda al tensor | cuaderno |
 | `stft_tradeoff.png` | Compromiso tiempo–frecuencia de la STFT | cuaderno |
 | `mel_axis.png` | Escala mel frente a la lineal | cuaderno |
 | `frontends.png` | Los tres *front-ends* intercambiables (none / logmel / PCEN) | cuaderno |

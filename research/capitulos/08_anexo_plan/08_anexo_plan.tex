@@ -131,6 +131,13 @@ terminado.
     \item El estudio se limita a las ocho especies declaradas.
     \item No se desarrolla hardware de adquisición.
     \item No se realiza nueva recolección de datos en campo.
+    \item \textbf{No se cubre la distribución ni el mantenimiento del conjunto de
+          datos ni del modelo.} Las grabaciones y las anotaciones primarias
+          pertenecen al equipo de investigación, y publicarlas, licenciarlas o
+          sostenerlas como recurso de terceros son decisiones suyas y no de esta
+          tesis. El repositorio que compromete RE2.5 contiene el código y los
+          artefactos del modelo final; empaquetar, versionar para terceros o dar
+          soporte queda fuera.
 \end{itemize}
 
 \subsection{Limitaciones y restricciones}
@@ -162,7 +169,8 @@ evaluación recaen sobre el autor, con la supervisión del asesor.
 
 La estructura de desglose se organiza según las fases de CRISP-DM y los
 objetivos específicos. La Tabla~\ref{tab:edt} resume los paquetes de trabajo y
-el entregable asociado a cada uno.
+el entregable asociado a cada uno, y la Figura~\ref{fig:wbs-tree} los dibuja en
+jerarquía: sólo se abren los tres paquetes que producen resultados esperados.
 
 \begin{table}[htbp]
     \centering
@@ -204,8 +212,46 @@ el entregable asociado a cada uno.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/08_anexo_plan/figures/wbs_tree.png}
-    \caption{EDT en árbol.}
+    \begin{tikzpicture}[
+            x=1mm, y=1mm,
+            paquete/.style={caja, draw=azul!70, fill=azul!6, align=left, font=\footnotesize,
+                    text width=58mm, minimum height=5.2mm, inner sep=2.5pt, anchor=north west},
+            abierto/.style={paquete, draw=azul!80!black, fill=azul, text=white},
+            hoja/.style={caja, draw=black!40, fill=white, align=left, font=\scriptsize,
+                    text width=59mm, minimum height=5.2mm, inner sep=2.5pt, anchor=north west},
+            rama/.style={draw=black!45},
+        ]
+        \node[paquete] (p1) at (0,    0)      {\textbf{1.} Gestión del proyecto};
+        \node[paquete] (p2) at (0,   -6.4)    {\textbf{2.} Comprensión de la investigación};
+        \node[paquete] (p3) at (0,  -12.8)    {\textbf{3.} Comprensión de los datos};
+        \node[abierto] (p4) at (0,  -19.2)    {\textbf{4.} Preparación de datos};
+        \node[abierto] (p5) at (0,  -51.2)    {\textbf{5.} Modelado};
+        \node[abierto] (p6) at (0,  -76.8)    {\textbf{6.} Evaluación};
+        \node[paquete] (p7) at (0, -121.6)    {\textbf{7.} Despliegue};
+        \node[paquete] (p8) at (0, -128.0)    {\textbf{8.} Documentación y difusión};
+        \foreach \y/\t/\r in {%
+                -25.6/{\textbf{4.1} Limpieza y estandarización}/{RE1.1},
+                -32.0/{\textbf{4.2} Curación del conjunto}/{RE1.2},
+                -38.4/{\textbf{4.3} Ingeniería de características}/{},
+                -44.8/{\textbf{4.4} Documentación del conjunto}/{RE1.3},
+                -57.6/{\textbf{5.1} Diseño del detector}/{RE2.1},
+                -64.0/{\textbf{5.2} Implementación}/{RE2.2},
+                -70.4/{\textbf{5.3} Publicación del código}/{RE2.5},
+                -83.2/{\textbf{6.1} Evaluación cuantitativa}/{RE2.3},
+                -89.6/{\textbf{6.2} Selección del modelo final}/{RE2.4},
+                -96.0/{\textbf{6.3} Metodología de validación}/{RE3.1},
+                -102.4/{\textbf{6.4} Medición del tiempo de revisión}/{RE3.2},
+                -108.8/{\textbf{6.5} Análisis de errores}/{RE3.3},
+                -115.2/{\textbf{6.6} Revisión experta}/{RE3.2, RE3.3}} {
+                \node[hoja] at (64, \y)
+                {\t\hfill\textcolor{verde!55!black}{\bfseries\r}};
+                \draw[rama] (4, \y-2.6) -- (64, \y-2.6);
+            }
+        \draw[rama] (4, -24.4) -- (4, -47.4);
+        \draw[rama] (4, -56.4) -- (4, -73.0);
+        \draw[rama] (4, -82.0) -- (4, -117.8);
+    \end{tikzpicture}
+    \caption{EDT en árbol}
     \label{fig:wbs-tree}
 \end{figure}
 
@@ -230,7 +276,7 @@ cada categoría, y la Tabla~\ref{tab:costos-resumen} las consolida.
     \centering
     \small
     \begin{threeparttable}
-        \caption{Costos de equipos y hardware}
+        \caption{Costos de equipos}
         \label{tab:costos-hw}
         \begin{tabular}{@{}L{4.2cm}L{6.4cm}r@{}}
             \toprule
@@ -257,7 +303,7 @@ cada categoría, y la Tabla~\ref{tab:costos-resumen} las consolida.
     \centering
     \small
     \begin{threeparttable}
-        \caption[Capital intelectual]{Valorización del capital intelectual}
+        \caption{Capital intelectual}
         \label{tab:costos-rrhh}
         \begin{tabular}{@{}L{5.0cm}rrr@{}}
             \toprule
@@ -279,7 +325,7 @@ cada categoría, y la Tabla~\ref{tab:costos-resumen} las consolida.
 
 \begin{table}[htbp]
     \centering
-    \caption[Costos de software y servicios]{Costos de software, licencias y servicios en la nube}
+    \caption{Costos de software y servicios}
     \label{tab:costos-sw}
     \small
     \begin{tabular}{@{}L{5.0cm}L{3.2cm}rrr@{}}
@@ -356,7 +402,7 @@ impacto, severidad y las acciones previstas.
 
 \begin{table}[htbp]
     \centering
-    \caption[Riesgos del proyecto]{Riesgos del proyecto, mitigación y contingencia}
+    \caption{Riesgos del proyecto}
     \label{tab:riesgos}
     \small
     \begin{tabular}{@{}L{2.8cm}ccL{4.4cm}L{4.2cm}@{}}

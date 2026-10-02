@@ -2,47 +2,163 @@
 \label{cap:conclusiones}
 
 % ===================================================================
-% Este capítulo se redacta al final, cuando OE2 y OE3 tengan sus cifras.
-% Pautas de redacción (pautas.md), en este orden:
-%   1. Resumir sucintamente las implicaciones de los resultados, tal como se
-%      mencionaron en las discusiones de los capítulos 4, 5 y 6. Sin cifras
-%      nuevas y sin resultados que no estén ya en esos capítulos.
+% Pautas de redacción (pautas.md), bloque «la conclusión»:
+%   1. Resumir las implicaciones de los resultados, tal como se enunciaron en
+%      las discusiones de los capítulos 4, 5 y 6. Sin cifras nuevas.
 %   2. Describir cómo se alcanzaron los objetivos.
-%   3. Dejar explícito, y de manera que el lector no tenga que deducirlo:
-%        - si se cumplió cada resultado esperado (los once: RE1.1 a RE1.3,
-%          RE2.1 a RE2.5 y RE3.1 a RE3.3);
-%        - si se cumplió cada objetivo específico;
-%        - si se cumplió el objetivo general;
-%        - si la alternativa de solución propuesta resuelve el problema central
-%          descrito en la problemática (sección~\ref{sec:resultados} y el árbol
-%          de problemas del Capítulo~\ref{cap:generalidades}).
+%   3. Dejar explícito, sin que el lector lo deduzca: si se cumplió cada
+%      resultado esperado, cada objetivo específico, el objetivo general, y si
+%      la solución resuelve el problema central.
+%
+% El capítulo es corto a propósito: las cinco preguntas de la pauta de
+% resultados (significado, literatura, generalización, limitaciones) ya están
+% respondidas en la Discusión de cada capítulo de objetivo, y repetirlas aquí
+% sería redundancia.
+%
+% BLOQUEADO POR EL CAPÍTULO 6. Las secciones de OE3 y del objetivo general no
+% pueden redactarse hasta que RE3.2 entregue los minutos por hora de audio en
+% condición manual y asistida: el OG se compromete con esa magnitud y no con
+% ninguna otra. Lo que falta está señalado abajo en cada sección.
 % ===================================================================
 
-% ===================================================================
+\section{Implicaciones de los resultados}
+
+El trabajo deja dos cosas que no existían al empezar. La primera es un conjunto
+acústico utilizable: \nKept{} anotaciones curadas bajo un vocabulario cerrado, de
+las que \nExperiment{} forman un experimento de \nClasses{} clases particionado
+por grabación, con su ficha y sus limitaciones declaradas. La segunda es la
+evidencia de que la detección de cajas tiempo--frecuencia sobre espectrograma es
+viable en este dominio, y de que el cuello de botella no está donde se esperaba.
+
+Esa es la implicación principal del Capítulo~\ref{cap:deteccion}: las cuatro
+configuraciones comparadas no se separan en la métrica primaria, con intervalos
+de confianza solapados y un rango de \rRecallSpread{} en \textit{recall}, mientras
+que la clasificación de especie y tipo de llamada resulta casi resuelta sobre los
+pares emparejados. El problema difícil no era distinguir \nClasses{} clases con
+dos órdenes de magnitud de desbalance, sino encontrar y encuadrar el evento. Para
+el equipo de investigación la consecuencia es concreta: el analista no tendrá que
+corregir etiquetas, tendrá que corregir cajas.
+
+La segunda implicación es metodológica. Al declarar la regla de decisión antes de
+entrenar, el experimento pudo cerrarse con un resultado que no favorece a la
+arquitectura propuesta sin que eso lo invalide, y al separar la medición en
+detección, encuadre y clasificación quedó visible qué parte del problema está
+resuelta y cuál no. Una sola cifra agregada habría escondido ambas cosas.
+
 \section{Cumplimiento de los resultados esperados}
-% ===================================================================
-% TODO TABLA: una fila por resultado esperado, con el medio de verificación
-%             entregado y el veredicto (cumplido / cumplido parcialmente / no
-%             cumplido), enlazada a la sección del capítulo donde se verifica.
-%             Es la forma más directa de cumplir el punto 3 de las pautas.
 
-% ===================================================================
+La Tabla~\ref{tab:cumplimiento} contrasta cada resultado esperado del
+Capítulo~\ref{cap:generalidades} con la sección que lo entrega y lo verifica
+contra su indicador.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Cumplimiento de los resultados esperados}
+    \label{tab:cumplimiento}
+    \small
+    \begin{tabular}{@{}lL{7.2cm}L{3.4cm}l@{}}
+        \toprule
+        \textbf{RE} & \textbf{Resultado} & \textbf{Verificado en} & \textbf{Estado} \\
+        \midrule
+        RE1.1 & Protocolo de curación documentado        & Sección~\ref{sec:verificacion-re11} & Cumplido \\
+        RE1.2 & Conjunto curado y particionado           & Sección~\ref{sec:verificacion-re12} & Cumplido \\
+        RE1.3 & Ficha del conjunto derivado              & Sección~\ref{sec:verificacion-re13} & Cumplido \\
+        \addlinespace
+        RE2.1 & Diseño, arquitectura y líneas base       & Sección~\ref{sec:verificacion-re21} & Cumplido \\
+        RE2.2 & \textit{Pipeline} reproducible           & Sección~\ref{sec:verificacion-re22} & Cumplido \\
+        RE2.3 & Informe comparativo desagregado          & Sección~\ref{sec:verificacion-re23} & Cumplido \\
+        RE2.4 & Modelo final y salida a tabla de Raven   & Sección~\ref{sec:demo-oe2} & Cumplido \\
+        RE2.5 & Repositorio con código y modelo          & Sección~\ref{sec:re25} & Cumplido \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% PENDIENTE (capítulo 6): añadir a la tabla las filas de RE3.1, RE3.2 y RE3.3 con
+% su sección de verificación y su veredicto, y ampliar el párrafo siguiente.
+
+Los ocho resultados de OE1 y OE2 se entregan y se verifican contra su indicador.
+Uno lo hace con una desviación declarada en la sección correspondiente, no
+silenciada: la dimensión del decodificador y el número de consultas de la
+arquitectura propuesta difieren de los valores anunciados en RE2.1, y la
+sección~\ref{sec:verificacion-re21} razona por qué.
+
 \section{Cumplimiento de los objetivos específicos}
-% ===================================================================
-% TODO Un párrafo por objetivo específico: qué resultados lo sostienen y con qué
-% evidencia. OE1 en el Capítulo~\ref{cap:curacion}, OE2 en el
-% Capítulo~\ref{cap:deteccion}, OE3 en el Capítulo~\ref{cap:utilidad}.
 
-% ===================================================================
+\rotulo{OE1.} Cumplido. El Capítulo~\ref{cap:curacion} entrega el protocolo, el
+conjunto particionado por grabación y la ficha, y mide cada uno contra su
+indicador: el protocolo conserva el \pctKept{} de las filas crudas, la partición
+no comparte ninguna grabación entre subconjuntos y la ficha cubre los apartados
+comprometidos, incluidas las limitaciones que el propio material impone.
+
+\rotulo{OE2.} Cumplido. El Capítulo~\ref{cap:deteccion} implementa el detector,
+lo compara con tres líneas base bajo un protocolo único declarado de antemano y
+selecciona \rWinner{} por la métrica secundaria, con \rRecallYol{} de
+\textit{recall} y \rMapYol{} de mAP en la partición de prueba, medida una sola
+vez. El modelo final se carga y produce una tabla que Raven abre sobre la
+grabación, y el repositorio contiene el código y el \textit{checkpoint}.
+
+% PENDIENTE (capítulo 6): el párrafo de OE3, con el mismo formato, una vez que
+% RE3.1 a RE3.3 estén entregados y verificados.
+
 \section{Cumplimiento del objetivo general}
-% ===================================================================
-% TODO El OG compromete reducir el tiempo de revisión experta: la respuesta sale
-% de RE3.2 (sección~\ref{sec:re32}) y se enuncia sin rodeos, con su magnitud y
-% sus condiciones de validez.
 
-% ===================================================================
+% PENDIENTE (capítulo 6). El objetivo general se compromete con la reducción del
+% tiempo de revisión experta, y esa magnitud sale de RE3.2. Cuando exista, el
+% veredicto se enuncia aquí sin rodeos: cuántos minutos por hora de audio cuesta
+% la revisión manual, cuántos la asistida, y en qué condiciones vale la
+% comparación. Hasta entonces no hay respuesta que dar, y adelantarla sería
+% exactamente lo que el Capítulo 5 evitó al declarar la regla de decisión antes
+% de medir.
+
+\section{La propuesta frente al problema central}
+
+El problema central del Capítulo~\ref{cap:generalidades} tiene dos predicados: se
+anota mucho menos de lo que se graba, y lo que se anota no obedece a un criterio
+único. La alternativa de solución ataca los dos, y lo hace por vías distintas.
+
+Contra el déficit de consistencia actúa OE1. El vocabulario cerrado, el mapa de
+sinónimos y la regla que hace de la carpeta la fuente de verdad de la especie
+convierten un material escrito a mano, con decenas de grafías para la misma
+clase, en \nClasses{} clases con criterio único. No corrige el juicio del
+anotador, que es irrecuperable sin volver al audio, pero elimina la parte del
+desacuerdo que era de escritura y no de criterio, y deja marcado y conservado lo
+que no puede decidir.
+
+Contra el déficit de caudal actúa OE2, y aquí conviene ser preciso sobre lo que el
+sistema es y lo que no. No sustituye al analista ni pretende hacerlo: la cabeza
+emite cajas con la forma exacta en que el equipo ya anota, y el analista las
+recibe en su propia herramienta para aceptarlas, corregirlas o borrarlas. Es
+pre-anotación asistida, y por eso el compromiso elegido privilegia la cobertura
+sobre la precisión: perder una vocalización cuesta más que descartar una
+propuesta falsa, porque el humano revisa la salida de todos modos.
+
+% PENDIENTE (capítulo 6). Lo anterior establece que la propuesta se enfoca en el
+% problema central, que es lo que pide la pauta. Cuánto lo reduce es otra
+% pregunta, y la responde RE3.2: hasta tenerla, este capítulo no afirma que el
+% caudal de anotación haya aumentado, sólo que el sistema está construido para
+% aumentarlo y que entrega la salida en la forma que ese aumento requiere.
+
 \section{Trabajo futuro}
-% ===================================================================
-% TODO Lo que quedó fuera y por qué: clases de frase (anidamiento jerárquico),
-% acuerdo entre anotadores, validación con más de un revisor, y el resto de
-% limitaciones declaradas en las discusiones de los capítulos de objetivos.
+
+Lo que queda fuera no es una lista de deseos: son las limitaciones declaradas en
+las discusiones de los capítulos de objetivo, ordenadas por cuánto comprometen lo
+que aquí se afirma.
+
+\begin{itemize}
+    \item \textbf{Medir el acuerdo entre anotadores.} Es la carencia más seria.
+          Sin ella no hay techo de evaluación, y una parte del error que este
+          trabajo atribuye al modelo podría ser desacuerdo humano.
+    \item \textbf{Separar el extractor de la cabeza.} Las tres ablaciones que lo
+          harían están implementadas y sin correr, de modo que la comparación
+          entre configuraciones no puede atribuir la diferencia a un componente.
+    \item \textbf{Reconstruir el evento largo.} Las clases de duración mayor que
+          la ventana sobreviven fragmentadas, sin ningún mecanismo que las
+          reagrupe antes de puntuarlas.
+    \item \textbf{Cubrir el nivel de frase.} Las clases de frase quedan fuera por
+          anidamiento jerárquico, y con ellas el nivel superior de la jerarquía
+          vocal.
+    \item \textbf{Cerrar el vocabulario con el repertorio de referencia.} Los
+          pares fuera de vocabulario mezclan error tipográfico y subdivisión
+          legítima, y no hay forma de separarlos sin una referencia del
+          repertorio vocal de cada especie.
+\end{itemize}

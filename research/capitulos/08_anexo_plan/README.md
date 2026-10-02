@@ -22,10 +22,11 @@ recursos y riesgos.
   discusión de cada capítulo.
 
 ## Imágenes
+> **30-09-2026.** Los diagramas de globos y flechas (árbol de problemas, CRISP-DM, cadena de la señal, EDT) se pasaron de matplotlib a **TikZ dentro del `.tex`**: usan la tipografía del documento, no se pixelan y el flotante se coloca donde corresponde. Los PNG se borraron; no hay que regenerarlos.
+
 
 | Figura | Qué muestra | Origen |
 |---|---|---|
-| `wbs_tree.png` | EDT en árbol | no la genera ningún cuaderno: se dibujó a mano |
 
 ## Extra
 

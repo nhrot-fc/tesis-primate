@@ -8,7 +8,7 @@ import pandas as pd
 from core.config import YOLO_DIR
 from data import cache
 from data.species import LabelSet
-from models.yolo import SpectrogramYOLO, load_ultralytics_weights
+from models.yolo import RTDETR_PREFIX, SpectrogramYOLO, load_ultralytics_weights
 from training import checkpoint
 from training.trainer import TrainConfig
 
@@ -121,7 +121,7 @@ def fit(
     limit: int | None = None,
     train_images: list[Path] | None = None,  # k-fold: sólo estas ventanas del export de train
 ) -> Path:
-    from ultralytics import YOLO
+    from ultralytics import RTDETR, YOLO
 
     meta = check_export()
     dataset = YOLO_DIR / "dataset.yaml"
@@ -134,11 +134,26 @@ def fit(
             f"el export es de {meta['image_size']} px y el modelo pide {hparams['imgsz']}"
         )
 
+    # RT-DETR no converge con el optimizador que elige Ultralytics por su cuenta: necesita
+    # AdamW y una tasa baja, y así se entrenó la corrida que compara el capítulo 5. YOLO sí
+    # usa "auto", y dejarlo explícito aquí cambiaría la receta de una corrida ya publicada.
+    is_rtdetr = stem.startswith(RTDETR_PREFIX)
+    optimizacion: dict[str, Any] = (
+        {
+            "optimizer": "AdamW",
+            "lr0": config.learning_rate,
+            "weight_decay": config.weight_decay,
+        }
+        if is_rtdetr
+        else {"optimizer": "auto"}
+    )
+
     last = run_dir / ULTRALYTICS_LAST
     resume = last.is_file()
     if resume:
         logger.info("retomando %s", last)
-    trainer = YOLO(str(last) if resume else f"{stem}.pt")  # desde los pesos de COCO
+    api = RTDETR if is_rtdetr else YOLO
+    trainer = api(str(last) if resume else f"{stem}.pt")  # desde los pesos de COCO
     n_train = meta["counts"][cache.TRAIN]["windows"]
     results = trainer.train(
         data=str(dataset),
@@ -155,10 +170,10 @@ def fit(
         seed=config.seed,
         deterministic=True,
         patience=PATIENCE,
-        optimizer="auto",
         cos_lr=True,
         val=True,
         plots=True,
+        **optimizacion,
         **AUGMENTATION,
     )
     if results is None:
@@ -174,6 +189,9 @@ def fit(
         "batch_size": config.batch_size,
         "seed": config.seed,
         "patience": PATIENCE,
+        # Sólo cuando se fija a mano: con "auto" la elige Ultralytics y escribirla aquí
+        # daría a entender que es parte de la receta.
+        **({} if optimizacion["optimizer"] == "auto" else optimizacion),
         "augmentation": AUGMENTATION,
         "score_threshold": config.score_threshold,
     }

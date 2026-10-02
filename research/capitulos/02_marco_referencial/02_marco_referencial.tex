@@ -54,9 +54,7 @@ Figura~\ref{fig:segmentacion} muestra el resultado sobre un espectrograma.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.72\textwidth]{capitulos/02_marco_referencial/figures/image3.png}
-    \caption[Segmentación tiempo--frecuencia]{Segmentación de audio en rangos de
-        tiempo y frecuencia sobre un espectrograma. Cada rectángulo corresponde a una
-        tupla de la ecuación~\eqref{eq:tupla}.}
+    \caption{Segmentación tiempo--frecuencia}
     \label{fig:segmentacion}
 \end{figure}
 
@@ -82,8 +80,8 @@ conjunto de tamaño fijo
 donde $Q$ es un número de consultas fijado por la arquitectura, independiente del
 contenido de la ventana y mayor que la cantidad de eventos que cabe esperar en
 ella. Cada consulta produce una caja $\hat{b}_q = (c_x, c_y, w, h)$ en
-coordenadas normalizadas al recuadro de la ventana --- centro, ancho y alto, los
-cuatro en $[0,1]$ --- y una distribución $\hat{\pi}_q$ sobre
+coordenadas normalizadas al recuadro de la ventana (centro, ancho y alto, los
+cuatro en $[0,1]$) y una distribución $\hat{\pi}_q$ sobre
 $Y \cup \{\varnothing\}$, en la que $\varnothing$ es la clase ``sin objeto'' que
 absorbe las consultas sobrantes. El número de eventos no se predice: resulta de
 cuántas consultas eligen una clase de $Y$ por encima del umbral de confianza.
@@ -140,7 +138,7 @@ temporal y resolución frecuencial.
 
 Las transformaciones que se aplican sobre esa matriz, como la escala mel, la compresión
 logarítmica y la normalización de energía por canal, y el criterio con el que se
-elige entre ellas se tratan en la sección~\ref{sec:representacion}, donde
+elige entre ellas se tratan en la sección~\ref{sec:frontends}, donde
 corresponden al eslabón de la cadena en que aparece esa decisión.
 
 Interesa aquí una asimetría del espectrograma que conviene explicitar porque condiciona el
@@ -205,13 +203,42 @@ máscara exigiría reanotar el corpus completo.
 Los conceptos que siguen no se presentan por área temática sino siguiendo el
 recorrido de la señal, desde que el animal vocaliza hasta que el analista recibe
 una etiqueta revisable. Cada eslabón de ese recorrido pierde algo o introduce una
-ambigüedad, y es esa pérdida la que crea la necesidad del eslabón siguiente. El
-orden de las subsecciones es, por tanto, el orden en que aparecen los problemas.
+ambigüedad, y es esa pérdida la que crea la necesidad del eslabón siguiente
+(Figura~\ref{fig:signal-chain}). El orden de las subsecciones es, por tanto, el
+orden en que aparecen los problemas.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/signal_chain.png}
-    \caption{Cadena de la señal.}
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+                every node/.style={font=\footnotesize},
+                eslabon/.style={caja, draw=azul!70, fill=azul!6, align=center,
+                        text width=26mm, minimum height=15mm, inner sep=3pt},
+                perdida/.style={font=\scriptsize, text=rosa!75!black, align=center,
+                        text width=27mm},
+                paso/.style={-{Stealth[length=2.2mm]}, thick, draw=azul!70},
+            ]
+            \node[eslabon] (v) {\textbf{Vocalización}\\[1pt]
+                {\scriptsize el aparato fonador fija la banda de frecuencia}};
+            \node[eslabon, right=5mm of v] (p) {\textbf{Propagación}\\[1pt]
+                {\scriptsize atenuación con la distancia, enmascaramiento del coro}};
+            \node[eslabon, right=5mm of p] (g) {\textbf{Grabadora}\\[1pt]
+                {\scriptsize AudioMoth, 44,1\,kHz, mono}};
+            \node[eslabon, right=5mm of g] (s) {\textbf{STFT}\\[1pt]
+                {\scriptsize ventana 1024 (23\,ms), salto 400 (9\,ms)}};
+            \node[eslabon, right=5mm of s] (m) {\textbf{Mel + compresión}\\[1pt]
+                {\scriptsize 128 bandas HTK, 25\,Hz--22,1\,kHz}};
+            \node[eslabon, right=5mm of m] (c) {\textbf{Caja anotada}\\[1pt]
+                {\scriptsize cuatro coordenadas y dos etiquetas}};
+            \foreach \a/\b in {v/p, p/g, g/s, s/m, m/c}
+            \draw[paso] (\a) -- (\b);
+            \node[perdida, below=4mm of p] {pierde SNR, sobre todo en agudos};
+            \node[perdida, below=4mm of g] {pierde lo que supera 22,1\,kHz};
+            \node[perdida, below=4mm of s] {compromiso entre tiempo y frecuencia};
+            \node[perdida, below=4mm of m] {resolución no uniforme};
+            \node[perdida, below=4mm of c] {un rectángulo aproxima un contorno};
+        \end{tikzpicture}}
+    \caption{Cadena de la señal}
     \label{fig:signal-chain}
 \end{figure}
 
@@ -280,7 +307,7 @@ señal grabada es unidimensional: hay que recuperar esa estructura antes de pode
 buscarla.
 
 \subsection{Representaciones tiempo--frecuencia}
-\label{sec:representacion}
+\label{sec:frontends}
 
 La transformada de Fourier de tiempo corto recupera la dimensión que falta:
 divide la señal en tramas solapadas y calcula el espectro de cada una, con lo que
@@ -290,6 +317,26 @@ habituales: la escala mel, que reagrupa las bandas según una progresión
 aproximadamente logarítmica, y la compresión logarítmica de la magnitud a
 decibelios. El resultado, el espectrograma log-mel, es la entrada estándar en
 detección de eventos sonoros.
+
+Ninguna de las dos transformaciones es gratuita. La longitud de la trama fija un
+compromiso: tramas largas resuelven la frecuencia y emborronan el tiempo, tramas
+cortas hacen lo contrario (Figura~\ref{fig:stft-tradeoff}). Y la escala mel
+reparte las bandas de forma no uniforme, de modo que un mismo salto en hercios
+ocupa más altura en los graves que en los agudos (Figura~\ref{fig:mel-axis}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/stft_tradeoff.png}
+    \caption{Compromiso de la STFT}
+    \label{fig:stft-tradeoff}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/mel_axis.png}
+    \caption{Escala mel}
+    \label{fig:mel-axis}
+\end{figure}
 
 Esta transformación es la bisagra del planteamiento: convierte un problema de
 audio en un problema de análisis de imágenes, y con ello habilita el uso de las
@@ -315,29 +362,18 @@ señal-ruido al punto de operación fijado en la sección~\ref{sec:metodos}, y
 adopta la que lo maximice. Declarar el criterio antes de medir es lo que impide
 elegir después la representación que favorezca al resultado obtenido.
 
-Queda así una imagen en la que el evento es visible. Falta el mecanismo que lo
-localice dentro de ella.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/stft_tradeoff.png}
-    \caption{Compromiso STFT.}
-    \label{fig:stft-tradeoff}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/mel_axis.png}
-    \caption{Escala mel.}
-    \label{fig:mel-axis}
-\end{figure}
+La Figura~\ref{fig:frontends} pinta la misma ventana con las tres entradas que
+el detector admite: el mel de potencia sin transformar, el log-mel y PCEN.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/frontends.png}
-    \caption{Los tres \emph{front-ends} de entrada del detector sobre la misma ventana: mel de potencia sin transformar, log-mel y PCEN.}
+    \caption{Los tres \emph{front-ends} sobre la misma ventana}
     \label{fig:frontends}
 \end{figure}
+
+Queda así una imagen en la que el evento es visible. Falta el mecanismo que lo
+localice dentro de ella.
 
 \subsection{Detección de eventos sonoros}
 
@@ -380,8 +416,7 @@ refinamiento del reconocimiento local.
 
 \begin{table}[htbp]
     \centering
-    \caption[Arquitecturas frente a requisitos]{Cada exigencia del problema y la
-        familia de arquitecturas que la resuelve}
+    \caption{Arquitecturas frente a requisitos}
     \label{tab:familias}
     \small
     \begin{tabular}{@{}L{4.0cm}L{3.4cm}L{7.2cm}@{}}
@@ -457,7 +492,7 @@ que se emplean en el resto del documento.
 
 \begin{table}[htbp]
     \centering
-    \caption{Especies de primates consideradas en el proyecto}
+    \caption{Especies consideradas}
     \label{tab:especies}
     \small
     \begin{tabular}{@{}L{4.3cm}L{4.3cm}L{4.2cm}c@{}}
@@ -492,8 +527,7 @@ asimetría es la que condiciona la elección del esquema de clasificación.
     \centering
     \small
     \begin{threeparttable}
-        \caption[Repertorio por especie]{Tipos de llamada admitidos en cada
-            especie, con el código que aparece en la anotación}
+        \caption{Repertorio por especie}
         \label{tab:repertorio}
         \begin{tabular}{@{}L{2.6cm}L{10.4cm}r@{}}
             \toprule

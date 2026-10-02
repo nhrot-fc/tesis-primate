@@ -15,7 +15,7 @@ from models.coco_deformable_detr import COCO_QUERIES, DETR_CHECKPOINT
 from models.deformable_detr import DIM, FRONTEND, N_QUERIES
 from models.faster_rcnn import ANCHOR_RATIOS, MAX_SIZE, MIN_SIZE, TRAINABLE_LAYERS
 from models.registry import ARCHITECTURES, build_model
-from models.yolo import DEFAULT_MODEL, IMAGE_SIZE
+from models.yolo import DEFAULT_MODEL, IMAGE_SIZE, RTDETR_MODEL
 from training import yolo
 from training.trainer import TrainConfig, Trainer
 
@@ -42,6 +42,7 @@ PRESETS: dict[str, Preset] = {
             "dim": DIM,
             "n_queries": N_QUERIES,
             "frontend": FRONTEND,  # none | logmel | pcen
+            "frozen_backbone": False,  # True: sólo aprende la cabeza
         },
     ),
     # Deformable DETR de COCO entero, ResNet-50 incluido, sobre el mel pintado como imagen
@@ -70,6 +71,14 @@ PRESETS: dict[str, Preset] = {
     # Ultralytics YOLO
     "yolo": Preset(
         "yolo", TrainConfig(epochs=30, batch_size=32), {"model": DEFAULT_MODEL, "imgsz": IMAGE_SIZE}
+    ),
+    # Ultralytics RT-DETR. Mismo flujo que YOLO, pero con AdamW y una tasa baja fijadas a
+    # mano: con el optimizador que Ultralytics elige por su cuenta no converge. El lote baja
+    # a 16 porque el decodificador de conjuntos no entra en memoria con 32.
+    "rtdetr": Preset(
+        "yolo",
+        TrainConfig(epochs=30, batch_size=16, learning_rate=1e-4, weight_decay=1e-4),
+        {"model": RTDETR_MODEL, "imgsz": IMAGE_SIZE},
     ),
 }
 
