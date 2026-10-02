@@ -9,6 +9,9 @@ Capítulo redactado por completo, con los tres reportes `RE_1-*` de
 `research/reportes/` ya absorbidos. Es el modelo de cómo se escriben los
 capítulos de objetivo.
 
+
+> **30-09-2026 (tarde).** Se quitaron del `.tex` el párrafo sobre cómo se generan las cifras y los bloques «Cómo reproducirlo» con comandos, y la subsección «Distribución y mantenimiento»: el documento no es un manual y la distribución está fuera de alcance (ver `capitulos/README.md`). Los cuatro `\todo` que pedían datos al equipo se convirtieron en limitaciones redactadas.
+
 ## Qué va aquí
 
 | Sección | Contenido | RE |
@@ -64,7 +67,7 @@ Generadas por `notebook/figuras_04_oe1_curacion.ipynb`:
 | `geometria_facetas.png` | Duración × ancho de banda, un panel por clase |
 | `formas_ac_bc.png`, `formas_sm_fs.png` | Las dos etiquetas cuya nube se parte en dos |
 | `galeria_<clase>.png` (9) | Una llamada de cada clase sobre el espectrograma; el bloque de subfiguras lo escribe el cuaderno en `tablas/galeria.tex` |
-| `ventana_densa/larga/vacia.png` | Tres ventanas del caché tal como las recibe el modelo |
+| `ventana_densa/larga/vacia.png` | Tres ventanas del caché tal como las recibe el modelo. Van al ancho del texto y como **tres figuras separadas**, no como subfiguras de un tercio: a ese tamaño no se veían las cajas |
 
 Capturas que **no** genera el cuaderno (vienen del trabajo de campo y del informe
 de avance E3; se conservan tal cual):
@@ -116,5 +119,19 @@ uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curaci
 - [ ] Completar los datos de campo de la ficha: sitio, número de sensores,
       configuración de grabación y criterio de selección de lo que se anotó.
 - [ ] Decidir si el conjunto derivado se libera y en qué términos.
-- [ ] Faltan cuatro citas marcadas con `[CITA: …]` en el PDF: protocolo como
-      código, Nyquist, fuga de datos por duplicados y muestreo de fondo.
+- [ ] **Faltan diez citas.** Las marcas `[CITA: …]` se quitaron del `.tex` el
+      02-10-2026 por pedido del usuario, así que las afirmaciones están en el
+      documento **sin respaldo bibliográfico**. Lo que hay que buscar, y dónde:
+
+  | Afirmación | Referencia que falta |
+  |---|---|
+  | El protocolo es código y no una edición manual | protocolos de monitoreo acústico estandarizables y reproducibles; `gibb_2018` sirve de partida |
+  | Recorte a Nyquist | teorema de muestreo de Nyquist–Shannon |
+  | Fuga entre particiones por duplicados | efecto de las instancias duplicadas sobre la evaluación |
+  | Hace falta medir el acuerdo entre anotadores | `leroy_reliability_2018` es candidata |
+  | Fuga por ventanas solapadas de una misma grabación | un precedente de SED que reporte la inflación al partir por clip |
+  | Ventanas vacías como negativos | muestreo de fondo en SED y su efecto sobre los falsos positivos |
+  | Escala mel y banco HTK | Stevens y Volkmann, o Young et al. (HTK) |
+  | AudioMoth y Raven Pro | Hill et al. (2018); K. Lisa Yang Center for Conservation Bioacoustics |
+  | Variabilidad entre anotadores | `leroy_reliability_2018` o equivalente sobre etiquetas fuertes |
+  | Variabilidad entre sensores de bajo costo | efecto sobre los detectores |

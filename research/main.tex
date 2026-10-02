@@ -104,6 +104,17 @@
 \newcommand{\rotulo}[1]{%
     \par\medskip\noindent\textbf{#1}\hskip 1em\ignorespaces}
 
+% Colocación de flotantes. Con los valores por defecto, LaTeX manda a una
+% página aparte todo lo que no quepa en el 70 % superior de la página, y así
+% aparecen páginas de sólo figuras y tablas, lejos del texto que las comenta.
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.60}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+
 % Justificación: margen de maniobra para no desbordar el margen derecho,
 % y sin líneas viudas ni huérfanas.
 \setlength{\emergencystretch}{2em}
@@ -132,7 +143,9 @@
 % valores.tex: las cifras que cita cada capítulo, generadas por su cuaderno.
 % Ningún número se escribe a mano en el cuerpo.
 \input{estilos}
+\input{capitulos/01_generalidades/figures/valores}
 \input{capitulos/04_oe1_curacion/figures/valores}
+\input{capitulos/05_oe2_detector/figures/valores}
 
 % ===================================================================
 % NOTA DE MANTENIMIENTO

@@ -21,57 +21,47 @@ taxonómicas que las cámaras trampa \citep{gibb_2018}. Permiten
 muestrear durante periodos largos con poco esfuerzo manual, lo que aumenta la
 probabilidad de detectar especies raras o poco vocales
 \citep{gibb_2018}, justamente el caso de los primates neotropicales de
-la Amazonía peruana, difíciles de observar de forma directa.
+la Amazonía peruana, difíciles de observar de forma directa. El producto de ese
+registro es audio continuo sin estructura; lo que un analista obtiene de él es una
+anotación como la de la Figura~\ref{fig:annotation-example}, un rectángulo de
+tiempo y frecuencia con la especie y el tipo de llamada que contiene.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\textwidth]{capitulos/01_generalidades/figures/annotation_example.png}
+    \caption{Anotación tiempo--frecuencia en Raven}
+    \label{fig:annotation-example}
+\end{figure}
 
 La aparición de sensores de bajo costo y código abierto está ampliando
 rápidamente el acceso a estas tecnologías y permite desplegar redes multisensor
 a escala \citep{gibb_2018}. El costo de grabar y almacenar cayó lo
 suficiente como para hacer viable la captura continua de audio
 \citep{stowell_computational_2022}. El conjunto sobre el que trabaja esta tesis
-lo ilustra: 3\,355 grabaciones de ocho especies de primates, con una duración
-acumulada de 32,69 horas, de las cuales 2\,820 grabaciones (26,36 horas) cuentan
-con anotaciones expertas. La composición por especie se detalla en la
-Tabla~\ref{tab:resumen-dataset}. Sobre ese material, el protocolo de curación
-del Capítulo~\ref{cap:curacion} deja 19\,042 anotaciones utilizables: es la
-magnitud que conviene retener para contrastarla, más adelante, con lo disponible
-públicamente.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.85\textwidth]{capitulos/01_generalidades/figures/annotation_example.png}
-    \caption{Ejemplo de anotación tiempo--frecuencia en Raven.}
-    \label{fig:annotation-example}
-\end{figure}
+lo ilustra: \gRecordings{} grabaciones de ocho especies de primates, con una
+duración acumulada de \gHours{} horas, de las cuales \gAnnotated{}
+(\gAnnotatedHours{} horas) cuentan con anotaciones expertas. La composición por
+especie se detalla en la Tabla~\ref{tab:resumen-dataset}. Sobre ese material, el
+protocolo de curación del Capítulo~\ref{cap:curacion} deja \nKept{} anotaciones
+utilizables: es la magnitud que conviene retener para contrastarla, más adelante,
+con lo disponible públicamente.
 
 \begin{table}[htbp]
     \centering
-    \caption{Resumen por especie}
+    \caption{Material recibido por especie}
     \label{tab:resumen-dataset}
     \small
-    % Encabezado agrupado: los rótulos largos ("Duración anotada (h)")
-    % obligaban a \scriptsize para que la tabla entrara en el ancho de
-    % texto, y dejaban la tabla en un cuerpo distinto al del resto.
-    \begin{tabular}{@{}L{6.2cm}rrrr@{}}
+    % Códigos verificados contra src/data/species.py y contra la Tabla 2.2 del
+    % marco conceptual. No cambiar sin actualizar también aquella y el
+    % vocabulario del capítulo 4. Las filas las escribe el cuaderno.
+    \begin{tabular}{@{}L{6.1cm}rrrrr@{}}
         \toprule
-                                        & \multicolumn{2}{c}{\textbf{Total}} & \multicolumn{2}{c}{\textbf{Con anotaciones}}                                                   \\
-        \cmidrule(lr){2-3}\cmidrule(lr){4-5}
-        \textbf{Especie (código)}       & \textbf{N.\textsuperscript{o}}     & \textbf{Horas}                               & \textbf{N.\textsuperscript{o}} & \textbf{Horas} \\
+                                  & \multicolumn{2}{c}{\textbf{Grabado}} & \multicolumn{3}{c}{\textbf{Anotado}}                      \\
+        \cmidrule(lr){2-3}\cmidrule(lr){4-6}
+        \textbf{Especie (código)} & \thead{N.\textsuperscript{o}}        & \thead{Horas} & \thead{N.\textsuperscript{o}}
+                                  & \thead{Evento\\(min)}               & \thead{Fracción\\(\char37)}                               \\
         \midrule
-        % Códigos verificados contra src/domain/species.py y contra la
-        % Tabla 2.1 del marco conceptual: AA = Aotus azarae (mono
-        % nocturno), AS = Alouatta sara (aullador), CC = Cebus cuscinus
-        % (capuchino de cabeza chata). Los tres coinciden. No cambiar sin
-        % actualizar también la Tabla 2.1 y el vocabulario del capítulo 4.
-        Mono ardilla boliviano (SB)     & 290                                & 3,08                                         & 256                            & 2,79           \\
-        Mono aullador (AS)              & 808                                & 7,57                                         & 779                            & 7,27           \\
-        Capuchino de cabeza grande (SM) & 659                                & 6,13                                         & 582                            & 5,31           \\
-        Mono nocturno (AA)              & 116                                & 1,10                                         & 83                             & 0,78           \\
-        Mono araña peruano (AC)         & 561                                & 6,07                                         & 383                            & 3,62           \\
-        Capuchino de cabeza chata (CC)  & 16                                 & 0,11                                         & 7                              & 0,04           \\
-        Tití de Toppin (PT)             & 375                                & 3,35                                         & 320                            & 2,82           \\
-        Tamarino de Weddell (LW)        & 530                                & 5,28                                         & 410                            & 3,71           \\
-        \midrule
-        \textbf{Total}                  & \textbf{3\,355}                    & \textbf{32,69}                               & \textbf{2\,820}                & \textbf{26,36} \\
+        \input{capitulos/01_generalidades/figures/tabla_material} \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -106,7 +96,9 @@ una gran parte del audio queda sin anotar y las etiquetas anotadas son inconsist
 
 \subsection{Investigaciones anteriores}
 
-Los sistemas más difundidos clasifican segmentos de duración fija. BirdNET
+Los trabajos previos se separan por la forma que toma su salida, y esa forma
+admite tres variantes (Figura~\ref{fig:output-forms}). Los sistemas más
+difundidos clasifican segmentos de duración fija. BirdNET
 identifica cientos de especies de aves puntuando ventanas cortas de audio
 \citep{kahl_birdnet_2021} y, en un caso más cercano al de esta tesis, HOWLish
 detecta aullidos de lobo con una precisión de 0,006 bajo un desbalance extremo,
@@ -134,7 +126,7 @@ datos de audio \citep{airale_nbm_2025}.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{capitulos/01_generalidades/figures/output_forms.png}
-    \caption{Tres formas de salida de un evento sonoro.}
+    \caption{Tres formas de salida}
     \label{fig:output-forms}
 \end{figure}
 
@@ -187,7 +179,7 @@ grabación, y ninguna de las disponibles incluye anotaciones tiempo--frecuencia.
     % la tabla. Antes la nota iba en un minipage de 0,92\textwidth, más
     % ancho que la tabla, y quedaba descuadrada respecto de ella.
     \begin{threeparttable}
-        \caption[Disponibilidad en Xeno-canto]{Disponibilidad de grabaciones de las especies objetivo en Xeno-canto}
+        \caption{Disponibilidad en Xeno-canto}
         \label{tab:xenocanto}
         \begin{tabular}{@{}L{6.6cm}rr@{}}
             \toprule
@@ -232,12 +224,70 @@ El árbol se estructura siguiendo el heurístico de análisis causa--efecto
 propuesto por \citet{vesely_problem_2008}, y sirve de puente entre la brecha
 operativa descrita en la sección anterior y los objetivos de la investigación.
 Organiza el área temática en causas, problema central y efectos para ordenar el
-trabajo posterior, sin cuantificar las relaciones entre sus elementos.
+trabajo posterior, sin cuantificar las relaciones entre sus elementos. La
+Figura~\ref{fig:problem-tree} lo resume; las dos condiciones de la franja
+inferior enmarcan el problema sin ser causas sobre las que esta tesis pueda
+actuar. Los apartados que siguen desarrollan cada elemento.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/01_generalidades/figures/problem_tree.png}
-    \caption{Árbol de problemas.}
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+                % Todas las cajas del eje causal miden lo mismo y llevan el enunciado
+                % abreviado del apartado que las desarrolla. El font va después de
+                % `caja`, que impone \small y descuadraba las alturas.
+                nodo/.style={caja, font=\footnotesize, align=center, text width=40mm,
+                        minimum height=17mm, inner sep=4pt},
+                efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8},
+                causa/.style={nodo, draw=azul!70, fill=azul!8},
+                central/.style={nodo, draw=azul!80!black, fill=azul, text=white,
+                        text width=118mm, minimum height=19mm},
+                marco/.style={nodo, draw=gris, dashed, fill=white},
+                sube/.style={-{Stealth[length=2.2mm]}, thick, draw=ambar!80!black},
+                nace/.style={-{Stealth[length=2.2mm]}, thick, draw=azul!70},
+                franja/.style={font=\scriptsize\bfseries, rotate=90, text=gris},
+            ]
+            % --- eje: efectos arriba, problema al medio, causas abajo ---
+            \node[efecto] (e3) at (0.5, 9.1)
+            {\textbf{E3.} Ecología y gestión deciden sobre muestras sesgadas};
+            \node[efecto] (e1) at (-1.87, 6.6)
+            {\textbf{E1.} Lo grabado crece más rápido de lo que se analiza};
+            \node[efecto] (e2) at (2.87, 6.6)
+            {\textbf{E2.} No hay una referencia confiable para medir el avance};
+            \node[central] (pc) at (0.5, 4.0)
+            {\textbf{PROBLEMA CENTRAL}\\[2pt] El análisis del audio de monitoreo acústico
+                pasivo no acompaña al ritmo de su recolección, y las anotaciones que sí se
+                producen no son consistentes entre sí};
+            \node[causa] (c1) at (-4.23, 1.5)
+            {\textbf{C1.} Hay pocas horas de analista experto disponibles};
+            \node[causa] (c2) at (0.5, 1.5)
+            {\textbf{C2.} Los anotadores no coinciden entre sí ni consigo mismos};
+            \node[causa] (c3) at (5.23, 1.5)
+            {\textbf{C3.} Lo automático no sustituye al analista};
+            \draw[sube] (e1.north) -- (e3.south west);
+            \draw[sube] (e2.north) -- (e3.south east);
+            \draw[sube] (pc.north west) -- (e1.south);
+            \draw[sube] (pc.north east) -- (e2.south);
+            \draw[nace] (c1.north) -- (pc.south west);
+            \draw[nace] (c2.north) -- (pc.south);
+            \draw[nace] (c3.north) -- (pc.south east);
+            % --- franjas del eje causal ---
+            \draw[ambar!80!black, line width=1pt] (-6.9, 5.05) -- (-6.9, 9.95);
+            \node[franja, text=ambar!80!black] at (-7.3, 7.5) {EFECTOS};
+            \draw[azul!80!black, line width=1pt] (-6.9, 3.05) -- (-6.9, 4.95);
+            \node[franja, text=azul!80!black] at (-7.3, 4.0) {PROBLEMA};
+            \draw[azul!70, line width=1pt] (-6.9, 0.65) -- (-6.9, 2.35);
+            \node[franja, text=azul!70] at (-7.3, 1.5) {CAUSAS};
+            % --- condiciones subyacentes, fuera del eje causal ---
+            \draw[gris, dashed] (-7.4, -0.15) -- (7.4, -0.15);
+            \node[font=\scriptsize\bfseries, text=gris, anchor=north west] at (-7.4, -0.4)
+            {CONDICIONES SUBYACENTES};
+            \node[marco] (s1) at (-1.87, -1.75)
+            {\textbf{S1.} Grabar se volvió barato, pero analizar no};
+            \node[marco] (s2) at (2.87, -1.75)
+            {\textbf{S2.} La unidad acústica no tiene fronteras discretas};
+        \end{tikzpicture}}
+    \caption{Árbol de problemas y condiciones subyacentes}
     \label{fig:problem-tree}
 \end{figure}
 
@@ -292,21 +342,13 @@ desplegadas, detectar señales acústicas en los paisajes sonoros registrados se
 vuelve un obstáculo logístico que limita la escalabilidad de los estudios de PAM
 \citep{Campos_Krofel_Rio-Maior_Renna_2025}.
 
-% TODO EVIDENCIA LOCAL
-% La figura de abajo aporta la mitad del dato que faltaba: horas
-% recibidas, horas con archivo de anotación y minutos de evento
-% anotado, por especie. Lo que sigue sin estar es la magnitud del
-% acervo SIN revisar y las horas-analista disponibles por semana:
-% esos dos números tiene que darlos el equipo, porque data/cleaned
-% ya es el material curado que entregaron.
-% ===================================================================
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth]{capitulos/01_generalidades/figures/recorded_vs_annotated.png}
-    \caption{Material recibido por especie.}
-    \label{fig:recorded-vs-annotated}
-\end{figure}
+El material recibido mide esa distancia. De las \gHours{} horas grabadas, sólo
+\gEventMinutes{} minutos corresponden a tramos marcados como evento: el
+\gEventShare{}\,\% del tiempo registrado, y con un reparto muy desigual entre
+especies (Tabla~\ref{tab:resumen-dataset}). El mono aullador llega al 71,5\,\%
+porque sus coros son largos y continuos; el capuchino de cabeza grande se queda
+en 4,5\,\% sobre una cantidad de horas parecida. La fracción no mide cuánto
+vocaliza cada especie, sino cuánto de lo grabado llegó a revisarse y anotarse.
 
 \subsection{Causas}
 
@@ -447,7 +489,7 @@ operador debía procesar manualmente
 \citep{Campos_Krofel_Rio-Maior_Renna_2025}. La primera es una medida de tiempo
 humano y exige cronometrar a una persona; la segunda es una cantidad contable que
 se deriva de la propia salida del sistema. El objetivo general se compromete con
-la primera ---reducir el tiempo de revisión experta---, que es la magnitud que le
+la primera, reducir el tiempo de revisión experta, que es la magnitud que le
 importa al equipo de investigación y la que fija el indicador de RE3.2. La
 segunda acompaña a esa medición y la explica: cuántas propuestas hay que
 inspeccionar y cuánto audio queda sin ninguna es lo que hace que el tiempo baje,
@@ -494,7 +536,7 @@ y la caracterización del conjunto derivado, no la anotación original.
 
 \begin{table}[htbp]
     \centering
-    \caption[IOV de OE1]{Resultados esperados, medios de verificación e indicadores objetivamente verificables de OE1}
+    \caption{IOV de OE1}
     \label{tab:iov-oe1}
     \small
     \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
@@ -551,7 +593,7 @@ unidad, y un detector de conjunto plano no puede representar esa relación.
 
 \begin{table}[htbp]
     \centering
-    \caption[IOV de OE2]{Resultados esperados, medios de verificación e indicadores objetivamente verificables de OE2}
+    \caption{IOV de OE2}
     \label{tab:iov-oe2}
     \small
     \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
@@ -623,7 +665,7 @@ completa de tiempo, frecuencia, especie, tipo de llamada y confianza.
 
 \begin{table}[htbp]
     \centering
-    \caption[IOV de OE3]{Resultados esperados, medios de verificación e indicadores objetivamente verificables de OE3}
+    \caption{IOV de OE3}
     \label{tab:iov-oe3}
     \small
     \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
@@ -664,8 +706,8 @@ y fechada de antemano, que es el primero de los tres resultados.
           ahorro: se mide y se reporta con sus condiciones. El precedente en
           primates es la inversión de 3--5\,\% de tiempo que reportan
           \citet{heinicke_2015}; el precedente metodológico para las magnitudes que
-          se derivan de la salida del sistema ---propuestas por hora de audio y
-          fracción de audio sin ninguna propuesta--- es la reducción de 22 veces del
+          se derivan de la salida del sistema (propuestas por hora de audio y fracción de
+          audio sin ninguna propuesta) es la reducción de 22 veces del
           volumen que un operador debía procesar
           \citep{Campos_Krofel_Rio-Maior_Renna_2025}, que acompaña a la medición
           cronometrada y explica de dónde sale el ahorro.
@@ -677,11 +719,11 @@ y fechada de antemano, que es el primero de los tres resultados.
           separación se apoya en la relación geométrica entre la caja predicha y las
           cajas anotadas, resumida en la Tabla~\ref{tab:taxonomia-fp}: las tres
           primeras categorías quedan determinadas por esa relación, mientras que la
-          categoría D ---predicciones que no solapan con ninguna anotación--- es la que
+          categoría D, las predicciones que no solapan con ninguna anotación, es la que
           el revisor experto resuelve entre evento omitido por la referencia y falso
           positivo genuino. Los dos modos de error que documenta
-          \citet{zhu_sound_2025} ---una caja anotada detectada como varias, y varias
-          detectadas como una--- corresponden a la categoría B, y la borrosidad de las
+          \citet{zhu_sound_2025}, una caja anotada detectada como varias y varias
+          detectadas como una, corresponden a la categoría B, y la borrosidad de las
           fronteras del evento que ese mismo trabajo describe es lo que hace
           necesaria la categoría A. Que la referencia omita eventos es plausible de
           antemano: los métodos automáticos fallan con llamadas tenues o enmascaradas
@@ -692,7 +734,7 @@ y fechada de antemano, que es el primero de los tres resultados.
 
 \begin{table}[htbp]
     \centering
-    \caption[Taxonomía de discrepancias]{Taxonomía geométrica de las discrepancias de alta confianza}
+    \caption{Taxonomía de discrepancias}
     \label{tab:taxonomia-fp}
     \small
     \begin{tabular}{@{}L{1.0cm}L{2.9cm}L{6.9cm}L{2.8cm}@{}}
@@ -733,7 +775,7 @@ sistema.
 
 \begin{table}[htbp]
     \centering
-    \caption[Trazabilidad del planteamiento]{Trazabilidad entre causas, efectos, objetivos y resultados esperados}
+    \caption{Trazabilidad del planteamiento}
     \label{tab:trazabilidad}
     \small
     \begin{tabular}{@{}L{3.6cm}L{2.0cm}L{2.0cm}L{6.0cm}@{}}
@@ -765,37 +807,48 @@ minería de datos \citep{chapman_crisp-dm_2000}. Su estructura cíclica, desde l
 comprensión del problema hasta el despliegue de la solución, se ajusta a un proyecto
 de investigación aplicada en el que la comprensión de los datos, la
 experimentación con modelos y la evaluación continua se realimentan entre sí.
-La Tabla~\ref{tab:crispdm} resume la correspondencia entre las seis fases, los
+La Figura~\ref{fig:crisp-dm} resume la correspondencia entre las seis fases, los
 objetivos específicos y los capítulos de este documento.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Fases de CRISP-DM y objetivos}
-    \label{tab:crispdm}
-    \small
-    \begin{tabular}{@{}L{4.6cm}L{5.9cm}L{1.8cm}L{1.9cm}@{}}
-        \toprule
-        \textbf{Fase}               & \textbf{Contenido en este proyecto}                                          & \textbf{Objetivo} & \textbf{Capítulo} \\
-        \midrule
-        1. Comprensión del negocio  & Árbol de problemas, objetivos y criterios de éxito                           & N/A               & 1                 \\
-        \addlinespace
-        2. Comprensión de los datos & Análisis exploratorio y verificación de calidad de las anotaciones recibidas & OE1               & 4                 \\
-        \addlinespace
-        3. Preparación de datos     & Curación, vocabulario cerrado, particionado y ventaneo                       & OE1               & 4                 \\
-        \addlinespace
-        4. Modelado                 & Detector de cajas tiempo--frecuencia y línea base                            & OE2               & 5                 \\
-        \addlinespace
-        5. Evaluación               & Métricas por eje, tiempo de revisión y análisis de errores                   & OE2, OE3          & 5, 6              \\
-        \addlinespace
-        6. Despliegue               & Inferencia por lotes y exportación a tabla de selección de Raven             & OE2               & 5                 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
 
 \begin{figure}[tb]
     \centering
-    \includegraphics[width=0.58\textwidth]{capitulos/01_generalidades/figures/crisp_dm.png}
-    \caption{Fases de CRISP-DM del proyecto.}
+    \begin{tikzpicture}[
+            every node/.style={font=\footnotesize},
+            fase/.style={caja, draw=azul!70, fill=azul!6, align=center,
+                    text width=34mm, inner sep=4pt},
+            ciclo/.style={-{Stealth[length=2mm]}, thick, draw=gris!90},
+        ]
+        \node[fase] (f1) at (0, 4.3)
+        {\textbf{1. Comprensión de la investigación}\\[1pt]
+            {\scriptsize Árbol de problemas, objetivos y criterios}\\[1pt]
+            {\scriptsize\color{azul!80!black} Cap.~1}};
+        \node[fase] (f2) at (4.6, 2.2)
+        {\textbf{2. Comprensión de los datos}\\[1pt]
+            {\scriptsize Exploración y calidad de las anotaciones}\\[1pt]
+            {\scriptsize\color{azul!80!black} OE1 \sep Cap.~4}};
+        \node[fase] (f3) at (4.6, -2.2)
+        {\textbf{3. Preparación de datos}\\[1pt]
+            {\scriptsize Curación, vocabulario, partición y ventaneo}\\[1pt]
+            {\scriptsize\color{azul!80!black} OE1 \sep Cap.~4}};
+        \node[fase] (f4) at (0, -4.3)
+        {\textbf{4. Modelado}\\[1pt]
+            {\scriptsize Detector de cajas y líneas base}\\[1pt]
+            {\scriptsize\color{azul!80!black} OE2 \sep Cap.~5}};
+        \node[fase] (f5) at (-4.6, -2.2)
+        {\textbf{5. Evaluación}\\[1pt]
+            {\scriptsize Métricas por eje, errores y tiempo de revisión}\\[1pt]
+            {\scriptsize\color{azul!80!black} OE2, OE3 \sep Cap.~5, 6}};
+        \node[fase] (f6) at (-4.6, 2.2)
+        {\textbf{6. Despliegue}\\[1pt]
+            {\scriptsize Inferencia por lotes y export a Raven}\\[1pt]
+            {\scriptsize\color{azul!80!black} OE2 \sep Cap.~5}};
+        \node[dato, align=center, text width=28mm] (datos) at (0, 0)
+        {\textbf{DATOS}\\[1pt]{\scriptsize \nRecordingsRaw{} grabaciones\\
+                \nKept{} anotaciones}};
+        \foreach \a/\b in {f1/f2, f2/f3, f3/f4, f4/f5, f5/f6, f6/f1}
+        \draw[ciclo] (\a) -- (\b);
+    \end{tikzpicture}
+    \caption{CRISP-DM aplicado a este proyecto}
     \label{fig:crisp-dm}
 \end{figure}
 
@@ -831,7 +884,7 @@ duración fija con solapamiento, y el aumento de datos mediante adición de ruid
 fondo del propio entorno, desplazamiento de tono, estiramiento temporal y
 enmascaramiento de bloques de tiempo o frecuencia sobre el espectrograma.
 Aquí se resuelve la comparación entre log-mel y PCEN anunciada en la
-sección~\ref{sec:representacion}, bajo el criterio allí declarado.
+sección~\ref{sec:frontends}, bajo el criterio allí declarado.
 
 \paragraph{Fase 4: Modelado.}
 La forma de la salida no está en discusión: el sistema debe emitir la tupla
@@ -839,9 +892,10 @@ completa de la ecuación~\eqref{eq:tupla}, y esa exigencia excluye de antemano
 toda arquitectura cuya cabeza produzca una probabilidad por trama o por segmento.
 Lo que se compara, por tanto, no son familias de arquitectura sino
 configuraciones que sí satisfacen la exigencia: la arquitectura propuesta sobre
-un extractor de audio con cabeza de detección, en sus dos pasos temporales, y dos
-líneas base de detector sobre espectrogramas, un detector de una etapa
-\citep{gonzalez_yolo-based_2025} y uno de dos etapas con propuestas de región.
+un extractor de audio con cabeza de detección, y tres líneas base de detector
+sobre espectrogramas: uno de dos etapas con propuestas de región, uno denso de
+una etapa \citep{gonzalez_yolo-based_2025} y uno de conjuntos con extractor
+preentrenado en imágenes.
 
 La regla de decisión se fija antes de entrenar: gana la configuración con mayor
 valor de la métrica principal definida en la Fase~5, medida sobre la partición de
@@ -864,29 +918,41 @@ favorezca al modelo preferido.
 Para evitarlo, la Tabla~\ref{tab:metricas-sed} asigna a cada una un rol fijado de
 antemano.
 
-La \textbf{métrica principal} es el \textit{recall} a nivel de evento
-\emph{agnóstico a la clase}, con un umbral de IoU bidimensional de 0,5 y un
-umbral de confianza de 0,5. Que sea agnóstico a la clase no es un descuido: la
-sección~\ref{sec:geometria} muestra que la geometría separa especies pero no
-tipos de llamada dentro de una misma especie, de modo que localizar y etiquetar
-son problemas de dificultad distinta, y mezclarlos en una sola cifra oculta cuál
-de los dos falla. El \textit{recall} manda porque el sistema es de pre-anotación
-asistida y un humano revisa su salida.
+La \textbf{métrica principal} es el \textit{recall} a nivel de evento, medido
+al punto de operación que la partición de validación elige para cada
+configuración: el umbral de confianza de mayor \textit{recall} entre los que
+alcanzan una precisión de al menos 0,70. El \textit{recall} manda porque el
+sistema es de pre-anotación asistida y un humano revisa su salida: perder una
+vocalización cuesta más que descartar un falso positivo. Se acompaña siempre de
+su intervalo de confianza por remuestreo de grabaciones, y dos configuraciones
+cuyos intervalos se solapan se declaran no separadas por el experimento.
 
-El \textbf{criterio de selección de \textit{checkpoint}} es una F-$\beta$ con
-$\beta = 3$, que pondera el \textit{recall} nueve veces más que la precisión, y
-es la traducción operativa del requisito enunciado con el objetivo general:
-perder una vocalización cuesta más que revisar un falso positivo. Para que ese
-sesgo no degenere en proponer indiscriminadamente, junto a él se reporta el
-cociente \textbf{FP/TP al punto de operación}, que es literalmente la carga de
-revisión que el experto asume por cada acierto y la magnitud que conecta esta
-fase con OE3.
+Un \textbf{umbral de confianza fijo y compartido} entre configuraciones no sirve
+para esta comparación: la confianza que emite cada cabeza depende de su función
+de pérdida y de cómo normaliza la puntuación, de modo que un mismo número cae en
+puntos distintos de cada curva y mediría calibración tanto como detección. Por
+eso cada modelo trae el suyo, elegido en validación, y viaja junto a su
+\textit{checkpoint}.
 
-El umbral de confianza de 0,5 que fija la métrica principal es un punto de
-comparación común entre configuraciones, no el punto de operación definitivo del
-sistema. Ese último se elige en OE3 barriendo el umbral y leyendo la curva de
-cobertura frente a propuestas por hora de audio, de modo que la comparación entre
-modelos y la decisión operativa quedan separadas.
+El \textbf{criterio de selección de \textit{checkpoint}} dentro de una misma
+corrida es la precisión media (mAP) a IoU 0,3 sobre validación, que es libre de
+umbral y por tanto no premia a la época mejor calibrada sino a la que mejor
+detecta. Es también la \textbf{métrica secundaria} de la comparación entre
+configuraciones, y la que decide cuando la primaria no separa. Junto a ellas se
+reporta el cociente \textbf{FP/TP al punto de operación}, que es literalmente la
+carga de revisión que el experto asume por cada acierto y la magnitud que
+conecta esta fase con OE3.
+
+\textbf{El acierto se decide a IoU 0,3 y el encuadre se puntúa aparte, a 0,5.}
+El IoU es el cociente entre el área común y el área total de dos cajas, y la
+Figura~\ref{fig:iou-criterion} muestra a qué corresponde cada umbral.
+Emparejar a 0,3 responde a si la llamada se \emph{encontró}, que es lo que
+decide si el revisor la ve; exigir 0,5 en el mismo paso mezclaría esa pregunta
+con la de si la caja quedó ajustada, y las fronteras del evento son borrosas
+incluso entre anotadores \citep{zhu_sound_2025}. El punto de operación que
+compromete OE3 (confianza 0,5, IoU 0,5 para verdadero positivo y supresión de no
+máximos a IoU 0,3) es una decisión distinta y posterior: fija cómo se
+cronometra la revisión asistida, no cómo se comparan las arquitecturas.
 
 El encuadre se puntúa aparte, con el IoU medio sobre los pares ya emparejados y
 la precisión media a varios umbrales de IoU. El barrido incluye umbrales bajos
@@ -896,37 +962,40 @@ acuerdo con un borde que el propio anotador no reproduce.
 
 \begin{table}[htbp]
     \centering
-    \caption[Métricas de evaluación]{Métricas de evaluación y rol asignado a cada una}
+    \caption{Métricas de evaluación}
     \label{tab:metricas-sed}
     \small
     \begin{tabular}{@{}L{3.6cm}L{7.3cm}L{2.8cm}@{}}
         \toprule
         \textbf{Métrica}                                                 & \textbf{Definición} & \textbf{Rol} \\
         \midrule
-        \textit{Recall} por evento, agnóstico a la clase                 &
+        \textit{Recall} por evento, al punto de operación                &
         Proporción de eventos anotados recuperados por alguna predicción cuyo
-        solapamiento con la caja anotada supera IoU 0,5, al umbral de confianza
-        0,5. No exige que la clase sea correcta.                         &
+        solapamiento con la caja anotada supera IoU 0,3, al umbral que la
+        validación elige para ese modelo con precisión $\geq 0{,}70$. Se
+        reporta con intervalo de confianza.                              &
         \textbf{Principal}                                                                                    \\
         \addlinespace
-        F-$\beta$ con $\beta = 3$                                        &
-        Media armónica ponderada de precisión y \textit{recall} que pesa el
-        segundo nueve veces más que la primera.                          &
-        Selección de \textit{checkpoint}                                                                      \\
+        mAP a IoU 0,3                                                    &
+        Precisión media sobre las clases de detección, integrando toda la curva
+        precisión--\textit{recall}: no depende del umbral y por tanto no premia
+        la calibración.                                                  &
+        Secundaria y selección de \textit{checkpoint}                                                         \\
         \addlinespace
         FP/TP al punto de operación                                      &
         Falsos positivos por cada verdadero positivo: la carga de revisión que
         el experto asume por cada acierto.                               &
         Costo de revisión (OE3)                                                                               \\
         \addlinespace
-        IoU medio del encuadre                                           &
-        Solapamiento medio entre la caja predicha y la anotada, sobre los
-        eventos ya emparejados. Mide encuadre, no detección.             &
+        IoU mediano del encuadre                                         &
+        Solapamiento entre la caja predicha y la anotada, sobre los eventos ya
+        emparejados. Mide encuadre, no detección.                        &
         Encuadre                                                                                              \\
         \addlinespace
-        Precisión media a varios umbrales de IoU                         &
-        Precisión media agnóstica a la clase, evaluada en un barrido de
-        umbrales de solapamiento desde exigencias laxas hasta estrictas. &
+        AP a IoU 0,25 y a IoU 0,5                                        &
+        La misma precisión media leída a un umbral de solapamiento laxo y a uno
+        estricto: la distancia entre ambas mide cuánto se pierde al exigir
+        encuadre.                                                        &
         Encuadre                                                                                              \\
         \addlinespace
         Acierto sobre pares emparejados                                  &
@@ -945,7 +1014,7 @@ acuerdo con un borde que el propio anotador no reproduce.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{capitulos/01_generalidades/figures/iou_criterion.png}
-    \caption{Criterio de IoU.}
+    \caption{Criterio de IoU}
     \label{fig:iou-criterion}
 \end{figure}
 
@@ -968,8 +1037,7 @@ hay alternativa real, se dice.
 
 \begin{table}[htbp]
     \centering
-    \caption[Stack técnico: pipeline]{Herramientas del \textit{pipeline}, de la
-        curación a la inferencia}
+    \caption{Stack técnico: pipeline}
     \label{tab:herramientas}
     \small
     \begin{tabular}{@{}L{2.5cm}L{4.9cm}L{6.6cm}@{}}
@@ -1024,8 +1092,7 @@ hay alternativa real, se dice.
 
 \begin{table}[htbp]
     \centering
-    \caption[Stack técnico: desarrollo]{Herramientas de desarrollo,
-        inspección y reproducibilidad}
+    \caption{Stack técnico: desarrollo}
     \label{tab:herramientas-dev}
     \small
     \begin{tabular}{@{}L{2.5cm}L{4.9cm}L{6.6cm}@{}}
@@ -1041,13 +1108,6 @@ hay alternativa real, se dice.
         Matplotlib                                                       &
         Figuras del análisis exploratorio y de los resultados            &
         Sin alternativa que aporte algo distinto dentro del mismo ecosistema                                                            \\
-        \addlinespace
-        PyQt6 y pyqtgraph                                                &
-        Visor interactivo que superpone espectrograma, anotación y predicción
-        sobre la misma grabación                                         &
-        Raven no muestra la salida del modelo junto a la anotación, y una figura
-        de Matplotlib no sostiene el desplazamiento continuo sobre una hora de
-        audio                                                                                                                           \\
         \addlinespace
         Ruff, ty y pytest                                                &
         Formato, análisis estático y pruebas del código                  &

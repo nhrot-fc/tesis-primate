@@ -13,7 +13,8 @@ from models.frontend import build_frontend
 from utils.boxes import Detections
 
 PRIOR_PROB = 0.01
-FRONTEND = "pcen"
+# El de la corrida que compara el capítulo 5; PCEN y `none` son las ablaciones.
+FRONTEND = "logmel"
 DIM = 128
 N_QUERIES = 100
 N_DECODER_LAYERS = 6
@@ -277,12 +278,15 @@ class ASTDeformableDETR(Detector):
         dim: int = DIM,
         n_queries: int = N_QUERIES,
         frontend: str = FRONTEND,
+        frozen_backbone: bool = False,
     ):
         super().__init__()
         from models.backbone import ASTBackbone
         from models.criterion import SetCriterion
 
-        self.backbone = ASTBackbone(n_frames=n_frames, time_stride=time_stride)
+        self.backbone = ASTBackbone(
+            n_frames=n_frames, time_stride=time_stride, frozen=frozen_backbone
+        )
         self.frontend = build_frontend(frontend, self.backbone.n_mels)
         # Media 0 y varianza 1 por lote, a la mitad: el rango con el que el AST se preentrenó.
         self.input_norm = nn.BatchNorm2d(1, affine=False)

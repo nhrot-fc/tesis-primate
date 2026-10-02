@@ -13,6 +13,10 @@ from utils.boxes import Detections
 DEFAULT_MODEL = "yolo26s"
 # Lado de la imagen cuadrada: el del export (`export_yolo.py`) y el de `imgsz` al entrenar
 IMAGE_SIZE = 512
+# RT-DETR usa otra tarea de Ultralytics (decodificador de conjuntos, no cabeza densa) y por
+# tanto otra clase de modelo y otro envoltorio; lo demás del flujo es idéntico al de YOLO.
+RTDETR_PREFIX = "rtdetr"
+RTDETR_MODEL = "rtdetr-l"
 
 
 class SpectrogramYOLO(Detector):
@@ -31,15 +35,20 @@ class SpectrogramYOLO(Detector):
         imgsz: int = IMAGE_SIZE,
     ) -> None:
         super().__init__()
-        from ultralytics import YOLO
-        from ultralytics.nn.tasks import DetectionModel
+        from ultralytics import RTDETR, YOLO
+        from ultralytics.nn.tasks import DetectionModel, RTDETRDetectionModel
+
+        is_rtdetr = model.startswith(RTDETR_PREFIX)
+        task, api = (
+            (RTDETRDetectionModel, RTDETR) if is_rtdetr else (DetectionModel, YOLO)
+        )
 
         self.db_low, self.db_high = db_low, db_high
         self.imgsz = imgsz
-        self.detector = DetectionModel(f"{model}.yaml", nc=n_classes, verbose=False)
+        self.detector = task(f"{model}.yaml", nc=n_classes, verbose=False)
 
         # `YOLO.train()` entrena en vez de cambiar de modo: se lo deja fuera del árbol de módulos.
-        wrapper = YOLO(f"{model}.yaml")
+        wrapper = api(f"{model}.yaml")
         wrapper.model = self.detector
         self.__dict__["ultralytics_predictor"] = wrapper
 
