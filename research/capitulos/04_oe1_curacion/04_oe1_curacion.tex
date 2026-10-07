@@ -37,16 +37,27 @@ tal como se recibe: es el diagnóstico que justifica cada regla del protocolo.
 \label{sec:material}
 % ===================================================================
 
-\subsection{Estructura y formato}
+\subsection{Origen y formato}
+
+El material proviene del 8 Primates Project, el programa de monitoreo acústico
+pasivo que el equipo de investigación mantiene en el Tambopata Research Center,
+en la Reserva Nacional Tambopata (Madre de Dios) (sección~\ref{sec:problema}). Sus
+grabadoras AudioMoth registraron el sonido del bosque en archivos WAV cortos entre
+el \firstDate{} y el \lastDate{}, sobre todo en el horario de campo que declara el
+proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. Los
+especialistas del equipo seleccionaron grabaciones de cada especie y las anotaron
+a mano en Raven Pro con el procedimiento de la sección~\ref{sec:dominio}: una caja
+tiempo--frecuencia por vocalización, con su especie y su tipo de llamada. El
+equipo entregó para esta tesis esa selección ya anotada, sin el protocolo de
+campo que la acompañó (ubicación de las grabadoras, ganancia, criterio de
+selección). Esta sección describe el material tal como se recibió.
 
 El material llega en una carpeta por especie, nombrada
 \code{<nombre\_común>\_\_<CÓDIGO>}, con las grabaciones WAV a 44,1\,kHz
 capturadas con dispositivos AudioMoth desplegados en el bosque y, junto a cada
 una, la tabla de selección que el analista exportó desde Raven Pro. La
 Tabla~\ref{tab:especies-corpus} lista las ocho especies y sus códigos. El código
-de la carpeta es un dato estructural, fijado una vez por sesión de campo, y el
-protocolo lo trata como la fuente de verdad de la especie
-(sección~\ref{sec:regla-especie}).
+de la carpeta es un dato estructural, fijado una vez por sesión de campo.
 
 \begin{table}[htbp]
     \centering
@@ -68,6 +79,9 @@ protocolo lo trata como la fuente de verdad de la especie
         \bottomrule
     \end{tabular}
 \end{table}
+
+El código de dos letras identifica a cada especie en el resto del documento, y el
+nombre de cada carpeta termina en él.
 
 Cada tabla de selección es un archivo de texto delimitado por tabulaciones, con
 una fila por caja, que Raven lee y escribe directamente
@@ -140,28 +154,53 @@ directamente para entrenar.
 
 \rotulo{Inconsistencias de etiquetado.} Una misma clase aparece escrita de varias
 formas. La columna de tipo de llamada trae \nRawCallValues{} valores distintos
-escritos a mano y la de especie, \nRawSpeciesValues{}
-(Figuras~\ref{fig:etiquetas-especie} y~\ref{fig:etiquetas-llamada}). Entre ellos
+escritos a mano y la de especie, \nRawSpeciesValues{}. Entre ellos
 conviven mayúsculas y minúsculas, espacios finales, separadores y errores de
-escritura: \code{CS}, \code{CS\char32}, \code{CS\char32\char32 A},
-\code{contact syllable}, \code{noise|}, \code{noises}, \code{\char32 BC} y
-\code{bC} designan tres clases, no ocho.
+escritura. La Tabla~\ref{tab:grafias} muestra tres casos: ocho grafías que
+designan solo tres clases.
 
-\begin{figure}[htbp]
+\begin{table}[htbp]
     \centering
-    \begin{minipage}[t]{0.46\textwidth}
-        \centering
-        \caption{Valores en la columna de especie}
-        \label{fig:etiquetas-especie}
-        \includegraphics[width=\textwidth]{\figOE/etiquetas_especie_crudas.png}
-    \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
-        \centering
-        \caption{Valores en la columna de tipo de llamada}
-        \label{fig:etiquetas-llamada}
-        \includegraphics[width=\textwidth]{\figOE/etiquetas_llamada_crudas.png}
+    \small
+    \begin{threeparttable}
+        \caption{Grafías de una misma clase}
+        \label{tab:grafias}
+        \begin{tabular}{@{}lL{8.2cm}@{}}
+            \toprule
+            \textbf{Clase} & \textbf{Grafías en el material} \\
+            \midrule
+            Sílaba de contacto & \code{CS}, \code{CS\char32}, \code{CS\char32\char32 A}, \code{contact syllable} \\
+            Ruido (descarte) & \code{noise|}, \code{noises} \\
+            \code{BC} & \code{\char32 BC}, \code{bC} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Nota.} El signo \code{\char32} marca un espacio en blanco.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+La tabla recoge solo tres casos. La Tabla~\ref{tab:valores-crudos} lista todos
+los valores distintos de cada columna, con el número de filas que lleva cada uno.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Valores distintos en las columnas escritas a mano}
+    \label{tab:valores-crudos}
+    \input{\figOE/tablas/valores_crudos}
+    \par\smallskip
+    \begin{minipage}{0.95\textwidth}
+        \footnotesize\textit{Nota.} Valores tal como aparecen en las \nRawRows{} filas
+        crudas; el signo \code{\char32} marca un espacio. No se cuentan las celdas
+        vacías: \nSpeciesEmpty{} en la columna de especie y \nEmptyCall{} en la de tipo
+        de llamada.
     \end{minipage}
-\end{figure}
+\end{table}
+
+En la Tabla~\ref{tab:valores-crudos}, la columna de especie, que solo debería
+tener ocho valores, trae \nRawSpeciesValues{}; la de tipo de llamada mezcla códigos, nombres completos en
+inglés y variantes con espacios o separadores.
 
 \rotulo{Integridad de los archivos.} La carga automatizada de las grabaciones
 emite advertencias sobre archivos de audio dañados
@@ -198,6 +237,11 @@ eso es lo que muestran los dos grados de corrupción.
     \end{minipage}
 \end{figure}
 
+En el caso leve, los ceros forman una franja vacía de una fracción de segundo
+cerca de los 6\,s, y el resto de la grabación conserva la señal. En el severo, la
+señal se corta hacia los 19\,s y los dos tercios restantes del archivo quedan
+vacíos, aunque las llamadas de los primeros segundos sigan visibles.
+
 \rotulo{Discrepancias entre especie escrita y carpeta.} La etiqueta de especie de
 la anotación no siempre coincide con el código de la carpeta contenedora: en
 \nSpeciesEmpty{} filas la columna viene vacía y en \nSpeciesMismatch{} trae un
@@ -214,8 +258,8 @@ anotaciones no es uniforme: en unos casos el analista etiquetó sílabas
 individuales y en otros delimitó la secuencia completa con una sola caja. No es
 un error de anotación sino la manifestación directa del anidamiento jerárquico de
 las unidades acústicas \citep{kershenbaum_acoustic_2016} descrito en el
-Capítulo~\ref{cap:marco}; la sección~\ref{sec:anidamiento} lo cuantifica y decide
-qué hacer con él.
+Capítulo~\ref{cap:marco}, y obliga a decidir qué nivel de la jerarquía se
+modela.
 
 % ===================================================================
 \section{Protocolo de curación y estandarización documentado (RE1.1)}
@@ -358,7 +402,7 @@ esa llamada sí está anotada en su propia carpeta.
 \rotulo{Descarte de ruido.} Las filas cuyo tipo de llamada normalizado es
 \code{noise} (\nNoise{}) marcan la ausencia de evento, no un evento, y se
 eliminan. El fondo que el detector debe aprender a no proponer entra al conjunto
-por otra vía (las ventanas vacías de la sección~\ref{sec:vacias}) y no por estas
+por otra vía, como ventanas de audio sin ninguna anotación, y no por estas
 filas. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son cajas que el
 analista dibujó sobre un evento: no se eliminan, se marcan para revisión.
 
@@ -733,10 +777,10 @@ Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
         \node[etapa, minimum width=30mm] (val) at (5.3, -1.2) {val\\\footnotesize objetivo 22,5\,\%};
         \node[etapa, minimum width=30mm] (test) at (9.0, -1.2) {test\\\footnotesize objetivo 17,5\,\%};
         \draw[flecha] (r1) -- (train.north);
-        \draw[flecha] (r2) -- (val.north);
-        \draw[flecha] (r3) -- (test.north);
-        \draw[flecha] (r4) -- (train.north);
-        \draw[flecha, dashed] (r5) -- (train.north);
+        \draw[flecha] (r2) -- (train.north);
+        \draw[flecha] (r3) -- (val.north);
+        \draw[flecha] (r4) -- (test.north);
+        \draw[flecha] (r5) -- (test.north);
         \node[nota, anchor=north, text width=12.5cm, align=center] at (5.3, -2.0) {cada grabación va
             a la partición con mayor déficit de la clase; al terminar la clase se pasa a la
             siguiente más rara, sin reasignar lo ya asignado};
@@ -752,9 +796,17 @@ Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
           de más a menos cajas de esa clase, y cada una va a la partición con mayor
           déficit en esa clase; en caso de empate, a la que tenga menos ventanas
           respecto de su objetivo.
-    \item Las grabaciones sin cajas de ninguna clase (las ventanas vacías de la
-          sección~\ref{sec:vacias}) van donde falten ventanas.
+    \item Las grabaciones sin cajas de ninguna clase van donde falten ventanas.
 \end{enumerate}
+
+En el ejemplo de la Figura~\ref{fig:reparto}, la clase más rara aparece en cinco
+grabaciones, con 7, 5, 4, 2 y 1 cajas. Son 19 en total, de modo que los objetivos
+son 11,4 cajas para entrenamiento, 4,3 para validación y 3,3 para prueba. La
+primera grabación va a entrenamiento, la partición con mayor déficit. La segunda
+también, porque a entrenamiento aún le faltan 4,4 cajas, frente a las 4,3 de
+validación. La tercera va a validación y las dos últimas, a prueba. El reparto
+final, 12, 4 y 3 cajas, se acerca a la proporción buscada sin partir ninguna
+grabación.
 
 Recorrer las clases de la más rara a la más común hace que el reparto de las
 escasas se decida primero y no quede como residuo del de las abundantes: una
@@ -781,8 +833,7 @@ tres particiones tras el ventaneo.
         \begin{tablenotes}[flushleft]
             \footnotesize
             \item \textit{Nota.} Hay más cajas que anotaciones porque una anotación puede caer en dos
-            ventanas consecutivas: la ventana de \clipLen{}\,s avanza \clipHop{}\,s
-            (sección~\ref{sec:ventaneo}).
+            ventanas consecutivas: la ventana de \clipLen{}\,s avanza \clipHop{}\,s.
             \item \nUnreadable{} grabación del conjunto de experimento está dañada y no
             puede leerse: no entra al caché aunque tenga anotaciones, y por eso el
             total de grabaciones es menor que las \nRecordingsExperiment{} que aportan

@@ -54,9 +54,9 @@ mano un especialista que conoce el repertorio de cada especie, y es el paso más
 lento de todo el proceso. El problema que aborda esta tesis se enuncia así:
 
 \begin{quote}
-    La anotación de las vocalizaciones de primates neotropicales en grabaciones
-    de monitoreo acústico pasivo exige más tiempo de especialista del que está
-    disponible, y por ello avanza mucho más lento que la recolección del audio.
+    Anotar las vocalizaciones de primates neotropicales en grabaciones de
+    monitoreo acústico pasivo exige más tiempo de especialista del que está
+    disponible.
 \end{quote}
 
 \subsection{El material y su anotación}
@@ -266,7 +266,7 @@ desarrollan cada elemento.
                         execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
                 efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8},
                 causa/.style={nodo, draw=azul!70, fill=azul!8, align=flush left,
-                        minimum height=31mm},
+                        minimum height=37mm},
                 central/.style={nodo, draw=azul!80!black, fill=azul, text=white,
                         text width=124mm, minimum height=17mm},
                 sube/.style={-{Stealth[length=2.2mm]}, thick, draw=ambar!80!black},
@@ -285,23 +285,22 @@ desarrollan cada elemento.
                 llamadas más evidentes};
             % --- problema central ---
             \node[central] (pc) at (0, 5.1)
-            {\textbf{PROBLEMA CENTRAL}\\[2pt] La anotación de vocalizaciones de
-                primates neotropicales en grabaciones de monitoreo acústico pasivo
-                exige más tiempo de especialista del disponible y avanza mucho más
-                lento que la recolección del audio};
+            {\textbf{PROBLEMA CENTRAL}\\[2pt] Anotar las vocalizaciones de primates
+                neotropicales en grabaciones de monitoreo acústico pasivo exige más
+                tiempo de especialista del que está disponible};
             % --- causas ---
             \node[causa, text width=60mm] (c1) at (-3.4, 1.5)
-            {\textbf{C1.} Las únicas anotaciones disponibles tienen ruido, sesgo
-                e inconsistencias\\[3pt]
-                {\scriptsize\textbullet\ grafías y criterios distintos entre anotadores\\
-                    \textbullet\ filas de ruido, cajas inválidas y eventos omitidos\\
-                    \textbullet\ especies desbalanceadas, sin muestreo}};
+            {\textbf{C1.} La anotación manual es inconsistente y exige una
+                segunda pasada del especialista\\[3pt]
+                {\scriptsize\textbullet\ varios anotadores, sin vocabulario común\\
+                    \textbullet\ grafías distintas, ruido y cajas inválidas\\
+                    \textbullet\ fronteras borrosas y eventos omitidos}};
             \node[causa, text width=60mm] (c2) at (3.4, 1.5)
             {\textbf{C2.} Las vocalizaciones son escasas y breves dentro de horas
-                de audio, y encontrarlas exige recorrer la grabación entera\\[3pt]
+                de audio, y encontrarlas a mano exige recorrer la grabación entera\\[3pt]
                 {\scriptsize\textbullet\ especies poco abundantes y crípticas\\
                     \textbullet\ llamadas tenues o enmascaradas\\
-                    \textbullet\ ningún detector cubre estas especies}};
+                    \textbullet\ el costo crece con las horas grabadas}};
             % --- flechas ---
             \draw[nace] (c1.north) -- (c1.north |- pc.south);
             \draw[nace] (c2.north) -- (c2.north |- pc.south);
@@ -311,22 +310,23 @@ desarrollan cada elemento.
             \draw[sube] (e2.north) -- ([xshift=12mm]e3.south);
             \draw[liga] (c1.south) to[out=-28, in=-152]
             node[below, font=\scriptsize, text=azul!80!black, align=center]
-                {sin anotaciones utilizables no puede entrenarse un detector para estas especies}
+                {sin anotaciones consistentes no puede entrenarse un detector para estas especies}
             (c2.south);
             % --- franjas ---
             \draw[ambar!80!black, line width=1pt] (-7.5, 6.9) -- (-7.5, 11.1);
             \node[franja, text=ambar!80!black] at (-7.9, 9.0) {EFECTOS};
             \draw[azul!80!black, line width=1pt] (-7.5, 4.2) -- (-7.5, 6.0);
             \node[franja, text=azul!80!black] at (-7.9, 5.1) {PROBLEMA};
-            \draw[azul!70, line width=1pt] (-7.5, -0.1) -- (-7.5, 3.1);
+            \draw[azul!70, line width=1pt] (-7.5, -0.4) -- (-7.5, 3.4);
             \node[franja, text=azul!70] at (-7.9, 1.5) {CAUSAS};
         \end{tikzpicture}}
 \end{figure}
 
 La figura se lee de abajo hacia arriba. Las dos causas confluyen en el problema
-central: una está en las anotaciones que existen y la otra en el propio audio. La
-primera alimenta además a la segunda, porque sin anotaciones utilizables no puede
-entrenarse un detector que alivie la búsqueda. Del problema salen los efectos, que
+central y parten del mismo hecho, que la anotación es manual: una está en la
+calidad de lo que se anota y la otra en lo que cuesta encontrar qué anotar. La
+primera alimenta además a la segunda, porque sin anotaciones consistentes no
+puede entrenarse un detector que alivie la búsqueda. Del problema salen los efectos, que
 se encadenan hasta uno final sobre la conservación de las especies.
 
 \subsection{Problema central}
@@ -344,10 +344,9 @@ en otros dominios.
 \subsection{Causas}
 \label{sec:causas}
 
-\paragraph{C1: Las únicas anotaciones disponibles tienen ruido, sesgo e
-    inconsistencias}
-Un método automático se construye y se evalúa con ejemplos anotados, y para estas
-especies casi no hay de dónde tomarlos. La Tabla~\ref{tab:xenocanto} lo muestra
+\paragraph{C1: La anotación manual es inconsistente y exige una segunda pasada
+    del especialista}
+Para estas especies no hay anotaciones previas de las que partir. La Tabla~\ref{tab:xenocanto} lo muestra
 para Xeno-canto, el repositorio abierto de sonidos de fauna más utilizado: se buscó
 cada una de las ocho especies por su nombre científico y se contaron las
 grabaciones en que figura en primer plano, es decir, como sujeto principal.
@@ -388,10 +387,10 @@ grabaciones en que figura en primer plano, es decir, como sujeto principal.
 
 En total hay 32 grabaciones y poco más de una hora de audio; tres de las especies
 no tienen ninguna, y ninguna de las grabaciones disponibles incluye anotaciones
-tiempo--frecuencia. El material del equipo de investigación es, por tanto, el único
-conjunto anotado de que se dispone (Tabla~\ref{tab:resumen-dataset}), y sus
-defectos no pueden sortearse recurriendo a otro: hay que corregirlos. Son de tres
-clases.
+tiempo--frecuencia. Toda anotación de estas especies se hace, por tanto, a mano y
+desde cero, y el material del equipo de investigación es el único conjunto
+anotado de que se dispone (Tabla~\ref{tab:resumen-dataset}). La anotación manual
+le deja dos clases de defectos, y las dos devuelven el trabajo al especialista.
 
 \rotulo{Inconsistencias.} El material se anotó a mano, por varias personas y sin
 un vocabulario cerrado, de modo que sus \nRawRows{} cajas llevan
@@ -411,36 +410,41 @@ definiciones varían entre investigadores y sus rasgos cambian de forma graduada
 mientras que los métodos analíticos asumen categorías discretas
 \citep{kershenbaum_acoustic_2016}.
 
-\rotulo{Ruido.} No todas las cajas son ejemplos válidos: hay filas que marcan
-ruido de fondo en lugar de una vocalización, cajas sin duración o sin ancho de
-banda y grabaciones dañadas (sección~\ref{sec:defectos}). La referencia, además,
-es incompleta. Un mismo analista no reproduce sus propias anotaciones
+\rotulo{Errores y omisiones.} No todas las cajas son ejemplos válidos: hay filas
+que marcan ruido de fondo en lugar de una vocalización y cajas sin duración o sin
+ancho de banda (sección~\ref{sec:defectos}). La referencia, además, es
+incompleta. Un mismo analista no reproduce sus propias anotaciones
 \citep{leroy_reliability_2018}, de modo que una vocalización real puede quedar sin
 caja, y la borrosidad de las fronteras de los eventos desplaza las cajas aun
 cuando el evento es el mismo \citep{zhu_sound_2025}. Por eso una predicción que no
 coincide con ninguna caja anotada puede ser un error del detector o una omisión de
 la referencia, y distinguir ambos casos exige el juicio de un especialista.
 
-\rotulo{Sesgo.} Lo anotado no es una muestra equilibrada del paisaje sonoro. Las
-grabaciones se eligieron para anotarlas, no por muestreo, y el desequilibrio entre
-especies que muestra la Tabla~\ref{tab:resumen-dataset} pasa intacto al conjunto
-de datos. Un modelo entrenado con ese material aprende el desequilibrio si nadie
-lo declara ni lo controla. Sin corregir lo corregible y documentar lo demás, no
-hay contra qué aprender ni contra qué medir \citep{koga_lead_2024}.
+C1 conduce al problema central por dos vías. La directa es la segunda pasada.
+Como la anotación se reparte entre anotadores cuyos criterios difieren
+\citep{koga_lead_2024}, lo anotado no se usa tal como sale de la primera pasada:
+un especialista de mayor experiencia lo revisa y rehace las etiquetas o las cajas
+que encuentra mal, y ese tiempo se suma al de la anotación original.
+% PENDIENTE: citar como comunicación personal del equipo (APA 7: solo en el
+% texto) el flujo de revisión por un especialista de mayor experiencia, una vez
+% confirmado con M. Bowler.
+El propio material conserva las huellas de esas diferencias y errores, y el
+Capítulo~\ref{cap:curacion} las cuenta: además de las grafías distintas, hay
+\nSpeciesMismatch{} filas cuya especie escrita contradice la carpeta, \nEmptyCall{} cajas sin tipo de
+llamada y pares que no existen en el repertorio de la especie. Parte de esa
+revisión es mecánica y la resuelve una regla; el resto solo puede decidirlo quien
+conoce el repertorio, y después de aplicar todas las reglas \nReview{}
+anotaciones siguen en esa situación (sección~\ref{sec:protocolo}). Repartir la
+anotación entre más personas, la respuesta habitual a la falta de tiempo
+(sección~\ref{sec:magnitud}), agrava esta vía: el tiempo que se gana en volumen se
+pierde en revisión.
+La indirecta pasa por C2: sin una referencia consistente no hay contra qué
+aprender ni contra qué medir \citep{koga_lead_2024}, de modo que no puede
+entrenarse ni evaluarse un detector que alivie la búsqueda, como indica la flecha
+punteada de la Figura~\ref{fig:problem-tree}.
 
-C1 conduce al problema central por dos vías. La directa es que lo ya anotado no
-puede reutilizarse sin volver a pasar por el especialista: solo quien conoce el
-repertorio puede decidir qué quiso decir una grafía ambigua o si una caja es un
-error. En este material, \nReview{} anotaciones quedan en esa situación después
-de corregir todo lo que admite una regla (sección~\ref{sec:protocolo}). Además,
-repartir la anotación entre más personas, la respuesta habitual a la falta de
-tiempo (sección~\ref{sec:magnitud}), añade criterios que luego hay que
-reconciliar, de modo que el tiempo que se gana en volumen se pierde en revisión.
-La indirecta pasa por C2: sin una referencia consistente no puede entrenarse ni
-evaluarse un detector que alivie la búsqueda, como indica la flecha punteada de la
-Figura~\ref{fig:problem-tree}.
-
-\paragraph{C2: Las vocalizaciones son escasas y breves dentro de horas de audio}
+\paragraph{C2: Las vocalizaciones son escasas y breves dentro de horas de audio,
+    y encontrarlas a mano exige recorrer la grabación entera}
 La segunda causa está en el propio material. Las especies de esta tesis son poco
 abundantes y crípticas (sección~\ref{sec:problema}), y sus vocalizaciones ocupan
 una fracción pequeña de lo grabado: en cinco de las ocho especies, las
@@ -476,23 +480,24 @@ efecto final que se deriva de los dos anteriores, sobre la conservación de las
 especies.
 
 \paragraph{E1: El audio recolectado se acumula sin analizar}
-Cuando el volumen de datos excede con mucho las horas-persona disponibles
+El efecto inmediato es que la anotación avanza más lento que la recolección. Cuando el volumen de datos excede con mucho las horas-persona disponibles
 \citep{stowell_computational_2022}, detectar las señales de interés en los
 paisajes sonoros registrados se convierte en un obstáculo logístico que limita la
 escala de los estudios \citep{Campos_Krofel_Rio-Maior_Renna_2025}. El esfuerzo y
-el gasto del despliegue quedan inmovilizados en material sin procesar, la
-información llega con retraso, y la porción que llega a anotarse responde a la
-disponibilidad del especialista antes que a un criterio de muestreo.
+el gasto del despliegue quedan inmovilizados en material sin procesar, y la
+información llega con retraso.
 
 \paragraph{E2: El análisis se limita a pocas especies y a sus llamadas más
     evidentes}
-Lo que sí se analiza tiende a ser lo más fácil de encontrar. Los estudios de PAM
-con detección automática en primates se concentran en una especie y en su
-vocalización más larga y potente, el aullido de los monos aulladores, cuyo buen
-resultado sus propios autores atribuyen a esas características
-\citep{perez-granados_passive_2021}. El resto del repertorio, con sus llamadas de
-contacto y de alarma, y las especies menos vocales quedan fuera del análisis, y con ellos la información que el PAM podía aportar
-sobre el comportamiento de cada especie.
+Con el tiempo de especialista como límite, se analiza primero lo que se encuentra
+rápido: las llamadas largas y potentes, y las especies que más vocalizan. El resto
+del repertorio, con sus llamadas de contacto y de alarma, y las especies menos
+vocales quedan relegadas, y con ellos la información que el PAM podía aportar
+sobre el comportamiento de cada especie. El material de esta tesis muestra ese
+reparto, aunque en él pese también la duración de cada llamada
+(sección~\ref{sec:dominio}): el aullido del mono aullador ocupa más de la mitad de
+los minutos anotados, y del capuchino de cabeza chata hay siete grabaciones
+anotadas (Tabla~\ref{tab:resumen-dataset}).
 
 \paragraph{E3: La conservación decide con información tardía o incompleta}
 Efecto final, derivado de E1 y E2. Cuando el análisis no acompaña a la
@@ -661,8 +666,8 @@ etapas se formula a continuación como un objetivo.
 % qué significa cada uno, a qué causa del árbol responde y cómo contribuye.
 
 Los objetivos convierten el árbol de problemas en un plan de trabajo: el objetivo
-general responde al problema central; OE1 y OE2, a una causa cada uno, y OE3 mide
-el efecto sobre el problema central.
+general responde al problema central; OE1 y OE2, a una causa cada uno, y OE3
+evalúa si el sistema reduce el problema central.
 
 \subsection{Objetivo general}
 
@@ -723,19 +728,21 @@ OE2 es el sistema cuyo efecto sobre el trabajo del especialista mide OE3.
           de predicciones.
 \end{description}
 
-Los dos primeros responden a una causa del árbol cada uno; el tercero, al
-problema central. Su propósito se entiende desde ese vínculo.
+El objetivo general tiene dos verbos, desarrollar y evaluar, y los objetivos
+específicos los reparten: OE1 y OE2 desarrollan el sistema, y cada uno responde a
+una causa del árbol; OE3 lo evalúa. Su propósito se entiende desde ese vínculo.
 
 \rotulo{OE1 frente a C1.} Un detector solo puede aprender y evaluarse contra
-anotaciones que sigan un criterio único, y las únicas disponibles tienen ruido,
-sesgo e inconsistencias (causa C1). Un \emph{protocolo de curación y
+anotaciones que sigan un criterio único, y la anotación manual no lo garantiza
+(causa C1). Un \emph{protocolo de curación y
     estandarización} es un conjunto documentado de reglas que corrige lo
 corregible sin volver a anotar el audio: unifica la escritura de las etiquetas
 sobre un vocabulario cerrado de pares de especie y tipo de llamada, descarta el
 ruido y las cajas inválidas y deja registro de cada decisión. Lo que no puede
 corregirse, como el desacuerdo de criterio entre anotadores o el desbalance entre
-especies, lo separa y lo deja documentado. Aplicarlo produce el conjunto de datos
-sobre el que trabajan OE2 y OE3.
+especies, lo separa y lo deja documentado, de modo que la segunda pasada del
+especialista se limita a lo que ninguna regla puede decidir. Aplicarlo produce el
+conjunto de datos sobre el que trabajan OE2 y OE3.
 
 \rotulo{OE2 frente a C2.} El detector ataca la búsqueda que describe la causa C2:
 en lugar de recorrer la grabación entera, el especialista revisa las propuestas
@@ -748,14 +755,16 @@ que permite ordenarlas o filtrarlas. Compararlo con una \emph{línea base
 entrenado y medido sobre los mismos datos, es lo que permite saber si la
 arquitectura propuesta aporta algo frente a lo que ya existe.
 
-\rotulo{OE3 frente al problema central.} OE3 no responde a una causa: mide si la
-propuesta reduce la magnitud que define el problema, el tiempo de especialista.
+\rotulo{OE3 frente al objetivo general.} OE3 no responde a una causa: es el
+\emph{evaluar} del objetivo general, y mide si el sistema reduce la magnitud que
+define el problema, el tiempo de especialista.
 Cronometra la revisión del mismo tipo de material con y sin las propuestas del
 detector, el ahorro que la literatura ha medido para detectar una especie pero no
 para la anotación completa (sección~\ref{sec:vacio}). Y vuelve sobre la causa C1:
-someter una muestra de predicciones al juicio de un especialista distingue los
-errores genuinos de las vocalizaciones que la referencia omitió, de modo que mide
-también la calidad de las anotaciones. Es el objetivo que responde, con una
+someter una muestra de predicciones al juicio de un especialista, la misma
+segunda pasada que C1 describe, distingue los errores genuinos de las
+vocalizaciones que la referencia omitió, de modo que mide también la calidad de
+las anotaciones. Es el objetivo que responde, con una
 cifra, si el sistema cumple el objetivo general.
 
 % ===================================================================
@@ -1081,9 +1090,9 @@ resume para que pueda leerse de un vistazo.
         \toprule
         \textbf{Elemento del árbol} & \textbf{Objetivo} & \textbf{Resultados} & \textbf{Aporte} \\
         \midrule
-        C1: las anotaciones tienen ruido, sesgo e inconsistencias & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado \\
+        C1: la anotación manual es inconsistente y exige una segunda pasada & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado \\
         \addlinespace
-        C2: las vocalizaciones son escasas y breves en horas de audio & OE2 & RE2.1 a RE2.5 & Detector que propone cajas con especie, tipo de llamada y confianza, en el formato de Raven \\
+        C2: las vocalizaciones son escasas y breves, y encontrarlas a mano exige recorrer la grabación & OE2 & RE2.1 a RE2.5 & Detector que propone cajas con especie, tipo de llamada y confianza, en el formato de Raven \\
         \addlinespace
         Problema central (magnitud) y C1 (calidad de la referencia) & OE3 & RE3.1 a RE3.3 & Tiempo de revisión manual frente a asistido, y errores clasificados por un especialista \\
         \midrule
