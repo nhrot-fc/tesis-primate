@@ -66,3 +66,7 @@ docs/manual/build/*
 
 # Copias de decisiones de curación apartadas por el notebook al reiniciar
 curation/*.bak
+
+# Auxiliares de la compilación (el Makefile copia el PDF a research/build/main.pdf)
+research/build/aux/
+research/build/medios_verificacion.zip

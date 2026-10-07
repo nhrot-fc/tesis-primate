@@ -1,0 +1,70 @@
+\chapter{Medios de Verificación}
+\label{anx:medios}
+
+Los capítulos de resultados contrastan cada indicador objetivamente verificable de
+las Tablas~\ref{tab:iov-oe1}, \ref{tab:iov-oe2} y~\ref{tab:iov-oe3} con el texto,
+las tablas y las figuras del documento. Una parte de la evidencia, sin embargo, no
+cabe en un documento: los metadatos del conjunto, la configuración de cada
+entrenamiento, los archivos de métricas o la tabla que produce la inferencia. Este
+anexo describe la carpeta que la reúne.
+
+La carpeta se entrega junto con este documento, como el archivo
+\file{medios\_\allowbreak verificacion.zip}, y está publicada en la carpeta
+\file{research/\allowbreak medios\_\allowbreak verificacion/} del repositorio del
+proyecto.\footnote{\url{\rRepoUrl/tree/main/research/medios_verificacion}} Se organiza por capítulo
+y, dentro de cada capítulo, por resultado esperado. La carpeta de cada resultado
+tiene un \file{README.md} con tres partes: el medio de verificación y el indicador,
+copiados literalmente; la sección del documento que desarrolla el resultado; y una
+tabla que lleva cada elemento del indicador al archivo que lo comprueba. La
+Tabla~\ref{tab:medios} resume el contenido de las once carpetas.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Contenido de la carpeta de medios de verificación}
+    \label{tab:medios}
+    \footnotesize
+    \begin{tabular}{@{}lL{3.0cm}L{4.4cm}L{4.5cm}@{}}
+        \toprule
+        \textbf{RE} & \textbf{Carpeta} & \textbf{Archivos} & \textbf{Qué comprueban} \\
+        \midrule
+        RE1.1 & \file{04\_oe1\_curacion/\allowbreak RE1.1} & \file{sinonimos.csv}, \file{correcciones\_pares.csv}, \file{vocabulario.csv} & Las reglas del protocolo tal como las aplica el código, y cuántas filas toca cada una \\
+        \addlinespace
+        RE1.2 & \file{04\_oe1\_curacion/\allowbreak RE1.2} & \file{meta.json}, \file{labels.json}, listas de grabaciones por partición, \file{registro\_de\_carga.txt} & Que el caché carga sin error, qué registra \file{meta.json} y que la partición es por grabación \\
+        \addlinespace
+        RE1.3 & \file{04\_oe1\_curacion/\allowbreak RE1.3} & \file{README.md} & La ficha completa, ordenada según los nueve elementos del indicador \\
+        \addlinespace
+        RE2.1 & \file{05\_oe2\_detector/\allowbreak RE2.1} & \file{configuraciones/} & La configuración de las cuatro corridas comparadas \\
+        \addlinespace
+        RE2.2 & \file{05\_oe2\_detector/\allowbreak RE2.2} & \file{registros/} & Los puntos de entrada del \textit{pipeline} y el registro de cada entrenamiento \\
+        \addlinespace
+        RE2.3 & \file{05\_oe2\_detector/\allowbreak RE2.3} & \file{comparacion\_\allowbreak modelos\_\allowbreak v3.txt} y su \file{.json}, \file{punto\_de\_operacion/}, \file{matriz\_confusion.png} & Las métricas de la comparación y el umbral de cada modelo \\
+        \addlinespace
+        RE2.4 & \file{05\_oe2\_detector/\allowbreak RE2.4} & \file{verificacion\_carga.txt}, \file{SHA256\_checkpoint.txt}, \file{operating\_point.json}, tabla de salida y transcripción & Que el \textit{checkpoint} carga sin claves incompatibles y que la inferencia produce la tabla de Raven \\
+        \addlinespace
+        RE2.5 & \file{05\_oe2\_detector/\allowbreak RE2.5} & \file{README.md} & El índice del repositorio y de su versión v0.2.0 \\
+        \addlinespace
+        RE3.1--RE3.3 & \file{06\_oe3\_utilidad} & \file{README.md} & Lo que contendrá cada carpeta en el entregable final \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Los ocho resultados de OE1 y OE2 tienen ya su evidencia en la carpeta. Los tres de
+OE3 la tendrán en el entregable final, como establece el cronograma
+(Tabla~\ref{tab:cronograma}), y su carpeta adelanta qué contendrá. Dos carpetas
+contienen lo que el documento no puede sustituir: la de RE1.2 da acceso a los
+metadatos de un conjunto que no se publica, y la de RE1.3 es el \file{README} que
+nombra el medio de verificación de la ficha.
+
+\rotulo{Lo que la carpeta no contiene.} Las grabaciones, las tablas de Raven y el
+caché de ventanas. Las dos primeras pertenecen al equipo de investigación, y el
+caché son espectrogramas de esas mismas grabaciones. En su lugar están sus
+metadatos y el registro de su carga, que son lo que el indicador de RE1.2 pide
+comprobar. El \textit{checkpoint} del modelo final, que no cabe en el repositorio,
+está en su versión v0.2.0, con su suma SHA-256.
+
+\rotulo{Cómo se genera.} Ninguna cifra de la carpeta se transcribe a mano. Un
+programa del repositorio, \file{research/\allowbreak medios\_\allowbreak verificacion/\allowbreak generar.py},
+la construye a partir de los mismos archivos de los que salen las tablas de los
+Capítulos~\ref{cap:curacion} y~\ref{cap:deteccion}: las cifras que dejan sus
+cuadernos, los archivos de las corridas y las constantes del código de curación.
+Por eso las cifras de la carpeta y las del documento coinciden.

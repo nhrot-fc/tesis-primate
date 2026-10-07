@@ -24,17 +24,15 @@ entrenamiento, evaluación e inferencia (RE2.2, sección~\ref{sec:re22}), el
 informe comparativo de resultados (RE2.3, sección~\ref{sec:re23}), el modelo
 final cargable y su demostración (RE2.4, sección~\ref{sec:re24}) y la
 publicación del código y del modelo (RE2.5, sección~\ref{sec:re25}). Cada
-sección describe el resultado, cómo se alcanzó con los métodos y procedimientos
-del Capítulo~\ref{cap:generalidades}, cómo reproducirlo, y la verificación y las
-mediciones con que se comprueba su indicador. La sección~\ref{sec:discusion-oe2}
-discute los cinco en conjunto.
+sección sigue la estructura del Capítulo~\ref{cap:curacion}: el resultado, cómo
+se alcanzó, cómo reproducirlo y la verificación de su indicador. La
+sección~\ref{sec:discusion-oe2} discute los cinco en conjunto.
 
 El conjunto sobre el que se entrena y se mide es el que produce el
 Capítulo~\ref{cap:curacion}: \nWindowsTrain{} ventanas de entrenamiento,
 \nWindowsVal{} de validación y \nWindowsTest{} de prueba, repartidas por
 grabación y con \nClasses{} clases de especie y tipo de llamada. El costo de
-revisión que genera el modelo elegido aquí se mide en el
-Capítulo~\ref{cap:utilidad}.
+revisión que genera el modelo elegido aquí es materia de OE3.
 
 % ===================================================================
 \section{Diseño experimental, arquitectura propuesta y líneas base (RE2.1)}
@@ -48,27 +46,39 @@ dimensión \mDim{}, \mQueries{} consultas y \mLevels{} niveles, implementada en
 se compara, las recetas de entrenamiento y el protocolo de comparación con su
 regla de decisión fijada antes de correr el experimento.
 
-\rotulo{Cómo se alcanzó.} Partiendo de la formulación como detección de objetos
-sobre el espectrograma (sección~\ref{sec:objetos}) y de la representación que
-fija el Capítulo~\ref{cap:curacion}: el modelo recibe exactamente el tensor que
+\rotulo{Cómo se alcanzó.} Aplicando la Fase~4 de CRISP-DM
+(sección~\ref{sec:fase4}), que fija la forma de la salida, las configuraciones
+que se comparan y la regla de decisión antes de entrenar. El punto de partida es
+la formulación como detección de objetos sobre el espectrograma
+(sección~\ref{sec:objetos}) y la representación que fija el
+Capítulo~\ref{cap:curacion}: el modelo recibe exactamente el tensor que
 el caché almacena y devuelve cajas en el mismo marco normalizado en el que se
 anotaron. Las tres decisiones que lo separan de un detector de imágenes estándar
 (extractor preentrenado en audio, pirámide sobre una rejilla de tokens sin
 jerarquía y cabeza de predicción de conjuntos) responden cada una a una
 propiedad del material documentada en el capítulo anterior.
 
-\rotulo{Medio de verificación.} Esta sección y el módulo de arquitecturas
-\file{src/models/}; la sección~\ref{sec:verificacion-re21} contrasta cada
-elemento del indicador con el código.
+\rotulo{Cómo reproducirlo.} \file{src/train.py} instancia la propuesta o
+cualquiera de las líneas base según la arquitectura que se le indique, con la
+receta de entrenamiento que fija esta sección, y copia la configuración completa al
+\file{config.json} de la corrida. Así, cada modelo de este capítulo se vuelve a
+construir con los mismos hiperparámetros.
+
+\rotulo{Medio de verificación.} Esta sección, que es el documento de diseño, y el
+módulo de arquitecturas \file{src/models/} del repositorio del proyecto
+(\url{\rRepoUrl}), en el \textit{commit} \rCommit{}; la
+sección~\ref{sec:verificacion-re21} contrasta cada elemento del indicador con el
+código. La configuración completa de las cuatro corridas comparadas está en la
+carpeta RE2.1 de los medios de verificación (Anexo~\ref{anx:medios}).
 
 \subsection{La tarea}
 
-La entrada es una ventana de \clipLen{}\,s convertida en espectrograma mel de
+La tarea es la del nivel de ventana de la sección~\ref{sec:formulacion}. La
+entrada es una ventana de \clipLen{}\,s convertida en espectrograma mel de
 potencia $X \in \mathbb{R}^{1 \times \nMels \times \nFrames}$
-(sección~\ref{sec:representacion}). La salida es un \emph{conjunto} de
-detecciones $\{(b_k, c_k, s_k)\}$, cada una con una caja
-$b_k = (c_x, c_y, w, h) \in [0,1]^4$ en el marco normalizado de la ventana, una
-clase $c_k$ entre las \nClasses{} posibles y una confianza $s_k \in [0,1]$.
+(sección~\ref{sec:representacion}), y la salida, el conjunto de la
+ecuación~\eqref{eq:modelo}: cajas en el marco normalizado de la ventana, cada una
+con una de las \nClasses{} clases y una confianza.
 
 La formulación separa tres preguntas, y el protocolo de la
 sección~\ref{sec:protocolo-oe2} las puntúa por separado: si la llamada se
@@ -80,38 +90,15 @@ del capítulo, dónde está el error.
 \subsection{Arquitectura propuesta: AST-Deformable-DETR}
 
 La Figura~\ref{fig:arquitectura} recorre el modelo de la entrada a la salida.
-Tres decisiones lo definen.
-
-\rotulo{Un extractor preentrenado en audio, no en imágenes.} El AST
-(\emph{Audio Spectrogram Transformer}) preentrenado en AudioSet
-(\mAstCheckpoint{}) sustituye al \textit{backbone} convolucional de imágenes que
-traen los detectores estándar. La brecha de modalidad entre imagen y audio
-justifica esa sustitución \citep{zhu_sound_2025}: las estadísticas de un
-espectrograma (ejes asimétricos, sin invariancia a la traslación en
-frecuencia) no son las de una fotografía.
-
-\rotulo{Una pirámide multiescala sobre los tokens.} El AST produce una única
-rejilla de $\mTokensFreq \times \mTokensTime$ tokens, es decir, una sola escala,
-mientras que la duración mediana de las clases va de \mShortestClassMs{}\,ms
-(\mShortestClass{}) a \mLongestClassS{}\,s (\mLongestClass{}), un rango de más de
-dos órdenes de magnitud (sección~\ref{sec:geometria}). La pirámide corrige que
-las arquitecturas de tipo ViT produzcan representaciones de escala única
-\citep{zhu_sound_2025}, siguiendo la receta de ViTDet: deconvoluciones y una
-convolución con paso 2 sobre el mismo mapa.
-
-\rotulo{Un decodificador deformable de predicción de conjuntos.} La cabeza es el
-decodificador de Deformable DETR \citep{zhu_deformable_2021}: \mQueries{}
-consultas aprendidas atienden a unos pocos puntos muestreados alrededor de una
-caja de referencia, en los \mLevels{} niveles, y refinan la caja capa a capa. No
-hay anclas, y el emparejamiento húngaro durante el entrenamiento fuerza una
-predicción por evento.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Arquitectura propuesta}
+    \label{fig:arquitectura}
     \resizebox{\textwidth}{!}{%
         \begin{tikzpicture}[node distance=4mm and 6mm, every node/.style={font=\footnotesize}]
             \node[dato] (mel) {mel\\$1 \times \nMels \times \nFrames$};
-            \node[etapa, right=of mel] (fe) {front-end\\log-mel $|$ PCEN};
+            \node[etapa, right=of mel] (fe) {compresión\\log-mel};
             \node[etapa, right=of fe] (bn) {BatchNorm\\$\cdot\,1/2$};
             \node[etapa, right=of bn, fill=celeste!15, draw=celeste!60!black] (ast)
             {AST\\parches $16 \times 16$\\paso $10 \times \mTimeStride$\\\mAstLayers{} capas, \mHidden-d};
@@ -133,21 +120,41 @@ predicción por evento.
             \node[nota, above=1mm of ast] {preentrenado en AudioSet, se afina entero};
             \node[nota, below=1mm of dec] {desde cero, o preentrenado con aves};
         \end{tikzpicture}}
-    \caption{Arquitectura propuesta}
-    \label{fig:arquitectura}
 \end{figure}
 
-\subsubsection{Front-end y normalización de entrada}
+El mel entra por la izquierda, atraviesa el extractor y vuelve, en la fila
+inferior, como \mQueries{} propuestas de caja con sus logits de clase. Tres
+decisiones definen ese recorrido.
 
-El caché guarda el mel de potencia sin comprimir y la primera capa del modelo
-decide cómo comprimirlo. Hay tres opciones intercambiables
-(\code{--hp frontend=\allowbreak none|\allowbreak logmel|\allowbreak pcen}): la
-identidad, la compresión logarítmica
-$\log(\mathrm{mel} + 10^{-6})$ y una normalización de energía por canal (PCEN)
-con sus cuatro parámetros ($s$, $\alpha$, $\delta$, $r$) aprendibles por banda.
-PCEN es una ganancia automática que aplana el fondo y realza los transitorios, y
-tiene precedente en bioacústica como alternativa robusta al log-mel
-\citep{lostanlen_robust_2019}.
+\rotulo{Un extractor preentrenado en audio, no en imágenes.} El AST
+(\emph{Audio Spectrogram Transformer}) preentrenado en AudioSet
+(\mAstCheckpoint{}) sustituye al \textit{backbone} convolucional de imágenes que
+traen los detectores estándar. La brecha de modalidad entre imagen y audio
+justifica esa sustitución \citep{zhu_sound_2025}: las estadísticas de un
+espectrograma (ejes asimétricos, sin invariancia a la traslación en
+frecuencia) no son las de una fotografía.
+
+\rotulo{Una pirámide multiescala sobre los tokens.} El AST produce una única
+rejilla de $\mTokensFreq \times \mTokensTime$ tokens, es decir, una sola escala,
+mientras que la duración mediana de las clases va de \mShortestClassMs{}\,ms
+(\mShortestClass{}) a \mLongestClassS{}\,s (\mLongestClass{}), un rango de más de
+dos órdenes de magnitud (sección~\ref{sec:geometria}). La pirámide corrige que
+las arquitecturas de tipo \textit{Vision Transformer} (ViT) produzcan representaciones de escala única
+\citep{zhu_sound_2025}, siguiendo la receta de ViTDet: deconvoluciones y una
+convolución con paso 2 sobre el mismo mapa.
+
+\rotulo{Un decodificador deformable de predicción de conjuntos.} La cabeza es el
+decodificador de Deformable DETR \citep{zhu_deformable_2021}: \mQueries{}
+consultas aprendidas atienden a unos pocos puntos muestreados alrededor de una
+caja de referencia, en los \mLevels{} niveles, y refinan la caja capa a capa. No
+hay anclas, y el emparejamiento húngaro durante el entrenamiento fuerza una
+predicción por evento.
+
+\subsubsection{Compresión y normalización de entrada}
+
+El caché guarda el mel de potencia sin comprimir, y la primera capa del modelo lo
+comprime con $\log(\mathrm{mel} + 10^{-6})$: el log-mel, la representación sobre
+la que se preentrenó el AST (sección~\ref{sec:frontends}).
 A continuación, una \code{BatchNorm2d} sin parámetros afines lleva la entrada a
 media 0 y varianza 1 por lote, y se divide entre 2: es el rango con el que el AST
 se preentrenó. La corrida que se compara en la sección~\ref{sec:re23} usa
@@ -169,17 +176,12 @@ pone a la altura de las líneas base.
 
 Los tokens se proyectan de \mHidden{} a \mDim{} dimensiones y se reordenan como
 un mapa $\mTokensFreq \times \mTokensTime$. Sobre ese mapa, cuatro ramas producen
-los \mLevels{} niveles de la Figura~\ref{fig:piramide}, cuyo tamaño de celda
-recoge la Tabla~\ref{tab:niveles}. El nivel más fino resuelve
-\mCellZero{}\,ms por celda, por debajo de la mediana de la clase más corta
-(\mShortestClass{}, \mShortestClassMs{}\,ms); el más grueso, \mCellThree{}\,ms,
-del orden de las sílabas largas. La Figura~\ref{fig:duraciones} sitúa las
-\nClasses{} clases frente a esas cuatro resoluciones y frente a la ventana: sólo
-\mClassesOverWindow{} clases (las dos de ventana) tienen una duración mediana
-mayor que la propia ventana de \clipLen{}\,s.
+los \mLevels{} niveles de la Figura~\ref{fig:piramide}.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Pirámide multiescala}
+    \label{fig:piramide}
     \begin{tikzpicture}[x=0.40mm, y=0.40mm, every node/.style={font=\footnotesize}]
         \draw[fill=black!8, draw=black!60] (150, 95) rectangle (182, 107);
         \node[anchor=south] at (166, 108)
@@ -201,9 +203,12 @@ mayor que la propia ventana de \clipLen{}\,s.
         \draw[flecha] (172, 95) -- (252, 14) node[pos=0.5, above right, nota] {identidad};
         \draw[flecha] (180, 95) -- (298, 8) node[pos=0.55, above right, nota] {conv paso 2};
     \end{tikzpicture}
-    \caption{Pirámide multiescala}
-    \label{fig:piramide}
 \end{figure}
+
+Cada rama cambia la resolución del mismo mapa: dos deconvoluciones la
+cuadruplican, una la duplica, la identidad la conserva y una convolución con
+paso~2 la reduce a la mitad. La Tabla~\ref{tab:niveles} recoge el tamaño de celda
+de cada nivel.
 
 \begin{table}[htbp]
     \centering
@@ -219,8 +224,16 @@ mayor que la propia ventana de \clipLen{}\,s.
     \end{tabular}
 \end{table}
 
+El nivel más fino resuelve \mCellZero{}\,ms por celda, por debajo de la mediana
+de la clase más corta (\mShortestClass{}, \mShortestClassMs{}\,ms); el más grueso,
+\mCellThree{}\,ms, es del orden de las sílabas largas. La
+Figura~\ref{fig:duraciones} sitúa las \nClasses{} clases frente a esas cuatro
+resoluciones y frente a la ventana.
+
 \begin{figure}[htbp]
     \centering
+    \caption{Duración de las clases frente a la pirámide}
+    \label{fig:duraciones}
     \begin{tikzpicture}
         \begin{axis}[
                 width=0.92\textwidth, height=11cm,
@@ -252,9 +265,11 @@ mayor que la propia ventana de \clipLen{}\,s.
             node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {ventana (\clipLen{}\,s)};
         \end{axis}
     \end{tikzpicture}
-    \caption{Duración de las clases frente a la pirámide}
-    \label{fig:duraciones}
 \end{figure}
+
+Las líneas punteadas son las cuatro resoluciones y la ventana. Las duraciones
+medianas de casi todas las clases caen entre la resolución más fina y la ventana,
+y solo \mClassesOverWindow{} clases (las dos de ventana) la superan.
 
 \subsubsection{Decodificador deformable}
 
@@ -282,7 +297,7 @@ capa ocurre lo siguiente:
           escalas sin elegir una.
     \item \textbf{FFN} y normalización residual.
     \item \textbf{Cabezas por capa.} Una cabeza lineal produce los \nClasses{}
-          logits de clase y un MLP de tres capas produce un delta de caja que se
+          logits de clase y un perceptrón multicapa (MLP) de tres capas produce un delta de caja que se
           suma, en el espacio logit, a la caja de referencia; la caja refinada es
           la referencia de la capa siguiente, sin gradiente entre capas. Cada capa
           se supervisa por separado (pérdidas auxiliares).
@@ -292,6 +307,8 @@ capa ocurre lo siguiente:
     \centering
     \begin{minipage}[t]{0.47\textwidth}
         \centering
+        \captionof{figure}{Una capa del decodificador}
+        \label{fig:decoder}
         \resizebox{\textwidth}{!}{%
             \begin{tikzpicture}[node distance=2.4mm and 6mm, every node/.style={font=\footnotesize}]
                 \node[dato] (q) {consultas $q$ ($\mQueries \times \mDim$)};
@@ -318,11 +335,11 @@ capa ocurre lo siguiente:
                 node[pos=0.25, right, nota, align=left] {referencia de la\\capa siguiente};
                 \node[nota, below=1mm of ref] {$\times$ \mDecoderLayers{} capas, cada una supervisada};
             \end{tikzpicture}}
-        \captionof{figure}{Una capa del decodificador}
-        \label{fig:decoder}
     \end{minipage}\hfill
     \begin{minipage}[t]{0.49\textwidth}
         \centering
+        \captionof{figure}{Muestreo deformable de una cabeza sobre un nivel}
+        \label{fig:deformable}
         \resizebox{\textwidth}{!}{%
             \begin{tikzpicture}[x=7mm, y=7mm, every node/.style={font=\footnotesize}]
                 \draw[step=7mm, black!15] (0, 0) grid (12, 6);
@@ -346,10 +363,12 @@ capa ocurre lo siguiente:
                     \mLevels{} niveles y los pesos se normalizan sobre los
                     $\mLevels \times \mPoints$ puntos.};
             \end{tikzpicture}}
-        \captionof{figure}{Muestreo deformable de una cabeza sobre un nivel}
-        \label{fig:deformable}
     \end{minipage}
 \end{figure}
+
+La figura de la izquierda resume una capa; la de la derecha, el paso que la hace
+eficiente: cada consulta lee solo \mPoints{} puntos por nivel alrededor de su caja,
+en lugar de todas las celdas de los cuatro mapas.
 
 \subsubsection{Emparejamiento y pérdida}
 
@@ -362,7 +381,8 @@ uno a uno con el algoritmo húngaro sobre una matriz de costo
     - \mCostIou\, \mathrm{GIoU}(b_k, b_j),
 \]
 donde el costo de clase es la pérdida focal positiva menos la negativa que se
-ahorra \citep{zhu_deformable_2021}. Sobre los pares emparejados se calcula la
+ahorra \citep{zhu_deformable_2021} y GIoU es el IoU generalizado, que sigue
+dando señal cuando las cajas no se solapan. Sobre los pares emparejados se calcula la
 pérdida
 \[
     \mathcal{L} = \mWeightClass\, \mathcal{L}_{\text{focal}}
@@ -380,6 +400,8 @@ para que al inicio casi ninguna consulta dispare.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Emparejamiento húngaro}
+    \label{fig:matching}
     \resizebox{\textwidth}{!}{%
     \begin{tikzpicture}[node distance=3mm and 5mm, every node/.style={font=\footnotesize}]
         \node[dato] (pred) at (0, 0.8) {\mQueries{} predicciones $(p_k, b_k)$};
@@ -394,9 +416,10 @@ para que al inicio casi ninguna consulta dispare.
         \draw[flecha] (cost) -- (hung);
         \draw[flecha] (hung) -- (loss);
     \end{tikzpicture}}
-    \caption{Emparejamiento húngaro}
-    \label{fig:matching}
 \end{figure}
+
+De las \mQueries{} predicciones, solo las $n$ emparejadas con una anotación reciben
+las tres pérdidas; las demás aprenden a no disparar.
 
 \subsubsection{Inferencia}
 
@@ -426,11 +449,7 @@ dependen del número de clases) y sigue la receta de la propuesta.
 \subsubsection{Hiperparámetros y tamaño}
 
 La Tabla~\ref{tab:hiperparametros} reúne los hiperparámetros tal como los declara
-el código y la Tabla~\ref{tab:bloques} cuánto pesa cada bloque. El reparto
-importa para leer la comparación: el extractor concentra el
-\mParamsBackbonePct{} de los \mParams{}\,M de parámetros y la cabeza completa
-cabe en \mParamsHead{}\,M. Cambiar el número de clases o ensanchar la cabeza
-cuesta poco; lo que cuesta (en memoria y en tiempo) es afinar el AST.
+el código.
 
 \begin{table}[htbp]
     \centering
@@ -454,12 +473,17 @@ cuesta poco; lo que cuesta (en memoria y en tiempo) es afinar el AST.
             Costos de emparejamiento (clase, $L_1$, GIoU) & \mCostClass{}, \mCostBbox{}, \mCostIou{} & \citet{zhu_deformable_2021} \\
             Pesos de la pérdida (clase, $L_1$, GIoU) & \mWeightClass{}, \mCostBbox{}, \mCostIou{} & La clase pesa el doble al asignar que al entrenar \\
             Prior de las cabezas de clase & \mPrior{} & Casi nada dispara al inicio \\
-            Front-end & \mFrontend{} & PCEN queda como ablación \\
+            Compresión de entrada & \mFrontend{} & La del preentrenamiento del AST \\
             NMS por clase & IoU \mNmsIou{} & El mismo posprocesado que las líneas base \\
             \bottomrule
         \end{tabular}
     \end{threeparttable}
 \end{table}
+
+La mayoría replica los valores de Deformable DETR; los que se ajustaron a este
+material son el paso temporal del parcheo, la dimensión de la cabeza, los niveles
+y las consultas, cada uno con su motivo. La Tabla~\ref{tab:bloques} muestra cuánto
+pesa cada bloque.
 
 \begin{table}[htbp]
     \centering
@@ -476,12 +500,16 @@ cuesta poco; lo que cuesta (en memoria y en tiempo) es afinar el AST.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item El front-end no aparece con parámetros porque la configuración
-            comparada usa \mFrontend{}, que no tiene ninguno; con PCEN añadiría
-            cuatro por banda mel.
+            \item \textit{Nota.} La compresión de entrada no aparece con parámetros
+            porque el log-mel no tiene ninguno.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
+
+El reparto importa para leer la comparación: el extractor concentra el
+\mParamsBackbonePct{} de los \mParams{}\,M de parámetros y la cabeza completa cabe
+en \mParamsHead{}\,M. Cambiar el número de clases o ensanchar la cabeza cuesta
+poco; lo que cuesta, en memoria y en tiempo, es afinar el AST.
 
 \subsection{Líneas base}
 \label{sec:baselines}
@@ -494,7 +522,8 @@ protocolo con la propuesta.
 
 \begin{description}
     \item[Faster R-CNN R50-FPN v2.] El detector de dos etapas de referencia, con
-        \textit{backbone} ResNet-50 y pirámide FPN preentrenados en COCO; el mel
+        \textit{backbone} ResNet-50 y pirámide de características (FPN,
+        \textit{Feature Pyramid Network}) preentrenados en COCO; el mel
         se reescala a $512 \times 1024$ píxeles y se replica en tres canales. Se
         adaptan las razones de aspecto de las anclas porque las cajas de llamadas
         van de muy anchas a muy altas, lejos de las razones de los objetos de
@@ -520,10 +549,12 @@ protocolo con la propuesta.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Líneas base}
+    \label{fig:baselines}
     \resizebox{\textwidth}{!}{%
         \begin{tikzpicture}[node distance=3mm and 6mm, every node/.style={font=\footnotesize}]
             \node[dato] (mel) {mel del caché\\$1 \times \nMels \times \nFrames$};
-            \node[etapa, right=of mel, yshift=20mm] (i1) {dB $\to [0,1]$, 3 canales\\$512 \times 1024$};
+            \node[etapa, right=of mel, yshift=20mm] (i1) {dB $\to [0, 1]$, 3 canales\\$512 \times 1024$};
             \node[etapa, right=of mel] (i2) {dB $\to$ gris\\$512 \times 512$};
             \node[etapa, right=of mel, yshift=-20mm] (i3) {dB $\to$ gris\\$512 \times 512$};
             \node[etapa, right=of i1, fill=ambar!15, draw=ambar!80!black] (m1)
@@ -543,9 +574,12 @@ protocolo con la propuesta.
             \draw[flecha] (m2) -- (out);
             \draw[flecha] (m3) -- (out);
         \end{tikzpicture}}
-    \caption{Líneas base}
-    \label{fig:baselines}
 \end{figure}
+
+Las tres líneas base comparten la entrada, el mel del caché pintado como imagen de
+distinto tamaño, y la forma de la salida; difieren en el detector. La
+Tabla~\ref{tab:configuraciones} reúne las cuatro configuraciones de la
+comparación, la propuesta y las tres líneas base.
 
 \begin{table}[htbp]
     \centering
@@ -562,13 +596,16 @@ protocolo con la propuesta.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Parámetros según el registro de cada corrida. En la propuesta
+            \item \textit{Nota.} Parámetros según el registro de cada corrida. En la propuesta
             y en las dos de Ultralytics se entrena todo; en Faster R-CNN, el
             tallo y las dos primeras etapas del ResNet quedan congelados
             (\cTrainableFrc{}\,M entrenables de \cParamsFrc{}\,M).
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
+
+Las cuatro difieren en extractor, tamaño y preentrenamiento, y la última columna
+dice qué variable controla cada línea base frente a la propuesta.
 
 \subsection{Diseño experimental}
 
@@ -582,7 +619,7 @@ temporal y pegado de llamadas de otras ventanas, además de un \textit{jitter} d
 las cajas objetivo. Los dos modelos de Ultralytics se entrenan con su propia
 herramienta y sus aumentaciones de imagen, restringidas como se dijo.
 \textbf{Las recetas no están igualadas, y se declara}: cada marco usa la suya, de
-modo que la comparación mide sistemas completos y no sólo arquitecturas.
+modo que la comparación mide sistemas completos y no solo arquitecturas.
 
 \begin{table}[htbp]
     \centering
@@ -597,23 +634,45 @@ modo que la comparación mide sistemas completos y no sólo arquitecturas.
             \input{\figDET/tablas/recetas} \\
             \bottomrule
         \end{tabular}
-        \begin{tablenotes}[flushleft]
-            \footnotesize
-            \item La asimetría de la última columna es una diferencia de receta,
-            no de protocolo: las dos corridas de Ultralytics eligen su
-            \textit{checkpoint} con la aptitud de su propio validador y no con la
-            mAP@\pMatchIou{} que usan las otras dos. El protocolo de comparación
-            vuelve a medirlos a todos con la misma vara.
-        \end{tablenotes}
     \end{threeparttable}
 \end{table}
+
+La asimetría de la última columna es una diferencia de receta, no de protocolo:
+las dos corridas de Ultralytics eligen su \textit{checkpoint} con la aptitud de su
+propio validador y no con la mAP@\pMatchIou{} que usan las otras dos, pero el
+protocolo de comparación vuelve a medir a todos con la misma vara.
 
 \subsubsection{Protocolo de comparación}
 \label{sec:protocolo-oe2}
 
 El protocolo vive en \file{src/evaluation/protocol.py}, se fijó antes de mirar
 los resultados de prueba y la sección~\ref{sec:re23} lo aplica sin cambios
-(Figura~\ref{fig:protocolo-oe2}). Consta de seis reglas.
+(Figura~\ref{fig:protocolo-oe2}). Consta de seis reglas, que la figura ordena
+en el tiempo y que se detallan a continuación.
+
+\begin{figure}[htbp]
+    \centering
+    \caption{Protocolo de comparación}
+    \label{fig:protocolo-oe2}
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[node distance=4mm and 7mm, every node/.style={font=\footnotesize}]
+            \node[etapa] (train) {entrenamiento\\receta del \textit{preset}};
+            \node[dato, right=of train] (best) {best.pt};
+            \node[etapa, right=of best] (dump)
+            {volcado de val y test\\score $\geq$ \mScoreFloor{}, \mMaxDet{} cajas};
+            \node[etapa, below=of dump] (thr)
+            {val elige el umbral\\precisión $\geq$ \pMinPrecision{}, máximo \textit{recall}};
+            \node[etapa, left=of thr] (test)
+            {test se mide una vez\\recall, precisión, F\textsubscript{1}, IC 95\,\%};
+            \node[etapa, left=of test] (per) {por eje y por clase\\IoU, AP, confusión};
+            \draw[flecha] (train) -- (best);
+            \draw[flecha] (best) -- (dump);
+            \draw[flecha] (dump) -- (thr);
+            \draw[flecha] (thr) -- (test);
+            \draw[flecha] (test) -- (per);
+            \node[nota, below=1mm of test] {\textit{bootstrap} por grabación};
+        \end{tikzpicture}}
+\end{figure}
 
 \begin{enumerate}
     \item \textbf{Se vuelcan predicciones, no métricas.} De cada \file{best.pt}
@@ -631,9 +690,7 @@ los resultados de prueba y la sección~\ref{sec:re23} lo aplica sin cambios
           IoU \pStrictIou{} el corrimiento temporal tolerado es un tercio del
           ancho de la caja; a \pMatchIou{} sube a la mitad. Más abajo no: a 0,25
           una predicción de banda completa acertaría una parte de las cajas sin
-          encuadrar nada. Un umbral de IoU bajo es razonable cuando las fronteras
-          de los eventos son borrosas \citep{zhu_sound_2025}. El encuadre se
-          reporta aparte, a \pStrictIou{}. La precisión media se calcula con la
+          encuadrar nada. El encuadre se reporta aparte, a \pStrictIou{}. La precisión media se calcula con la
           definición y la interpolación de la curva precisión--\textit{recall} que
           fija COCO \citep{lin_2014}.
     \item \textbf{Umbral por modelo, elegido en validación.} De la rejilla
@@ -654,30 +711,6 @@ los resultados de prueba y la sección~\ref{sec:re23} lo aplica sin cambios
           pero no entran en la mAP ni en el promedio por clase. Quedan
           \rNDetectionClasses{} clases de detección.
 \end{enumerate}
-
-\begin{figure}[htbp]
-    \centering
-    \resizebox{\textwidth}{!}{%
-        \begin{tikzpicture}[node distance=4mm and 7mm, every node/.style={font=\footnotesize}]
-            \node[etapa] (train) {entrenamiento\\receta del \textit{preset}};
-            \node[dato, right=of train] (best) {best.pt};
-            \node[etapa, right=of best] (dump)
-            {volcado de val y test\\score $\geq$ \mScoreFloor{}, \mMaxDet{} cajas};
-            \node[etapa, below=of dump] (thr)
-            {val elige el umbral\\precisión $\geq$ \pMinPrecision{}, máximo \textit{recall}};
-            \node[etapa, left=of thr] (test)
-            {test se mide una vez\\recall, precisión, F\textsubscript{1}, IC 95\,\%};
-            \node[etapa, left=of test] (per) {por eje y por clase\\IoU, AP, confusión};
-            \draw[flecha] (train) -- (best);
-            \draw[flecha] (best) -- (dump);
-            \draw[flecha] (dump) -- (thr);
-            \draw[flecha] (thr) -- (test);
-            \draw[flecha] (test) -- (per);
-            \node[nota, below=1mm of test] {\textit{bootstrap} por grabación};
-        \end{tikzpicture}}
-    \caption{Protocolo de comparación}
-    \label{fig:protocolo-oe2}
-\end{figure}
 
 \subsubsection{Métricas por eje y regla de decisión}
 
@@ -715,9 +748,12 @@ después:
     en ella, el más barato en inferencia.
 \end{quote}
 
-La hipótesis de diseño era que un extractor preentrenado en audio con una cabeza
-de conjuntos iguala o supera a los detectores de imagen preentrenados en COCO.
-La sección~\ref{sec:re23} la contrasta.
+La comparación pone a prueba una hipótesis de diseño: que un extractor
+preentrenado en audio con una cabeza de conjuntos supera a los detectores
+preentrenados en las imágenes de COCO cuando todos se entrenan sobre el mismo
+mel. Con la regla anterior, se confirma si la propuesta queda primera en la
+métrica primaria o, si esta no separa, en la secundaria. La
+sección~\ref{sec:seleccion-modelo} da el veredicto.
 
 \subsection{Verificación de RE2.1}
 \label{sec:verificacion-re21}
@@ -737,21 +773,18 @@ La Tabla~\ref{tab:verificacion-re21} contrasta cada elemento con el código.
             \textbf{Elemento del IOV} & \textbf{Valor} & \textbf{Dónde se comprueba} \\
             \midrule
             Arquitectura AST-Deformable-DETR implementada & sí & \file{src/models/deformable\_detr.py} y \file{backbone.py}; la Figura~\ref{fig:arquitectura} es su recorrido \\
-            Dimensión 128 & \mDim{} & \code{DIM} en \file{deformable\_detr.py}, y es el valor con el que se entrenó la corrida comparada \\
-            64 consultas & \mQueries{} & \textbf{Desviación declarada}: \code{N\_QUERIES} $= \mQueries$ \\
-            3 niveles & \mLevels{} & \textbf{Desviación declarada}: \code{N\_LEVELS} $= \mLevels$ \\
-            Hiperparámetros & \mParams{}\,M & Tablas~\ref{tab:hiperparametros} y~\ref{tab:bloques}, generadas desde el código y desde el \file{best.pt} \\
-            Comparación con las líneas base & 3 líneas base & Sección~\ref{sec:baselines}, Tabla~\ref{tab:configuraciones} y protocolo de la sección~\ref{sec:protocolo-oe2} \\
+            Todos sus hiperparámetros & \mParams{}\,M de parámetros & Tablas~\ref{tab:hiperparametros} y~\ref{tab:bloques}, generadas desde el código y desde el \file{best.pt}: dimensión \mDim{}, \mQueries{} consultas, \mLevels{} niveles \\
+            Comparación definida antes de entrenar: configuraciones & 3 líneas base & Sección~\ref{sec:baselines} y Tabla~\ref{tab:configuraciones} \\
+            Partición, métricas y regla de selección & fijadas antes de entrenar & Protocolo de la sección~\ref{sec:protocolo-oe2}, que aplica el de la sección~\ref{sec:metodos} \\
             \bottomrule
         \end{tabular}
     \end{threeparttable}
 \end{table}
 
-\rotulo{Las dos desviaciones respecto del indicador.} El indicador se redactó con
-un prototipo de \mDim{} dimensiones, 64 consultas y 3 niveles, y la
-implementación final usa \mQueries{} consultas y \mLevels{} niveles. Ninguna de
-las dos es un cambio de arquitectura, y las dos se registran aquí porque el
-indicador es un compromiso y no una descripción aproximada:
+\rotulo{Por qué \mQueries{} consultas y \mLevels{} niveles.} El prototipo con
+que se planificó el proyecto usaba 64 consultas y 3 niveles, y la implementación
+final usa \mQueries{} y \mLevels{}. Ninguno de los dos cambios altera la
+arquitectura:
 
 \begin{itemize}[nosep]
     \item \textbf{De 64 a \mQueries{} consultas.} El presupuesto de consultas
@@ -793,18 +826,35 @@ tablas de Raven a las tablas de Raven: prepara los datos, entrena desde una
 configuración, evalúa un \textit{checkpoint} y ejecuta inferencia sobre un WAV,
 con las dependencias y los comandos declarados.
 
-\rotulo{Cómo se alcanzó.} Cada etapa es un \textit{script} de \file{src/} con su
-propio \code{--help}; ninguna modifica los artefactos de la anterior, de modo que
+\rotulo{Cómo se alcanzó.} Con los procedimientos de la
+sección~\ref{sec:procedimientos}: material primario intocado, experimentos
+registrados y entorno declarado. Cada etapa es un \textit{script} de \file{src/}
+con su propio \code{--help}; ninguna modifica los artefactos de la anterior, de modo que
 se puede volver a ejecutar cualquiera desde su entrada
 (Figura~\ref{fig:pipeline}). Las etapas de datos son las del
 Capítulo~\ref{cap:curacion}; las de modelo, las de la sección anterior.
 
+\rotulo{Cómo reproducirlo.} Con el entorno que fija \file{uv.lock}, se ejecutan las
+cuatro etapas en orden, cada una desde su \textit{script}. La semilla única, la
+configuración que viaja con cada \textit{checkpoint} y los controles que
+impiden mezclar versiones del caché hacen que el recorrido se repita; la
+sección~\ref{sec:reproducibilidad} detalla qué queda fijado y qué no.
+
 \rotulo{Medio de verificación.} Los \textit{scripts} de \file{src/},
-\file{pyproject.toml} y esta sección como manual técnico; la
-sección~\ref{sec:verificacion-re22} recorre el indicador etapa por etapa.
+\file{pyproject.toml} y \file{uv.lock}, publicados en el repositorio del proyecto
+(\url{\rRepoUrl}), y esta sección como manual técnico; la
+sección~\ref{sec:verificacion-re22} recorre el indicador etapa por etapa. El
+indicador nombra los módulos de \file{src/pipelines/}, la organización del
+prototipo; en la implementación final esos módulos son los paquetes
+\file{src/data/}, \file{src/models/}, \file{src/training/},
+\file{src/evaluation/} y \file{src/inference/}, con un \textit{script} por
+etapa. El registro de entrenamiento de cada corrida está en la carpeta RE2.2 de los
+medios de verificación (Anexo~\ref{anx:medios}).
 
 \begin{figure}[htbp]
     \centering
+    \caption{Pipeline del proyecto}
+    \label{fig:pipeline}
     \resizebox{0.86\textwidth}{!}{%
         \begin{tikzpicture}[node distance=3.4mm and 7mm,
                 caja/.append style={font=\scriptsize, inner sep=3pt},
@@ -841,19 +891,22 @@ sección~\ref{sec:verificacion-re22} recorre el indicador etapa por etapa.
             \node[nota, left=2mm of cmp.west, anchor=east] {RE2.3};
             \node[nota, left=2mm of detect.west, anchor=east] {RE2.4};
             \node[nota, right=1mm of yolodir.east, anchor=west, align=left]
-            {sólo Ultralytics:\\PNG y etiquetas};
+            {solo Ultralytics:\\PNG y etiquetas};
         \end{tikzpicture}}
-    \caption{Pipeline del proyecto}
-    \label{fig:pipeline}
 \end{figure}
+
+La figura se lee de arriba abajo: las dos primeras etapas preparan los datos
+(RE1.1 y RE1.2), la tercera entrena (RE2.1), la cuarta evalúa (RE2.3) y la última
+escribe la tabla de Raven (RE2.4). El desvío de la derecha es la exportación que
+solo necesitan los modelos de Ultralytics.
 
 \subsection{Dependencias declaradas}
 
 El entorno está declarado y bloqueado, que es la condición para que el
-\textit{pipeline} sea reproducible y no sólo ejecutable en una máquina.
+\textit{pipeline} sea reproducible y no solo ejecutable en una máquina.
 \file{pyproject.toml} fija Python $\geq$~\rPython{} y las dependencias base
 (PyTorch, torchvision, torchaudio, pandas y soundfile) y separa en dos
-extras lo que sólo necesita una familia de arquitecturas: \code{detr}
+extras lo que solo necesita una familia de arquitecturas: \code{detr}
 (transformers, timm) para las dos basadas en DETR y \code{yolo} (ultralytics,
 opencv) para las dos de Ultralytics. Esa separación tiene una consecuencia
 práctica: una instalación de inferencia no arrastra las librerías de
@@ -885,7 +938,7 @@ train.py --arch detr  --limit 64 --cfg epochs=1      # prueba de humo
 notebooks/pretrain_birds_train.py --name detr_birds_v2
 notebooks/pretrain_birds_train.py --finetune <aves>/best.pt --name <corrida>
 
-# 3. evaluacion: volcar primero, medir despues
+# 3. evaluación: volcar primero, medir después
 dump_predictions.py --run <corrida> [--device cuda:1]
 compare_models.py runs/*/*_predictions.pt --output <salida>
 ./evaluation.sh [corridas...]        las dos cosas, solo lo desactualizado
@@ -910,6 +963,8 @@ cuatro se tratan igual.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Una época del entrenador}
+    \label{fig:trainer}
     \resizebox{0.88\textwidth}{!}{%
         \begin{tikzpicture}[node distance=3.4mm and 8mm,
                 caja/.append style={font=\scriptsize, inner sep=3pt},
@@ -937,9 +992,11 @@ cuatro se tratan igual.
             \node[nota, right=2mm of lastpt.east, anchor=west, align=left]
             {reanuda una corrida\\interrumpida};
         \end{tikzpicture}}
-    \caption{Una época del entrenador}
-    \label{fig:trainer}
 \end{figure}
+
+Cada época aumenta los datos, entrena, valida y registra. El \file{best.pt} solo
+se reemplaza cuando mejora la mAP@\pMatchIou{} de validación, y el \file{last.pt}
+guarda además el estado del optimizador para reanudar una corrida interrumpida.
 
 \subsection{Artefactos de una corrida y autonomía del \textit{checkpoint}}
 
@@ -972,6 +1029,10 @@ umbral de operación si existe. Es lo que abren \file{detect.py} y
     \end{tabular}
 \end{table}
 
+Las claves de arquitectura, hiperparámetros y etiquetas bastan para reconstruir el
+modelo sin el código de entrenamiento ni el caché, y eso es lo que permite
+publicar un único archivo como modelo final.
+
 \subsection{Costo de las corridas}
 
 La Tabla~\ref{tab:costo} registra las cuatro corridas de la comparación: cuántas
@@ -996,12 +1057,12 @@ parámetros.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Horas de GPU: diferencia entre la primera y la última marca de
+            \item \textit{Nota.} Horas de GPU: diferencia entre la primera y la última marca de
             tiempo del registro de la corrida, de modo que incluye la validación
             de cada época. La GPU se compartió con otros procesos: son cotas
             superiores y no son estrictamente comparables entre corridas. Las dos
             corridas de Ultralytics pararon antes de las 30 épocas por su
-            criterio de paciencia. La corrida de la propuesta cuenta sólo el
+            criterio de paciencia. La corrida de la propuesta cuenta solo el
             afinado con primates, no el preentrenamiento con aves.
         \end{tablenotes}
     \end{threeparttable}
@@ -1010,14 +1071,12 @@ parámetros.
 La Figura~\ref{fig:curvas} muestra las curvas de validación. Las dos corridas del
 proyecto se miden con la mAP@\pMatchIou{} del protocolo y las dos de Ultralytics
 con la mAP@0,5 de su propio validador: no son la misma magnitud y por eso van en
-paneles separados. Lo que se lee en las cuatro es la misma forma: la mayor parte
-de la mejora ocurre en el primer tercio del programa y después la curva se
-aplana. La propuesta alcanza su máximo en la época \cBestEpochDet{} de
-\cEpochsDet{} y Faster R-CNN en la \cBestEpochFrc{} de \cEpochsFrc{}; prolongar
-el programa no habría cambiado la elección.
+paneles separados.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Curvas de entrenamiento}
+    \label{fig:curvas}
     \begin{tikzpicture}
         \begin{groupplot}[
                 group style={group size=2 by 1, horizontal sep=1.6cm},
@@ -1040,11 +1099,16 @@ el programa no habría cambiado la elección.
             \addlegendentry{RT-DETR-L}
         \end{groupplot}
     \end{tikzpicture}
-    \caption{Curvas de entrenamiento}
-    \label{fig:curvas}
 \end{figure}
 
+Las cuatro curvas tienen la misma forma: la mayor parte de la mejora ocurre en el
+primer tercio del programa y después la curva se aplana. La propuesta alcanza su
+máximo en la época \cBestEpochDet{} de \cEpochsDet{} y Faster R-CNN en la
+\cBestEpochFrc{} de \cEpochsFrc{}; prolongar el programa no habría cambiado la
+elección.
+
 \subsection{Reproducibilidad}
+\label{sec:reproducibilidad}
 
 \begin{itemize}[nosep]
     \item \textbf{Semillas.} Una semilla única (\pSeed{}) fija la partición, las
@@ -1088,7 +1152,7 @@ Tabla~\ref{tab:verificacion-re22} las recorre con la evidencia de cada una.
             \midrule
             Genera las particiones procesadas & \file{prepare\_annotations.py}, \file{prepare\_data.py} & \file{data/processed/} con los tres \file{.pt}, \file{labels.json} y \file{meta.json} (sección~\ref{sec:verificacion-re12}) \\
             Entrena desde un conjunto de configuración & \file{train.py --arch} & Las cuatro corridas de la Tabla~\ref{tab:costo}, cada una con su \file{config.json} \\
-            Evalúa un \textit{checkpoint} & \file{dump\_predictions.py}, \file{compare\_models.py}, \file{evaluation.sh} & \file{runs/comparacion/} con el umbral, las métricas y el reparto por clase de cada corrida \\
+            Evalúa un \textit{checkpoint} & \file{dump\_predictions.py}, \file{compare\_models.py}, \file{evaluation.sh} & \file{runs/comparacion/} con el umbral, las métricas y el reparto por clase de cada corrida, publicados en la carpeta RE2.3 del Anexo~\ref{anx:medios} \\
             Ejecuta inferencia sobre un WAV & \file{detect.py} & La demostración de la sección~\ref{sec:re24}, con su transcripción \\
             Dependencias declaradas & \file{pyproject.toml}, \file{uv.lock} & Python $\geq$ \rPython{}, extras \code{detr} y \code{yolo} \\
             Comandos declarados & Listado~\ref{lst:pipeline} & Los ocho puntos de entrada de la Figura~\ref{fig:pipeline} \\
@@ -1096,6 +1160,10 @@ Tabla~\ref{tab:verificacion-re22} las recorre con la evidencia de cada una.
         \end{tabular}
     \end{threeparttable}
 \end{table}
+
+Las seis filas tienen su evidencia en el documento o en el repositorio. La única
+que depende de material no publicado es la primera, porque el caché se construye
+con las grabaciones del equipo de investigación.
 
 % ===================================================================
 \section{Informe comparativo de resultados (RE2.3)}
@@ -1108,16 +1176,29 @@ partición de prueba, con el mismo protocolo, separada en los tres ejes (
 detección, encuadre y clasificación) y con la selección del modelo justificada
 por la regla declarada en la sección~\ref{sec:protocolo-oe2}.
 
-\rotulo{Cómo se alcanzó.} Ejecutando \file{evaluation.sh}, que vuelca las
-predicciones crudas de cada \file{best.pt} sobre validación y prueba y aplica el
-protocolo sin volver a pasar los modelos por la GPU. Las cifras de validación
+\rotulo{Cómo se alcanzó.} Aplicando la Fase~5 de CRISP-DM
+(sección~\ref{sec:metricas}), con sus métricas y su criterio de emparejamiento.
+\file{evaluation.sh} vuelca las predicciones crudas de cada \file{best.pt} sobre
+validación y prueba y aplica el protocolo sin volver a pasar los modelos por la
+GPU. Las cifras de validación
 eligen el umbral de cada modelo; las de prueba se miden una sola vez con ese
 umbral.
 
-\rotulo{Medio de verificación.} Esta sección y los archivos de métricas
-\file{runs/\allowbreak comparacion/\allowbreak comparacion\_\allowbreak modelos\_\allowbreak v3.txt}
-y su \file{.json}; la sección~\ref{sec:verificacion-re23} contrasta el indicador
-magnitud por magnitud.
+\rotulo{Cómo reproducirlo.} Con los cuatro \file{best.pt} y el caché de
+\file{data/processed/}, \file{evaluation.sh} vuelve a volcar las predicciones y
+\file{compare\_models.py} recalcula todas las métricas. El umbral se elige con una
+regla fija y el \textit{bootstrap} usa la semilla \pSeed{}, de modo que las
+cifras salen idénticas. Solo se publica el \textit{checkpoint} del modelo final
+(RE2.4); los otros tres se obtienen entrenando con sus recetas (RE2.1).
+
+\rotulo{Medio de verificación.} Esta sección, que es el informe de
+experimentación, y los archivos de métricas que produce \file{compare\_models.py}
+(\file{comparacion\_\allowbreak modelos\_\allowbreak v3.txt} y su \file{.json}),
+de los que se generan todas las tablas y figuras de la sección; la
+sección~\ref{sec:verificacion-re23} contrasta el indicador magnitud por magnitud.
+Los dos archivos de métricas, el punto de operación de cada corrida y la matriz de
+confusión están en la carpeta RE2.3 de los medios de verificación
+(Anexo~\ref{anx:medios}).
 
 \subsection{Lo que se compara}
 
@@ -1150,7 +1231,7 @@ cada modelo y lo que ese umbral rinde en prueba.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item El \textit{recall} y la precisión de esta tabla exigen la
+            \item \textit{Nota.} El \textit{recall} y la precisión de esta tabla exigen la
             etiqueta correcta; la Tabla~\ref{tab:ejes} los separa del acierto de
             detección. Las mAP se promedian sobre las
             \rNDetectionClasses{} clases de detección, sin las dos de ventana.
@@ -1217,7 +1298,7 @@ capítulo, porque es la que dice dónde está el error.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Detección: emparejando sin mirar la clase. Encuadre: IoU
+            \item \textit{Nota.} Detección: emparejando sin mirar la clase. Encuadre: IoU
             mediano de esos mismos pares, y \textit{recall} exigiendo la clase a
             IoU \pStrictIou{}. Clasificación: de lo que se encontró, qué fracción
             lleva la clase y la especie anotadas.
@@ -1228,9 +1309,9 @@ capítulo, porque es la que dice dónde está el error.
 \rotulo{La clasificación no es el problema.} Entre \rClassOkMin{} y
 \rClassOkMax{} de los pares emparejados llevan la clase correcta, y al menos
 \rSpeciesOkMin{} la especie correcta, en las cuatro configuraciones. Distinguir
-\nClasses{} pares de especie y tipo de llamada, con un desbalance de dos órdenes
-de magnitud entre la clase más y la menos frecuente, cuesta menos de dos puntos
-una vez que el evento está localizado. La distancia entre el \textit{recall} de
+\nClasses{} pares de especie y tipo de llamada, con \classImbalance{} veces más
+cajas de entrenamiento en la clase más frecuente que en la menos frecuente, cuesta
+menos de dos puntos una vez que el evento está localizado. La distancia entre el \textit{recall} de
 detección de la Tabla~\ref{tab:ejes}, que empareja sin mirar la clase, y el de la
 Tabla~\ref{tab:resultados-op}, que sí exige la etiqueta, mide ese costo: para el
 modelo seleccionado es de poco más de un punto.
@@ -1244,6 +1325,8 @@ Esta es la diferencia que la mAP@\pStrictIou{} amplifica.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Distribución del IoU}
+    \label{fig:iou}
     \begin{tikzpicture}
         \begin{axis}[
                 width=0.92\textwidth, height=6.4cm,
@@ -1266,26 +1349,25 @@ Esta es la diferencia que la mAP@\pStrictIou{} amplifica.
             node[above, font=\scriptsize, text=black!65] {IoU \pStrictIou{}};
         \end{axis}
     \end{tikzpicture}
-    \caption{Distribución del IoU}
-    \label{fig:iou}
 \end{figure}
 
 La matriz de confusión del modelo seleccionado (Figura~\ref{fig:confusion})
-confirma la lectura por el otro lado. Sobre \rConfusionPairs{} pares emparejados,
-sólo el \rConfusionOff{} de la masa cae fuera de la diagonal, y el
-\rSameSpeciesShare{} de esos errores es entre tipos de llamada de la
-\emph{misma} especie, el error que el Capítulo~\ref{cap:curacion} anticipó al
-mostrar que la geometría separa especies pero no tipos de llamada dentro de una
-especie (sección~\ref{sec:geometria}). La confusión más frecuente,
-\rTopConfusion{}, suma \rTopConfusionN{} pares, el \rTopConfusionShare{} de todos
-los errores de etiqueta.
+confirma la lectura por el otro lado.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.96\textwidth]{\figDET/matriz_confusion.png}
     \caption{Matriz de confusión}
     \label{fig:confusion}
+    \includegraphics[width=0.96\textwidth]{\figDET/matriz_confusion.png}
 \end{figure}
+
+Sobre \rConfusionPairs{} pares emparejados, solo el \rConfusionOff{} de la masa cae
+fuera de la diagonal, y el \rSameSpeciesShare{} de esos errores es entre tipos de
+llamada de la \emph{misma} especie: el error que anticipaba la geometría del
+conjunto, que separa especies pero no tipos de llamada dentro de una especie
+(sección~\ref{sec:geometria}). La confusión más frecuente, \rTopConfusion{}, suma
+\rTopConfusionN{} pares, el \rTopConfusionShare{} de todos los errores de
+etiqueta.
 
 \subsection{Cobertura frente a carga de revisión}
 \label{sec:carga-igual}
@@ -1303,6 +1385,8 @@ misma abscisa; la Tabla~\ref{tab:carga-igual} la tabula en seis presupuestos.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Cobertura frente a carga}
+    \label{fig:carga}
     \begin{tikzpicture}
         \begin{axis}[
                 width=0.92\textwidth, height=7.2cm,
@@ -1329,9 +1413,12 @@ misma abscisa; la Tabla~\ref{tab:carga-igual} la tabula en seis presupuestos.
             {carga de los\\puntos de operación};
         \end{axis}
     \end{tikzpicture}
-    \caption{Cobertura frente a carga}
-    \label{fig:carga}
 \end{figure}
+
+Cada curva es un modelo: cuanto más alta, más eventos recupera con la misma
+cantidad de propuestas por hora, y la línea punteada marca la carga de los cuatro
+puntos de operación. La Tabla~\ref{tab:carga-igual} lee las curvas en seis
+presupuestos.
 
 \begin{table}[htbp]
     \centering
@@ -1348,7 +1435,7 @@ misma abscisa; la Tabla~\ref{tab:carga-igual} la tabula en seis presupuestos.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Cada columna es la curva de un modelo leída a la misma abscisa.
+            \item \textit{Nota.} Cada columna es la curva de un modelo leída a la misma abscisa.
             El techo es el \textit{recall} con el umbral en el piso del
             protocolo, esto es, con todo lo que el modelo es capaz de proponer;
             la última fila es la carga a la que lo alcanza. Un guion significa
@@ -1378,7 +1465,7 @@ el precio de ese techo es abismalmente distinto: Faster R-CNN necesita
 \rCeilingLoadFrc{} propuestas por hora para alcanzarlo y YOLO26s llega al suyo
 con \rCeilingLoadYol{}, un orden de magnitud menos. Ninguna de esas cifras es
 operativa (revisar ochenta mil cajas por hora de audio no es asistencia),
-pero la comparación sí dice algo: las curvas de los otros tres modelos sólo
+pero la comparación sí dice algo: las curvas de los otros tres modelos solo
 superan a YOLO26s en una región de carga que nadie va a usar.
 
 \rotulo{El umbral de 0,5 de fábrica no habría comparado nada.} El umbral que la
@@ -1386,8 +1473,8 @@ validación elige para YOLO26s es \rThresholdYol{}, cinco veces menor. Operarlo 
 0,5 lo habría situado en la parte conservadora de su curva y a Faster R-CNN
 (cuyo umbral elegido es \rThresholdFrc{}) en la permisiva, y el orden entre
 los dos se habría invertido sin que ninguna propiedad de las arquitecturas
-cambiara. Es la razón por la que el Capítulo~\ref{cap:utilidad} elige su punto de
-operación barriendo el umbral y no heredando uno.
+cambiara. Es la razón por la que el punto de operación de cada modelo debe
+elegirse barriendo su umbral, y no heredando uno.
 
 \subsection{Lectura por clase}
 
@@ -1413,7 +1500,7 @@ de dos mil.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item En negrita, el mejor de las cuatro configuraciones en cada
+            \item \textit{Nota.} En negrita, el mejor de las cuatro configuraciones en cada
             clase. Un asterisco marca las dos clases de ventana, que no entran en
             el promedio por clase.
         \end{tablenotes}
@@ -1463,9 +1550,9 @@ grabaciones distintas.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{\figDET/detecciones_cualitativas.png}
     \caption{Ejemplos cualitativos}
     \label{fig:cualitativas}
+    \includegraphics[width=\textwidth]{\figDET/detecciones_cualitativas.png}
 \end{figure}
 
 Las dos escenas densas ilustran los dos extremos del comportamiento del modelo
@@ -1474,8 +1561,8 @@ de llamadas cortas y repetidas, con alguna caja de más; en la segunda, una seri
 equivalente de la misma clase en otra grabación, no emite ni una sola caja por
 encima del umbral. La diferencia entre ambas no está en la densidad sino en la
 relación señal-ruido: la segunda tiene el coro de fondo encima de la banda de la
-llamada. Es el modo de fallo que el Capítulo~\ref{cap:utilidad} tiene que
-caracterizar, porque determina qué fracción del material queda sin asistir.
+llamada. Es un modo de fallo que conviene caracterizar, porque determina qué
+fracción del material queda sin asistir.
 
 \subsection{Selección del modelo y qué establece la comparación}
 \label{sec:seleccion-modelo}
@@ -1494,73 +1581,24 @@ regla declarada lo decide en tres pasos, y conviene dejar escrito cada uno:
           (sección~\ref{sec:costo-inferencia}).
 \end{enumerate}
 
-\rotulo{La hipótesis de diseño no se confirma, y tampoco se refuta.} La propuesta
-(un extractor preentrenado en audio con una cabeza de conjuntos) iguala a
-Faster R-CNN en las dos métricas y queda por detrás de los dos detectores
-preentrenados en COCO en la secundaria. Que la primaria no separe a nadie impide
-afirmar que la pierde; que la secundaria la ordene tercera impide afirmar que la
-gana. Lo que el experimento sí permite decir es más preciso: \emph{el extractor
-    preentrenado en audio no aporta una ventaja medible sobre un extractor
-    preentrenado en imágenes, en esta tarea y con este presupuesto de
-    entrenamiento.}
+\rotulo{La hipótesis de diseño no se confirma.} La propuesta queda tercera de
+cuatro en las dos métricas: \rRecallDet{} de \textit{recall} frente a
+\rRecallYol{} del modelo seleccionado, y \rMapDet{} de mAP@\pMatchIou{} frente a
+\rMapYol{}. En la primaria la diferencia cae dentro de los intervalos de
+confianza; en la secundaria, la propuesta empata con Faster R-CNN y queda por
+detrás de YOLO26s y de RT-DETR-L. No supera de forma medible a ninguna línea
+base, que es lo que la hipótesis afirmaba.
 
-Tres factores acotan qué se puede concluir de ese empate, y ninguno se resuelve
-con la evidencia disponible:
-
-\begin{enumerate}
-    \item \textbf{Las recetas no están igualadas.} Las dos corridas de
-          Ultralytics usan el optimizador, el programa de tasa de aprendizaje y
-          las aumentaciones de su marco de trabajo; las otras dos, los del
-          proyecto. La comparación mide sistemas completos, no arquitecturas
-          aisladas, y eso se declaró antes de correrla.
-    \item \textbf{El presupuesto de entrenamiento es muy desigual.} La propuesta
-          consumió \cHoursDet{} horas de GPU afinando \cParamsDet{}\,M de
-          parámetros y el modelo seleccionado \cHoursYol{}\,h ajustando
-          \cParamsYol{}\,M. Que el modelo barato empate o gane es informativo;
-          que el caro no despegue con más cómputo no está demostrado, porque no se
-          probó un programa más largo.
-    \item \textbf{La ablación que importa no está medida.} Separar el aporte del
-          extractor del aporte de la cabeza exige correr la propuesta con el
-          extractor congelado y con PCEN, y la cabeza de COCO sobre el mismo mel.
-          Las tres son variantes del \textit{preset} y no código nuevo
-          (\code{frozen\_backbone}, \code{frontend} y el \textit{preset}
-          \code{detr\_resnet}), pero ninguna entró a esta comparación.
-\end{enumerate}
-
-El punto es relevante porque el precedente directo de esta arquitectura reporta
-una ventaja. \citet{zhu_sound_2025} combinan un AST \emph{autosupervisado} con un
-decodificador deformable y superan a un Faster R-CNN con \textit{backbone}
-residual sobre un conjunto de silbidos de aspas de aerogenerador. Las dos
-diferencias entre aquella configuración y esta (extractor autosupervisado
-frente a supervisado, y un dominio de una sola clase de sonido frente a
-\nClasses{} clases con desbalance de dos órdenes de magnitud) son exactamente
-las que la ablación pendiente debería separar. Este trabajo no contradice ese
-precedente: muestra que no se traslada sin más a un repertorio de primates.
-
-Lo que la comparación sí establece es más útil que un ganador:
-
-\begin{itemize}
-    \item \textbf{La tarea es viable con detectores de objetos sobre
-              espectrogramas.} Dentro de un presupuesto de \rBudgetCommon{} propuestas por
-          hora de audio, las cuatro configuraciones recuperan cerca de ocho de
-          cada diez eventos anotados de \nClasses{} clases, sobre un conjunto con
-          más de un orden de magnitud de desbalance y un rango de duraciones de
-          \durMinMs{}\,ms a \durMaxS{}\,s.
-
-    \item \textbf{El cuello de botella es la detección y el encuadre, no la
-              clasificación.} Distinguir \nClasses{} pares de especie y tipo de llamada
-          cuesta menos de dos puntos una vez que el evento fue localizado
-          (sección~\ref{sec:ejes}). La decisión de puntuar los tres ejes por
-          separado (sección~\ref{sec:metricas}) queda respaldada por los datos, y
-          es la que impide leer un agregado bajo como ``el modelo confunde las
-          clases''.
-
-    \item \textbf{La elección del punto de operación pesa más que la elección de
-              arquitectura.} La sección~\ref{sec:carga-igual} muestra que mover el umbral
-          de un mismo modelo cambia su cobertura mucho más que cambiar de
-          arquitectura a carga fija, y que todas las configuraciones convergen
-          dentro del rango de carga operativo.
-\end{itemize}
+RT-DETR-L, que se incluyó para esto (sección~\ref{sec:baselines}), indica de qué
+componente viene el resultado. Predice un conjunto de cajas igual que la
+propuesta, pero desde un extractor preentrenado en imágenes, y con
+\cParamsRtd{}\,M de parámetros frente a \cParamsDet{}\,M queda a la par en la
+primaria (\rRecallRtd{}) y por encima en la secundaria (\rMapRtd{} frente a
+\rMapDet{}). El contraste apunta a que la cabeza de conjuntos no es lo que falla:
+lo que no aporta una ventaja medible es el preentrenamiento en audio, en esta
+tarea y con este presupuesto de entrenamiento. Como las recetas de
+entrenamiento no están igualadas, es una indicación y no una atribución
+(sección~\ref{sec:discusion-oe2}).
 
 \subsection{Costo de inferencia}
 \label{sec:costo-inferencia}
@@ -1607,14 +1645,19 @@ localiza una por una.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Los archivos de métricas son
-            \file{runs/\allowbreak comparacion/\allowbreak comparacion\_\allowbreak modelos\_\allowbreak v3.txt}
-            y su \file{.json} con las mismas cifras. Toda magnitud de este
+            \item \textit{Nota.} Los archivos de métricas son
+            \file{comparacion\_\allowbreak modelos\_\allowbreak v3.txt}
+            y su \file{.json} con las mismas cifras, en la carpeta RE2.3 del
+            Anexo~\ref{anx:medios}. Toda magnitud de este
             capítulo procede de volver a aplicar el protocolo sobre los volcados
             crudos, no de una cifra transcrita.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
+
+Cada fila apunta a una tabla, una figura o una sección de este capítulo, y la
+última columna da el valor del modelo seleccionado, de modo que el indicador
+puede comprobarse sin salir del documento.
 
 % ===================================================================
 \section{Modelo final cargable y demostración funcional (RE2.4)}
@@ -1626,17 +1669,30 @@ vocabulario y su punto de operación, y la demostración de que una inferencia
 sobre un WAV produce una tabla de selección de Raven con coordenadas
 tiempo--frecuencia, especie, tipo de llamada y puntuación.
 
-\rotulo{Cómo se alcanzó.} \file{detect.py} corta cada grabación en las mismas
+\rotulo{Cómo se alcanzó.} Es la Fase~6 de CRISP-DM (sección~\ref{sec:fase6}).
+\file{detect.py} corta cada grabación en las mismas
 ventanas de \clipLen{}\,s con salto de \clipHop{}\,s del caché, ejecuta el modelo
 por lotes, aplica el posprocesamiento de la evaluación, funde entre ventanas
 solapadas las cajas anidadas de la misma clase y escribe la tabla junto a cada
-audio (Figura~\ref{fig:flujo-inferencia}).
+audio.
 
-\rotulo{Medio de verificación.} El \textit{checkpoint}
-\file{runs/\allowbreak yolo26s\_v3/\allowbreak best.pt} con su punto de
-operación, el vocabulario de \file{data/\allowbreak processed/\allowbreak labels.json}
+\rotulo{Cómo reproducirlo.} Basta el \textit{checkpoint} publicado en la versión
+v0.2.0 y el código del repositorio: \file{src/detect.py} acepta un WAV o una
+carpeta y escribe la tabla junto a cada audio. La demostración de la
+sección~\ref{sec:demo-oe2} se obtuvo así sobre una grabación de prueba.
+
+\rotulo{Medio de verificación.} El \textit{checkpoint} del modelo final, que lleva
+dentro su vocabulario, y su punto de operación, publicados en la versión v0.2.0
+del repositorio (\url{\rRepoUrl/releases/tag/v0.2.0}) como el archivo
+\file{detector-2.0.0-model-yolo26s\_v3.zip}, con su suma de verificación SHA-256;
 y la tabla de selección que la inferencia produce sobre una grabación de prueba
-(sección~\ref{sec:demo-oe2}).
+(sección~\ref{sec:demo-oe2}). El indicador nombra un archivo \file{.pth} y
+\file{src/infer.py}, nombres del prototipo: en la implementación final el
+\textit{checkpoint} es un \file{.pt} autocontenido y la inferencia la ejecuta
+\file{src/detect.py}, con la misma función. La carpeta RE2.4 de los medios de
+verificación (Anexo~\ref{anx:medios}) contiene la comprobación de que el
+\textit{checkpoint} carga sin claves incompatibles, su suma SHA-256, su punto de
+operación y la tabla de salida de la demostración.
 
 \subsection{El modelo final}
 \label{sec:modelo-final}
@@ -1670,13 +1726,9 @@ Raven ignora y permite ordenar o filtrar las detecciones, y que \code{Species} y
 coordenadas de frecuencia se obtienen invirtiendo la escala mel con la que se
 normalizaron las cajas (ecuación~\ref{eq:mel-inv}).
 
-Que la salida tenga esta forma no es un detalle de implementación: es lo que
-separa a este sistema de la alternativa habitual. BirdNET y HOWLish entregan una
-probabilidad por segmento \citep{kahl_birdnet_2021,Campos_Krofel_Rio-Maior_Renna_2025}
-y los \emph{sound event bounding boxes} y YOHO, límites temporales
-\citep{ebbers_sound_2024,venkatesh_you_2022}; aquí se entrega tiempo, frecuencia,
-especie, tipo de llamada y confianza, en el archivo que el analista ya usa
-\citep{escobar-amado_computer_2024}.
+Que la salida tenga esta forma no es un detalle de implementación: es la tercera
+forma de salida de la sección~\ref{sec:soluciones}, la única que coincide con la
+anotación del especialista, y llega en el archivo que el analista ya usa.
 
 \begin{table}[htbp]
     \centering
@@ -1693,13 +1745,19 @@ especie, tipo de llamada y confianza, en el archivo que el analista ya usa
         \code{Low Freq (Hz)}, \code{High Freq (Hz)} & Lados de frecuencia, en hercios \\
         \code{Species} & Código de especie en mayúscula (\code{LW}) \\
         \code{Call type} & Código del tipo de llamada en mayúscula (\code{CS}) \\
-        \code{Score} & Confianza del modelo en $[0,1]$; sólo en tablas del modelo \\
+        \code{Score} & Confianza del modelo en $[0, 1]$; solo en tablas del modelo \\
         \bottomrule
     \end{tabular}
 \end{table}
 
+Las columnas de coordenadas y de etiquetas son las mismas que escribe el analista;
+\code{Score} es la única que añade el modelo. La
+Figura~\ref{fig:flujo-inferencia} resume cómo se llega a ellas desde la grabación.
+
 \begin{figure}[htbp]
     \centering
+    \caption{Flujo de inferencia}
+    \label{fig:flujo-inferencia}
     \resizebox{\textwidth}{!}{%
         \begin{tikzpicture}[node distance=4mm and 7mm,
                 caja/.append style={font=\scriptsize, inner sep=3pt},
@@ -1720,9 +1778,11 @@ especie, tipo de llamada y confianza, en el archivo que el analista ya usa
             \draw[flecha] (hz) -- (txt);
             \node[nota, below=1mm of txt] {Raven Pro $|$ hoja de cálculo};
         \end{tikzpicture}}
-    \caption{Flujo de inferencia}
-    \label{fig:flujo-inferencia}
 \end{figure}
+
+El paso que no existe en la evaluación es la fusión entre ventanas: como las
+ventanas se solapan, una misma llamada puede detectarse dos veces, y la fusión
+deja una sola caja antes de pasar a tiempo absoluto y a hercios.
 
 \subsection{Demostración}
 \label{sec:demo-oe2}
@@ -1761,9 +1821,9 @@ muestra, y las métricas son las de la sección~\ref{sec:re23}.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{\figDET/demo_grabacion.png}
     \caption{Demostración sobre una grabación}
     \label{fig:demo}
+    \includegraphics[width=\textwidth]{\figDET/demo_grabacion.png}
 \end{figure}
 
 El archivo se abre en Raven sobre la grabación como una tabla de selección más,
@@ -1780,24 +1840,23 @@ las muestra, de modo que el filtrado por confianza se hace fuera de Raven.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{\figDET/raven_compatibility.png}
     \caption{La tabla generada abierta en Raven}
     \label{fig:raven-compat}
+    \includegraphics[width=\textwidth]{\figDET/raven_compatibility.png}
 \end{figure}
 
 A partir de ahí el trabajo es el habitual: el analista oye cada caja, borra las
 que no correspondan, corrige las que estén mal encuadradas y guarda la tabla ya
-revisada. Ese es el circuito que el Capítulo~\ref{cap:utilidad} cronometra.
+revisada. Ese es el circuito cuyo tiempo mide OE3.
 
 \subsection{Verificación de RE2.4}
 
 El indicador exige dos cosas, y las dos quedan demostradas arriba:
 
 \begin{enumerate}[nosep]
-    \item \textbf{El \textit{checkpoint} se carga sin claves incompatibles.} Los
-          \rFinalTensors{} tensores del archivo coinciden uno a uno con los del
-          modelo reconstruido desde \code{architecture} y \code{hparams}, sin
-          faltantes ni sobrantes (sección~\ref{sec:modelo-final}).
+    \item \textbf{El \textit{checkpoint} se carga sin claves incompatibles.} La
+          carga en modo estricto de la sección~\ref{sec:modelo-final} no deja
+          tensores faltantes ni sobrantes.
     \item \textbf{La inferencia sobre un WAV produce un archivo tabulado con las
               columnas de Raven.} La Tabla~\ref{tab:salida} lo muestra:
           \rDemoDetections{} filas con coordenadas tiempo--frecuencia, especie,
@@ -1814,17 +1873,28 @@ El indicador exige dos cosas, y las dos quedan demostradas arriba:
 % ===================================================================
 
 \rotulo{Resultado.} El repositorio público \url{\rRepoUrl}, que contiene el
-código de curación, entrenamiento, evaluación e inferencia, las instrucciones de
-ejecución y el \textit{checkpoint} del modelo final.
+código de curación, entrenamiento, evaluación e inferencia y las instrucciones de
+ejecución, y que publica el \textit{checkpoint} del modelo final en su versión
+v0.2.0.
 
-\rotulo{Cómo se alcanzó.} Versionando el proyecto desde el inicio, no al
+\rotulo{Cómo se alcanzó.} Con el procedimiento de respaldo de la
+sección~\ref{sec:procedimientos}, versionando el proyecto desde el inicio y no al
 entregarlo: \rNCommits{} \textit{commits} y una versión declarada en
-\file{pyproject.toml} (\rVersion{}). Cada cifra de este capítulo se rastrea a un
-\textit{commit} (\rCommit{}), a un \file{meta.json} de caché y a un
-\file{best.pt}.
+\file{pyproject.toml} (\rVersion{}), con la trazabilidad que describe la
+sección~\ref{sec:reproducibilidad}.
 
-\rotulo{Medio de verificación.} La URL del repositorio; esta sección es el índice
-que lleva de cada verbo del indicador al archivo que lo implementa.
+\rotulo{Cómo reproducirlo.} Por dos caminos. Desde el código, clonando el
+repositorio en el \textit{commit} \rCommit{}, instalando el entorno de
+\file{uv.lock} y ejecutando las etapas de la sección~\ref{sec:re22}. Sin instalar
+nada, con el \file{README} del repositorio, que explica cómo descargar de su
+página de versiones el programa para Windows y el modelo, y cómo procesar con
+ellos una grabación.
+
+\rotulo{Medio de verificación.} La URL del repositorio y la de su versión
+v0.2.0 (\url{\rRepoUrl/releases/tag/v0.2.0}), que publica el modelo final; esta
+sección es el índice que lleva de cada verbo del indicador al archivo que lo
+implementa, y la carpeta RE2.5 de los medios de verificación
+(Anexo~\ref{anx:medios}) lo reproduce.
 
 \subsection{Estructura}
 
@@ -1837,6 +1907,8 @@ está publicado.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Árbol del repositorio}
+    \label{fig:arbol}
     \begin{minipage}{0.92\textwidth}
 \begin{lstlisting}
 tesis-primate/
@@ -1847,13 +1919,11 @@ tesis-primate/
   src/              el pipeline entero (figura 5.9)
   notebooks/        auditoria, curacion asistida, preentrenamiento con aves
   research/         la tesis: main.tex, capitulos/<nn>/{tex, figures, notebook}
-  docs/             requisitos del sistema y notas tecnicas
+  docs/             requisitos del sistema y notas técnicas
   data/   (no versionado)  raw/, cleaned/, processed/, yolo/
   runs/   (no versionado)  corridas: checkpoints, volcados, comparacion
 \end{lstlisting}
     \end{minipage}
-    \caption{Árbol del repositorio}
-    \label{fig:arbol}
 \end{figure}
 
 El indicador de RE2.5 enumera lo que el repositorio debe permitir hacer. La
@@ -1876,10 +1946,13 @@ y al resultado esperado que lo documenta.
         Evaluación & \file{src/dump\_predictions.py}, \file{src/compare\_models.py}, \file{src/evaluation/}, \file{evaluation.sh} & RE2.1, RE2.3 \\
         Inferencia & \file{src/detect.py}, \file{src/inference/} & RE2.4 \\
         Instrucciones de ejecución & \file{README.md}, \file{pyproject.toml}, Listado~\ref{lst:pipeline} & RE2.2 \\
-        Modelo final & El \textit{checkpoint} autocontenido de \rWinnerRun{} con su \file{operating\_point.json} & Sección~\ref{sec:modelo-final} \\
+        Modelo final & El \textit{checkpoint} autocontenido de \rWinnerRun{} con su \file{operating\_point.json}, en la versión v0.2.0 & Sección~\ref{sec:modelo-final} \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+Cada fila apunta a una ruta del repositorio público, salvo la última, que es un
+archivo de su versión v0.2.0.
 
 \subsection{Qué contiene y qué no}
 
@@ -1927,21 +2000,17 @@ confianza, y se lo comparó con tres líneas base bajo un protocolo declarado an
 de correr el experimento. Sobre las \nWindowsTest{} ventanas de prueba, el modelo
 seleccionado recupera \rRecallYol{} de las \nBoxesTest{} cajas anotadas
 \rRecallCiYol{} con precisión \rPrecisionYol{}, al umbral que la validación
-eligió. Las cuatro configuraciones quedan dentro de un intervalo de
-\rRecallSpread{} en esa magnitud y sus intervalos de confianza se solapan: la
-métrica primaria no las separa. La secundaria sí, y ordena al modelo
-seleccionado primero. De los \rDemoDetections{} resultados que produce sobre una
+eligió; como la métrica primaria no separa a las cuatro configuraciones, lo
+eligió la secundaria (sección~\ref{sec:seleccion-modelo}). De los \rDemoDetections{} resultados que produce sobre una
 grabación de \rDemoSeconds{} segundos, el sistema entrega una tabla que el
 analista abre en su propia herramienta.
 
 \rotulo{Qué significan.} Tres lecturas, en orden de importancia para el problema.
 
 La primera es que \textbf{el error está en encontrar y encuadrar, no en
-    nombrar}. Entre \rClassOkMin{} y \rClassOkMax{} de los eventos localizados
-llevan la etiqueta correcta, y al menos \rSpeciesOkMin{} la especie correcta. La
-parte del problema que parecía más difícil (distinguir \nClasses{} pares de
-especie y tipo de llamada con dos órdenes de magnitud de desbalance) resultó
-ser la que el modelo resuelve. Para el uso asistido esto es una buena noticia con
+    nombrar}. Una vez localizado el evento, la clase casi nunca falla
+(sección~\ref{sec:ejes}): la parte del problema que parecía más difícil, con
+\nClasses{} clases desbalanceadas, resultó ser la que el modelo resuelve. Para el uso asistido esto es una buena noticia con
 una consecuencia concreta: el revisor no tendrá que corregir etiquetas, tendrá
 que confirmar o descartar cajas, que es una operación mucho más rápida. Y para el
 diseño de un sistema futuro dice dónde invertir: en la detección y el encuadre, no
@@ -1955,15 +2024,19 @@ Esto reordena la prioridad del trabajo que queda: una vez que se tiene un
 detector razonable, el margen está en calibrarlo contra el presupuesto de revisión
 real, que es justamente lo que mide OE3.
 
-La tercera es \textbf{un empate que no confirma la hipótesis de diseño}. Se
-esperaba que un extractor preentrenado en audio con una cabeza de conjuntos
-superara a los detectores de imagen preentrenados en COCO, y no lo hace: iguala a
-Faster R-CNN y queda tercera en la métrica secundaria. Decirlo así importa porque
-el experimento se declaró antes de correrlo y porque la alternativa (elegir a
-posteriori la métrica que favorezca a la propuesta) era posible: la propuesta
-gana en \textit{recall} agnóstico sobre Faster R-CNN, gana en cuatro clases y
-tiene el mejor comportamiento en las dos clases que se emiten en secuencia.
-Ninguna de esas tres observaciones sostiene una conclusión general.
+La tercera es que \textbf{el preentrenamiento en audio no aportó una ventaja
+    medible}. Se esperaba que la propuesta superara a los detectores
+preentrenados en COCO, y quedó tercera de cuatro
+(sección~\ref{sec:seleccion-modelo}). Para el equipo es la lectura favorable: el
+modelo seleccionado es también el más pequeño (\cParamsYol{}\,M de parámetros
+frente a \cParamsDet{}\,M), el que menos entrenamiento necesitó (\cHoursYol{}\,h
+de GPU frente a \cHoursDet{}\,h) y el más rápido en inferencia. OE2 pide un
+detector comparado con una línea base, no que gane la propuesta, y la
+herramienta usa el mejor de los cuatro. Para la investigación es
+un resultado negativo, y vale como tal porque la regla de decisión se fijó antes
+de entrenar. La propuesta gana algunas comparaciones parciales (cuatro clases, y
+las dos clases que se emiten en secuencia), pero elegirlas después de ver los
+resultados equivaldría a cambiar esa regla.
 
 \rotulo{Consistencia con la literatura.} Los resultados concuerdan con la
 línea del Capítulo~\ref{cap:estado} en tres puntos y discrepan en uno.
@@ -1983,15 +2056,11 @@ una probabilidad por segmento \citep{kahl_birdnet_2021} y entregar una caja con
 especie, tipo de llamada y confianza es lo que permite abrir el resultado en
 Raven sin ningún paso intermedio.
 
-Discrepan con \citet{zhu_sound_2025}, que es el precedente directo de esta
-arquitectura: allí un AST autosupervisado con decodificador deformable supera a
-un Faster R-CNN residual, y aquí la combinación equivalente no supera a ninguna
-de las tres líneas base en la métrica secundaria. Las dos diferencias entre
-ambos trabajos (extractor autosupervisado frente a supervisado, y un dominio de
-una sola clase de sonido frente a \nClasses{} clases) son las que la ablación
-pendiente de la sección~\ref{sec:seleccion-modelo} debería separar. Este trabajo
-no refuta aquel resultado: muestra que no se traslada sin más a un repertorio de
-primates con desbalance fuerte.
+Discrepan con \citet{zhu_sound_2025}, el precedente directo de esta arquitectura,
+que con un AST \emph{autosupervisado} supera a Faster R-CNN en un dominio de una
+sola clase de sonido. Aquí el extractor es supervisado y las clases son
+\nClasses{}, desbalanceadas: este trabajo no refuta aquel resultado, muestra que
+no se traslada sin más a un repertorio de primates.
 
 \rotulo{Generalización.} Qué de esto sobrevive fuera de este corpus.
 
@@ -2002,7 +2071,7 @@ vuelve mayor cuanto más clases tiene el problema. Se generaliza también
 \textbf{la lectura de cobertura frente a carga}: cualquier sistema de
 pre-anotación asistida compite contra un presupuesto de revisión, y el umbral
 compartido entre arquitecturas es un artefacto de calibración en todas partes,
-no sólo aquí.
+no solo aquí.
 
 Se generaliza con reservas \textbf{el hallazgo de que la clasificación es fácil}.
 Depende de que las clases sean acústicamente separables, y en este corpus lo son
@@ -2012,7 +2081,7 @@ no anotada por el equipo no tiene por qué comportarse igual. Un corpus con vari
 especies simpátricas anotadas en la misma grabación pondría a prueba ese
 resultado.
 
-No se generaliza \textbf{el empate entre arquitecturas}. Es el resultado de este
+No se generaliza \textbf{el orden entre arquitecturas}. Es el resultado de este
 material, con este presupuesto de entrenamiento y con recetas no igualadas; con
 diez veces más datos anotados, o con un programa de entrenamiento más largo para
 la propuesta, el orden podría ser otro. Tampoco se generalizan los umbrales
@@ -2026,27 +2095,26 @@ elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectur
           del error que la Tabla~\ref{tab:resultados-op} atribuye al modelo es en
           realidad desacuerdo entre humanos. Es la limitación más seria de todo el
           capítulo: sin ella no se puede decir si \rRecallYol{} está cerca o lejos
-          de lo alcanzable. El Capítulo~\ref{cap:utilidad} la aborda parcialmente
-          al hacer que un experto revise una muestra de predicciones.
-    \item \textbf{Las recetas no están igualadas y la ablación clave no está
-              medida.} Las cuatro configuraciones usan el optimizador y las aumentaciones
-          de su marco de trabajo, y las tres variantes que separarían el aporte del
-          extractor del de la cabeza (extractor congelado, PCEN, cabeza de COCO
-          sobre el mismo mel) están implementadas y sin correr. La comparación
-          mide sistemas completos, que es lo que se declaró, pero no permite
-          atribuir la diferencia a un componente.
+          de lo alcanzable. OE3 la aborda parcialmente al hacer que un experto
+          revise una muestra de predicciones.
+    \item \textbf{La comparación no aísla componentes.} Las configuraciones
+          usan el optimizador y las aumentaciones de su marco de trabajo, de modo
+          que la comparación mide sistemas completos, que es lo que se declaró, y
+          no permite atribuir la diferencia a un componente. Las dos variantes de
+          la propuesta que lo harían (extractor congelado, y Deformable DETR con
+          su ResNet-50 de COCO entrenado con la misma receta) ya están en el
+          código y quedan como trabajo futuro.
     \item \textbf{Las clases escasas no se evalúan de forma fiable.}
           \rNScarce{} de las \nClasses{} clases tienen 60 cajas de prueba o menos,
           y sobre esas cifras un intervalo de confianza por clase sería tan ancho
           que no distinguiría nada. Las cifras por clase de la
           Tabla~\ref{tab:recall-clase} son indicativas en la mitad inferior de la
           tabla, no concluyentes.
-    \item \textbf{Las dos clases de ventana están medidas con una vara
-              distinta.} \rWindowClasses{} tienen cajas que ocupan la ventana entera, de
-          modo que detectarlas equivale a clasificar la ventana; se reportan pero
-          no entran en la mAP ni en el promedio por clase. Aportan el
-          \rShareTwoWindow{} de las cajas de prueba, y cualquier agregado que las
-          incluya (como el \textit{recall} global) está inflado por ellas.
+    \item \textbf{Las dos clases de ventana inflan los agregados.} En
+          \rWindowClasses{} detectar equivale a clasificar la ventana, y aportan
+          el \rShareTwoWindow{} de las cajas de prueba: todo agregado que las
+          incluya, como el \textit{recall} global, sale más alto que el de las
+          clases de evento.
     \item \textbf{La prueba se midió una vez, por diseño, pero con una sola
               semilla.} El protocolo protege contra el sobreajuste a la partición de
           prueba, no contra la varianza de entrenamiento: no se sabe cuánto se

@@ -1,6 +1,12 @@
 \chapter{Estado del Arte}
 \label{cap:estado}
 
+Definida la tarea en el Capítulo~\ref{cap:marco}, este capítulo revisa cómo la ha
+abordado la literatura reciente. Primero declara la metodología de la revisión
+(preguntas, búsqueda y criterios de selección); después organiza los resultados
+por pregunta, para comprobar si el vacío que identificó la
+sección~\ref{sec:vacio} se sostiene frente a una búsqueda sistemática.
+
 \section{Metodología de la revisión}
 
 \subsection{Objetivos y preguntas de revisión}
@@ -75,22 +81,20 @@ recuperado en cada motor.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item Los tres bloques combinan técnica, tarea y dominio de
+            \item \textit{Nota.} Los tres bloques combinan técnica, tarea y dominio de
             aplicación. El asterisco es el comodín de truncamiento de ambos
             motores.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
+Scopus aporta la mayor parte de los documentos. El total es reducido porque la
+cadena exige a la vez los tres bloques de términos, y los criterios de cribado lo
+acotan todavía más.
+
 \subsection{Criterios de inclusión y exclusión}
 
 Los resultados se cribaron con los criterios de la Tabla~\ref{tab:criterios}.
-Dos de ellos hacen el trabajo principal de filtrado y merecen explicitarse: el
-criterio de detección de eventos descarta los trabajos que solo clasifican la
-grabación completa sin localizar nada dentro de ella, y el criterio de
-clasificación jerárquica descarta los clasificadores binarios o de un solo nivel
-taxonómico. Son precisamente los dos ejes en los que se sitúa el vacío descrito
-en la sección~\ref{sec:vacio}.
 
 \begin{table}[htbp]
     \centering
@@ -126,7 +130,57 @@ en la sección~\ref{sec:vacio}.
     \end{tabular}
 \end{table}
 
+Dos de ellos hacen el trabajo principal de filtrado: el criterio de detección
+descarta los trabajos que solo clasifican la grabación completa sin localizar
+nada dentro de ella, y el de clasificación descarta los clasificadores binarios o
+de un solo nivel taxonómico. Son precisamente los dos ejes en los que se sitúa el
+vacío descrito en la sección~\ref{sec:vacio}.
+
 \section{Resultados de la revisión}
+
+% PENDIENTE (autor): el flujo de selección (duplicados eliminados, trabajos
+% cribados por título y resumen, evaluados a texto completo e incluidos) no está
+% registrado en ninguna parte: el diagrama PRISMA que se borró del repositorio
+% (research/figures/prisma_flow.png, commit 9d6c92d) tiene «??» en todas las
+% etapas. Con esos cuatro números, añadir una frase o la figura aquí.
+Los resultados se apoyan en los trabajos de la Tabla~\ref{tab:estudios}, que
+indica a qué pregunta de revisión responde cada uno.
+
+\begin{table}[htbp]
+    \centering
+    \begin{threeparttable}
+        \caption{Trabajos en que se apoya la revisión}
+        \label{tab:estudios}
+        \small
+        \begin{tabular}{@{}L{5.4cm}L{5.0cm}l@{}}
+            \toprule
+            \textbf{Trabajo} & \textbf{Publicación} & \textbf{Preguntas} \\
+            \midrule
+            \citet{he_deep_2016}\textsuperscript{a} & Conferencia (CVPR) & P1 \\
+            \citet{lostanlen_robust_2019}\textsuperscript{a} & Revista (\textit{PLOS ONE}) & P1, P2, P3, P4 \\
+            \citet{politis_dataset_2020} & Taller (DCASE) & P1, P2, P4 \\
+            \citet{bonet-sola_comparative_2021} & Revista (\textit{Sensors}) & P1 \\
+            \citet{kahl_birdnet_2021} & Revista (\textit{Ecological Informatics}) & P1, P2, P4 \\
+            \citet{meedeniya_survey_2023} & Revista (\textit{ACM Computing Surveys}) & Contexto general \\
+            \citet{nolasco_learning_2023} & Revista (\textit{Ecological Informatics}) & P1, P2, P4, P5 \\
+            \citet{kath_leveraging_2024} & Revista (\textit{Ecological Informatics}) & P2, P5 \\
+            \citet{zhu_sound_2025} & Taller (DCASE) & P1 \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Nota.} \textsuperscript{a}~Anterior a 2020: no cumple el
+            criterio de temporalidad de la Tabla~\ref{tab:criterios}, no proviene de
+            la búsqueda y se cita como antecedente.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+Siete de los nueve trabajos son de 2020 en adelante, como exige el criterio de
+temporalidad de la Tabla~\ref{tab:criterios}. Los dos anteriores se incorporan
+fuera de la búsqueda, como antecedentes sin los cuales no se leen los demás: la
+arquitectura residual, base de BirdNET, y el estudio de redes de sensores en que
+se apoya la discusión de PCEN como alternativa al log-mel.
 
 Ninguno de los trabajos recuperados evalúa arquitecturas de aprendizaje profundo
 para la detección y clasificación de vocalizaciones de primates en el contexto
@@ -159,11 +213,11 @@ audio y añade una pirámide multiescala, precisamente porque las arquitecturas 
 tipo transformador de espectrograma producen representaciones de una sola escala
 \citep{zhu_sound_2025}.
 
-Del lado de la representación de entrada, la normalización de energía por canal
-fue el contribuyente principal a la mejora de precisión sobre la línea base de
-espectrograma log-mel \citep{lostanlen_robust_2019}, y también la representación
-mayoritaria entre los sistemas exitosos del desafío de detección con pocos
-ejemplos \citep{nolasco_learning_2023}. La elección de la representación
+Del lado de la representación de entrada, la ventaja de PCEN sobre el log-mel
+que describe la sección~\ref{sec:frontends} \citep{lostanlen_robust_2019} se
+repite en el desafío de detección con pocos ejemplos, donde fue la
+representación mayoritaria entre los sistemas exitosos
+\citep{nolasco_learning_2023}. La elección de la representación
 resultó, en esos trabajos, tan determinante como la elección de la arquitectura
 \citep{bonet-sola_comparative_2021}.
 
@@ -174,10 +228,11 @@ la clasificación jerárquica fina que asigna de forma simultánea la especie y 
 tipo de vocalización. La literatura recuperada se concentra en tres tareas
 vecinas pero distintas: la detección de eventos, que localiza sin etiquetar en
 detalle \citep{lostanlen_robust_2019,politis_dataset_2020}; la clasificación de
-especie, multiclase o multietiqueta, que identifica qué especies están presentes
-BirdNET reconoce 984 especies de aves \citep{kahl_birdnet_2021}, y
-\citet{kath_leveraging_2024} entrenan clasificadores lineales sobre
-\textit{embeddings} para anuros; y la clasificación de eventos ya detectados
+especie, multiclase o multietiqueta, que identifica qué especies están
+presentes, como BirdNET, que reconoce 984 especies de aves
+\citep{kahl_birdnet_2021}, o los clasificadores lineales que
+\citet{kath_leveraging_2024} entrenan sobre \textit{embeddings} para anuros; y la
+clasificación de eventos ya detectados
 en un conjunto plano de clases predefinidas \citep{politis_dataset_2020}.
 
 La necesidad de distinguir tipos de llamada o sílabas se reconoce como un
@@ -209,9 +264,13 @@ red de sensores.
 \subsection{P4: Conjuntos de datos y aumento de datos}
 
 Los conjuntos públicos disponibles se concentran de forma abrumadora en aves:
-BirdVox, Xeno-canto y la Macaulay Library. Fuera de ese taxón, la revisión
-identificó AnuraSet para anuros, la base de Watkins para mamíferos marinos y los
-conjuntos de DCASE para sonidos generales. No se encontró ningún conjunto
+BirdVox \citep{lostanlen_birdvox_2018}, Xeno-canto
+\citep{Willem-Pier_Vellinga_2026} y la Macaulay Library
+\citep{macaulay_library}. Fuera de ese taxón, la revisión identificó AnuraSet
+para anuros \citep{canas_anuraset_2023}, la base de Watkins para mamíferos
+marinos \citep{sayigh_watkins_2016} y los conjuntos de los desafíos DCASE
+(\textit{Detection and Classification of Acoustic Scenes and Events}) para
+sonidos generales \citep{politis_dataset_2020,nolasco_learning_2023}. No se encontró ningún conjunto
 público a gran escala etiquetado específicamente para vocalizaciones de
 primates, lo que confirma por una segunda vía el eje de dominio de la
 sección~\ref{sec:vacio}.
@@ -253,6 +312,11 @@ ajuste fino reentrena parcial o totalmente los pesos con los pocos datos de la
 tarea objetivo, y exige cuidado para no sobreajustar \citep{nolasco_learning_2023}.
 Ninguno de los trabajos documenta la adaptación de estos modelos a la detección
 con salida bidimensional ni a la clasificación jerárquica de primates.
+
+\section{Síntesis}
+\label{sec:sintesis-revision}
+
+Leídas en conjunto, las respuestas a las cinco preguntas son las siguientes.
 
 \rotulo{Detección y robustez (P1, P3).} No se identificó ningún estudio que
 aplique y evalúe modelos de aprendizaje profundo a la detección

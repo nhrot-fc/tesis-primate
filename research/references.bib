@@ -1,18 +1,16 @@
-@misc{airale_nbm_2025,
-  title      = {{NBM}: an Open Dataset for the Acoustic Monitoring of Nocturnal Migratory Birds in Europe},
+@online{airale_nbm_2025,
+  title      = {{NBM}: an Open Dataset for the Acoustic Monitoring of Nocturnal Migratory Birds in {Europe}},
   url        = {http://arxiv.org/abs/2412.03633},
   doi        = {10.48550/arXiv.2412.03633},
   shorttitle = {{NBM}},
   abstract   = {The persisting threats on migratory bird populations highlight the urgent need for effective monitoring techniques that could assist in their conservation. Among these, passive acoustic monitoring is an essential tool, particularly for nocturnal migratory species that are difficult to track otherwise. This work presents the Nocturnal Bird Migration ({NBM}) dataset, a collection of 13,359 annotated vocalizations from 117 species of the Western Palearctic. The dataset includes precise time and frequency annotations, gathered by dozens of bird enthusiasts across France, enabling novel downstream acoustic analysis. In particular, we prove the utility of this database by training an original two-stage deep object detection model tailored for the processing of audio data. While allowing the precise localization of bird calls in spectrograms, this model shows competitive accuracy on the 45 main species of the dataset with state-of-the-art systems trained on much larger audio collections. These results highlight the interest of fostering similar open-science initiatives to acquire costly but valuable fine-grained annotations of audio files. All data and code are made openly available.},
-  number     = {{arXiv}:2412.03633},
-  publisher  = {{arXiv}},
   author     = {Airale, Louis and Pajot, Adrien and Linossier, Juliette},
   urldate    = {2026-01-31},
-  date       = {2025-05-22},
+  date       = {2025},
   year       = {2025},
-  eprinttype = {arxiv},
-  eprint     = {2412.03633 [cs]},
-  keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{blumstein_acoustic_2011,
@@ -38,7 +36,7 @@
 }
 
 @article{Campos_Krofel_Rio-Maior_Renna_2025,
-  title        = {HOWLish: a CNN for automated wolf howl detection},
+  title        = {{HOWLish}: a {CNN} for automated wolf howl detection},
   url          = {http://dx.doi.org/10.1002/rse2.70024},
   doi          = {10.1002/rse2.70024},
   abstractnote = {<jats:title>Abstract</jats:title><jats:p>Automated sound-event detection is crucial for large‐scale passive acoustic monitoring of wildlife, but the availability of ready‐to‐use tools is narrow across taxa. Machine learning is currently the state‐of‐the‐art framework for developing sound‐event detection tools tailored to specific wildlife calls. Gray wolves (<jats:italic>Canis lupus</jats:italic>), a species with intricate management necessities, howl spontaneously for long‐distance intra‐ and inter‐pack communication, which makes them a prime target for passive acoustic monitoring. Yet, there is currently no pre‐trained, open‐access tool that allows reliable automated detection of wolf howls in recorded soundscapes. We collected 50 137 h of soundscape data, where we manually labeled 841 unique howling events. We used this dataset to fine‐tune VGGish-a convolutional neural network trained for audio classification-effectively retraining it for wolf howl detection. HOWLish correctly classified 77% of the wolf howling examples present on our test set, with a false positive rate of 1.74%; still, precision was low (0.006) granted extreme class imbalance (7124:1). During field tests, HOWLish retrieved 81.3% of the observed howling events while offering a 15‐fold reduction in operator time when compared to fully manual detection. This work establishes the baseline for open‐access automated wolf howl detection. HOWLish facilitates remote sensing of wild wolf populations, offering new opportunities in non‐invasive large‐scale monitoring and communication research of wolves. The knowledge gap we addressed here spans across many soniferous taxa, to which our approach also tallies.</jats:p>},
@@ -46,7 +44,7 @@
   publisher    = {Wiley},
   author       = {Campos, Rafael and Krofel, Miha and Rio-Maior, Helena and Renna, Francesco},
   year         = {2025},
-  month        = sept,
+  month        = sep,
   language     = {en}
 }
 
@@ -57,24 +55,22 @@
   year      = {2000}
 }
 
-@misc{ebbers_sound_2024,
+@online{ebbers_sound_2024,
   title      = {Sound Event Bounding Boxes},
   url        = {http://arxiv.org/abs/2406.04212},
   doi        = {10.48550/arXiv.2406.04212},
   abstract   = {Sound event detection is the task of recognizing sounds and determining their extent (onset/offset times) within an audio clip. Existing systems commonly predict sound presence confidence in short time frames. Then, thresholding produces binary frame-level presence decisions, with the extent of individual events determined by merging consecutive positive frames. In this paper, we show that frame-level thresholding degrades the prediction of the event extent by coupling it with the system's sound presence confidence. We propose to decouple the prediction of event extent and confidence by introducing {SEBBs}, which format each sound event prediction as a tuple of a class type, extent, and overall confidence. We also propose a change-detection-based algorithm to convert legacy frame-level outputs into {SEBBs}. We find the algorithm significantly improves the performance of {DCASE} 2023 Challenge systems, boosting the state of the art from .644 to .686 {PSDS}1.},
-  number     = {{arXiv}:2406.04212},
-  publisher  = {{arXiv}},
-  author     = {Ebbers, Janek and Germain, Francois G. and Wichern, Gordon and Roux, Jonathan Le},
+  author     = {Ebbers, Janek and Germain, François G. and Wichern, Gordon and Le Roux, Jonathan},
   urldate    = {2026-01-31},
-  date       = {2024-06-06},
+  date       = {2024},
   year       = {2024},
-  eprinttype = {arxiv},
-  eprint     = {2406.04212 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{escobar-amado_computer_2024,
-  title        = {Computer Vision for Bioacoustics: Detection of Bearded Seal Vocalizations in the Chukchi Shelf Using {YOLOV}5},
+  title        = {Computer Vision for Bioacoustics: Detection of Bearded Seal Vocalizations in the {Chukchi Shelf} Using {YOLOv5}},
   volume       = {49},
   issn         = {1558-1691},
   url          = {https://ieeexplore.ieee.org/document/10261873},
@@ -125,39 +121,37 @@
   number       = {1},
   journal      = {Applied Sciences},
   journaltitle = {Applied Sciences},
-  publisher    = {publisher},
   author       = {González, Sergio Segovia and Quiros, Sara Barahona and Toledano, Doroteo T.},
   urldate      = {2026-01-31},
   date         = {2025-12-23},
   year         = {2025},
   langid       = {english},
-  keywords     = {event detection, object detection, transfer learning, {YOLO}}
+  keywords     = {event detection, object detection, transfer learning, {YOLO}},
+  eid = {205}
 }
 
 @inproceedings{he_deep_2016,
   title     = {Deep Residual Learning for Image Recognition},
   author    = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
-  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  booktitle = {{2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}},
   pages     = {770--778},
   year      = {2016},
   doi       = {10.1109/CVPR.2016.90}
 }
 
-@misc{he_sounddet_2021,
+@online{he_sounddet_2021,
   title      = {{SoundDet}: Polyphonic Moving Sound Event Detection and Localization from Raw Waveform},
   url        = {http://arxiv.org/abs/2106.06969},
   doi        = {10.48550/arXiv.2106.06969},
   shorttitle = {{SoundDet}},
   abstract   = {We present a new framework {SoundDet}, which is an end-to-end trainable and light-weight framework, for polyphonic moving sound event detection and localization. Prior methods typically approach this problem by preprocessing raw waveform into time-frequency representations, which is more amenable to process with well-established image processing pipelines. Prior methods also detect in segment-wise manner, leading to incomplete and partial detections. {SoundDet} takes a novel approach and directly consumes the raw, multichannel waveform and treats the spatio-temporal sound event as a complete "sound-object" to be detected. Specifically, {SoundDet} consists of a backbone neural network and two parallel heads for temporal detection and spatial localization, respectively. Given the large sampling rate of raw waveform, the backbone network first learns a set of phase-sensitive and frequency-selective bank of filters to explicitly retain direction-of-arrival information, whilst being highly computationally and parametrically efficient than standard 1D/2D convolution. A dense sound event proposal map is then constructed to handle the challenges of predicting events with large varying temporal duration. Accompanying the dense proposal map are a temporal overlapness map and a motion smoothness map that measure a proposal's confidence to be an event from temporal detection accuracy and movement consistency perspective. Involving the two maps guarantees {SoundDet} to be trained in a spatio-temporally unified manner. Experimental results on the public {DCASE} dataset show the advantage of {SoundDet} on both segment-based and our newly proposed event-based evaluation system.},
-  number     = {{arXiv}:2106.06969},
-  publisher  = {{arXiv}},
   author     = {He, Yuhang and Trigoni, Niki and Markham, Andrew},
   urldate    = {2026-01-31},
   year       = {2021},
-  date       = {2021-08-21},
-  eprinttype = {arxiv},
-  eprint     = {2106.06969 [cs]},
-  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  date       = {2021},
+  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{heinicke_2015,
@@ -172,7 +166,7 @@
 }
 
 @article{jin_semantic_2022,
-  title        = {Semantic segmentation-based whistle extraction of Indo-Pacific Bottlenose Dolphin residing at the coast of Jeju island},
+  title        = {Semantic segmentation-based whistle extraction of {Indo-Pacific} bottlenose dolphin residing at the coast of {Jeju} island},
   volume       = {137},
   issn         = {1470-160X},
   url          = {https://www.sciencedirect.com/science/article/pii/S1470160X22002631},
@@ -258,12 +252,11 @@
   abstract   = {In this paper, we introduce a {LargE}-scale Annotator’s labels for sound event Detection ({LEAD}) dataset, which is the dataset used to gain a better understanding of the variation in strong labels in sound event detection ({SED}). In {SED}, it is very time-consuming to collect large-scale strong labels, and in most cases, multiple workers divide up the annotations to create a single dataset. In general, strong labels created by multiple annotators have large variations in the type of sound events and temporal onset/offset. If the strong labels of {SED} vary greatly depending on the annotator, the {SED} model trained on a dataset created by multiple annotators will be biased. Moreover, if annotators differ between training and evaluation data, there is a risk that the model cannot be evaluated correctly. To investigate the variation in strong labels and construct a robust method against the variation, we propose the {LEAD} dataset, which has 20 annotators for each sound clip. The {LEAD} dataset consists of strong labels assigned to sound clips from {TUT} Sound Events 2016/2017, {TUT} Acoustic Scenes 2016, and {URBAN}-{SED}. We also analyze variations in the strong labels in the {LEAD} dataset and provide insights into the variations.},
   eventtitle = {2024 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})},
   pages      = {1--6},
-  booktitle  = {2024 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})},
+  booktitle  = {{2024 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})}},
   author     = {Koga, Naoki and Bando, Yoshiaki and Imoto, Keisuke},
   urldate    = {2026-01-31},
   date       = {2024-12},
   year       = {2024},
-  note       = {{ISSN}: 2640-0103},
   keywords   = {Acoustics, Annotations, Asia, Data models, Event detection, Information processing, Lead, Training}
 }
 
@@ -278,28 +271,15 @@
   doi     = {10.1121/1.5049803}
 }
 
-@article{Leroy_Thomisch_Royer_Boebel_Van_Opzeeland_2018,
-  title        = {On the reliability of acoustic annotations and automatic detections of Antarctic blue whale calls under different acoustic conditions},
-  volume       = {144},
-  url          = {http://dx.doi.org/10.1121/1.5049803},
-  doi          = {10.1121/1.5049803},
-  abstractnote = {<jats:p>Evaluation of the performance of computer-based algorithms to automatically detect mammalian vocalizations often relies on comparisons between detector outputs and a reference data set, generally obtained by manual annotation of acoustic recordings. To explore the reproducibility of these annotations, inter- and intra-analyst variability in manually annotated Antarctic blue whale (ABW) Z-calls are investigated by two analysts in acoustic data from two ocean basins representing different scenarios in terms of call abundance and background noise. Manual annotations exhibit strong inter- and intra-analyst variability, with less than 50% agreement between analysts. This variability is mainly caused by the difficulty of reliably and reproducibly distinguishing single calls in an ABW chorus made of overlaying distant calls. Furthermore, the performance of two automated detectors, based on spectrogram correlation or subspace-detection strategy, is evaluated by comparing detector output to a “conservative” manually annotated reference data set, which comprises only analysts’ matching events. This study highlights the need for a standardized approach for human annotations and automatic detections, including a quantitative description of their performance, to improve the comparability of acoustic data, which is particularly relevant in the context of collaborative approaches in collecting and analyzing large passive acoustic data sets.</jats:p>},
-  number       = {2},
-  journal      = {The Journal of the Acoustical Society of America},
-  publisher    = {Acoustical Society of America (ASA)},
-  author       = {Leroy, Emmanuelle C. and Thomisch, Karolin and Royer, Jean-Yves and Boebel, Olaf and Van Opzeeland, Ilse},
-  year         = {2018},
-  month        = aug,
-  pages        = {740-754},
-  language     = {en}
-}
-
 @inproceedings{lin_2014,
-  title     = {Microsoft COCO: Common Objects in Context},
+  title     = {{Microsoft COCO}: Common Objects in Context},
   author    = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Hays, James and Perona, Pietro and Ramanan, Deva and Dollár, Piotr and Zitnick, C. Lawrence},
-  booktitle = {Computer Vision -- ECCV 2014},
+  booktitle = {Computer Vision -- {ECCV} 2014},
   pages     = {740--755},
-  year      = {2014}
+  year      = {2014},
+  editor = {Fleet, David and Pajdla, Tomas and Schiele, Bernt and Tuytelaars, Tinne},
+  publisher = {Springer},
+  doi = {10.1007/978-3-319-10602-1_48}
 }
 
 @article{lostanlen_robust_2019,
@@ -330,6 +310,7 @@
   doi        = {10.21437/Interspeech.2022-10127},
   shorttitle = {Frequency Dynamic Convolution},
   eventtitle = {Proc. Interspeech 2022},
+  booktitle  = {{Proceedings of Interspeech 2022}},
   pages      = {2763--2767},
   author     = {Nam, Hyeonuk and Kim, Seong-Hu and Ko, Byeong-Yun and Park, Yong-Hwa},
   urldate    = {2026-01-31},
@@ -337,20 +318,18 @@
   date       = {2022}
 }
 
-@misc{nam_self_2024,
+@online{nam_self_2024,
   title      = {Self Training and Ensembling Frequency Dependent Networks with Coarse Prediction Pooling and Sound Event Bounding Boxes},
   url        = {http://arxiv.org/abs/2406.15725},
   doi        = {10.48550/arXiv.2406.15725},
   abstract   = {To tackle sound event detection ({SED}), we propose frequency dependent networks ({FreDNets}), which heavily leverage frequency-dependent methods. We apply frequency warping and {FilterAugment}, which are frequency-dependent data augmentation methods. The model architecture consists of 3 branches: audio teacher-student transformer ({ATST}) branch, {BEATs} branch and {CNN} branch including either partial dilated frequency dynamic convolution ({PDFD} conv) or squeeze-and-Excitation ({SE}) with time-frame frequency-wise {SE} ({tfwSE}). To train {MAESTRO} labels with coarse temporal resolution, we applied max pooling on prediction for the {MAESTRO} dataset. Using best ensemble model, we applied self training to obtain pseudo label from {DESED} weak set, unlabeled set and {AudioSet}. {AudioSet} pseudo labels, filtered to focus on high-confidence labels, are used to train on {DESED} dataset only. We used change-detection-based sound event bounding boxes ({cSEBBs}) as post processing for ensemble models on self training and submission models. The resulting {FreDNet} was ranked 2nd in {DCASE} 2024 Challenge Task 4.},
-  number     = {{arXiv}:2406.15725},
-  publisher  = {{arXiv}},
   author     = {Nam, Hyeonuk and Min, Deokki and Choi, Seungdeok and Choi, Inhan and Park, Yong-Hwa},
   urldate    = {2026-01-31},
   year       = {2024},
-  date       = {2024-09-20},
-  eprinttype = {arxiv},
-  eprint     = {2406.15725 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  date       = {2024},
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{nguyen_assessing_2021,
@@ -361,20 +340,6 @@
   pages   = {101185},
   year    = {2021},
   doi     = {10.1016/j.ecoinf.2020.101185}
-}
-
-@article{Nguyen_Hong_Duc_Torterotot_Samaran_White_Gérard_Adam_Cazau_2021,
-  title     = {Assessing inter-annotator agreement from collaborative annotation campaign in marine bioacoustics},
-  volume    = {61},
-  url       = {http://dx.doi.org/10.1016/j.ecoinf.2020.101185},
-  doi       = {10.1016/j.ecoinf.2020.101185},
-  journal   = {Ecological Informatics},
-  publisher = {Elsevier BV},
-  author    = {Nguyen Hong Duc, Paul and Torterotot, Maëlle and Samaran, Flore and White, Paul R. and Gérard, Odile and Adam, Olivier and Cazau, Dorian},
-  year      = {2021},
-  month     = mar,
-  pages     = {101185},
-  language  = {en}
 }
 
 @article{nolasco_learning_2023,
@@ -395,46 +360,43 @@
   keywords     = {Bioacoustics, Deep learning, Event detection, Few-shot learning}
 }
 
-@misc{pham_eventness_2018,
+@online{pham_eventness_2018,
   title      = {Eventness: Object Detection on Spectrograms for Temporal Localization of Audio Events},
   url        = {http://arxiv.org/abs/1712.09668},
   doi        = {10.48550/arXiv.1712.09668},
   shorttitle = {Eventness},
   abstract   = {In this paper, we introduce the concept of Eventness for audio event detection, which can, in part, be thought of as an analogue to Objectness from computer vision. The key observation behind the eventness concept is that audio events reveal themselves as 2-dimensional time-frequency patterns with specific textures and geometric structures in spectrograms. These time-frequency patterns can then be viewed analogously to objects occurring in natural images (with the exception that scaling and rotation invariance properties do not apply). With this key observation in mind, we pose the problem of detecting monophonic or polyphonic audio events as an equivalent visual object(s) detection problem under partial occlusion and clutter in spectrograms. We adapt a state-of-the-art visual object detection model to evaluate the audio event detection task on publicly available datasets. The proposed network has comparable results with a state-of-the-art baseline and is more robust on minority events. Provided large-scale datasets, we hope that our proposed conceptual model of eventness will be beneficial to the audio signal processing community towards improving performance of audio event detection.},
-  number     = {{arXiv}:1712.09668},
-  publisher  = {{arXiv}},
   author     = {Pham, Phuong and Li, Juncheng and Szurley, Joseph and Das, Samarjit},
   urldate    = {2026-01-31},
-  date       = {2018-02-19},
+  date       = {2018},
   year       = {2018},
-  eprinttype = {arxiv},
-  eprint     = {1712.09668 [cs]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @inproceedings{politis_dataset_2020,
   title     = {A Dataset of Reverberant Spatial Sound Scenes with Moving Sources for Sound Event Localization and Detection},
   author    = {Politis, Archontis and Adavanne, Sharath and Virtanen, Tuomas},
-  booktitle = {Proceedings of the Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2020)},
+  booktitle = {{Proceedings of the Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2020)}},
   pages     = {165--169},
-  year      = {2020}
+  year      = {2020},
+  url       = {https://dcase.community/documents/workshop2020/proceedings/DCASE2020Workshop_Politis_88.pdf}
 }
 
 
-@misc{schmid_sound_2026,
+@online{schmid_sound_2026,
   title      = {Sound Event Detection with Boundary-Aware Optimization and Inference},
   url        = {http://arxiv.org/abs/2601.04178},
   doi        = {10.48550/arXiv.2601.04178},
   abstract   = {Temporal detection problems appear in many fields including time-series estimation, activity recognition and sound event detection ({SED}). In this work, we propose a new approach to temporal event modeling by explicitly modeling event onsets and offsets, and by introducing boundary-aware optimization and inference strategies that substantially enhance temporal event detection. The presented methodology incorporates new temporal modeling layers - Recurrent Event Detection ({RED}) and Event Proposal Network ({EPN}) - which, together with tailored loss functions, enable more effective and precise temporal event detection. We evaluate the proposed method in the {SED} domain using a subset of the temporally-strongly annotated portion of {AudioSet}. Experimental results show that our approach not only outperforms traditional frame-wise {SED} models with state-of-the-art post-processing, but also removes the need for post-processing hyperparameter tuning, and scales to achieve new state-of-the-art performance across all {AudioSet} Strong classes.},
-  number     = {{arXiv}:2601.04178},
-  publisher  = {{arXiv}},
   author     = {Schmid, Florian and Tang, Chi Ian and Parekh, Sanjeel and Ithapu, Vamsi Krishna and Ortiz, Juan Azcarreta and Ferroni, Giacomo and Qian, Yijun and Jasonas, Arnoldas and Frateanu, Cosmin and Clark, Camilla and Widmer, Gerhard and Bilen, Cagdas},
   urldate    = {2026-01-31},
   year       = {2026},
-  date       = {2026-01-07},
-  eprinttype = {arxiv},
-  eprint     = {2601.04178 [eess]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  date       = {2026},
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 % ===================================================================
@@ -444,21 +406,19 @@
 % referencias canónicas. VERIFICAR volumen y páginas antes de entregar.
 % ===================================================================
 
-@misc{song_frequency-aware_2024,
+@online{song_frequency-aware_2024,
   title      = {Frequency-aware convolution for sound event detection},
   url        = {http://arxiv.org/abs/2403.13252},
   doi        = {10.48550/arXiv.2403.13252},
   abstract   = {In sound event detection ({SED}), convolutional neural networks ({CNNs}) are widely employed to extract time-frequency ({TF}) patterns from spectrograms. However, the ability of {CNNs} to recognize different sound events is limited by their insensitivity to shifts of {TF} patterns along the frequency dimension, caused by translation equivariance. To address this issue, a model called frequency dynamic convolution ({FDY}) has been proposed, which involves applying specific convolution kernels to different frequency components. However, {FDY} requires a significantly larger number of parameters and computational resources compared to a standard {CNN}. This paper proposes a more efficient solution called frequency-aware convolution ({FAC}). {FAC} incorporates frequency positional information by encoding it in a vector, which is then explicitly added to the input spectrogram. To ensure that the amplitude of the encoding vector matches that of the input spectrogram, the encoding vector is adaptively and channel-dependently scaled using self-attention. To evaluate the effectiveness of {FAC}, we conducted experiments within the context of the {DCASE} 2023 task 4. The results show that {FAC} achieves comparable performance to {FDY} while requiring only an additional 515 parameters, whereas {FDY} necessitates an additional 8.02 million parameters. Furthermore, an ablation study confirms that the adaptive and channel-dependent scaling of the encoding vector is critical to the performance of {FAC}.},
-  number     = {{arXiv}:2403.13252},
-  publisher  = {{arXiv}},
   author     = {Song, Tao and Zhang, {WenWen}},
   urldate    = {2026-01-31},
   year       = {2024},
-  date       = {2024-10-28},
-  eprinttype = {arxiv},
-  eprint     = {2403.13252 [cs]},
+  date       = {2024},
   keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
-  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/8Z788ELS/Song and Zhang - 2024 - Frequency-aware convolution for sound event detection.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/VY7GRUVW/2403.html:text/html}
+  file       = {Preprint PDF:/home/nhrot-fc/Zotero/storage/8Z788ELS/Song and Zhang - 2024 - Frequency-aware convolution for sound event detection.pdf:application/pdf;Snapshot:/home/nhrot-fc/Zotero/storage/VY7GRUVW/2403.html:text/html},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{stowell_computational_2022,
@@ -480,20 +440,18 @@
   langid       = {english}
 }
 
-@misc{turpault_training_2020,
+@online{turpault_training_2020,
   title      = {Training Sound Event Detection On A Heterogeneous Dataset},
   url        = {http://arxiv.org/abs/2007.03931},
   doi        = {10.48550/arXiv.2007.03931},
   abstract   = {Training a sound event detection algorithm on a heterogeneous dataset including both recorded and synthetic soundscapes that can have various labeling granularity is a non-trivial task that can lead to systems requiring several technical choices. These technical choices are often passed from one system to another without being questioned. We propose to perform a detailed analysis of {DCASE} 2020 task 4 sound event detection baseline with regards to several aspects such as the type of data used for training, the parameters of the mean-teacher or the transformations applied while generating the synthetic soundscapes. Some of the parameters that are usually used as default are shown to be sub-optimal.},
-  number     = {{arXiv}:2007.03931},
-  publisher  = {{arXiv}},
   author     = {Turpault, Nicolas and Serizel, Romain},
   urldate    = {2026-01-31},
   year       = {2020},
-  date       = {2020-07-08},
-  eprinttype = {arxiv},
-  eprint     = {2007.03931 [cs]},
-  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing, Electrical Engineering and Systems Science - Signal Processing}
+  date       = {2020},
+  keywords   = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing, Electrical Engineering and Systems Science - Signal Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @article{venkatesh_you_2022,
@@ -525,35 +483,32 @@
   volume  = {2},
   number  = {2},
   pages   = {68--80},
-  year    = {2008},
-  url     = {https://api.semanticscholar.org/CorpusID:154144462}
+  year    = {2008}
 }
 
-@misc{Willem-Pier_Vellinga_2026,
-  title        = {Xeno-canto - Bird sounds from around the world},
+@dataset{Willem-Pier_Vellinga_2026,
+  title        = {{Xeno-canto} -- {B}ird sounds from around the world},
   url          = {https://www.gbif.org/dataset/b1047888-ae52-4179-9dd5-5448ea342a24},
   doi          = {10.15468/QV0KSN},
   abstractnote = {This dataset covers the sounds of the Bird sound collection of Xeno-canto (XC). XC is an online database that provides access to sound recordings of wildlife from around the world. The recordings are shared by a growing community of thousands of recordists from around the world, amateurs and professionals alike. The aim of Xeno-canto is to eventually represent sounds of all animals, meaning of all taxa, to subspecies level, of their complete repertoire, with all of the geographic variability, at all stages of development.The website of Xeno-canto (xeno-canto.org) was launched in 2005, and initially focussed on Neotropical birds. The scope of Xeno-canto is gradually widening. XC is run by the Xeno-canto Foundation for Nature Sounds in The Netherlands, with support from Naturalis Biodiversity Center. Please note that the Bird sound dataset shared on GBIF is a subset of the entire collection that is available on https://xeno-canto.org/?gid=1. Only the recordings by recordists who have given their permission to share recording metadata with GBIF are shared here.},
   publisher    = {Xeno-canto Foundation for Nature Sounds},
-  author       = {Willem-Pier Vellinga},
+  author       = {Vellinga, Willem-Pier},
   year         = {2026},
-  language     = {en}
+  titleaddon = {Conjunto de datos}
 }
 
-@misc{wood_deep_2022,
+@online{wood_deep_2022,
   title      = {Deep Learning Object Detection Approaches to Signal Identification},
   url        = {http://arxiv.org/abs/2210.16173},
   doi        = {10.48550/arXiv.2210.16173},
   abstract   = {Traditionally source identification is solved using threshold based energy detection algorithms. These algorithms frequently sum up the activity in regions, and consider regions above a specific activity threshold to be sources. While these algorithms work for the majority of cases, they often fail to detect signals that occupy small frequency bands, fail to distinguish sources with overlapping frequency bands, and cannot detect any signals under a specified signal to noise ratio. Through the conversion of raw signal data to spectrogram, source identification can be framed as an object detection problem. By leveraging modern advancements in deep learning based object detection, we propose a system that manages to alleviate the failure cases encountered when using traditional source identification algorithms. Our contributions include framing source identification as an object detection problem, the publication of a spectrogram object detection dataset, and evaluation of the {RetinaNet} and {YOLOv}5 object detection models trained on the dataset. Our final models achieve Mean Average Precisions of up to 0.906. With such a high Mean Average Precision, these models are sufficiently robust for use in real world applications.},
-  number     = {{arXiv}:2210.16173},
-  publisher  = {{arXiv}},
   author     = {Wood, Luke and Anderson, Kevin and Gerstoft, Peter and Bell, Richard and Subbaraman, Raghab and Bharadia, Dinesh},
   urldate    = {2026-01-31},
   year       = {2022},
-  date       = {2022-11-01},
-  eprinttype = {arxiv},
-  eprint     = {2210.16173 [cs]},
-  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing}
+  date       = {2022},
+  keywords   = {Computer Science - Machine Learning, Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+  titleaddon = {Preprint},
+  organization = {arXiv}
 }
 
 @inproceedings{xiao_dg-sed_2025,
@@ -565,41 +520,268 @@
   abstract   = {This work explores domain generalization ({DG}) for sound event detection ({SED}), advancing adaptability to real-world scenarios. Our approach employs a mean-teacher framework with domain generalization named {DG}-{SED} to integrate heterogeneous training data while preserving the {SED} model performance across the datasets. Specifically, we first apply mixstyle to the frequency dimension to adapt the mel-spectrograms from different domains. Next, we use the adaptive residual normalization method to generalize features across multiple domains by applying instance normalization in the frequency dimension. Lastly, we use the sound event bounding boxes method for post-processing. We evaluate the proposed approach {DG}-{SED} on the {DCASE} 2024 Challenge Task 4, measuring {PSDS} on the {DESED} dataset and macro-average {pAUC} on the {MAESTRO} dataset. The results indicate that the proposed {DG}-{SED} method improves both {PSDS} and macro-average {pAUC} compared to the baselines. The code will be released in due course.},
   eventtitle = {2025 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})},
   pages      = {143--148},
-  booktitle  = {2025 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})},
+  booktitle  = {{2025 Asia Pacific Signal and Information Processing Association Annual Summit and Conference ({APSIPA} {ASC})}},
   author     = {Xiao, Yang and Yin, Han and Bai, Jisheng and Das, Rohan Kumar},
   urldate    = {2026-01-31},
   year       = {2025},
   date       = {2025-10},
-  note       = {{ISSN}: 2640-0103},
   keywords   = {Adaptation models, Asia, Codes, Data models, Event detection, Frequency-domain analysis, Information processing, Training data}
 }
 
 @inproceedings{zhu_sound_2025,
   title     = {Sound Event Detection using Time-frequency Bounding Boxes with a Self-Supervised Audio Spectrogram Transformer},
   author    = {Zhu, Zhi and Sato, Yoshinao},
-  booktitle = {Proceedings of the Detection and Classification of Acoustic Scenes and Events 2025 Workshop (DCASE2025)},
-  address   = {Barcelona, Spain},
-  year      = {2025}
-}
-
-@inproceedings{Zhu2025,
-  author    = {Zhu, Zhi and Sato, Yoshinao},
-  title     = {Sound Event Detection using Time-frequency Bounding Boxes with a Self-Supervised Audio Spectrogram Transformer},
-  booktitle = {Proceedings of the 10th Workshop on Detection and Classification of Acoustic Scenes and Events (DCASE 2025)},
-  address   = {Barcelona, Spain},
-  month     = {October},
-  year      = {2025},
+  booktitle = {{Proceedings of the 10th Workshop on Detection and Classification of Acoustic Scenes and Events (DCASE 2025)}},
   pages     = {150--154},
-  abstract  = {Time-frequency bounding boxes of sound events in audio spectrograms capture essential information across various domains. Nevertheless, previous studies of sound event detection (SED) have focused on detecting temporal boundaries. Although object detection models can be adapted for time-frequency SED, they are intended for image data that exhibit significantly different features compared to audio spectrograms. To address this modality gap, this study employs an audio spectrogram transformer (AST) as the backbone of a detection transformer (DETR). A dataset of whistle sounds from defective wind turbine blades was used for model training and evaluation. The proposed model outperformed a faster region-based convolutional neural network with a residual network backbone, which is an established object detection model. The integration of deformable attention with a multiscale feature pyramid significantly contributed to improving the performance. These results demonstrate the effectiveness of deformable DETR models with an AST backbone for time-frequency SED. Our findings will contribute to advancing time-frequency SED, an area that remains underexplored.},
-  isbn      = {978-84-09-77652-8},
-  doi       = {10.5281/zenodo.17251589}
+  year      = {2025},
+  url       = {https://dcase.community/documents/workshop2025/proceedings/DCASE2025Workshop_Zhu_54.pdf}
 }
 
 @inproceedings{zhu_deformable_2021,
   title     = {Deformable {DETR}: Deformable Transformers for End-to-End Object Detection},
   author    = {Zhu, Xizhou and Su, Weijie and Lu, Lewei and Li, Bin and Wang, Xiaogang and Dai, Jifeng},
-  booktitle = {International Conference on Learning Representations (ICLR)},
+  booktitle = {{International Conference on Learning Representations (ICLR)}},
   year      = {2021},
   eprint    = {2010.04159},
   archivePrefix = {arXiv}
 }
+
+% ===================================================================
+% Problemática reescrita (06-10-2026): magnitud, relevancia y brecha.
+% Metadatos verificados contra Crossref, Europe PMC, Zenodo, arXiv y la
+% ficha de la UICN.
+% ===================================================================
+
+@article{estrada_impending_2017,
+  title   = {Impending extinction crisis of the world's primates: {W}hy primates matter},
+  author  = {Estrada, Alejandro and Garber, Paul A. and Rylands, Anthony B. and Roos, Christian and Fernandez-Duque, Eduardo and Di Fiore, Anthony and Nekaris, K. Anne-Isola and Nijman, Vincent and Heymann, Eckhard W. and Lambert, Joanna E. and Rovero, Francesco and Barelli, Claudia and Setchell, Joanna M. and Gillespie, Thomas R. and Mittermeier, Russell A. and Verde Arregoitia, Luis and de Guinea, Miguel and Gouveia, Sidney and Dobrovolski, Ricardo and Shanee, Sam and Shanee, Noga and Boyle, Sarah A. and Fuentes, Agustin and MacKinnon, Katherine C. and Amato, Katherine R. and Meyer, Andreas L. S. and Wich, Serge and Sussman, Robert W. and Pan, Ruliang and Kone, Inza and Li, Baoguo},
+  journal = {Science Advances},
+  volume  = {3},
+  number  = {1},
+  pages   = {e1600946},
+  year    = {2017},
+  doi     = {10.1126/sciadv.1600946}
+}
+
+@article{alves_ateles_2021,
+  title        = {\mkbibemph{Ateles chamek} (amended version of 2020 assessment)},
+  author       = {Alves, S. L. and Ravetta, A. L. and Paim, F. P. and Mittermeier, R. A. and Rabelo, R. M. and Wallace, R. B. and Messias, M. R. and Calouro, A. M. and Rylands, A. B. and de Melo, F. R. and Boubli, J. P.},
+  year         = {2021},
+  doi          = {10.2305/IUCN.UK.2021-1.RLTS.T41547A191685783.en},
+  journaltitle = {The {IUCN} Red List of Threatened Species},
+  volume = {2021},
+  pages = {e.T41547A191685783}
+}
+
+@article{pacheco_lista_2021,
+  title   = {Lista actualizada de la diversidad de los mam{\'i}feros del {P}er{\'u} y una propuesta para su actualizaci{\'o}n},
+  author  = {Pacheco, V{\'i}ctor and Diaz, Silvia and Graham-Angeles, Laura and Flores-Quispe, Marisel and Calizaya-Mamani, Gi{\"u}seppy and Ruelas, Dennisse and S{\'a}nchez-Vendiz{\'u}, Pamela},
+  journal = {Revista Peruana de Biolog{\'i}a},
+  volume  = {28},
+  number  = {4},
+  pages   = {e21019},
+  year    = {2021},
+  doi     = {10.15381/rpb.v28i4.21019}
+}
+
+@article{kalan_towards_2015,
+  title   = {Towards the automated detection and occupancy estimation of primates using passive acoustic monitoring},
+  author  = {Kalan, Ammie K. and Mundry, Roger and Wagner, Oliver J. J. and Heinicke, Stefanie and Boesch, Christophe and K{\"u}hl, Hjalmar S.},
+  journal = {Ecological Indicators},
+  volume  = {54},
+  pages   = {217--226},
+  year    = {2015},
+  doi     = {10.1016/j.ecolind.2015.02.023}
+}
+
+@article{perez-granados_passive_2021,
+  title   = {Passive acoustic monitoring of the diel and annual vocal behavior of the black and gold howler monkey},
+  author  = {P{\'e}rez-Granados, Cristian and Schuchmann, Karl-Ludwig},
+  journal = {American Journal of Primatology},
+  volume  = {83},
+  number  = {3},
+  pages   = {e23241},
+  year    = {2021},
+  doi     = {10.1002/ajp.23241}
+}
+
+@article{do_nascimento_passive_2021,
+  title   = {Passive acoustic monitoring and automatic detection of diel patterns and acoustic structure of howler monkey roars},
+  author  = {do Nascimento, Leandro A. and P{\'e}rez-Granados, Cristian and Beard, Karen H.},
+  journal = {Diversity},
+  volume  = {13},
+  number  = {11},
+  pages   = {566},
+  year    = {2021},
+  doi     = {10.3390/d13110566}
+}
+
+@article{zwerts_methods_2021,
+  title   = {Methods for wildlife monitoring in tropical forests: {C}omparing human observations, camera traps, and passive acoustic sensors},
+  author  = {Zwerts, Joeri A. and Stephenson, P. J. and Maisels, Fiona and Rowcliffe, Marcus and Astaras, Christos and Jansen, Patrick A. and van der Waarde, Jaap and Sterck, Liesbeth E. H. M. and Verweij, Pita A. and Bruce, Tom and Brittain, Stephanie and van Kuijk, Marijke},
+  journal = {Conservation Science and Practice},
+  volume  = {3},
+  number  = {12},
+  pages   = {e568},
+  year    = {2021},
+  doi     = {10.1111/csp2.568}
+}
+
+@article{sugai_terrestrial_2019,
+  title   = {Terrestrial passive acoustic monitoring: {R}eview and perspectives},
+  author  = {Sugai, Larissa Sayuri Moreira and Silva, Thiago Sanna Freire and Ribeiro, Jos{\'e} Wagner and Llusia, Diego},
+  journal = {BioScience},
+  volume  = {69},
+  number  = {1},
+  pages   = {15--25},
+  year    = {2019},
+  doi     = {10.1093/biosci/biy147}
+}
+
+@article{hill_audiomoth_2018,
+  title   = {{AudioMoth}: {E}valuation of a smart open acoustic device for monitoring biodiversity and the environment},
+  author  = {Hill, Andrew P. and Prince, Peter and Pi{\~n}a Covarrubias, Evelyn and Doncaster, C. Patrick and Snaddon, Jake L. and Rogers, Alex},
+  journal = {Methods in Ecology and Evolution},
+  volume  = {9},
+  number  = {5},
+  pages   = {1199--1211},
+  year    = {2018},
+  doi     = {10.1111/2041-210X.12955}
+}
+
+@article{romero-mujalli_utilizing_2021,
+  title   = {Utilizing {DeepSqueak} for automatic detection and classification of mammalian vocalizations: a case study on primate vocalizations},
+  author  = {Romero-Mujalli, Daniel and Bergmann, Tjard and Zimmermann, Axel and Scheumann, Marina},
+  journal = {Scientific Reports},
+  volume  = {11},
+  pages   = {24463},
+  year    = {2021},
+  doi     = {10.1038/s41598-021-03941-1}
+}
+
+@dataset{hopping_collection_2022,
+  title        = {A collection of fully-annotated soundscape recordings from the {S}outhwestern {A}mazon {B}asin},
+  author       = {Hopping, W. Alexander and Kahl, Stefan and Klinck, Holger},
+  year         = {2022},
+  doi          = {10.5281/zenodo.7079124},
+  titleaddon = {Conjunto de datos},
+  publisher = {Zenodo},
+  version = {1}
+}
+
+@online{ruiz_pteroset_2026,
+  title        = {A strongly annotated passive acoustic dataset for tropical bird monitoring},
+  author       = {Ruiz, Daniela and Ulloa, Juan Sebasti{\'a}n and Miao, Zhongqi and Betancourt, Nicol{\'a}s and Toro-G{\'o}mez, Maria Paula and Hern{\'a}ndez, Andr{\'e}s and Demuro, Bruno and Barona-Cort{\'e}s, Eliana and Mendoza-Henao, Angela and Sierra-Ricaurte, Andr{\'e}s and P{\'e}rez-Pe{\~n}a, Sebasti{\'a}n and Dodhia, Rahul and Arbel{\'a}ez, Pablo and Lavista Ferres, Juan M.},
+  year         = {2026},
+  doi          = {10.48550/arXiv.2605.20578},
+  titleaddon = {Preprint},
+  organization = {arXiv}
+}
+
+@online{dubus_deepforestsound_2026,
+  title        = {{DeepForestSound}: a multi-species automatic detector for passive acoustic monitoring in {A}frican tropical forests, a case study in {K}ibale {N}ational {P}ark},
+  author       = {Dubus, Gabriel and d'Audiffret, Th{\'e}au and Auger, Claire and Cornette, Rapha{\"e}l and Haupert, Sylvain and Kasekendi, Innocent and Katumba, Raymond and Magaldi, Hugo and Pernel, Lise and Rugonge, Harold and Sueur, J{\'e}r{\^o}me and Tibesigwa, John Justice and Krief, Sabrina},
+  year         = {2026},
+  doi          = {10.48550/arXiv.2604.08087},
+  titleaddon = {Preprint},
+  organization = {arXiv}
+}
+
+@article{hong_deep_2026,
+  title   = {Deep audio detection networks from passive acoustic monitoring of a critically endangered primate},
+  author  = {Hong, Ziwen and Xie, Yinghong and He, Kai and Zhou, Qihai and Miu, Yufeng and Peng, Hao and Cao, Zhong and Fan, Penglai},
+  journal = {Integrative Zoology},
+  volume  = {21},
+  number  = {4},
+  pages   = {986--1001},
+  year    = {2026},
+  doi     = {10.1111/1749-4877.70019}
+}
+
+@article{taylor_contribution_2010,
+  title   = {The contribution of source--filter theory to mammal vocal communication research},
+  author  = {Taylor, Anna M. and Reby, David},
+  journal = {Journal of Zoology},
+  volume  = {280},
+  number  = {3},
+  pages   = {221--236},
+  year    = {2010},
+  doi     = {10.1111/j.1469-7998.2009.00661.x}
+}
+
+@article{fischer_towards_2020,
+  title   = {Towards a new taxonomy of primate vocal production learning},
+  author  = {Fischer, Julia and Hammerschmidt, Kurt},
+  journal = {Philosophical Transactions of the Royal Society B: Biological Sciences},
+  volume  = {375},
+  number  = {1789},
+  pages   = {20190045},
+  year    = {2020},
+  doi     = {10.1098/rstb.2019.0045}
+}
+
+@online{wiredamazon_8primates,
+  author       = {{Wired Amazon}},
+  title        = {{8 Primates Project}},
+  organization = {Rainforest Expeditions},
+  url          = {https://www.wiredamazon.com/projects/8-primates/},
+  urldate      = {2026-10-07}
+}
+
+@software{raven_pro,
+  author    = {{K. Lisa Yang Center for Conservation Bioacoustics}},
+  title     = {{Raven Pro}: Interactive sound analysis software},
+  titleaddon = {Software},
+  publisher = {The Cornell Lab of Ornithology},
+  url       = {https://www.ravensoundsoftware.com/}
+}
+
+% --- Agregadas el 07-10-2026; DOI y autores verificados en Crossref, páginas y URL de
+% DCASE en dcase.community, volumen de Watkins en Semantic Scholar.
+@inproceedings{gong_ast_2021,
+  title     = {{AST}: {Audio Spectrogram Transformer}},
+  author    = {Gong, Yuan and Chung, Yu-An and Glass, James},
+  booktitle = {{Proceedings of Interspeech 2021}},
+  pages     = {571--575},
+  year      = {2021},
+  doi       = {10.21437/Interspeech.2021-698}
+}
+
+@article{canas_anuraset_2023,
+  title        = {A dataset for benchmarking {Neotropical} anuran calls identification in passive acoustic monitoring},
+  author       = {Cañas, Juan Sebastián and Toro-Gómez, María Paula and Sugai, Larissa Sayuri Moreira and Benítez Restrepo, Hernán Darío and Rudas, Jorge and Posso Bautista, Breyner and Toledo, Luís Felipe and Dena, Simone and Domingos, Adão Henrique Rosa and de Souza, Franco Leandro and Neckel-Oliveira, Selvino and da Rosa, Anderson and Carvalho-Rocha, Vítor and Bernardy, José Vinícius and Sugai, José Luiz Massao Moreira and dos Santos, Carolina Emília and Bastos, Rogério Pereira and Llusia, Diego and Ulloa, Juan Sebastián},
+  journaltitle = {Scientific Data},
+  volume       = {10},
+  number       = {1},
+  eid          = {771},
+  year         = {2023},
+  doi          = {10.1038/s41597-023-02666-2}
+}
+
+@article{sayigh_watkins_2016,
+  title        = {The {Watkins Marine Mammal Sound Database}: An online, freely accessible resource},
+  author       = {Sayigh, Laela and Daher, Mary Ann and Allen, Julie and Gordon, Helen and Joyce, Katherine and Stuhlmann, Claire and Tyack, Peter},
+  journaltitle = {Proceedings of Meetings on Acoustics},
+  volume       = {27},
+  eid          = {040013},
+  year         = {2016},
+  doi          = {10.1121/2.0000358}
+}
+
+@inproceedings{lostanlen_birdvox_2018,
+  title     = {{BirdVox-full-night}: A dataset and benchmark for avian flight call detection},
+  author    = {Lostanlen, Vincent and Salamon, Justin and Farnsworth, Andrew and Kelling, Steve and Bello, Juan Pablo},
+  booktitle = {{2018 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}},
+  pages     = {266--270},
+  year      = {2018},
+  doi       = {10.1109/ICASSP.2018.8461410}
+}
+
+@dataset{macaulay_library,
+  author     = {{Cornell Lab of Ornithology}},
+  title      = {{Macaulay Library}},
+  titleaddon = {Base de datos},
+  url        = {https://www.macaulaylibrary.org/},
+  urldate    = {2026-10-07}
+}
+

@@ -1,6 +1,15 @@
 \chapter{Marco Referencial}
 \label{cap:marco}
 
+El Capítulo~\ref{cap:generalidades} planteó el problema y los objetivos en
+términos del dominio: grabaciones, anotaciones y tiempo de especialista. Este
+capítulo fija los conceptos que esos objetivos dan por sentados. El marco teórico
+formaliza la tarea como detección de eventos sobre el espectrograma y precisa qué
+significa predecir una caja tiempo--frecuencia. El marco conceptual define los
+términos que los capítulos de resultados usan sin volver a explicarlos: paisaje
+sonoro, evento acústico, representación tiempo--frecuencia, detección de eventos
+sonoros, clasificación jerárquica y anotación inconsistente.
+
 \section{Marco Teórico}
 
 \subsection{Formulación del problema de detección}
@@ -43,20 +52,14 @@ cuyo cardinal $N_k$ no se conoce de antemano y donde cada evento es la tupla
           $\pi_{\text{esp}}(y)$ y $\pi_{\text{tipo}}(y)$ recuperan cada nivel cuando
           se lo necesita.
 
-    \item[$p$] Confianza en $[0,1]$ asignada por el modelo, que ordena las
+    \item[$p$] Confianza en $[0, 1]$ asignada por el modelo, que ordena las
           predicciones y define el punto de operación de la revisión asistida.
 \end{description}
 
 Las cuatro primeras componentes definen una caja rectangular sobre el plano
-tiempo--frecuencia; las dos restantes la etiquetan y la puntúan. La
-Figura~\ref{fig:segmentacion} muestra el resultado sobre un espectrograma.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\textwidth]{capitulos/02_marco_referencial/figures/image3.png}
-    \caption{Segmentación tiempo--frecuencia}
-    \label{fig:segmentacion}
-\end{figure}
+tiempo--frecuencia, la misma que el especialista dibuja en Raven
+(Figura~\ref{fig:annotation-example}); las dos restantes la etiquetan y la
+puntúan.
 
 \paragraph{Nivel de ventana}
 La grabación se recorta en ventanas de duración fija $T_w$, tomadas cada $H$
@@ -71,9 +74,9 @@ conjunto de tamaño fijo
 \begin{equation}
     f_\theta(X) = \bigl\{(\hat{b}_q,\; \hat{\pi}_q)\bigr\}_{q=1}^{Q},
     \qquad
-    \hat{b}_q \in [0,1]^4,
+    \hat{b}_q \in [0, 1]^4,
     \qquad
-    \hat{\pi}_q \in [0,1]^{L+1},
+    \hat{\pi}_q \in [0, 1]^{L+1},
     \label{eq:modelo}
 \end{equation}
 
@@ -81,7 +84,7 @@ donde $Q$ es un número de consultas fijado por la arquitectura, independiente d
 contenido de la ventana y mayor que la cantidad de eventos que cabe esperar en
 ella. Cada consulta produce una caja $\hat{b}_q = (c_x, c_y, w, h)$ en
 coordenadas normalizadas al recuadro de la ventana (centro, ancho y alto, los
-cuatro en $[0,1]$) y una distribución $\hat{\pi}_q$ sobre
+cuatro en $[0, 1]$) y una distribución $\hat{\pi}_q$ sobre
 $Y \cup \{\varnothing\}$, en la que $\varnothing$ es la clase ``sin objeto'' que
 absorbe las consultas sobrantes. El número de eventos no se predice: resulta de
 cuántas consultas eligen una clase de $Y$ por encima del umbral de confianza.
@@ -105,7 +108,7 @@ ventana empieza en $t_0$,
 En frecuencia no lo es, porque el eje vertical del espectrograma está en escala
 mel. Con $m(\cdot)$ la función que convierte hercios a mel y $[f_{\text{lo}},
             f_{\text{hi}}]$ los extremos del banco de filtros, la coordenada normalizada
-$u \in [0,1]$ vuelve a hercios mediante
+$u \in [0, 1]$ vuelve a hercios mediante
 \begin{equation}
     \varphi(u) = m^{-1}\!\bigl(m(f_{\text{lo}}) + u\,[\,m(f_{\text{hi}}) -
             m(f_{\text{lo}})\,]\bigr),
@@ -122,10 +125,10 @@ partes. Las predicciones de toda la grabación se llevan al marco común, se
 agrupan por clase y se depuran por supresión de no máximos, de modo que la lista
 $E_k$ contenga un evento por vocalización. Ese es el punto en el que el nivel de
 ventana devuelve el control al nivel de grabación, y también el punto en el que
-el ventaneo deja su huella: la sección~\ref{sec:ventaneo} documenta qué eventos
-quedan fuera de alcance por ser más largos que la ventana.
+el ventaneo deja su huella sobre los eventos más largos que la ventana.
 
 \subsection{El espectrograma y la asimetría de sus ejes}
+\label{sec:stft}
 
 La señal de audio es unidimensional, pero los eventos de interés se distinguen
 por cómo se distribuye su energía entre frecuencias a lo largo del tiempo. La
@@ -135,11 +138,6 @@ espectro. La magnitud del resultado es el espectrograma, una matriz
 $X \in \mathbb{R}^{F\times T}$ cuyos parámetros, como el tamaño de ventana, el salto
 entre ventanas y el tipo de ventana, fijan el compromiso entre resolución
 temporal y resolución frecuencial.
-
-Las transformaciones que se aplican sobre esa matriz, como la escala mel, la compresión
-logarítmica y la normalización de energía por canal, y el criterio con el que se
-elige entre ellas se tratan en la sección~\ref{sec:frontends}, donde
-corresponden al eslabón de la cadena en que aparece esa decisión.
 
 Interesa aquí una asimetría del espectrograma que conviene explicitar porque condiciona el
 diseño del detector. Tratarlo como una imagen es útil, pero sus dos ejes no son
@@ -166,29 +164,28 @@ naturales \citep{pham_eventness_2018}, y el encuadre trasciende la bioacústica
 hacia el análisis de señales en general \citep{wood_deep_2022}.
 
 \rotulo{Familia R-CNN.} Los detectores de dos etapas proponen primero regiones
-candidatas y luego las clasifican y refinan. Su aplicación a espectrogramas está
-documentada en bioacústica marina, donde las cajas predichas llevan información
-estadística embebida sobre la vocalización, como su duración, ancho de banda y
-frecuencia central, directamente utilizable por el analista
-\citep{escobar-amado_computer_2024}. NBM adapta un detector de dos etapas a
-datos de audio y lo acompaña de anotaciones precisas en tiempo y frecuencia
-recolectadas por aficionados \citep{airale_nbm_2025}.
+candidatas y luego las clasifican y refinan. Sobre espectrogramas, un detector de
+dos etapas localiza llamadas de aves migratorias nocturnas \citep{airale_nbm_2025},
+y DeepSqueak, construido sobre Faster R-CNN, se ha usado con las vocalizaciones de
+un primate en cautiverio \citep{romero-mujalli_utilizing_2021}.
 
-\rotulo{Familia YOLO.} Los detectores de una etapa predicen clase y caja en una
+\rotulo{Familia YOLO.} Los detectores de una etapa, cuyo representante más
+difundido es YOLO (\textit{You Only Look Once}), predicen clase y caja en una
 sola pasada sobre una rejilla, lo que los hace más rápidos y más simples de
 entrenar. Su uso sobre espectrogramas está reportado como línea base competitiva
-\citep{gonzalez_yolo-based_2025}. En audio, la idea de regresar directamente los
-límites del evento en lugar de clasificar tramas aparece también en YOHO, que
-convierte la detección en una regresión de los puntos de inicio y fin de cada
-clase \citep{venkatesh_you_2022}.
+\citep{gonzalez_yolo-based_2025}, y YOLOv5 se ha aplicado a vocalizaciones de
+foca barbuda \citep{escobar-amado_computer_2024}. La misma idea de una sola
+pasada inspira a YOHO, que la aplica al eje temporal \citep{venkatesh_you_2022}.
 
 \rotulo{Familia DETR y transformadores.} Los detectores basados en atención
 eliminan las anclas y la supresión de no máximos, y formulan la detección como
 la predicción directa de un conjunto de objetos emparejado con las anotaciones.
 Su adaptación al audio es reciente: SoundDet trata el audio crudo como una señal
-espacio-temporal y detecta eventos móviles sobre ella \citep{he_sounddet_2021},
-y \citet{ebbers_sound_2024} formalizan la salida como cuádruplas de clase,
-inicio, fin y confianza, aunque manteniéndola sobre el eje temporal.
+espacio-temporal y detecta eventos móviles sobre ella \citep{he_sounddet_2021}, y
+\citet{zhu_sound_2025} combinan un transformador de espectrograma autosupervisado
+con un decodificador deformable de esta familia para detectar cajas
+tiempo--frecuencia, el precedente directo de la arquitectura propuesta en esta
+tesis.
 
 \rotulo{Cajas frente a máscaras.} Una alternativa a la caja es la segmentación
 semántica, que asigna una etiqueta a cada celda tiempo--frecuencia y describe
@@ -202,13 +199,13 @@ máscara exigiría reanotar el corpus completo.
 
 Los conceptos que siguen no se presentan por área temática sino siguiendo el
 recorrido de la señal, desde que el animal vocaliza hasta que el analista recibe
-una etiqueta revisable. Cada eslabón de ese recorrido pierde algo o introduce una
-ambigüedad, y es esa pérdida la que crea la necesidad del eslabón siguiente
-(Figura~\ref{fig:signal-chain}). El orden de las subsecciones es, por tanto, el
-orden en que aparecen los problemas.
+una etiqueta revisable. La Figura~\ref{fig:signal-chain} dibuja ese recorrido
+como una cadena de seis eslabones.
 
 \begin{figure}[htbp]
     \centering
+    \caption{Cadena de la señal}
+    \label{fig:signal-chain}
     \resizebox{\textwidth}{!}{%
         \begin{tikzpicture}[
                 every node/.style={font=\footnotesize},
@@ -227,33 +224,38 @@ orden en que aparecen los problemas.
             \node[eslabon, right=5mm of g] (s) {\textbf{STFT}\\[1pt]
                 {\scriptsize ventana 1024 (23\,ms), salto 400 (9\,ms)}};
             \node[eslabon, right=5mm of s] (m) {\textbf{Mel + compresión}\\[1pt]
-                {\scriptsize 128 bandas HTK, 25\,Hz--22,1\,kHz}};
+                {\scriptsize 128 bandas HTK, 25\,Hz--22,05\,kHz}};
             \node[eslabon, right=5mm of m] (c) {\textbf{Caja anotada}\\[1pt]
                 {\scriptsize cuatro coordenadas y dos etiquetas}};
             \foreach \a/\b in {v/p, p/g, g/s, s/m, m/c}
             \draw[paso] (\a) -- (\b);
-            \node[perdida, below=4mm of p] {pierde SNR, sobre todo en agudos};
-            \node[perdida, below=4mm of g] {pierde lo que supera 22,1\,kHz};
+            \node[perdida, below=4mm of p] {pierde relación señal-ruido, sobre todo en agudos};
+            \node[perdida, below=4mm of g] {pierde lo que supera 22,05\,kHz};
             \node[perdida, below=4mm of s] {compromiso entre tiempo y frecuencia};
             \node[perdida, below=4mm of m] {resolución no uniforme};
             \node[perdida, below=4mm of c] {un rectángulo aproxima un contorno};
         \end{tikzpicture}}
-    \caption{Cadena de la señal}
-    \label{fig:signal-chain}
 \end{figure}
+
+Debajo de cada eslabón figura lo que se pierde en él: la propagación resta
+relación señal-ruido, sobre todo en los agudos; la grabadora descarta lo que
+supera 22,05\,kHz; la STFT obliga a elegir entre resolución temporal y frecuencial;
+la escala mel reparte la resolución de forma no uniforme, y la caja aproxima con
+un rectángulo un contorno que no lo es. Cada pérdida crea la necesidad del
+eslabón siguiente, y por eso las subsecciones siguen el orden en que aparecen los
+problemas.
 
 \subsection{Paisaje sonoro}
 
-La bioacústica estudia el sonido en los seres vivos. En este proyecto se aplica
-a través del monitoreo acústico pasivo, que despliega grabadoras autónomas para
-capturar el paisaje sonoro de un ecosistema sin intervenir en él
-\citep{blumstein_acoustic_2011}. Lo que la grabadora registra no es la
-vocalización sino la suma de todo lo que llega al micrófono, y en un entorno como
-la Amazonía esa suma tiene tres componentes:
+La bioacústica estudia el sonido en los seres vivos, y esta tesis la aplica a
+través del monitoreo acústico pasivo descrito en la sección~\ref{sec:problema}. Lo
+que la grabadora registra no es la vocalización sino la suma de todo lo que llega
+al micrófono, el paisaje sonoro del ecosistema \citep{blumstein_acoustic_2011}, y
+en un entorno como la Amazonía esa suma tiene tres componentes:
 
 \begin{description}
-    \item[Biofonía.] Los sonidos de origen biológico. Incluye la señal de interés
-          las vocalizaciones de primates y también el coro de insectos, anfibios
+    \item[Biofonía.] Los sonidos de origen biológico. Incluye la señal de interés,
+          las vocalizaciones de primates, y también el coro de insectos, anfibios
           y aves, que ocupa las mismas bandas durante horas seguidas.
 
     \item[Geofonía.] Los sonidos de origen físico: viento, lluvia, movimiento de
@@ -277,9 +279,10 @@ de esa mezcla, es decir, qué constituye exactamente un evento.
 La vocalización se produce por el flujo de aire desde los pulmones, que hace
 vibrar las cuerdas vocales en la laringe y actúa como fuente sonora primaria; el
 tracto vocal supralaríngeo, formado por la faringe y las cavidades oral y nasal,
-filtra esa fuente
-y fija sus características finales: frecuencia fundamental, distribución de
-armónicos, amplitud, duración y timbre.
+filtra esa fuente y fija sus características finales: frecuencia fundamental,
+distribución de armónicos, amplitud, duración y timbre. Es la teoría
+fuente--filtro, que la investigación sobre comunicación vocal de mamíferos aplica
+de forma general \citep{taylor_contribution_2010}.
 
 La consecuencia de esa estructura fuente--filtro es la que interesa aquí. La
 frecuencia fundamental queda determinada por la geometría y la tensión de las
@@ -296,10 +299,10 @@ definen tienen referente físico.
 La misma estructura explica dos hechos que reaparecen más adelante. El primero es
 que distintas especies tienden a separarse por banda, lo que hace de la
 frecuencia una característica discriminante y no un dato accesorio. El segundo es
-que la producción vocal en primates no humanos es en gran medida innata y ligada
-a estados internos, con control cortical limitado, pero admite variabilidad
-intraespecífica, incluidos dialectos, firmas individuales y variación según el
-contexto, que amplía el rango de formas que el detector debe reconocer como la
+que la estructura de las vocalizaciones de los primates no humanos está muy
+conservada dentro de cada especie, pero admite ajustes dentro de esos límites,
+como los rasgos propios de cada grupo \citep{fischer_towards_2020}; esa
+variabilidad amplía el rango de formas que el detector debe reconocer como la
 misma clase.
 
 El evento existe, entonces, como región bidimensional. El problema es que la
@@ -309,102 +312,98 @@ buscarla.
 \subsection{Representaciones tiempo--frecuencia}
 \label{sec:frontends}
 
-La transformada de Fourier de tiempo corto recupera la dimensión que falta:
-divide la señal en tramas solapadas y calcula el espectro de cada una, con lo que
-produce una matriz $X \in \mathbb{R}^{F \times T}$ en la que el eje vertical es
-frecuencia y el horizontal, tiempo. Sobre ella se aplican dos transformaciones
-habituales: la escala mel, que reagrupa las bandas según una progresión
-aproximadamente logarítmica, y la compresión logarítmica de la magnitud a
-decibelios. El resultado, el espectrograma log-mel, es la entrada estándar en
-detección de eventos sonoros.
+La STFT, descrita en la sección~\ref{sec:stft}, recupera la dimensión que falta.
+Sobre la matriz que produce se aplican dos transformaciones habituales: la escala
+mel, que reagrupa las bandas según una progresión aproximadamente logarítmica, y
+la compresión logarítmica de la magnitud a decibelios. El resultado, el
+espectrograma log-mel, es la entrada estándar en detección de eventos sonoros, y
+es la transformación que convierte un problema de audio en uno de análisis de
+imágenes.
 
-Ninguna de las dos transformaciones es gratuita. La longitud de la trama fija un
-compromiso: tramas largas resuelven la frecuencia y emborronan el tiempo, tramas
-cortas hacen lo contrario (Figura~\ref{fig:stft-tradeoff}). Y la escala mel
-reparte las bandas de forma no uniforme, de modo que un mismo salto en hercios
-ocupa más altura en los graves que en los agudos (Figura~\ref{fig:mel-axis}).
+Ninguno de esos pasos es gratuito. El primero es la longitud de la trama de la
+STFT, que fija un compromiso entre las dos resoluciones: la
+Figura~\ref{fig:stft-tradeoff} pinta la misma secuencia de sílabas del tamarino
+de Weddell con tres longitudes de trama.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/stft_tradeoff.png}
     \caption{Compromiso de la STFT}
     \label{fig:stft-tradeoff}
+    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/stft_tradeoff.png}
 \end{figure}
+
+Con la trama más corta (256 muestras, 6\,ms) cada sílaba queda nítida en el
+tiempo pero se emborrona en frecuencia, con una resolución de 172\,Hz; con la más
+larga (4096 muestras, 93\,ms) ocurre lo contrario, y los bordes de inicio y fin se
+difuminan. La trama intermedia de 1024 muestras, la que usa esta tesis, conserva a
+la vez el contorno de la sílaba y sus fronteras.
+
+El segundo paso es la escala mel, que reparte la resolución de forma no uniforme
+entre graves y agudos (Figura~\ref{fig:mel-axis}).
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/mel_axis.png}
     \caption{Escala mel}
     \label{fig:mel-axis}
+    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/mel_axis.png}
 \end{figure}
 
-Esta transformación es la bisagra del planteamiento: convierte un problema de
-audio en un problema de análisis de imágenes, y con ello habilita el uso de las
-técnicas de visión por computadora descritas en la sección~\ref{sec:formulacion}
-y siguientes.
+La mitad del eje vertical queda por debajo de 3,4\,kHz, y el ancho de cada banda
+crece con la frecuencia: 46\,Hz a 1\,kHz y 284\,Hz a 10\,kHz. Para este corpus la
+consecuencia es concreta: las llamadas agudas, como las de los tamarinos, quedan
+comprimidas en pocas bandas, y una caja de altura fija en el marco normalizado
+cubre en los agudos una banda mucho más ancha que en los graves
+(ecuación~\ref{eq:mel-inv}).
 
 La elección de la representación no es un trámite. La compresión logarítmica no
-es la única opción. La normalización de energía por
-canal (PCEN) combina control adaptativo de ganancia y compresión de rango
-dinámico, y en detección bioacústica de campo fue el contribuyente principal a la
-mejora de precisión sobre la línea base log-mel \citep{lostanlen_robust_2019}. El
-criterio que decide entre ambas no es esa cifra sino una condición del ruido: la
-ventaja de PCEN proviene de estimar y descontar un fondo que varía lentamente
-respecto de la escala temporal del evento. El coro de insectos amazónico cumple
-esa condición, pues es cuasi-estacionario durante minutos, pero la lluvia y las
-ráfagas de viento no la cumplen, y sobre ellas el control de ganancia puede
-atenuar la propia vocalización junto con el fondo.
+es la única opción: la normalización de energía por canal (PCEN) combina control
+adaptativo de ganancia y compresión de rango dinámico, y en detección
+bioacústica de campo fue el contribuyente principal a la mejora de precisión
+sobre la línea base log-mel \citep{lostanlen_robust_2019}. Su ventaja depende,
+sin embargo, de una condición del ruido: proviene de estimar y descontar un fondo
+que varía lentamente respecto de la escala temporal del evento. El coro de
+insectos amazónico cumple esa condición, pues es cuasi-estacionario durante
+minutos, pero la lluvia y las ráfagas de viento no la cumplen, y sobre ellas el
+control de ganancia puede atenuar la propia vocalización junto con el fondo.
 
-Dado que el corpus contiene ambos regímenes, esta tesis no da por establecida la
-superioridad de ninguna de las dos representaciones: las compara bajo un criterio
-declarado de antemano: el \textit{recall} de eventos de baja relación
-señal-ruido al punto de operación fijado en la sección~\ref{sec:metodos}, y
-adopta la que lo maximice. Declarar el criterio antes de medir es lo que impide
-elegir después la representación que favorezca al resultado obtenido.
-
-La Figura~\ref{fig:frontends} pinta la misma ventana con las tres entradas que
-el detector admite: el mel de potencia sin transformar, el log-mel y PCEN.
+Esta tesis adopta el log-mel. El extractor de la arquitectura propuesta, el
+\textit{Audio Spectrogram Transformer} (AST), se preentrenó sobre espectrogramas
+log-mel \citep{gong_ast_2021}, y ese preentrenamiento solo se aprovecha si la
+entrada conserva la misma representación; las líneas base, preentrenadas en
+imágenes, reciben el mismo log-mel escalado como imagen. La
+Figura~\ref{fig:frontends} muestra por qué la compresión es imprescindible:
+pinta la misma ventana sin comprimir y en log-mel.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/frontends.png}
-    \caption{Los tres \emph{front-ends} sobre la misma ventana}
+    \caption{Mel de potencia y log-mel sobre la misma ventana}
     \label{fig:frontends}
+    \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/frontends.png}
 \end{figure}
 
-Queda así una imagen en la que el evento es visible. Falta el mecanismo que lo
-localice dentro de ella.
+La caja marca un trino del tamarino de Weddell (\texttt{LW/TRINO}). Sin
+compresión, el mel de potencia solo muestra los sonidos más intensos y el trino
+casi desaparece; el log-mel lo hace visible, pero también el coro de fondo, que
+ocupa bandas enteras durante toda la ventana. Queda así una imagen en la que el
+evento es visible; falta el mecanismo que lo localice dentro de ella.
 
 \subsection{Detección de eventos sonoros}
 
 La detección de eventos sonoros (SED) consiste en identificar la presencia de un
 evento y localizar sus límites sobre la representación tiempo--frecuencia. La
-distinción decisiva dentro de esta tarea, que además constituye el concepto central de esta
-tesis, es la \emph{forma de la salida}, porque no todas las formulaciones que
-se llaman SED devuelven un evento.
-
-\rotulo{Salida por segmento fijo.} El sistema divide la grabación en fragmentos
-de duración constante y emite una probabilidad por fragmento y clase. Lo que
-devuelve es una rejilla puntuada, no un evento: el inicio y el fin de la
-vocalización quedan cuantizados al tamaño del fragmento, y su banda de frecuencia
-sencillamente no se estima.
-
-\rotulo{Salida temporal delimitada.} El sistema devuelve el instante de inicio y
-el de fin de cada evento, con su clase y su confianza. Es ya un evento con
-extensión propia, pero esa extensión existe solo sobre el eje temporal: descarta
-$f_{\min}$ y $f_{\max}$, que la subsección anterior estableció como magnitudes
-físicas del aparato fonador.
-
-\rotulo{Salida tiempo--frecuencia.} El sistema devuelve la tupla completa de la
-ecuación~\eqref{eq:tupla}. Es la única de las tres formas que coincide con lo que
-el analista produce a mano en Raven y, por tanto, la única que puede sustituir su
-insumo en lugar de complementarlo.
-
-Esta gradación es exactamente la causa C3 del árbol de problemas del
-Capítulo~\ref{cap:generalidades}: la salida de los sistemas automáticos no
-sustituye el trabajo del analista porque su representación es más pobre que la
-del evento anotado. El marco conceptual la enuncia aquí como propiedad de la
-tarea; la sección~\ref{sec:vacio} la usó como argumento de posicionamiento.
+distinción decisiva dentro de esta tarea es la \emph{forma de la salida}, con la
+que la sección~\ref{sec:soluciones} ordenó las soluciones existentes
+(Figura~\ref{fig:output-forms}). Expresada en los términos de la
+ecuación~\eqref{eq:tupla}, la gradación es la siguiente: la salida por segmento
+fijo cuantiza $t_{\text{ini}}$ y $t_{\text{fin}}$ al tamaño del segmento y no
+estima la banda de frecuencia; la salida temporal estima $t_{\text{ini}}$ y
+$t_{\text{fin}}$, pero descarta $f_{\min}$ y $f_{\max}$, que al tratar los eventos
+acústicos se establecieron como magnitudes físicas del aparato fonador, y solo la
+salida tiempo--frecuencia emite la tupla completa. Es la única que coincide con lo
+que el analista produce a mano en Raven y, por tanto, la única que puede sustituir
+su insumo en lugar de complementarlo. Esa propiedad explica por qué los
+detectores existentes, que no emiten la tupla completa, no alivian la búsqueda que
+describe la causa C2 del árbol de problemas.
 
 El problema impone seis exigencias, y cada familia de la literatura responde a
 una de ellas. Presentarlas en orden cronológico no dice nada; presentarlas por la
@@ -425,29 +424,27 @@ refinamiento del reconocimiento local.
         \midrule
         Reconocer un patrón espectro-temporal local            &
         Redes convolucionales                                  &
-        Aplican filtros sobre vecindades del espectrograma y superan con claridad
-        a los detectores por energía o por flujo espectral, pero una red simple
-        carece de robustez frente a la variabilidad del ruido
-        \citep{lostanlen_robust_2019}                                                                                          \\
+        Aplican filtros sobre vecindades del espectrograma y reconocen patrones
+        locales, pero por sí solas no sostienen el contexto de una secuencia ni
+        emiten cajas                                                                                                           \\
         \addlinespace
         Sostener el contexto a lo largo de una frase           &
         Convolucionales recurrentes                            &
-        Añaden capas recurrentes sobre las características convolucionales; fueron
-        la arquitectura predominante en las primeras ediciones de los desafíos de
-        localización y detección de eventos sonoros \citep{politis_dataset_2020}                                               \\
+        Añaden capas recurrentes sobre las características convolucionales para
+        sostener el contexto temporal; su salida sigue siendo una probabilidad por
+        trama                                                                                                                  \\
         \addlinespace
         Ganar profundidad sin degradación                      &
         Conexiones residuales                                  &
         Permiten entrenar redes muy profundas sin pérdida de desempeño
-        \citep{he_deep_2016}; BirdNET, referencia en identificación de aves,
-        emplea una arquitectura de esa familia \citep{kahl_birdnet_2021}                                                       \\
+        \citep{he_deep_2016}                                                                                                   \\
         \addlinespace
         Modelar dependencias a larga distancia sin recurrencia &
         Transformadores                                        &
-        Autoatención y procesamiento paralelo; el \textit{Audio Spectrogram
-            Transformer} aparece como innovación en detección bioacústica de pocos
-        ejemplos \citep{nolasco_learning_2023}, pero produce representaciones de
-        una sola escala                                                                                                        \\
+        La autoatención relaciona en paralelo todas las posiciones del
+        espectrograma; el \textit{Audio Spectrogram Transformer} lleva esa idea al
+        audio, pero produce representaciones de una sola escala
+        \citep{zhu_sound_2025}                                                                                                 \\
         \addlinespace
         Preservar la posición en frecuencia                    &
         Ninguna de las anteriores por sí sola                  &
@@ -486,40 +483,11 @@ trinos, sílabas, frases, motivos y cantos, y pueden estar jerárquicamente anid
 una secuencia de unidades puede considerarse ella misma una unidad y ser reemplazada por una
 etiqueta única \citep{kershenbaum_acoustic_2016}.
 
-El conjunto de especies sobre el que se define el primer nivel es el de la
-Tabla~\ref{tab:especies}. Los códigos de dos letras de la última columna son los
-que se emplean en el resto del documento.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Especies consideradas}
-    \label{tab:especies}
-    \small
-    \begin{tabular}{@{}L{4.3cm}L{4.3cm}L{4.2cm}c@{}}
-        \toprule
-        \textbf{Nombre común (inglés)} & \textbf{Nombre común (español)}                     & \textbf{Nombre científico}            & \textbf{Código} \\
-        \midrule
-        Weddell's saddle-back tamarin  & Tamarino de Weddell / pichico de vientre anaranjado & \textit{Leontocebus weddelli}         & LW              \\
-        \addlinespace
-        Toppin's titi monkey           & Tití de Toppin / huicoco                            & \textit{Plecturocebus toppini}        & PT              \\
-        \addlinespace
-        Shock-headed capuchin          & Capuchino de cabeza chata / machín blanco           & \textit{Cebus cuscinus}               & CC              \\
-        \addlinespace
-        Peruvian spider monkey         & Mono araña peruano / maquisapa                      & \textit{Ateles chamek}                & AC              \\
-        \addlinespace
-        Night monkey                   & Mono nocturno / musmuqui                            & \textit{Aotus azarae}                 & AA              \\
-        \addlinespace
-        Large-headed capuchin          & Capuchino de cabeza grande / machín negro           & \textit{Sapajus apella macrocephalus} & SM              \\
-        \addlinespace
-        Bolivian red howler            & Mono aullador rojo boliviano / coto mono            & \textit{Alouatta sara}                & AS              \\
-        \addlinespace
-        Bolivian squirrel monkey       & Mono ardilla boliviano / fraile                     & \textit{Saimiri boliviensis}          & SB              \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+El primer nivel se define sobre las ocho especies de la
+Tabla~\ref{tab:resumen-dataset}, identificadas por su código de dos letras.
 
 El segundo nivel de la etiqueta se define dentro de cada especie, sobre el
-vocabulario de la Tabla~\ref{tab:repertorio}. Los repertorios estan desbalanceados, de modo que los 41
+vocabulario de la Tabla~\ref{tab:repertorio}. Los repertorios están desbalanceados, de modo que los 41
 pares posibles no se reparten de forma pareja entre las ocho especies, y esa
 asimetría es la que condiciona la elección del esquema de clasificación.
 
@@ -642,12 +610,8 @@ evento.
 \rotulo{Acuerdo entre anotadores y consigo mismo.} El acuerdo
 \emph{inter-anotador} mide cuánto coinciden dos analistas que anotan el mismo
 audio; el \emph{intra-anotador}, cuánto coincide un mismo analista consigo mismo
-al anotar dos veces el mismo segmento. Ambos son bajos en bioacústica: se ha
-medido menos del 50\,\% de acuerdo entre dos analistas y también un acuerdo pobre
-de un analista consigo mismo \citep{leroy_reliability_2018}, y la tarea genera
-errores específicos de cada anotador \citep{nguyen_assessing_2021}. Con veinte
-anotadores por clip, las etiquetas fuertes muestran variaciones grandes tanto en
-el tipo de evento como en los tiempos de inicio y fin \citep{koga_lead_2024}.
+al anotar dos veces el mismo segmento. Ambos son bajos en bioacústica, con las
+magnitudes que reunió el análisis de la causa C1 (sección~\ref{sec:causas}).
 
 \rotulo{Frontera borrosa del evento.} El desacuerdo anterior no se reparte de
 forma uniforme: se concentra en los bordes. Una vocalización no empieza ni
@@ -657,21 +621,13 @@ cajas tiempo--frecuencia se observan desplazamientos relativamente grandes entre
 la caja predicha y la anotada, de lo que se concluye que las fronteras de los
 eventos son borrosas y difíciles de determinar \citep{zhu_sound_2025}.
 
-Estos tres conceptos son la formulación conceptual de la causa C2 del árbol de
-problemas, y de ellos se siguen dos decisiones metodológicas que sin ellos
-parecerían arbitrarias. La primera es el \textbf{umbral de IoU bajo}: exigir un
-solapamiento alto entre la caja predicha y la anotada mediría el acuerdo con un
-borde que el propio anotador no reproduce, de modo que un umbral exigente
-penalizaría al modelo por no replicar ruido de etiquetado
-\citep{zhu_sound_2025}. La segunda es el \textbf{sesgo hacia el \textit{recall}}:
-si el \textit{ground truth} está sistemáticamente incompleto, porque las llamadas
-tenues o enmascaradas escapan tanto al método automático como al analista
-fatigado \citep{gibb_2018}, una parte de los falsos positivos de alta
-confianza son en realidad eventos válidos ausentes de la referencia, y el
-sistema, concebido para que un humano revise su salida, debe favorecer no
-perderlos. El Capítulo~\ref{cap:deteccion} retoma ambas decisiones al fijar el
-protocolo de evaluación.
-
+Estos tres conceptos dan forma conceptual a la causa C1 del árbol de problemas:
+a la heterogeneidad de las anotaciones y a la referencia incompleta que impide
+medir los errores sin un especialista. También fundamentan
+las dos decisiones de evaluación que fijó la sección~\ref{sec:metricas}: emparejar
+con un IoU bajo evita medir el acuerdo con un borde que el propio anotador no
+reproduce, y priorizar el \textit{recall} evita descartar como error lo que puede
+ser un evento válido ausente de una referencia incompleta.
 
 % ===================================================================
 % CAPÍTULO 3

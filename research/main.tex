@@ -7,6 +7,8 @@
 % es-noquoting: sin él, babel spanish deja activos < y >, y las flechas <-> de
 % los esquemas TikZ dejan de compilar.
 \usepackage[spanish,es-tabla,es-noquoting]{babel}
+% El texto los llama anexos; babel los titularía «Apéndice».
+\addto\captionsspanish{\renewcommand{\appendixname}{Anexo}}
 
 % === Tipografía =====================================================
 % microtype ajusta el espaciado dentro del renglón (protrusión y
@@ -20,6 +22,9 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+% Coma decimal en modo matemático: «2,0» y no «2, 0». Una coma seguida de espacio
+% sigue siendo separador, por eso los intervalos se escriben [0, 1].
+\usepackage{icomma}
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -39,6 +44,7 @@
 % del documento, con la tipografía del texto (las figuras de datos densos son
 % PNG de matplotlib, generados por el cuaderno de cada capítulo).
 \usepackage{subcaption}
+\usepackage{float} % [H] para las tablas de costos del anexo
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{tikz}
@@ -65,7 +71,36 @@
 \renewcommand{\lstlistingname}{Listado}
 
 % === Citas y enlaces (hyperref se carga al final) ====================
-\usepackage[round,authoryear]{natbib}
+% APA 7 con biblatex-apa, que necesita biber. El Makefile define \usarbiber
+% cuando encuentra biber; sin él se compila con natbib y apalike, que no es
+% APA 7. Los capítulos sólo usan \citep y \citet, que sirven en los dos casos.
+% En los dos, la lista se titula «Referencias» y entra en el índice.
+\ifdefined\usarbiber
+    \usepackage{csquotes}
+    \usepackage[style=apa, backend=biber, natbib=true]{biblatex}
+    \addbibresource{references.bib}
+    \AtBeginBibliography{\setstretch{1}}
+    % APA 7 escribe los títulos en mayúscula de oración. biblatex sólo la
+    % aplica a los idiomas de \DeclareCaseLangs, y el del documento es el
+    % español: sin esto los títulos en inglés conservan su Title Case. Siglas y
+    % nombres propios van entre llaves en references.bib.
+    \DeclareCaseLangs*{spanish}
+    % APA 7 en español: «Recuperado el … de», no «Consultado el … desde».
+    \DefineBibliographyStrings{spanish}{retrieved = {Recuperado}, from = {de}}
+    % Rangos de páginas con raya corta (758–767), como en APA; la localización
+    % española de biblatex usa guion.
+    \DefineBibliographyExtras{spanish}{%
+        \protected\def\bibrangedash{\textendash\penalty\hyphenpenalty}}
+    % Que los DOI puedan cortarse en cualquier carácter en vez de estirar el
+    % espacio entre letras.
+    \setcounter{biburllcpenalty}{7000}
+    \setcounter{biburlucpenalty}{8000}
+    \setcounter{biburlnumpenalty}{9000}
+\else
+    \usepackage[round,authoryear]{natbib}
+    \addto\captionsspanish{\renewcommand{\bibname}{Referencias}}
+    \usepackage[nottoc,notlof,notlot]{tocbibind}
+\fi
 \usepackage[hidelinks,hypertexnames=false]{hyperref}
 \hypersetup{
     pdftitle  = {Detección de vocalizaciones de primates neotropicales mediante
@@ -86,6 +121,16 @@
 \AtBeginEnvironment{tabularx}{\setstretch{1}}
 \AtBeginEnvironment{thebibliography}{\setstretch{1}}
 \captionsetup{font={small,stretch=1}}
+% Rótulos al estilo APA 7: número en negrita, título en cursiva en la línea
+% siguiente, alineados a la izquierda y encima de la tabla o de la figura (en
+% las figuras, el \caption va al principio del entorno). Los subrótulos «(a)»
+% conservan su formato, debajo de cada panel.
+\captionsetup{labelsep=newline, textfont=it, justification=raggedright,
+    singlelinecheck=false}
+\captionsetup[figure]{position=top}
+\captionsetup[table]{position=top}
+\captionsetup[sub]{labelsep=space, textfont=up, justification=centering,
+    singlelinecheck=true, position=bottom}
 
 % Los títulos de sección de dos líneas van a espacio simple y sin
 % justificar: justificados, TeX los partía con guion y dejaba huecos.
@@ -252,12 +297,20 @@
 \include{capitulos/07_conclusiones/07_conclusiones}
 
 % ===================================================================
+% REFERENCIAS (en APA 7 van antes de los anexos)
+% ===================================================================
+\ifdefined\usarbiber
+    \printbibliography[heading=bibintoc, title={Referencias}]
+\else
+    \bibliographystyle{apalike}
+    \bibliography{references}
+\fi
+
+% ===================================================================
 % ANEXOS
 % ===================================================================
 \appendix
 \include{capitulos/08_anexo_plan/08_anexo_plan}
-
-\bibliographystyle{apalike}
-\bibliography{references}
+\include{capitulos/09_anexo_medios/09_anexo_medios}
 
 \end{document}

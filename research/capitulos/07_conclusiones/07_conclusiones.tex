@@ -30,14 +30,12 @@ por grabación, con su ficha y sus limitaciones declaradas. La segunda es la
 evidencia de que la detección de cajas tiempo--frecuencia sobre espectrograma es
 viable en este dominio, y de que el cuello de botella no está donde se esperaba.
 
-Esa es la implicación principal del Capítulo~\ref{cap:deteccion}: las cuatro
-configuraciones comparadas no se separan en la métrica primaria, con intervalos
-de confianza solapados y un rango de \rRecallSpread{} en \textit{recall}, mientras
-que la clasificación de especie y tipo de llamada resulta casi resuelta sobre los
-pares emparejados. El problema difícil no era distinguir \nClasses{} clases con
-dos órdenes de magnitud de desbalance, sino encontrar y encuadrar el evento. Para
-el equipo de investigación la consecuencia es concreta: el analista no tendrá que
-corregir etiquetas, tendrá que corregir cajas.
+Esa es la implicación principal del Capítulo~\ref{cap:deteccion}: la
+clasificación de especie y tipo de llamada resulta casi resuelta sobre los pares
+emparejados, en las cuatro configuraciones comparadas. El problema difícil no era distinguir \nClasses{} clases con
+más de un orden de magnitud de desbalance, sino encontrar y encuadrar el evento.
+Para el equipo de investigación la consecuencia es concreta: la revisión asistida
+consistirá sobre todo en ajustar cajas, no en corregir etiquetas.
 
 La segunda implicación es metodológica. Al declarar la regla de decisión antes de
 entrenar, el experimento pudo cerrarse con un resultado que no favorece a la
@@ -77,10 +75,9 @@ contra su indicador.
 % su sección de verificación y su veredicto, y ampliar el párrafo siguiente.
 
 Los ocho resultados de OE1 y OE2 se entregan y se verifican contra su indicador.
-Uno lo hace con una desviación declarada en la sección correspondiente, no
-silenciada: la dimensión del decodificador y el número de consultas de la
-arquitectura propuesta difieren de los valores anunciados en RE2.1, y la
-sección~\ref{sec:verificacion-re21} razona por qué.
+La única desviación respecto de lo comprometido se declara en su sección: los
+nombres de archivo que citan los indicadores de RE2.2 y RE2.4, heredados del
+prototipo, corresponden en la implementación final a otros con la misma función.
 
 \section{Cumplimiento de los objetivos específicos}
 
@@ -97,10 +94,18 @@ selecciona \rWinner{} por la métrica secundaria, con \rRecallYol{} de
 vez. El modelo final se carga y produce una tabla que Raven abre sobre la
 grabación, y el repositorio contiene el código y el \textit{checkpoint}.
 
+\rotulo{OE3.} Se entrega en E3: el cronograma (Tabla~\ref{tab:cronograma})
+programa sus tres resultados después de esta entrega, y el
+Capítulo~\ref{cap:utilidad} fija su estructura.
+
 % PENDIENTE (capítulo 6): el párrafo de OE3, con el mismo formato, una vez que
 % RE3.1 a RE3.3 estén entregados y verificados.
 
 \section{Cumplimiento del objetivo general}
+
+El objetivo general se compromete con la reducción del tiempo de revisión
+experta, y esa magnitud la mide RE3.2. Su veredicto se enuncia en E3, una vez
+medida; adelantarlo sería fijar la conclusión antes que la evidencia.
 
 % PENDIENTE (capítulo 6). El objetivo general se compromete con la reducción del
 % tiempo de revisión experta, y esa magnitud sale de RE3.2. Cuando exista, el
@@ -112,11 +117,15 @@ grabación, y el repositorio contiene el código y el \textit{checkpoint}.
 
 \section{La propuesta frente al problema central}
 
-El problema central del Capítulo~\ref{cap:generalidades} tiene dos predicados: se
-anota mucho menos de lo que se graba, y lo que se anota no obedece a un criterio
-único. La alternativa de solución ataca los dos, y lo hace por vías distintas.
+El problema central del Capítulo~\ref{cap:generalidades} es que la anotación de
+las vocalizaciones de primates neotropicales exige más tiempo de especialista del
+que está disponible, y por ello avanza mucho más lento que la recolección del
+audio. La alternativa de solución ataca sus dos causas, una por objetivo
+específico, y con el tercero mide su efecto sobre el problema.
 
-Contra el déficit de consistencia actúa OE1. El vocabulario cerrado, el mapa de
+Contra el ruido, el sesgo y las inconsistencias de las únicas anotaciones
+disponibles (C1) actúa OE1. El vocabulario
+cerrado, el mapa de
 sinónimos y la regla que hace de la carpeta la fuente de verdad de la especie
 convierten un material escrito a mano, con decenas de grafías para la misma
 clase, en \nClasses{} clases con criterio único. No corrige el juicio del
@@ -124,18 +133,21 @@ anotador, que es irrecuperable sin volver al audio, pero elimina la parte del
 desacuerdo que era de escritura y no de criterio, y deja marcado y conservado lo
 que no puede decidir.
 
-Contra el déficit de caudal actúa OE2, y aquí conviene ser preciso sobre lo que el
-sistema es y lo que no. No sustituye al analista ni pretende hacerlo: la cabeza
+Contra la búsqueda manual de vocalizaciones escasas y breves en horas de audio
+(C2) actúa OE2, y aquí conviene ser preciso sobre lo que el sistema es y
+lo que no. No sustituye al analista ni pretende hacerlo: la cabeza
 emite cajas con la forma exacta en que el equipo ya anota, y el analista las
 recibe en su propia herramienta para aceptarlas, corregirlas o borrarlas. Es
 pre-anotación asistida, y por eso el compromiso elegido privilegia la cobertura
 sobre la precisión: perder una vocalización cuesta más que descartar una
 propuesta falsa, porque el humano revisa la salida de todos modos.
 
-% PENDIENTE (capítulo 6). Lo anterior establece que la propuesta se enfoca en el
-% problema central, que es lo que pide la pauta. Cuánto lo reduce es otra
+% PENDIENTE (capítulo 6). Falta el párrafo de OE3, que no responde a una causa:
+% mide la magnitud del problema central (minutos de especialista por hora de
+% audio, con y sin asistencia) y la calidad de la referencia (C1). Lo anterior establece que la propuesta se
+% enfoca en el problema central, que es lo que pide la pauta. Cuánto lo reduce es otra
 % pregunta, y la responde RE3.2: hasta tenerla, este capítulo no afirma que el
-% caudal de anotación haya aumentado, sólo que el sistema está construido para
+% caudal de anotación haya aumentado, solo que el sistema está construido para
 % aumentarlo y que entrega la salida en la forma que ese aumento requiere.
 
 \section{Trabajo futuro}
@@ -148,9 +160,11 @@ que aquí se afirma.
     \item \textbf{Medir el acuerdo entre anotadores.} Es la carencia más seria.
           Sin ella no hay techo de evaluación, y una parte del error que este
           trabajo atribuye al modelo podría ser desacuerdo humano.
-    \item \textbf{Separar el extractor de la cabeza.} Las tres ablaciones que lo
-          harían están implementadas y sin correr, de modo que la comparación
-          entre configuraciones no puede atribuir la diferencia a un componente.
+    \item \textbf{Separar el extractor de la cabeza.} Dos variantes de la
+          propuesta lo harían: con el extractor congelado, y el mismo
+          decodificador sobre el ResNet-50 de COCO con la misma receta. El
+          código ya las admite; sin ellas, la comparación entre configuraciones
+          no puede atribuir la diferencia a un componente.
     \item \textbf{Reconstruir el evento largo.} Las clases de duración mayor que
           la ventana sobreviven fragmentadas, sin ningún mecanismo que las
           reagrupe antes de puntuarlas.
