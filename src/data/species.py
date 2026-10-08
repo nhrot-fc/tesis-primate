@@ -104,4 +104,4 @@ class LabelSet:
         return len(self.names)
 
     def __repr__(self) -> str:
-        return f"LabelSet({len(self)} clases: {', '.join(self.names)})"
+        return f"LabelSet({len(self)} classes: {', '.join(self.names)})"

@@ -1,4 +1,4 @@
-import zipfile
+import logging
 from pathlib import Path
 from typing import override
 
@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.config import PROJECT_DIR, SCORE_THRESHOLD, P, score_grid
+from core.runtime import log_location
 from data.raven import BEGIN, END, renumber
 from inference.catalog import (
     AUDIO_SUFFIXES,
@@ -64,6 +65,8 @@ from viewer.table import BoxTable
 from viewer.tasks import Worker
 from viewer.transport import Transport
 
+logger = logging.getLogger("viewer")
+
 BASE_TITLE = "Primate Vocalization Detector"
 # Las dos vistas, como las dos ventanas de Raven: una grabación o una carpeta entera.
 SPECTROGRAM, BATCH = "Spectrogram", "Batch"
@@ -80,7 +83,6 @@ AUDIO = "*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3"
 TABLES = "*.txt *.csv"
 MODELS = "*.pth *.pt"
 TABLE_SUFFIXES = {".txt", ".csv"}
-MODEL_ZIP_SUFFIX = ".zip"
 # El manual, si está: junto al programa en el paquete, en docs/ en el repo.
 MANUAL_PATHS = (
     PROJECT_DIR / "Manual.pdf",
@@ -98,15 +100,17 @@ HELP = {
                    "to a recording opens with it"),
         ("Ctrl+Shift+O", "a folder: the Batch view lists its recordings; double-click one to "
                          "open it here"),
-        ("Zip", "drop a model zip on the window to add it next to the program"),
     ],
     "Detect": [
         ("Ctrl+R", "run the model (the Model list under the spectrogram) over the open "
                    "recording"),
         ("Ctrl+Shift+R", "the Batch view: Run leaves a <tt>.detections.txt</tt> next to every "
-                         "recording of the folder, with the boxes at or above its Score"),
+                         "recording of the folder, with every detection the model finds"),
         ("Score ≥", "in the Spectrogram view only hides the weaker detections; Save keeps what "
                     "is visible. It starts at the model's operating point"),
+        ("Batch table", "detections per recording at its Score ≥, with the folder total on "
+                        "top; moving Score only recounts. Count per species and call shows one "
+                        "column per class; Export CSV saves it"),
         ("Ctrl+L", "clear the detections"),
     ],
     "Look": [
@@ -150,26 +154,6 @@ HELP = {
                 "again picks up where you left off"),
     ],
 }  # fmt: skip
-
-
-# Un zip de modelo trae `models/<nombre>/…` y, si hace falta, `hf/…`; se vuelca sobre la raíz
-# del paquete. Sólo entran rutas relativas dentro de esas dos carpetas.
-def add_model_zip(archive: Path) -> str:
-    with zipfile.ZipFile(archive) as z:
-        members = [
-            m
-            for m in z.namelist()
-            if not Path(m).is_absolute()
-            and ".." not in Path(m).parts
-            and Path(m).parts[:1] in (("models",), ("hf",))
-        ]
-        names = {
-            Path(m).parts[1] for m in members if m.startswith("models/") and len(Path(m).parts) > 2
-        }
-        if not names:
-            raise ValueError(f"{archive.name} has no models/<name>/ folder inside")
-        z.extractall(PROJECT_DIR, members)
-    return ", ".join(sorted(names))
 
 
 # La fila del transporte, con los dos zooms al final.
@@ -332,7 +316,6 @@ class Viewer(QMainWindow):
         for picker in self.pickers:
             picker.chosen.connect(self.model_chosen)
             picker.browse.connect(self.browse_model)
-            picker.add.connect(self.add_model)
 
         self.build_actions()
         self.build_menus()
@@ -389,6 +372,11 @@ class Viewer(QMainWindow):
             )
             for source in SOURCES
         }
+        self.counts_action = self.action(
+            "Export batch counts…", "", self.batch.export,
+            "The Batch table as CSV: one row per recording, its detections at the Batch score, "
+            "in total and per class",
+        )  # fmt: skip
 
         self.zoom_in_action = self.action(
             "Zoom in", ["Ctrl+1", "Ctrl++", "Ctrl+="], lambda: self.transport.zoom(-1),
@@ -425,7 +413,6 @@ class Viewer(QMainWindow):
             "Clear detections", "Ctrl+L", lambda: self.session.set_table(DETECTIONS, None)
         )
         self.browse_model_action = self.action("Browse for a model…", "Ctrl+M", self.browse_model)
-        self.add_model_action = self.action("Add model from zip…", "", self.add_model)
 
         self.help_action = self.action("Controls", "F1", self.show_help)
         self.manual_action = self.action("User manual (PDF)", "", self.open_manual)
@@ -460,6 +447,7 @@ class Viewer(QMainWindow):
             for action in self.save_actions.values():
                 file_menu.addAction(action)
             file_menu.addAction(self.image_action)
+            file_menu.addAction(self.counts_action)
             file_menu.addSeparator()
             file_menu.addAction(self.quit_action)
         view_menu = bar.addMenu("&View")
@@ -483,7 +471,6 @@ class Viewer(QMainWindow):
             detect_menu.addAction(self.clear_action)
             detect_menu.addSeparator()
             detect_menu.addAction(self.browse_model_action)
-            detect_menu.addAction(self.add_model_action)
         help_menu = bar.addMenu("&Help")
         if help_menu is not None:
             help_menu.addAction(self.help_action)
@@ -662,7 +649,7 @@ class Viewer(QMainWindow):
         self.say("Loading the detection engine… you can open a recording meanwhile.")
         self.progress.setRange(0, 0)
         self.show_task("Loading detection engine")
-        self.preloader = Worker(preload)
+        self.preloader = Worker(preload, what="Loading the detection engine")
         self.preloader.ok.connect(self.engine_ready)
         self.preloader.error.connect(self.engine_failed)
         self.preloader.start()
@@ -677,12 +664,22 @@ class Viewer(QMainWindow):
         else:
             self.say("Ready.")
 
+    # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas. Se avisa con
+    # un diálogo: en la barra de estado lo tapa el siguiente mensaje y Detect queda apagado
+    # sin que se sepa por qué.
     def engine_failed(self, message: str) -> None:
-        # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas.
         self.engine = False
+        self.batch.set_engine(False)
         self.settings.reload_outputs()
         self.finish()
-        self.say(f"The detection engine did not load ({message}). Viewing still works.")
+        self.say("The detection engine did not load. Viewing still works.")
+        QMessageBox.warning(
+            self,
+            "Detection unavailable",
+            f"The detection engine did not load:\n{message}\n\n"
+            "You can still open recordings and tables. "
+            f"Details are in {log_location() or 'the console'}.",
+        )
 
     # --- Estado -----------------------------------------------------------------
 
@@ -729,7 +726,6 @@ class Viewer(QMainWindow):
         self.picker.setEnabled(not busy and not batch)
         self.batch.set_blocked(busy)
         self.browse_model_action.setEnabled(self.picker.isEnabled())
-        self.add_model_action.setEnabled(self.picker.isEnabled())
         self.run_action.setEnabled(
             spectrogram and not busy and not batch and loaded and engine and model is not None
         )
@@ -738,6 +734,8 @@ class Viewer(QMainWindow):
             if not loaded
             else "Choose a model first (Ctrl+R)"
             if model is None
+            else "The detection engine did not load: see viewer.log (Ctrl+R)"
+            if self.engine is False
             else "Waiting for the detection engine (Ctrl+R)"
             if not engine
             else "Batch is running (Ctrl+R)"
@@ -751,6 +749,7 @@ class Viewer(QMainWindow):
         self.image_action.setEnabled(spectrogram and not busy and loaded)
         for source, action in self.save_actions.items():
             action.setEnabled(spectrogram and not busy and self.session.tables[source] is not None)
+        self.counts_action.setEnabled(not spectrogram and not batch and self.batch.listed())
         for action in (
             self.zoom_in_action,
             self.zoom_out_action,
@@ -779,7 +778,7 @@ class Viewer(QMainWindow):
         if self.worker is not None:
             self.worker.wait()  # ya entregó: lo que le queda es salir
         self.say(message)
-        self.worker = Worker(task, reports)
+        self.worker = Worker(task, reports, what=message.rstrip("…"))
         self.worker.ok.connect(done)
         self.worker.error.connect(self.fail)
         self.worker.progress.connect(self.show_progress)
@@ -838,21 +837,6 @@ class Viewer(QMainWindow):
         if chosen:
             self.picker.select(Path(chosen))
 
-    def add_model(self, archive: Path | None = None) -> None:
-        if archive is None:
-            chosen, _ = QFileDialog.getOpenFileName(
-                self, "Add model from zip", str(PROJECT_DIR), "Model zip (*.zip)"
-            )
-            if not chosen:
-                return
-            archive = Path(chosen)
-        self.start(lambda: add_model_zip(archive), self.model_added, f"Adding {archive.name}…")
-
-    def model_added(self, names: str) -> None:
-        for picker in self.pickers:
-            picker.reload()
-        self.say(f"Added {names}: choose it in the Model list.")
-
     # Lo que se abre o se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
     def open_path(self, path: Path) -> None:
         suffix = path.suffix.lower()
@@ -870,8 +854,6 @@ class Viewer(QMainWindow):
                 self.load_table(path)
         elif is_checkpoint(path):
             self.picker.select(path)
-        elif suffix == MODEL_ZIP_SUFFIX:
-            self.add_model(path)
         else:
             self.say(f"Cannot open '{path.name}'.")
 
@@ -1099,6 +1081,7 @@ class Viewer(QMainWindow):
         try:
             self.plot.export_png(path)
         except Exception as exc:
+            logger.exception("Could not save the image %s", path)
             self.fail(f"Could not save the image:\n{type(exc).__name__}: {exc}")
         else:
             self.say(f"Image saved as {path.name}")
@@ -1116,6 +1099,7 @@ class Viewer(QMainWindow):
         try:
             table.to_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index=False)
         except Exception as exc:
+            logger.exception("Could not save the table %s", path)
             self.fail(f"Could not save the table:\n{type(exc).__name__}: {exc}")
         else:
             self.say(f"{len(table)} rows saved to {path.name}")
@@ -1128,7 +1112,7 @@ class Viewer(QMainWindow):
         if not urls or self.busy():
             return None
         path = Path(urls[0].toLocalFile())
-        known = {*AUDIO_SUFFIXES, *TABLE_SUFFIXES, *CHECKPOINT_SUFFIXES, MODEL_ZIP_SUFFIX}
+        known = {*AUDIO_SUFFIXES, *TABLE_SUFFIXES, *CHECKPOINT_SUFFIXES}
         if path.is_dir() or (path.is_file() and path.suffix.lower() in known):
             return path
         return None

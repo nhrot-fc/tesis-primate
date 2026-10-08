@@ -73,5 +73,5 @@ FRONTENDS: dict[str, Callable[[int], nn.Module]] = {
 
 def build_frontend(name: str, n_mels: int) -> nn.Module:
     if name not in FRONTENDS:
-        raise ValueError(f"front-end desconocido: {name!r}; hay {sorted(FRONTENDS)}")
+        raise ValueError(f"unknown front-end {name!r}; known: {sorted(FRONTENDS)}")
     return FRONTENDS[name](n_mels)

@@ -34,6 +34,16 @@ def load(checkpoint_path: Path) -> "tuple[LoadedModel, str]":
     return LOADED[checkpoint_path], device
 
 
+# Las clases de un checkpoint sin armar el modelo: con mmap los pesos no se leen.
+def classes(checkpoint_path: Path) -> list[str]:
+    if checkpoint_path in LOADED:
+        return list(LOADED[checkpoint_path].labels.names)
+    import torch
+
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False, mmap=True)
+    return sorted(str(name) for name in checkpoint["labels"])
+
+
 def detect(
     audio_path: Path,
     checkpoint_path: Path,

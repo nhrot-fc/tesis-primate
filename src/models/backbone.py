@@ -33,13 +33,13 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> "ASTModel":
         try:
             return ASTModel.from_pretrained(local_dir, local_files_only=True)
         except Exception:
-            logger.warning("Copia local inutilizable en %s; se redescarga.", local_dir)
+            logger.warning("Local copy in %s is unusable; downloading it again.", local_dir)
 
-    logger.info("Descargando backbone AST '%s' desde HuggingFace...", checkpoint)
+    logger.info("Downloading the AST backbone '%s' from HuggingFace...", checkpoint)
     model = ASTModel.from_pretrained(checkpoint)
     local_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(local_dir)
-    logger.info("Backbone AST guardado en %s", local_dir)
+    logger.info("AST backbone saved to %s", local_dir)
     return model
 
 
@@ -148,8 +148,8 @@ class MultiScalePyramid(nn.Module):
         # Con una dimensión impar el nivel 1/2x pierde una fila y los niveles se desalinean.
         if height % 2 or width % 2:
             raise ValueError(
-                f"la pirámide necesita dimensiones pares, no ({height}, {width}); ajustá "
-                "`time_stride` para que `time_out` y `freq_out` lo sean."
+                f"the pyramid needs even sizes, not ({height}, {width}); set "
+                "`time_stride` so that `time_out` and `freq_out` are even."
             )
 
     def forward(self, features: Tensor) -> list[Tensor]:

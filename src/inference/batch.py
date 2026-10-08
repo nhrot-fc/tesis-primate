@@ -2,6 +2,7 @@
 audio. Lo comparten el CLI (`detect.py`) y la vista Batch del visor: un archivo a la vez, la
 tabla se escribe al terminarlo y las cajas se descartan, así la memoria no crece con la lista."""
 
+import logging
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ import torch
 from inference.catalog import output_for
 from inference.predictor import BATCH_SIZE, predict
 from models.registry import LoadedModel
+
+logger = logging.getLogger(__name__)
 
 DONE, SKIPPED, FAILED, STOPPED = "done", "skipped", "failed", "stopped"
 # En CPU el lote grande sólo sube el pico de memoria (Faster R-CNN: 4,8 GB con 16)
@@ -78,6 +81,9 @@ def run_batch(
             yield Outcome(index, path, STOPPED)
             return
         except Exception as exc:
+            # Un archivo roto no corta la lista; su traza queda en el log (el del visor o la
+            # consola de `detect.exe`) y la corrida sigue con el siguiente.
+            logger.exception("%s failed", path)
             yield Outcome(index, path, FAILED, message=f"{type(exc).__name__}: {exc}")
             continue
         yield Outcome(index, path, DONE, len(table), time.perf_counter() - started)

@@ -28,14 +28,14 @@ EXTRAS = {"ast_deformable_detr": "detr", "resnet_deformable_detr": "detr", "yolo
 
 def build_model(name: str, n_classes: int, hparams: dict[str, Any]) -> Detector:
     if name not in ARCHITECTURES:
-        raise ValueError(f"arquitectura desconocida: {name!r}; hay {sorted(ARCHITECTURES)}")
+        raise ValueError(f"unknown architecture {name!r}; known: {sorted(ARCHITECTURES)}")
     try:
         return ARCHITECTURES[name](n_classes=n_classes, **hparams)
     except ModuleNotFoundError as exc:
         if name not in EXTRAS:
             raise
         raise ModuleNotFoundError(
-            f"{name!r} necesita el extra `{EXTRAS[name]}` (falta {exc.name}): "
+            f"{name!r} needs the `{EXTRAS[name]}` extra ({exc.name} is missing): "
             f"uv sync --extra {EXTRAS[name]}"
         ) from exc
 
@@ -58,7 +58,7 @@ def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> Loa
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
         raise ValueError(
-            f"{path} no es un checkpoint del proyecto (los válidos son runs/*/best.pt)"
+            f"{path} is not a checkpoint of this project (use a best.pt from models/ or runs/)"
         )
 
     name = checkpoint["architecture"]
@@ -69,11 +69,11 @@ def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> Loa
     model.eval()
     operating_point = read_operating_point(path.parent)
     logger.info(
-        "%s | %d clases | época %s | umbral %s | %s",
+        "%s | %d classes | epoch %s | operating point %s | %s",
         name,
         len(labels),
         checkpoint.get("epoch"),
-        "sin comparar" if operating_point is None else f"{operating_point:.2f}",
+        "none" if operating_point is None else f"{operating_point:.2f}",
         path,
     )
     return LoadedModel(model, name, labels, checkpoint.get("config", {}), operating_point)

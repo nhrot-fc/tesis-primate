@@ -28,10 +28,12 @@ endif
 LATEX_RUN    := cd $(RESEARCH_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=$(AUX_ABS) $(TEX_INPUT)
 
 MANUAL_DIR   := docs/manual
+SLIDES_DIR   := $(RESEARCH_DIR)/presentacion
+SLIDES_PDF   := $(SLIDES_DIR)/build/presentacion.pdf
 MANUAL_PDF   := $(MANUAL_DIR)/build/manual.pdf
 DEMO         := resources/demo.mp4
 
-.PHONY: all clean warnings help manual screenshots demo medios
+.PHONY: all clean warnings help manual screenshots demo medios slides
 
 all: $(PDF)
 
@@ -80,6 +82,16 @@ $(MANUAL_PDF): $(MANUAL_DIR)/manual.tex $(wildcard $(MANUAL_DIR)/fig/*.png)
 	cd $(MANUAL_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=build manual.tex
 	cd $(MANUAL_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=build manual.tex
 
+# La presentación al equipo (Beamer). Sus cifras y figuras las deja en figures/ el cuaderno
+# notebook/figuras_presentacion.ipynb, que se corre aparte: no se regenera aquí.
+slides: $(SLIDES_PDF)
+
+$(SLIDES_PDF): $(SLIDES_DIR)/presentacion.tex $(wildcard $(SLIDES_DIR)/figures/*) \
+                $(wildcard $(SLIDES_DIR)/figures/tablas/*)
+	@mkdir -p $(SLIDES_DIR)/build
+	cd $(SLIDES_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=build presentacion.tex
+	cd $(SLIDES_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=build presentacion.tex
+
 # Las capturas del manual, desde el propio visor (plataforma offscreen de Qt).
 screenshots:
 	uv run python $(MANUAL_DIR)/screenshots.py
@@ -94,6 +106,7 @@ clean:
 	@rm -rf $(AUX_DIR)
 	@find $(BUILD_DIR) -maxdepth 1 -type f ! -name '$(MAIN).pdf' -delete 2>/dev/null || true
 	@find $(MANUAL_DIR)/build -maxdepth 1 -type f ! -name 'manual.pdf' -delete 2>/dev/null || true
+	@find $(SLIDES_DIR)/build -maxdepth 1 -type f ! -name 'presentacion.pdf' -delete 2>/dev/null || true
 
 help:
 	@printf '%s\n' \
@@ -103,6 +116,7 @@ help:
 	  'make warnings Vuelve a mostrar los avisos del último log' \
 	  'make medios   Regenera los medios de verificación y su zip' \
 	  'make manual   Compila la guía de usuario (docs/manual/build/manual.pdf)' \
+	  'make slides   Compila la presentación al equipo (research/presentacion/build/)' \
 	  'make screenshots  Regenera las capturas del manual desde el visor' \
 	  'make demo     Graba el vídeo de demostración (resources/demo.mp4)' \
 	  'make clean    Borra los archivos auxiliares (conserva los PDF)'

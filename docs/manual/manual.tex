@@ -150,8 +150,7 @@ A model is a folder inside \file{models\textbackslash}. There are three models: 
 
 \begin{enumerate}
   \item Download its zip, \file{detector-\version-model-\emph{name}.zip}.
-  \item Unzip it into the program folder (next to \viewer{}), or just drop the zip on the
-    program's window.
+  \item Unzip it into the program folder (next to \viewer{}).
   \item Pick it in the \ui{Model} list, under the spectrogram (the \ui{Batch} view has the
     same list).
 \end{enumerate}
@@ -260,7 +259,7 @@ Table}.
 \begin{figure}[H]
   \centering
   \shot{batch_done}
-  \caption{\ui{Batch} after a run: one file skipped (it had a table), two done.}
+  \caption{\ui{Batch} after a run: each recording with its detections at the chosen score.}
 \end{figure}
 
 \begin{enumerate}
@@ -273,6 +272,11 @@ Table}.
 Every recording gets its \file{.detections.txt}. Files that already have one are skipped
 (tick \ui{Overwrite existing tables} to redo them). \ui{Stop} stops the run; finished files
 are kept. Double-click a file to open it in the \ui{Spectrogram} view.
+
+The tables keep every detection, and \ui{Detections} counts the ones at or above \ui{Score};
+moving it recounts without running the model again (the folder total is under the column
+name). Tick \ui{Count per species and call} for one column per class of the model.
+\ui{Export CSV\ldots} saves one row per recording, with every class.
 
 \subsection{Move and zoom}
 

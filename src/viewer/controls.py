@@ -342,22 +342,21 @@ class Panel(QWidget):
 
 
 # El modelo es uno para todo el programa: lo que hay en `models\` más lo que se busque a mano.
-# Las dos entradas de acción van al final de la lista, y al elegirlas la selección vuelve
+# La entrada de acción va al final de la lista, y al elegirlas la selección vuelve
 # al modelo que había.
 class ModelPicker(QComboBox):
     chosen = pyqtSignal(object)  # Path del checkpoint, o None
     browse = pyqtSignal()
-    add = pyqtSignal()
 
-    BROWSE, ADD = "Browse for a checkpoint…", "Add model from zip…"
+    BROWSE = "Browse for a checkpoint…"
 
     def __init__(self) -> None:
         super().__init__()
         self.setPlaceholderText("Select a model…")
         self.setToolTip("Model used by Detect and by Batch (Ctrl+M browses)")
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        # El ancho no lo fijan las dos entradas de acción del final, que son las más largas:
-        # la lista desplegada sí las escribe enteras.
+        # El ancho no lo fija la entrada de acción del final, que es la más larga: la lista
+        # desplegada sí la escribe entera.
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.setMinimumContentsLength(MODEL_NAME_LENGTH)
         self.current: Path | None = None
@@ -381,7 +380,6 @@ class ModelPicker(QComboBox):
             self.addItem(path.parent.name, path)
         self.insertSeparator(self.count())
         self.addItem(self.BROWSE)
-        self.addItem(self.ADD)
         self.blockSignals(False)
         self.select(select or self.current)
 
@@ -398,9 +396,7 @@ class ModelPicker(QComboBox):
         if path is not None:
             self.select(path)
             return
-        # Las acciones no son una selección: se vuelve a la que había.
+        # La acción no es una selección: se vuelve a la que había.
         self.setCurrentIndex(self.index_of(self.current))
         if text == self.BROWSE:
             self.browse.emit()
-        elif text == self.ADD:
-            self.add.emit()

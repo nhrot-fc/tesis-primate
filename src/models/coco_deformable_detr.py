@@ -43,13 +43,13 @@ def load_detr(
 
     local_dir = local_detr_dir(checkpoint)
     if not local_dir.is_dir():
-        logger.info("Descargando Deformable DETR '%s' desde HuggingFace...", checkpoint)
+        logger.info("Downloading Deformable DETR '%s' from HuggingFace...", checkpoint)
         DeformableDetrForObjectDetection.from_pretrained(checkpoint).save_pretrained(local_dir)
-        logger.info("Deformable DETR guardado en %s", local_dir)
+        logger.info("Deformable DETR saved to %s", local_dir)
 
     config = DeformableDetrConfig.from_pretrained(local_dir)
     if not config.two_stage:
-        raise ValueError(f"{checkpoint} no es de dos etapas; `outputs` cuenta con las propuestas")
+        raise ValueError(f"{checkpoint} is not two-stage; `outputs` expects its proposals")
     config.num_labels = n_classes
     config.num_queries = config.two_stage_num_proposals = n_queries
     # Las cabezas de clase (91 clases de COCO) se reinician; el resto carga tal cual.

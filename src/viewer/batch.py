@@ -1,27 +1,32 @@
-"""Vista Batch: una carpeta de grabaciones, el modelo (la misma lista que en el espectrograma)
-y un umbral; deja la tabla de Raven de cada audio junto a él (`<audio>.detections.txt`), igual
-que `detect.exe`. Es una página aparte de la del espectrograma, con sus propios mandos: se ve
-la lista entera, el estado de cada archivo y cuánto falta. El doble clic abre la grabación en
-el espectrograma."""
+"""Vista Batch: una carpeta de grabaciones y el modelo (la misma lista que en el espectrograma);
+deja la tabla de Raven de cada audio junto a él (`<audio>.detections.txt`) con todo lo que el
+modelo ve, como el espectrograma, y el score sólo filtra lo que se cuenta: moverlo no vuelve a
+correr nada. Es una página aparte de la del espectrograma, con sus propios mandos: se ve la
+lista entera, el estado de cada archivo, cuánto falta y cuántas detecciones tiene cada uno, en
+total o por especie y llamada. El doble clic abre la grabación en el espectrograma."""
 
+import logging
 import math
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import override
 
+import numpy as np
+import pandas as pd
 import soundfile as sf
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QDoubleSpinBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QStackedWidget,
@@ -30,10 +35,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.config import SCORE_THRESHOLD
-from inference.catalog import collect_audio, output_for
-from viewer.controls import ModelPicker, headline_font
+from core.config import SCORE_THRESHOLD, score_grid
+from data.raven import CALL, SCORE, SPECIES
+from inference.catalog import DETECTIONS_SUFFIX, collect_audio, output_for
+from viewer.controls import ModelPicker, Slider, headline_font
+from viewer.inference import DETECT_THRESHOLD
 from viewer.tasks import Worker
+
+logger = logging.getLogger("viewer")
 
 PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
     "pending",
@@ -44,20 +53,21 @@ PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
     "failed",
     "stopped",
 )
-STATUS_TEXT = {
-    PENDING: "Pending",
-    EXISTS: "Table exists",
-    DONE: "Done",
-    SKIPPED: "Skipped (table exists)",
-    STOPPED: "Stopped",
-}
-HEADERS = ("File", "Duration", "Status", "Detections")
-FILE_COLUMN, STATUS_COLUMN = 0, 2
+# Desdobladas, después de estas va una columna por clase del modelo (`ESPECIE/LLAMADA`)
+HEADERS = ("File", "Duration", "Detections")
+FILE_COLUMN, DURATION_COLUMN, TOTAL_COLUMN = 0, 1, 2
+# Una caja sin especie ni llamada (una tabla editada a mano)
+UNLABELED = "(no label)"
+# El CSV lleva la duración en segundos, que es lo que se suma en una hoja de cálculo
+DURATION_SECONDS = "Duration (s)"
 ROW_HEIGHT = 22
+# Margen de una celda a cada lado del texto, para los anchos fijos
+CELL_PADDING = 16
+RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 # La barra global avanza también dentro del archivo en curso, en centésimas
 PROGRESS_STEPS = 100
-SCORE_RANGE, SCORE_STEP = (0.05, 1.0), 0.05
 RUN_WIDTH = 96
+SCORE_WIDTH = 240
 # Segundos de corrida antes de fiarse de la velocidad medida para el tiempo restante
 ETA_AFTER_S = 5.0
 ROOT = QModelIndex()
@@ -77,7 +87,8 @@ class Entry:
     duration: float  # NaN si no se pudo leer la cabecera
     status: str = PENDING
     fraction: float = 0.0  # avance del archivo en curso
-    detections: int | None = None  # cajas de su tabla, si la tiene
+    # Los scores de su tabla por etiqueta, de menor a mayor; None si no tiene tabla
+    found: dict[str, np.ndarray] | None = None
     message: str = ""
 
 
@@ -97,13 +108,43 @@ def duration_of(path: Path) -> float:
         return float("nan")
 
 
-# Cuántas cajas tiene una tabla ya escrita: filas menos la cabecera.
-def rows_in(table: Path) -> int | None:
+# En mayúscula, como las escribe el modelo: `lw` y `LW` de una tabla retocada cuentan juntas.
+def text_column(table: pd.DataFrame, name: str) -> list[str]:
+    if name not in table.columns:
+        return [""] * len(table)
+    return table[name].fillna("").astype(str).str.strip().str.upper().tolist()
+
+
+# Los scores de una tabla ya escrita por `ESPECIE/LLAMADA`, ordenados: contar lo que pasa un
+# umbral es una búsqueda binaria por etiqueta. Sin score (una tabla hecha a mano, o una fila
+# que se agregó en Raven) la caja cuenta siempre.
+def boxes_in(table: Path) -> dict[str, np.ndarray] | None:
     try:
-        with table.open(encoding="utf-8", errors="replace") as handle:
-            return max(sum(1 for _ in handle) - 1, 0)
-    except OSError:
+        frame = pd.read_csv(table, sep="\t")
+        scores = (
+            frame[SCORE].astype(float).fillna(math.inf).to_numpy()
+            if SCORE in frame.columns
+            else np.full(len(frame), math.inf)
+        )
+    except (OSError, ValueError) as exc:
+        # La grabación queda sin conteo, como si no tuviera tabla; el log dice por qué.
+        logger.warning("Could not read %s: %s", table, exc)
         return None
+    labels = [
+        "/".join(part for part in parts if part) or UNLABELED
+        for parts in zip(text_column(frame, SPECIES), text_column(frame, CALL), strict=True)
+    ]
+    by_label = pd.Series(scores, index=labels, dtype=float)
+    return {str(label): np.sort(group.to_numpy()) for label, group in by_label.groupby(level=0)}
+
+
+def count(found: dict[str, np.ndarray], score: float) -> Counter[str]:
+    return Counter(
+        {
+            label: scores.size - int(np.searchsorted(scores, score))
+            for label, scores in found.items()
+        }
+    )
 
 
 # Lista los audios de la carpeta con su duración y lo que ya tienen; corre en un hilo porque
@@ -114,23 +155,97 @@ def scan(folder: Path, recursive: bool) -> list[Entry]:
         table = output_for(path)
         entry = Entry(path, str(path.relative_to(folder)), duration_of(path))
         if table.is_file():
-            entry.status, entry.detections = EXISTS, rows_in(table)
+            entry.status, entry.found = EXISTS, boxes_in(table)
         entries.append(entry)
     return entries
 
 
+# Una fila por grabación con cuántas detecciones de su tabla pasan el score; desdoblada, una
+# columna más por cada clase del modelo (y por cualquier otra etiqueta que traigan las
+# tablas), en orden de especie. El encabezado de cada conteo lleva el total de la carpeta. Sin
+# tabla las celdas quedan vacías; los ceros de las clases también, para que resalte lo hallado.
 class FileModel(QAbstractTableModel):
     def __init__(self) -> None:
         super().__init__()
         self.entries: list[Entry] = []
+        self.score = SCORE_THRESHOLD
+        self.classes: list[str] = []  # las del modelo elegido, como `LW/CS`
+        self.expanded = False
+        self.labels: list[str] = []  # las columnas desdobladas; el CSV las lleva siempre
+        self.counts: list[Counter[str] | None] = []
+        self.totals: Counter[str] = Counter()
+        self.ceilings: Counter[str] = Counter()  # todas las cajas, sin umbral: el ancho máximo
 
-    def reset(self, entries: list[Entry]) -> None:
+    def tally(self) -> tuple[list[Counter[str] | None], Counter[str]]:
+        counts = [
+            None if entry.found is None else count(entry.found, self.score)
+            for entry in self.entries
+        ]
+        totals: Counter[str] = Counter()
+        for counted in counts:
+            totals.update(counted or {})
+        return counts, totals
+
+    def reset(self, entries: list[Entry] | None = None) -> None:
         self.beginResetModel()
-        self.entries = entries
+        if entries is not None:
+            self.entries = entries
+        found = {label for entry in self.entries for label in entry.found or {}}
+        self.labels = sorted(found | set(self.classes))
+        self.counts, self.totals = self.tally()
+        self.ceilings = Counter()
+        for entry in self.entries:
+            self.ceilings.update(count(entry.found or {}, -math.inf))
         self.endResetModel()
 
-    def touch(self, index: int) -> None:
-        self.dataChanged.emit(self.index(index, 0), self.index(index, len(HEADERS) - 1))
+    # Mover el score no cambia las columnas, sólo los números.
+    def recount(self) -> None:
+        self.counts, self.totals = self.tally()
+        last = self.columnCount() - 1
+        if self.entries:
+            self.dataChanged.emit(
+                self.index(0, TOTAL_COLUMN), self.index(len(self.entries) - 1, last)
+            )
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, TOTAL_COLUMN, last)
+
+    # Un archivo terminó con tabla nueva: si trae una etiqueta que no es columna, se rehace.
+    def update(self, index: int) -> None:
+        found = self.entries[index].found or {}
+        if set(found) - set(self.labels):
+            self.reset()
+        else:
+            self.recount()
+
+    def set_score(self, score: float) -> None:
+        self.score = score
+        self.recount()
+
+    def set_classes(self, classes: list[str]) -> None:
+        self.classes = [name.upper() for name in classes]
+        self.reset()
+
+    def set_expanded(self, expanded: bool) -> None:
+        self.expanded = expanded
+        self.reset()
+
+    def shown(self) -> list[str]:
+        return self.labels if self.expanded else []
+
+    # Una fila por grabación al score elegido, con todas las clases aunque la vista esté
+    # plegada; sin tabla los conteos quedan vacíos (no 0).
+    def table(self) -> pd.DataFrame:
+        columns = [HEADERS[FILE_COLUMN], DURATION_SECONDS, HEADERS[TOTAL_COLUMN], *self.labels]
+        rows = [
+            [
+                entry.name,
+                round(entry.duration, 2),
+                None if counted is None else counted.total(),
+                *(None if counted is None else counted[label] for label in self.labels),
+            ]
+            for entry, counted in zip(self.entries, self.counts, strict=True)
+        ]
+        table = pd.DataFrame(rows, columns=columns)
+        return table.astype(dict.fromkeys(columns[2:], "Int64"))
 
     @override
     def rowCount(self, parent=ROOT) -> int:
@@ -138,43 +253,109 @@ class FileModel(QAbstractTableModel):
 
     @override
     def columnCount(self, parent=ROOT) -> int:
-        return 0 if parent.isValid() else len(HEADERS)
+        return 0 if parent.isValid() else len(HEADERS) + len(self.shown())
 
     @override
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if orientation != Qt.Orientation.Horizontal:
             return None
+        counted = section >= TOTAL_COLUMN
+        label = self.labels[section - len(HEADERS)] if section >= len(HEADERS) else None
+        total = self.totals.total() if label is None else self.totals[label]
         if role == Qt.ItemDataRole.DisplayRole:
-            return HEADERS[section]
-        if role == Qt.ItemDataRole.TextAlignmentRole and section not in (
-            FILE_COLUMN,
-            STATUS_COLUMN,
-        ):
-            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            if not counted or not any(c is not None for c in self.counts):
+                return HEADERS[section]
+            return f"{label or HEADERS[section]}\n{total:,}"
+        if role == Qt.ItemDataRole.ToolTipRole and counted:
+            files = sum(1 for c in self.counts if c and (c[label] if label else c.total()))
+            return (
+                f"{label or HEADERS[section]} at Score ≥ {self.score:.2f}: {total:,} "
+                f"in {files} of {len(self.entries)} recordings"
+            )
+        if role == Qt.ItemDataRole.TextAlignmentRole and section != FILE_COLUMN:
+            return RIGHT
         return None
 
     @override
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         entry = self.entries[index.row()]
         column = index.column()
+        # Sin columna de estado: un archivo que falló, o cuya tabla no se pudo leer, lo dice
+        # al pasar el ratón.
         if role == Qt.ItemDataRole.ToolTipRole:
-            return entry.message if column == STATUS_COLUMN and entry.message else str(entry.path)
-        numeric = column not in (FILE_COLUMN, STATUS_COLUMN)
-        if role == Qt.ItemDataRole.TextAlignmentRole and numeric:
-            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            if entry.status == FAILED:
+                return f"{entry.path}\nFailed: {entry.message}"
+            if entry.status in (EXISTS, SKIPPED) and entry.found is None:
+                return f"{entry.path}\nIts {DETECTIONS_SUFFIX} could not be read"
+            return str(entry.path)
+        if role == Qt.ItemDataRole.TextAlignmentRole and column != FILE_COLUMN:
+            return RIGHT
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if column == FILE_COLUMN:
             return entry.name
-        if column == 1:
+        if column == DURATION_COLUMN:
             return clock(entry.duration)
-        if column == STATUS_COLUMN:
-            if entry.status == RUNNING:
-                return f"Running {entry.fraction:.0%}"
-            if entry.status == FAILED:
-                return f"Error: {entry.message}"
-            return STATUS_TEXT[entry.status]
-        return "" if entry.detections is None else f"{entry.detections:,}"
+        counted = self.counts[index.row()]
+        if counted is None:
+            return ""
+        if column == TOTAL_COLUMN:
+            return f"{counted.total():,}"
+        found = counted[self.labels[column - len(HEADERS)]]
+        return f"{found:,}" if found else ""
+
+
+# Anchos fijos, calculados con la fuente cuando cambian las columnas: con `ResizeToContents`
+# Qt vuelve a medir las filas en cada aviso de progreso y la ventana se traba durante la
+# corrida. Cada conteo se mide con lo más que podría llegar a decir (todas sus cajas). El
+# nombre se estira si todo cabe; si no, queda a su ancho y la tabla se desplaza de lado.
+class FileTable(QTableView):
+    def __init__(self, files: FileModel) -> None:
+        super().__init__()
+        self.files = files
+        self.setModel(files)
+        self.name_width = 0
+        self.widths: list[int] = []  # de Duration en adelante
+        files.modelReset.connect(self.measure)
+        self.measure()
+
+    def measure(self) -> None:
+        header = self.horizontalHeader()
+        if header is None:
+            return
+        cell, head = self.fontMetrics(), header.fontMetrics()
+
+        def width(texts: list[str], heading: str) -> int:
+            widest = max((cell.horizontalAdvance(text) for text in texts), default=0)
+            return max(widest, head.horizontalAdvance(heading)) + CELL_PADDING
+
+        files = self.files
+        self.name_width = width([e.name for e in files.entries], HEADERS[FILE_COLUMN])
+        self.widths = [
+            width(["0:00:00"], HEADERS[DURATION_COLUMN]),
+            width([f"{files.ceilings.total():,}"], HEADERS[TOTAL_COLUMN]),
+            *(width([f"{files.ceilings[label]:,}"], label) for label in files.shown()),
+        ]
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        for column, size in enumerate(self.widths, start=DURATION_COLUMN):
+            header.resizeSection(column, size)
+        self.fit()
+
+    def fit(self) -> None:
+        header, viewport = self.horizontalHeader(), self.viewport()
+        if header is None or viewport is None:
+            return
+        if self.name_width + sum(self.widths) <= viewport.width():
+            header.setSectionResizeMode(FILE_COLUMN, QHeaderView.ResizeMode.Stretch)
+        else:
+            header.setSectionResizeMode(FILE_COLUMN, QHeaderView.ResizeMode.Interactive)
+            header.resizeSection(FILE_COLUMN, self.name_width)
+
+    @override
+    def resizeEvent(self, e) -> None:
+        super().resizeEvent(e)
+        self.fit()
 
 
 # Un hilo para toda la lista: carga el modelo (o lo toma del caché del visor) y recorre los
@@ -204,6 +385,7 @@ class BatchWorker(QThread):
         try:
             loaded, device = load(self.checkpoint)
         except Exception as exc:
+            logger.exception("Could not load the model %s", self.checkpoint)
             self.failed.emit(f"{type(exc).__name__}: {exc}")
             return
         current = -1
@@ -237,10 +419,12 @@ class BatchView(QWidget):
         super().__init__()
         self.folder_path: Path | None = None
         self.model_path: Path | None = None
-        self.engine_ready = False
+        self.engine_ready: bool | None = None  # None mientras carga; False si no cargó
+        self.model_error = ""  # el modelo de la última corrida no cargó
         self.blocked = False  # el espectrograma está detectando: un modelo a la vez
         self.worker: BatchWorker | None = None
         self.scanner: Worker | None = None
+        self.reader: Worker | None = None  # lee las clases del modelo elegido
         self.started_at = 0.0
         self.done_audio_s = 0.0
 
@@ -257,16 +441,17 @@ class BatchView(QWidget):
         # selectores iguales. Acá hay uno para no tener que cambiar de vista para elegirlo.
         self.picker = ModelPicker()
 
-        # Se escribe con este score, que arranca en el punto de operación del modelo (el que
-        # eligió la comparación en val); es lo mismo que `detect.exe --score`.
-        self.score = QDoubleSpinBox()
-        self.score.setRange(*SCORE_RANGE)
-        self.score.setSingleStep(SCORE_STEP)
-        self.score.setDecimals(2)
-        self.score.setValue(SCORE_THRESHOLD)
+        # El mismo slider que en el espectrograma: Run escribe todo lo que pasa DETECT_THRESHOLD
+        # y el score sólo filtra lo que cuenta la tabla, así que moverlo no vuelve a detectar.
+        # Arranca en el punto de operación del modelo (el que eligió la comparación en val).
+        thresholds = score_grid(DETECT_THRESHOLD, 1.0)
+        self.score = Slider(
+            "Score ≥", thresholds, thresholds.index(SCORE_THRESHOLD), "{:.2f}", label_width=52
+        )
+        self.score.setMaximumWidth(SCORE_WIDTH)
         self.score.setToolTip(
-            "Only detections at or above this score are written. "
-            "Starts at the model's operating point."
+            "Counts only the detections at or above this score. The tables keep every "
+            "detection, so moving it does not run the model again."
         )
         self.overwrite = QCheckBox("Overwrite existing tables")
         self.run_button = QPushButton("Run")
@@ -279,8 +464,9 @@ class BatchView(QWidget):
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.files = FileModel()
-        self.table = QTableView()
-        self.table.setModel(self.files)
+        self.files.set_score(self.score.value())
+        self.score.changed.connect(lambda: self.files.set_score(self.score.value()))
+        self.table = FileTable(self.files)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -294,12 +480,6 @@ class BatchView(QWidget):
         if vertical is not None:
             vertical.setVisible(False)
             vertical.setDefaultSectionSize(ROW_HEIGHT)
-        header = self.table.horizontalHeader()
-        if header is not None:
-            header.setStretchLastSection(False)
-            for column in range(1, len(HEADERS)):
-                header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-            header.setSectionResizeMode(FILE_COLUMN, QHeaderView.ResizeMode.Stretch)
 
         # Sin carpeta: una frase, una aclaración y el botón, como la bienvenida del espectrograma.
         headline = QLabel(HEADLINE)
@@ -325,6 +505,17 @@ class BatchView(QWidget):
         self.pages.addWidget(empty)
         self.pages.addWidget(self.table)
 
+        # Plegada, la tabla sólo cuenta detecciones; desdoblada, una columna por clase.
+        self.expand = QCheckBox("Count per species and call")
+        self.expand.setToolTip("One column per class of the model, ordered by species")
+        self.expand.toggled.connect(self.files.set_expanded)
+        self.export_button = QPushButton("Export CSV…")
+        self.export_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.export_button.setToolTip(
+            "One row per recording: its detections at this score, in total and per class"
+        )
+        self.export_button.clicked.connect(self.export)
+
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
         self.summary = QLabel("")
@@ -343,13 +534,18 @@ class BatchView(QWidget):
         settings.addWidget(QLabel("Model"))
         settings.addWidget(self.picker)
         settings.addSpacing(8)
-        settings.addWidget(QLabel("Score ≥"))
-        settings.addWidget(self.score)
+        settings.addWidget(self.score, 1)
         settings.addSpacing(8)
         settings.addWidget(self.overwrite)
         settings.addStretch(1)
         settings.addWidget(self.run_button)
         settings.addWidget(self.stop_button)
+
+        counts = QHBoxLayout()
+        counts.setSpacing(8)
+        counts.addWidget(self.expand)
+        counts.addStretch(1)
+        counts.addWidget(self.export_button)
 
         footer = QHBoxLayout()
         footer.setSpacing(12)
@@ -362,6 +558,7 @@ class BatchView(QWidget):
         layout.addLayout(source)
         layout.addLayout(settings)
         layout.addWidget(self.pages, 1)
+        layout.addLayout(counts)
         layout.addLayout(footer)
         layout.addWidget(self.hint)
         self.sync()
@@ -379,12 +576,34 @@ class BatchView(QWidget):
 
     def set_model(self, path: Path | None, operating_point: float | None) -> None:
         self.model_path = path
-        self.score.setValue(SCORE_THRESHOLD if operating_point is None else operating_point)
+        self.score.set_value(SCORE_THRESHOLD if operating_point is None else operating_point)
+        self.read_classes()
         self.sync()
 
-    def set_engine(self, ready: bool) -> None:
+    def set_engine(self, ready: bool | None) -> None:
         self.engine_ready = ready
+        self.read_classes()
         self.sync()
+
+    # Las columnas desdobladas son las clases del modelo, aunque ninguna tabla las tenga
+    # todavía. Leerlas pide torch, así que se espera al motor y se hace en un hilo.
+    def read_classes(self) -> None:
+        path = self.model_path
+        if path is None:
+            self.files.set_classes([])
+            return
+        if not self.engine_ready:
+            return
+        from viewer.inference import classes
+
+        self.reader = Worker(lambda: classes(path), what=f"Reading the classes of {path}")
+        self.reader.ok.connect(
+            lambda names: self.files.set_classes(names) if path == self.model_path else None
+        )
+        self.reader.error.connect(
+            lambda message: self.said.emit(f"Could not read the model's classes: {message}")
+        )
+        self.reader.start()
 
     def set_blocked(self, blocked: bool) -> None:
         self.blocked = blocked
@@ -399,7 +618,7 @@ class BatchView(QWidget):
             and not self.blocked
             and self.listed()
             and self.model_path is not None
-            and self.engine_ready
+            and self.engine_ready is True
         )
 
     def why(self) -> str:
@@ -409,8 +628,10 @@ class BatchView(QWidget):
             return "Open a folder of recordings first"
         if self.model_path is None:
             return "Choose a model first"
-        if not self.engine_ready:
+        if self.engine_ready is None:
             return "Waiting for the detection engine"
+        if not self.engine_ready:
+            return "The detection engine did not load: see viewer.log"
         if self.blocked:
             return "Wait for the current detection to finish"
         return "Run the model over every recording in the list"
@@ -420,7 +641,7 @@ class BatchView(QWidget):
         listed = self.listed()
         for widget in (self.folder, self.browse_button, self.recursive, self.overwrite):
             widget.setEnabled(not running)
-        self.score.setEnabled(not running)
+        self.export_button.setEnabled(listed and not running)
         self.picker.setEnabled(not running and not self.blocked)
         self.run_button.setEnabled(self.can_run())
         self.run_button.setToolTip(self.why())
@@ -456,7 +677,7 @@ class BatchView(QWidget):
             return
         folder, recursive = self.folder_path, self.recursive.isChecked()
         self.said.emit(f"Scanning {folder}…")
-        self.scanner = Worker(lambda: scan(folder, recursive))
+        self.scanner = Worker(lambda: scan(folder, recursive), what=f"Scanning {folder}")
         self.scanner.ok.connect(self.scanned)
         self.scanner.error.connect(lambda message: self.said.emit(f"Could not scan: {message}"))
         self.scanner.finished.connect(self.sync)
@@ -477,6 +698,31 @@ class BatchView(QWidget):
         self.sync()
         self.state_changed.emit()
 
+    # --- Exportar ---------------------------------------------------------------
+
+    # La tabla con todas las clases, al score de ahora, que va en el nombre: el CSV no lo lleva.
+    def export(self) -> None:
+        folder = self.folder_path
+        if folder is None or not self.listed() or self.running():
+            return
+        name = f"{folder.name}_counts_score{self.score.value():.2f}.csv"
+        chosen, _ = QFileDialog.getSaveFileName(
+            self, "Export counts", str(folder / name), "CSV (*.csv)"
+        )
+        if not chosen:
+            return
+        path = Path(chosen)
+        table = self.files.table()
+        try:
+            table.to_csv(path, index=False)
+        except Exception as exc:
+            logger.exception("Could not save the counts %s", path)
+            QMessageBox.critical(
+                self, "Error", f"Could not save the counts:\n{type(exc).__name__}: {exc}"
+            )
+        else:
+            self.said.emit(f"{len(table)} recordings saved to {path.name}")
+
     # --- Corrida ----------------------------------------------------------------
 
     def run(self) -> None:
@@ -494,13 +740,14 @@ class BatchView(QWidget):
         self.worker = BatchWorker(
             [e.path for e in self.files.entries],
             self.model_path,
-            self.score.value(),
+            DETECT_THRESHOLD,
             self.overwrite.isChecked(),
         )
         self.worker.started_file.connect(self.on_started)
         self.worker.progressed.connect(self.on_progress)
         self.worker.finished_file.connect(self.on_outcome)
-        self.worker.failed.connect(lambda message: self.said.emit(f"Model failed: {message}"))
+        self.model_error = ""
+        self.worker.failed.connect(self.on_model_failed)
         self.worker.finished.connect(self.on_finished)
         self.worker.start()
         self.said.emit(
@@ -518,13 +765,10 @@ class BatchView(QWidget):
     def on_started(self, index: int) -> None:
         entry = self.files.entries[index]
         entry.status, entry.fraction = RUNNING, 0.0
-        self.files.touch(index)
-        self.table.scrollTo(self.files.index(index, 0))
 
     def on_progress(self, index: int, done: int, total: int) -> None:
         entry = self.files.entries[index]
         entry.fraction = done / max(total, 1)
-        self.files.touch(index)
         self.progress.setValue(int((index + entry.fraction) * PROGRESS_STEPS))
         self.summary.setText(self.eta(index))
         self.summary.show()
@@ -533,25 +777,39 @@ class BatchView(QWidget):
         entry = self.files.entries[outcome.index]
         entry.status, entry.fraction, entry.message = outcome.status, 1.0, outcome.message
         if outcome.status == DONE:
-            entry.detections = outcome.detections
+            entry.found = boxes_in(output_for(entry.path))
             if not math.isnan(entry.duration):
                 self.done_audio_s += entry.duration
+            self.files.update(outcome.index)
             self.finished_file.emit(entry.path)
-        self.files.touch(outcome.index)
         self.progress.setValue((outcome.index + 1) * PROGRESS_STEPS)
 
+    # Sin modelo no se procesó nada: se avisa con un diálogo y el cierre de la corrida no lo
+    # tapa con un "Done".
+    def on_model_failed(self, message: str) -> None:
+        self.model_error = message
+        name = self.model_path.parent.name if self.model_path is not None else "the model"
+        QMessageBox.critical(self, "Model failed", f"Could not load {name}:\n{message}")
+
     def on_finished(self) -> None:
+        if self.model_error:
+            self.summary.setText("")
+            self.said.emit(f"Model failed: {self.model_error}")
+            self.sync()
+            self.state_changed.emit()
+            return
         entries = self.files.entries
         done = [e for e in entries if e.status == DONE]
         failed = sum(e.status == FAILED for e in entries)
         skipped = sum(e.status == SKIPPED for e in entries)
         stopped = any(e.status == STOPPED for e in entries)
-        detections = sum(e.detections or 0 for e in done)
-        parts = [f"{len(done)} processed", f"{detections:,} detections"]
+        score = self.score.value()
+        detections = sum(count(e.found, score).total() for e in done if e.found is not None)
+        parts = [f"{len(done)} processed", f"{detections:,} detections at score ≥ {score:.2f}"]
         if skipped:
             parts.append(f"{skipped} skipped")
         if failed:
-            parts.append(f"{failed} failed")
+            parts.append(f"{failed} failed (hover a file for the error; details in viewer.log)")
         elapsed = time.perf_counter() - self.started_at
         self.summary.setText(f"{'Stopped' if stopped else 'Done'} in {clock(elapsed)}")
         self.said.emit(("Stopped: " if stopped else "Done: ") + " · ".join(parts))
@@ -567,7 +825,7 @@ class BatchView(QWidget):
         remaining = (1.0 - entries[current].fraction) * durations[current] + sum(
             durations[i] for i in range(current + 1, len(entries)) if self.queued(i)
         )
-        head = f"{current + 1} / {len(entries)}"
+        head = f"{current + 1} / {len(entries)} · {entries[current].name}"
         if elapsed < ETA_AFTER_S or processed <= 0.0:
             return head
         rate = processed / elapsed

@@ -1,11 +1,12 @@
 import logging
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont, QPainter, QPixmap
-from PyQt6.QtWidgets import QApplication, QSplashScreen
+from PyQt6.QtWidgets import QApplication, QMainWindow, QSplashScreen
 
 from core.config import PROJECT_DIR
 from core.runtime import setup_logging
@@ -15,12 +16,32 @@ logger = logging.getLogger("viewer")
 SPLASH_SIZE = (440, 200)
 SPLASH_BACKGROUND, SPLASH_TEXT, SPLASH_MUTED = "#1c1b22", "#f4f2f8", "#9a97a6"
 TITLE = "Primate Vocalization Detector"
+LOG_FILE = PROJECT_DIR / "viewer.log"
+LOG_MAX_BYTES = 2_000_000
 
 
 # Con el hook de fábrica PyQt aborta el proceso ante una excepción en un slot, y bajo
-# `pythonw.exe` (paquete de Windows) lo haría sin decir nada. Con uno propio la registra y sigue.
+# `pythonw.exe` (paquete de Windows) lo haría sin decir nada. Con uno propio la registra, lo
+# avisa en la barra de estado y sigue. Ctrl+C en la terminal sí cierra.
 def log_uncaught(kind, value, traceback) -> None:
+    if issubclass(kind, KeyboardInterrupt):
+        QApplication.quit()
+        return
     logger.critical("Unhandled error", exc_info=(kind, value, traceback))
+    for window in QApplication.topLevelWidgets():
+        if isinstance(window, QMainWindow) and (bar := window.statusBar()) is not None:
+            bar.showMessage(f"Unexpected error: {value}. Details in {LOG_FILE}.")
+
+
+# Junto al programa; si esa carpeta no deja escribir (un disco de red, Archivos de programa),
+# en la temporal del sistema, para que el visor arranque igual.
+def start_logging() -> None:
+    global LOG_FILE
+    try:
+        setup_logging(log_file=LOG_FILE, max_bytes=LOG_MAX_BYTES)
+    except OSError:
+        LOG_FILE = Path(tempfile.gettempdir()) / "primate-detector" / LOG_FILE.name
+        setup_logging(log_file=LOG_FILE, max_bytes=LOG_MAX_BYTES)
 
 
 # Un cartel pintado a mano: no depende de ningún archivo y sale antes que cualquier import
@@ -42,7 +63,7 @@ def splash_pixmap() -> QPixmap:
 
 
 def main() -> None:
-    setup_logging(log_file=PROJECT_DIR / "viewer.log")
+    start_logging()
     sys.excepthook = log_uncaught
     if sys.platform == "linux":
         os.environ.setdefault("QT_QPA_PLATFORMTHEME", "xdgdesktopportal")
