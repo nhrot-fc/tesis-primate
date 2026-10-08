@@ -1,8 +1,11 @@
+import logging
 import threading
 from collections.abc import Callable
 from typing import override
 
 from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
+
+logger = logging.getLogger("viewer")
 
 
 class StopError(Exception):
@@ -14,12 +17,14 @@ class Worker(QThread):
     error = pyqtSignal(str)
     progress = pyqtSignal(int, int)
 
-    def __init__(self, task, reports: bool = False) -> None:
+    def __init__(self, task, reports: bool = False, what: str = "Background task") -> None:
         # Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso, y
         # por ese callback se la corta: `stop()` la hace fallar en el siguiente reporte.
+        # `what` nombra la tarea en el log.
         super().__init__()
         self.task = task
         self.reports = reports
+        self.what = what
         self.stopping = threading.Event()
         # `ok` y `error` salen desde dentro del hilo, antes de que `isRunning` baje: quien
         # los atiende y quiere arrancar otro trabajo mira esto y espera lo poco que queda.
@@ -40,6 +45,8 @@ class Worker(QThread):
         except StopError:
             self.done = True  # quien paró ya sabe
         except Exception as exc:
+            # El diálogo lleva una línea; el log, la traza para quien tenga que arreglarlo.
+            logger.exception("%s failed", self.what)
             self.done = True
             self.error.emit(f"{type(exc).__name__}: {exc}")
         else:
@@ -94,4 +101,6 @@ class Latest(QThread):
             try:
                 self.done.emit(job_id, task())
             except Exception:
-                self.done.emit(job_id, None)  # una banda fallida no merece una alerta
+                # Una banda fallida no merece una alerta, pero sí quedar en el log.
+                logger.warning("Spectrogram render failed", exc_info=True)
+                self.done.emit(job_id, None)
