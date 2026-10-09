@@ -21,6 +21,7 @@ capitulos/<nn>_<nombre>/
 | `06_oe3_utilidad` | Tiempo de Revisión y Análisis de Errores | **OE3** |
 | `07_conclusiones` | Conclusiones | — |
 | `08_anexo_plan` | Plan del Proyecto (anexo) | — |
+| `09_anexo_medios` | Medios de Verificación (anexo) | — |
 
 ## Las reglas que fijan esta estructura
 
@@ -57,6 +58,15 @@ Tres decisiones editoriales que se tomaron el 30-09-2026 y conviene no deshacer:
    que «las dependencias y comandos de ejecución estén declarados»: ahí el
    listado se presenta como *la interfaz del pipeline*, que es el entregable, no
    como una guía de uso.
+
+   > **Enmienda del 06-10-2026.** `pautas.md` («indicar cómo se ha alcanzado
+   > dicho resultado y cómo reproducirlo») y el rubro de 12 puntos de la rúbrica
+   > lo piden de forma literal. Por eso cada RE vuelve a tener un párrafo
+   > `\rotulo{Cómo reproducirlo.}` de dos o tres oraciones: qué se ejecuta,
+   > sobre qué entrada y por qué da el mismo resultado. **Sigue sin haber bloques
+   > de comandos.** El de RE1.3 menciona el cuaderno del capítulo, porque la
+   > ficha se reproduce precisamente regenerándolo: es la única excepción a la
+   > regla 1.
 3. **La distribución y el mantenimiento están fuera de alcance**, y así lo
    declara la sección de exclusiones del anexo. No se discuten licencias,
    empaquetado, *releases* ni publicación del conjunto: son decisiones del equipo
@@ -125,13 +135,47 @@ Decisiones del 30-09-2026, sobre una lectura del PDF impreso:
 Desde la raíz del repositorio:
 
 ```bash
-make            # compila research/build/main.pdf y resume los avisos
-make warnings   # vuelve a mostrar los avisos del último log
+make                # compila research/build/main.pdf y resume los avisos
+make BIB=apalike    # fuerza natbib + apalike aunque biber esté instalado
+make warnings       # vuelve a mostrar los avisos del último log
 ```
 
 Las rutas de `\includegraphics` son relativas a `main.tex`, así que la
 compilación se lanza siempre desde `research/` (lo hace el Makefile). Para
 trabajar en un solo capítulo, descomenta el `\includeonly` de `main.tex`.
+
+> **06-10-2026 (noche).** biber quedó instalado y APA 7 está activo y
+> revisado:
+>
+> - `\DeclareCaseLangs*{spanish}` pone los títulos en mayúscula de oración.
+>   Las siglas y los nombres propios se protegen con llaves en
+>   `references.bib`.
+> - Los rangos de páginas usan raya corta.
+> - Los preprints son `@online` con `titleaddon = {Preprint}` y
+>   `organization = {arXiv}`.
+> - Los conjuntos de datos son `@dataset` con
+>   `titleaddon = {Conjunto de datos}`.
+>
+> Rótulos al estilo APA: número en negrita, título en cursiva en la línea
+> siguiente y **encima** de la figura (el `\caption` va al principio del
+> entorno), más «*Nota.*» en las notas generales de las tablas. `icomma` hace
+> que «2,0» no salga «2, 0» en las fórmulas; por eso los intervalos se escriben
+> `[0, 1]`, con espacio.
+
+> **06-10-2026.** Cambios en la compilación:
+>
+> - **APA 7.** Si `biber` está instalado, `make` usa biblatex-apa: APA 7 en
+>   español, con «y» y los DOI como `https://doi.org/…`. Si no, natbib con
+>   apalike, que no es APA 7. `main.tex` elige según `\usarbiber`, que define
+>   el Makefile. Para activarlo: `sudo pacman -S biber`. La rama APA se probó
+>   hasta la primera pasada (el preámbulo carga, también el español), pero
+>   **no con biber**: la primera compilación con biber hay que revisarla.
+> - **Auxiliares en `research/build/aux/`**, ignorada por git. El PDF se copia
+>   a `research/build/main.pdf` sólo si la compilación termina bien. Antes,
+>   pdflatex lo borraba al fallar, y las subcarpetas que exige `\include` con
+>   `-output-directory` no existían: `make` fallaba desde cero.
+> - `make clean` ya no borra los PDF versionados.
+> - «Referencias» va antes de los anexos y entra en el índice (APA 7).
 
 ## Qué está pendiente
 
@@ -146,6 +190,11 @@ Cada `README.md` de capítulo termina con su propia lista. En grande:
   todavía no se ha hecho**. Es lo único que responde directamente al objetivo
   general.
 - Las conclusiones (cap. 7) se escriben al final.
+- **Medios de verificación** (07-10-2026): `research/medios_verificacion/`
+  reúne, por capítulo y por RE, la evidencia de cada IOV que no cabe en el
+  documento, y el Anexo B la describe. `make medios` la regenera con su zip, que
+  se entrega con el PDF. Hay que volver a correrlo cada vez que se ejecuta el
+  cuaderno de los capítulos 4 o 5.
 
 `research/reportes/` ya solo conserva `RE_3-3` sin trasladar; los ocho de OE1 y
 OE2 están absorbidos y se pueden borrar. **Ojo:** `RE_2-1` y `RE_2-3` describen

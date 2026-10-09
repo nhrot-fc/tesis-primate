@@ -6,7 +6,7 @@ y en cada estado guarda la ventana entera (`widget.grab()`) y los recortes que e
 
 Corre con la plataforma `offscreen` de Qt: las capturas salen iguales en cualquier máquina.
 La carpeta de Batch se arma en un temporal con tres copias del audio (una con tabla) para que
-la corrida dure segundos y la columna Status muestre los casos."""
+la corrida dure segundos y se vea una saltada y dos hechas."""
 
 import argparse
 import os
@@ -108,7 +108,7 @@ def batch_folder(audio: Path) -> Path:
     for target in ("site_A/20240214_101201.wav", "site_A/20240214_103015.wav",
                    "site_B/20240215_064400.wav"):  # fmt: skip
         shutil.copy2(audio, folder / target)
-    # Una ya tiene tabla: la corrida la salta y Status lo dice.
+    # Una ya tiene tabla: la corrida la salta.
     table = output_for(audio)
     if table.is_file():
         shutil.copy2(table, output_for(folder / "site_A/20240214_101201.wav"))

@@ -7,6 +7,29 @@
 Capítulo nuevo: antes OE3 vivía como cuatro secciones sueltas al final del
 capítulo de OE2. Está sin redactar; hoy es la estructura y el encargo.
 
+> **06-10-2026.** Los pendientes de RE3.1–RE3.3, incluido el reetiquetado del
+> Bloque 3 del cronograma, están reunidos en `PENDIENTES_RE3.md`.
+
+> **09-10-2026.** Preparado todo lo de la revisión con el equipo:
+>
+> - `protocolo_oe3.md`: el protocolo de RE3.1, por fechar **antes** de enviar el paquete.
+> - `notebook/preparar_revision.ipynb`: corre la herramienta sobre las 601 grabaciones de prueba,
+>   clasifica cada detección con la regla de RE3.3 y arma `revision/paquete_equipo/`: 1 000 cajas
+>   que se marcan con una palabra; 4 carpetas de ~6 min de audio (manual, asistida, asistida,
+>   manual); y la tarea de calidad del corpus, con los hallazgos de CLOD de train (k-fold) y
+>   validación en orden aleatorio, para revisar todos los que alcancen. Instrucciones de una
+>   página en inglés. No pide datos nuevos.
+> - **Falta del servidor:** `runs/yolo26s_v3_kfold5/hallazgos_train.csv` (la salida de
+>   `find_issues.py` sobre el volcado del k-fold). Sin ella, la tarea de calidad sólo lleva
+>   validación (2 174 hallazgos).
+> - `notebook/analisis_oe3.ipynb`: lee lo que devuelva el equipo en `revision/respuestas/` y
+>   escribe `figures/valores.tex` (macros `\u…`) y las figuras. Probado con respuestas simuladas.
+> - `revision/mensaje_equipo.md`: el pedido a Mark, en inglés.
+>
+> Hallazgo: en la tabla de Raven que ve el revisor, con los duplicados entre ventanas fundidos,
+> la precisión es ~0,45 (2 150 aciertos de 4 792 cajas), no 0,665 como por ventana. La cobertura
+> casi no cambia (0,78 frente a 0,81).
+
 ## Qué va aquí
 
 | Sección | Contenido | RE |
@@ -35,7 +58,10 @@ capítulo de OE2. Está sin redactar; hoy es la estructura y el encargo.
 
 ## Conflictos a resolver antes de redactar
 
-1. **Punto de operación.** El IOV de RE3.1 está comprometido con confianza 0,5,
+1. ~~**Punto de operación.**~~ **Resuelto el 07-10-2026:** el IOV de RE3.1 ahora dice
+   «el punto de operación elegido en validación y el umbral de IoU para verdadero
+   positivo, fijados antes de medir». Lo que sigue es el texto anterior.
+   El IOV de RE3.1 estaba comprometido con confianza 0,5,
    NMS IoU 0,3 y verdadero positivo a IoU 0,5. El protocolo implementado
    (`src/evaluation/protocol.py`, descrito en
    `../05_oe2_detector/protocolo_comparacion.md`) empareja a IoU 0,3 y elige el
@@ -77,9 +103,11 @@ Ninguna todavía. Las que pide el capítulo:
 
 ## Pendientes
 
-- [ ] Redactar la metodología y **fecharla antes** de medir.
-- [ ] Acordar con el equipo de investigación la sesión de revisión: alimenta a la
-      vez la condición asistida de RE3.2 y la muestra resuelta de RE3.3.
+- [ ] Revisar `protocolo_oe3.md` y **fecharlo antes** de enviar el paquete; después,
+      pasarlo a la sección de metodología.
+- [ ] Copiar `hallazgos_train.csv` del servidor y volver a correr `preparar_revision.ipynb`.
+- [ ] Enviar `revision/mensaje_equipo.md` y el paquete (~1 GB, por Drive).
+- [ ] Copiar las respuestas a `revision/respuestas/` y correr `notebook/analisis_oe3.ipynb`.
 - [ ] Cronometrar la revisión manual y la asistida sobre material comparable.
 - [ ] Absorber `RE_3-3_taxonomia-discrepancias` y sus figuras.
 - [ ] Redactar la discusión.
