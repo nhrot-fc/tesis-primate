@@ -1,22 +1,3 @@
-"""Arma los zips del release de Windows: el runtime por un lado y cada modelo por otro.
-
-    runtime  detector-<versión>-win64-<cpu|cuda>.zip   (carpeta raíz del mismo nombre)
-               viewer.exe, detect.exe, README.txt, Manual.pdf
-               python/   intérprete embebido de python.org, Lib/site-packages, DLLs de MSVC
-               src/      este repo, tal cual (core.config resuelve hf/ y models/ desde acá)
-               models/   vacía: acá van los modelos
-    models   detector-<versión>-model-<corrida>.zip   (sin carpeta raíz)
-               models/<corrida>/<checkpoint> + operating_point.json
-               hf/…      los backbones de Hugging Face que esa arquitectura reconstruye
-
-El zip de un modelo se descomprime dentro de la carpeta del runtime (el visor lo hace con
-"Add model from zip…"). Corre en Linux: uv resuelve e instala los wheels de Windows sin
-ejecutarlos, y los .exe (deploy/launcher/) se compilan con zig, que uv baja como paquete.
-
-    uv run python deploy/build_windows.py runtime --variant cpu
-    uv run python deploy/build_windows.py models runs/frcnn runs/yolo26s_coco
-"""
-
 import argparse
 import hashlib
 import logging
@@ -72,16 +53,14 @@ logger = logging.getLogger("build")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
-    parser.add_argument("--version", default=project_version(), help="va en el nombre del zip")
-    parser.add_argument("--no-zip", action="store_true", help="deja sólo la carpeta en dist/")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", default=project_version())
+    parser.add_argument("--no-zip", action="store_true")
     what = parser.add_subparsers(dest="what", required=True)
-    runtime = what.add_parser("runtime", help="Python, librerías, código y lanzadores")
+    runtime = what.add_parser("runtime")
     runtime.add_argument("--variant", choices=tuple(TORCH_BACKENDS), default="cpu")
-    models = what.add_parser("models", help="un zip por modelo, con sus backbones")
-    models.add_argument(
-        "models", nargs="+", type=Path, metavar="MODELO", help="checkpoint o carpeta de runs/"
-    )
+    models = what.add_parser("models")
+    models.add_argument("models", nargs="+", type=Path, metavar="MODELO")
     return parser.parse_args()
 
 

@@ -1,7 +1,3 @@
-"""Pasa un modelo por una lista de grabaciones y deja la tabla de Raven de cada una junto al
-audio. Lo comparten el CLI (`detect.py`) y la vista Batch del visor: un archivo a la vez, la
-tabla se escribe al terminarlo y las cajas se descartan, así la memoria no crece con la lista."""
-
 import logging
 import time
 from collections.abc import Callable, Iterator

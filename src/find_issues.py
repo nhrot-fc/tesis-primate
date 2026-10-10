@@ -1,25 +1,3 @@
-"""CLOD sobre un volcado fuera de muestra: anotaciones que parecen faltar, sobrar, estar mal
-etiquetadas o mal ubicadas (Chachuła et al., 2023). Escribe una tabla de hallazgos, un hallazgo
-por fila con su `Calidad` (peor es menor) y la grabación donde está, ordenada por grabación y
-tipo, para revisarla en Raven o en un notebook.
-
-    python src/find_issues.py runs/detr_kfold5/detr_kfold5_train_predictions.pt
-
-Predicciones y anotaciones de una ventana se ligan por IoU. Una predicción sin anotación
-ligada es `missing` si supera el umbral de confianza de su clase; una anotación sin predicción
-confiada de su clase es `label` si otra clase sí la ve con confianza, o `spurious` si ninguna
-predicción de ninguna clase la toca (el modelo ve fondo); con predicción confiada de su clase
-pero mal superpuesta, `location`. Una anotación que sólo tiene predicciones poco confiadas no
-es hallazgo: como en confident learning, lo que no es confiado en ninguna clase no cuenta. El
-umbral por clase es el de confident learning: el score medio que el modelo da a las anotaciones
-de esa clase.
-
-Cada hallazgo se contrasta con la tabla cruda de Raven de su grabación en `data/unified/` (la
-unión de todas las copias, sin limpiar): qué fila hay debajo (`raw_*`) y qué hizo la limpieza con
-ella (`raw_estado`: limpia, en revisión, sin clase, descartada o sin fila). Un `missing` sobre
-una fila descartada (ruido) o en revisión no es una anotación que falte; uno sin fila, sí.
-"""
-
 import argparse
 import logging
 from collections.abc import Iterator
@@ -31,23 +9,25 @@ import torch
 from torch import Tensor
 from torchvision.ops import box_convert, box_iou
 
+from analysis.review import relative
 from core.config import CLEANED_DIR, NMS_IOU, UNIFIED_DIR, P
 from core.runtime import setup_logging
 from data import cache
-from data.annotations import MAX_FREQ_HZ
+from data.annotations import MAX_FREQ_HZ, species_of
 from data.raven import BEGIN, BOX_COLUMNS, CALL, CLEANED_BOX_COLUMNS, END, HIGH, LOW, SPECIES
 from data.species import LABEL_SEPARATOR, LabelSet
 from evaluation.evaluator import RawPredictions
 from evaluation.metrics import MATCH_IOU, Boxes, rows_by_image
 from evaluation.protocol import equalize
+from unify_recordings import FOLDER_SPECIES, SOURCES
 from utils.audio import hz_to_y, y_to_hz
 from utils.boxes import suppress_nested
 
 logger = logging.getLogger("find_issues")
 
-# Columnas de la tabla de hallazgos: cajas con las columnas de `cleaned/`, el tipo de hallazgo,
-# su calidad y la ruta de la grabación.
-ISSUE, QUALITY, RECORDING = "Hallazgo", "Calidad", "recording"
+# Columnas de trabajo: cajas con las columnas de `cleaned/`, el tipo de hallazgo, su calidad
+# (peor es menor) y la ruta de la grabación en el caché.
+ISSUE, QUALITY, RECORDING = "issue", "Calidad", "recording"
 SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 
 # Liga predicción y anotación
@@ -79,22 +59,52 @@ NO_ROW, DROPPED, REVIEW, EXCLUDED, CLEAN = (
     "limpia",
 )
 STATES = [NO_ROW, DROPPED, REVIEW, EXCLUDED, CLEAN]
-# Columnas de la tabla cruda que no están en `data.raven`
-FOLDER_SPECIES, RATING = "Folder Species", "Rating"
+# Columna de la tabla cruda que no está en `data.raven`
+RATING = "Rating"
 # Una fila cruda está en `cleaned/` si su caja aparece con esta tolerancia (s y Hz)
 BOX_TOLERANCE = 1e-3
 
+# La tabla que se escribe (ver el docstring)
+FOLDER, FILE, ANNOTATED, PREDICTED = "folder", "file", "annotated", "predicted"
+EXISTING = "existing_annotation"
+EXISTING_NAMES = {
+    NO_ROW: "none",
+    CLEAN: "in_dataset",
+    REVIEW: "needs_review",
+    EXCLUDED: "class_not_in_model",
+    DROPPED: "removed",
+}
+
+
+class Copies(NamedTuple):
+    unified: str  # nombre de su tabla en `unified/`
+    wavs: list[str]  # todas las copias, relativas a raw/
+
+
+def read_copies(unified: Path) -> dict[str, Copies]:
+    # Cada copia de una grabación (relativa a raw/) -> la tabla de `unified/` que las une y todas
+    # sus copias. El nombre no alcanza: hay wavs distintos con el mismo nombre en subcarpetas.
+    path = unified / SOURCES
+    if not path.is_file():
+        return {}
+    found: dict[str, Copies] = {}
+    for name, group in pd.read_csv(path, sep="\t").groupby("recording"):
+        copies = Copies(str(name), group["raw_wav"].tolist())
+        found.update(dict.fromkeys(copies.wavs, copies))
+    return found
+
+
+def copies_of(recording: str, copies: dict[str, Copies]) -> Copies:
+    wav = relative(recording)
+    return copies.get(wav, Copies(Path(wav).stem, [wav]))
+
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("dump", type=Path, help="*_predictions.pt fuera de muestra")
-    parser.add_argument(
-        "--output", type=Path, help="por defecto hallazgos_<split>.csv junto al volcado"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dump", type=Path)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--score-floor", type=float, default=SCORE_FLOOR)
-    parser.add_argument(
-        "--unified", type=Path, default=UNIFIED_DIR, help="tablas crudas; sin ella no se contrasta"
-    )
+    parser.add_argument("--unified", type=Path, default=UNIFIED_DIR)
     return parser.parse_args()
 
 
@@ -235,9 +245,8 @@ def merge_duplicates(table: pd.DataFrame) -> pd.DataFrame:
     return table.loc[sorted(kept)]
 
 
-def read_raw(recording: str, unified: Path) -> pd.DataFrame | None:
-    # La tabla de `unified/` se llama como el wav; todo texto salvo la caja.
-    path = unified / f"{Path(recording).stem}.txt"
+def read_raw(path: Path) -> pd.DataFrame | None:
+    # Una tabla de `unified/`, todo texto salvo la caja.
     if not path.is_file():
         return None
     table = pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False)
@@ -275,11 +284,11 @@ def clipped_iou(findings_xyxy: Tensor, starts: Tensor, raw_xyxy: Tensor) -> Tens
     return intersection / (area_f + area_r - intersection).clamp(min=1e-9)
 
 
-def read_cleaned(recording: str) -> pd.DataFrame:
-    # Todas las copias de la grabación en `cleaned/`, una por carpeta de especie.
+def read_cleaned(wavs: list[str]) -> pd.DataFrame:
+    # Las tablas de `cleaned/` de todas las copias de la grabación, una por carpeta de especie.
+    paths = [CLEANED_DIR / Path(wav).with_suffix(".txt") for wav in wavs]
     frames = [
-        pd.read_csv(path, sep="\t", keep_default_na=False)
-        for path in sorted(CLEANED_DIR.rglob(f"{Path(recording).stem}.txt"))
+        pd.read_csv(path, sep="\t", keep_default_na=False) for path in paths if path.is_file()
     ]
     columns = ["species", "call_type", *CLEANED_BOX_COLUMNS, "requires_review"]
     return (
@@ -323,11 +332,13 @@ def contrast(table: pd.DataFrame, labels: LabelSet, unified: Path = UNIFIED_DIR)
     begin, end, low, high = CLEANED_BOX_COLUMNS
     columns = [RAW_IOU, RAW_SPECIES, RAW_CALL, RAW_FOLDER, RAW_RATING, RAW_LABEL, RAW_STATE]
     raw_columns = pd.DataFrame(index=table.index, columns=columns, dtype=object)
+    copies = read_copies(unified)
     for recording, group in table.groupby(RECORDING):
-        raw = read_raw(str(recording), unified)
+        found = copies_of(str(recording), copies)
+        raw = read_raw(unified / f"{found.unified}.txt")
         if raw is None or not len(raw):
             continue
-        states = cleaning_state(raw, read_cleaned(str(recording)), labels.names)
+        states = cleaning_state(raw, read_cleaned(found.wavs), labels.names)
         findings_xyxy = torch.tensor(group[[begin, low, end, high]].to_numpy(dtype=float))
         starts = torch.tensor(group[WINDOW_START].to_numpy(dtype=float))
         raw_xyxy = torch.tensor(raw[[BEGIN, LOW, END, HIGH]].to_numpy(dtype=float))
@@ -395,6 +406,44 @@ def summarize_contrast(table: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
+def export(table: pd.DataFrame, unified: Path = UNIFIED_DIR) -> pd.DataFrame:
+    # La tabla de trabajo, contrastada o no, a las columnas que se escriben (ver el docstring).
+    missing_columns = [c for c in (RAW_FOLDER, RAW_LABEL, RAW_STATE) if c not in table]
+    table = table.reindex(columns=[*table.columns, *missing_columns])
+    copies = read_copies(unified)
+    wavs: list[Path] = []
+    for recording, folder in zip(table[RECORDING], table[RAW_FOLDER], strict=True):
+        # La copia de la carpeta de donde viene la fila; sin fila, la que entró al caché
+        wav = relative(str(recording))
+        if isinstance(folder, str) and folder:
+            wav = next(
+                (
+                    c
+                    for c in copies_of(str(recording), copies).wavs
+                    if species_of(Path(c)) == folder.lower()
+                ),
+                wav,
+            )
+        wavs.append(Path(wav))
+    is_missing = table[ISSUE] == MISSING
+    out = pd.DataFrame(
+        {
+            FOLDER: [wav.parent.as_posix() for wav in wavs],
+            FILE: [wav.name for wav in wavs],
+            ISSUE: table[ISSUE],
+            **{column: table[column] for column in CLEANED_BOX_COLUMNS},
+            ANNOTATED: table[LABEL_COLUMN].where(~is_missing, table[RAW_LABEL]),
+            PREDICTED: table[LABEL_COLUMN].where(
+                table[ISSUE].isin([MISSING, LOCATION]), table[SUGGESTION]
+            ),
+            SCORE: table[SCORE].where(table[ISSUE] != SPURIOUS),
+            EXISTING: table[RAW_STATE].map(EXISTING_NAMES).where(is_missing),
+        },
+        index=table.index,
+    )
+    return out.sort_values([FOLDER, FILE, ISSUE, CLEANED_BOX_COLUMNS[0]]).reset_index(drop=True)
+
+
 def main() -> None:
     args = parse_args()
     setup_logging()
@@ -424,7 +473,7 @@ def main() -> None:
     else:
         logger.warning("sin %s: no se contrasta con las tablas crudas", args.unified)
     output = args.output or args.dump.with_name(f"hallazgos_{dump.split}.csv")
-    table.to_csv(output, index=False)
+    export(table, args.unified).to_csv(output, index=False)
     logger.info("tabla de hallazgos -> %s", output)
 
 

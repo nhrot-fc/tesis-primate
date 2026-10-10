@@ -1,6 +1,3 @@
-"""Qué hay para detectar y con qué: audios, checkpoints y su umbral. Sin torch a propósito:
-el visor lo consulta antes de que cargue el motor de detección."""
-
 import json
 from pathlib import Path
 

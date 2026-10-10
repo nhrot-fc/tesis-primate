@@ -18,19 +18,16 @@ logger = logging.getLogger("dump_predictions")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Vuelca las predicciones crudas de un checkpoint sobre val y test, sin umbral "
-        "ni tope, para que `compare_models.py` las mida con la misma vara."
-    )
+    parser = argparse.ArgumentParser()
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--run", help=f"corrida en runs/; usa su {BEST}")
-    source.add_argument("--checkpoint", type=Path, help="ruta a un checkpoint cualquiera")
+    source.add_argument("--run")
+    source.add_argument("--checkpoint", type=Path)
     parser.add_argument("--splits", nargs="+", choices=cache.SPLITS, default=[VAL, TEST])
-    parser.add_argument("--name", help="con el que entra a la tabla; por defecto, el de la corrida")
-    parser.add_argument("--output", type=Path, help="directorio; por defecto, el del checkpoint")
+    parser.add_argument("--name")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--device", default=None)
-    parser.add_argument("--limit", type=int, help="usa sólo las primeras N ventanas")
+    parser.add_argument("--limit", type=int)
     return parser.parse_args()
 
 

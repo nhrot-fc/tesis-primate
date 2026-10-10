@@ -84,20 +84,13 @@ PRESETS: dict[str, Preset] = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Entrena un detector sobre las ventanas cacheadas (YOLO: sobre el export).",
-        epilog="p. ej. --arch yolo --hp model=yolo26m | --arch detr --cfg epochs=20 batch_size=4",
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=tuple(PRESETS), default="detr")
-    parser.add_argument("--name", help="nombre de la corrida; por defecto, la ablación")
-    parser.add_argument("--device", help="'cuda', 'cuda:1', 'cpu'")
-    parser.add_argument("--limit", type=int, help="usa sólo N ventanas (pruebas)")
-    parser.add_argument(
-        "--hp", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `Preset.hparams`"
-    )
-    parser.add_argument(
-        "--cfg", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `TrainConfig`"
-    )
+    parser.add_argument("--name")
+    parser.add_argument("--device")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--hp", nargs="+", default=[], metavar="CLAVE=VALOR")
+    parser.add_argument("--cfg", nargs="+", default=[], metavar="CLAVE=VALOR")
     return parser.parse_args()
 
 

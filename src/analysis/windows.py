@@ -1,6 +1,3 @@
-"""Un split del caché en memoria: espectrogramas, cajas, de qué grabación viene cada ventana y
-cómo elegir ventanas de ejemplo de una clase."""
-
 from collections.abc import Collection
 from functools import cached_property
 from pathlib import Path

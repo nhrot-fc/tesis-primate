@@ -1,6 +1,3 @@
-"""Predicciones frente a anotaciones: el volcado de una corrida, el score que un modelo da a cada
-clase sobre una caja anotada, y qué checkpoint no vio cada grabación de train (k-fold)."""
-
 import functools
 import json
 from pathlib import Path

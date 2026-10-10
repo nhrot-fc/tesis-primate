@@ -87,11 +87,9 @@ def write_meta(db_range: tuple[float, float]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Materializa el caché de ventanas.")
-    parser.add_argument("--force", action="store_true", help="regenera el caché existente")
-    parser.add_argument(
-        "--sources-only", action="store_true", help="reescribe sólo el mapa ventana -> grabación"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--sources-only", action="store_true")
     args = parser.parse_args()
     setup_logging()
     if (PROCESSED_DIR / "meta.json").exists() and not (args.force or args.sources_only):

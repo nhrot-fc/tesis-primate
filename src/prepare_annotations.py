@@ -34,12 +34,10 @@ def find_recording(annotation: Path) -> Path | None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Normaliza las anotaciones de raw/ y las deja en cleaned/, sin copiar audio."
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--raw", type=Path, default=RAW_DIR)
     parser.add_argument("--out", type=Path, default=CLEANED_DIR)
-    parser.add_argument("--force", action="store_true", help="regenera sobre las que ya estén")
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
     setup_logging()

@@ -1,13 +1,3 @@
-"""Genera las capturas del manual (`docs/manual/fig/`) desde el propio visor, sin compositor:
-abre una grabación de muestra, corre el modelo, entra en revisión y lista una carpeta en Batch,
-y en cada estado guarda la ventana entera (`widget.grab()`) y los recortes que el manual amplía.
-
-    uv run python docs/manual/screenshots.py [--audio WAV] [--model CHECKPOINT]
-
-Corre con la plataforma `offscreen` de Qt: las capturas salen iguales en cualquier máquina.
-La carpeta de Batch se arma en un temporal con tres copias del audio (una con tabla) para que
-la corrida dure segundos y se vea una saltada y dos hechas."""
-
 import argparse
 import os
 import shutil
@@ -31,9 +21,9 @@ PAD = 6
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
+    parser = argparse.ArgumentParser()
     parser.add_argument("--audio", type=Path, default=Path(DEFAULT_AUDIO))
-    parser.add_argument("--model", type=Path, help="checkpoint; por defecto el primero listado")
+    parser.add_argument("--model", type=Path)
     return parser.parse_args()
 
 

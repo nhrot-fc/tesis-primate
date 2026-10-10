@@ -1,10 +1,3 @@
-"""Vista Batch: una carpeta de grabaciones y el modelo (la misma lista que en el espectrograma);
-deja la tabla de Raven de cada audio junto a él (`<audio>.detections.txt`) con todo lo que el
-modelo ve, como el espectrograma, y el score sólo filtra lo que se cuenta: moverlo no vuelve a
-correr nada. Es una página aparte de la del espectrograma, con sus propios mandos: se ve la
-lista entera, el estado de cada archivo, cuánto falta y cuántas detecciones tiene cada uno, en
-total o por especie y llamada. El doble clic abre la grabación en el espectrograma."""
-
 import logging
 import math
 import threading

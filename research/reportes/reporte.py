@@ -1,6 +1,3 @@
-"""Lo que comparten los cuadernos `RE_*.ipynb`: rutas del proyecto y cómo dejan figuras, tablas
-y cifras en `figures/RE_x-y/` para que el `RE_*.tex` homónimo las incluya con `\\input`."""
-
 import sys
 from collections.abc import Iterable
 from pathlib import Path

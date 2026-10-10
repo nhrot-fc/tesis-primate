@@ -46,14 +46,11 @@ def merge_tables(frames: list[pd.DataFrame]) -> tuple[pd.DataFrame, int]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Deja en una sola carpeta cada grabación de raw/ una única vez, con la unión "
-        "de las tablas de Raven de todas sus copias, sin limpiarlas."
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--raw", type=Path, default=RAW_DIR)
     parser.add_argument("--out", type=Path, default=UNIFIED_DIR)
-    parser.add_argument("--skip", nargs="*", default=SKIP_FOLDERS, help="carpetas de raw/ a omitir")
-    parser.add_argument("--force", action="store_true", help="borra y regenera la salida")
+    parser.add_argument("--skip", nargs="*", default=SKIP_FOLDERS)
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
     setup_logging()

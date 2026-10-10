@@ -18,23 +18,12 @@ logger = logging.getLogger("detect")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run a model over audio files or folders and write a Raven selection "
-        "table next to each recording.",
-        epilog="e.g. detect.py --model models/frcnn recordings/ other.wav",
-    )
-    parser.add_argument("paths", nargs="+", type=Path, metavar="PATH", help="audio or folder")
-    parser.add_argument(
-        "--model", type=Path, help=f"checkpoint or its folder; by default chosen from {MODELS_DIR}"
-    )
-    parser.add_argument(
-        "--score",
-        type=float,
-        help="minimum score; by default the model's operating point, or "
-        f"{SCORE_THRESHOLD} if it has none",
-    )
-    parser.add_argument("--device", help="'cuda', 'cuda:1', 'cpu'; by default cuda if available")
-    parser.add_argument("--overwrite", action="store_true", help="redo tables that already exist")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("paths", nargs="+", type=Path, metavar="PATH")
+    parser.add_argument("--model", type=Path)
+    parser.add_argument("--score", type=float)
+    parser.add_argument("--device")
+    parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
 
 

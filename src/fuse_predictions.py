@@ -18,15 +18,11 @@ CLUSTER_IOU = 0.55  # el de Solovyev et al. 2021 (WBF)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Fusiona los volcados de varios modelos (WBF) en uno nuevo que `compare_models.py` "
-        "mide como a cualquier otro. Antes calibra el score de cada modelo a su precisión en val: "
-        "sin eso, el 0.22 de un DETR y el 0.02 de un YOLO no son comparables."
-    )
-    parser.add_argument("dumps", nargs="+", type=Path, help="los *_predictions.pt, val y test")
-    parser.add_argument("--name", required=True, help="con el que entra a la tabla")
-    parser.add_argument("--output", type=Path, required=True, help="directorio")
-    parser.add_argument("--iou", type=float, default=CLUSTER_IOU, help="para agrupar cajas")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dumps", nargs="+", type=Path)
+    parser.add_argument("--name", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--iou", type=float, default=CLUSTER_IOU)
     return parser.parse_args()
 
 

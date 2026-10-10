@@ -1,23 +1,3 @@
-"""Entrena el AST-DETR (`detr`, logmel) con el caché de aves de `notebooks/pretrain_birds.ipynb`
-y después lo afina con primates, sin tocar `src/`: sólo redirige el módulo `cache` y la carpeta de
-corridas antes de llamar a `train.main()`.
-
-    # 1. preentrenar: caché data/processed_extra, corrida en runs_extra/<name>
-    uv run python notebooks/pretrain_birds_train.py --name detr_birds_v2 --device cuda:1
-
-    # 2. afinar: caché y runs/ normales; arranca de los pesos del preentrenado salvo las cabezas
-    #    de clase (otro número de clases) y entra a la comparación como cualquier corrida
-    uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds_v2/best.pt \\
-        --name detr_t10_logmel_birds_v3 --device cuda:1
-
-    # 3. k-fold sobre train con la misma inicialización (`src/kfold.py`, pliegues por grabación)
-    uv run python notebooks/pretrain_birds_train.py --finetune runs_extra/detr_birds_v2/best.pt \\
-        --kfold --name detr_t10_logmel_birds_v3_kfold5 --device cuda:1 --cfg epochs=20
-
-Lo que siga a las opciones propias se pasa tal cual a train.py o kfold.py (`--cfg epochs=20`,
-`--limit`, `--fold 1 3`…).
-"""
-
 import argparse
 import json
 import logging
@@ -42,14 +22,10 @@ logger = logging.getLogger("pretrain_birds")
 
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
-    parser = argparse.ArgumentParser(
-        description="Preentrena el AST-DETR con el caché de aves, o lo afina con primates."
-    )
-    parser.add_argument("--finetune", type=Path, help="best.pt de runs_extra/: afina con primates")
-    parser.add_argument(
-        "--kfold", action="store_true", help="con --finetune: corre kfold.py en vez de train.py"
-    )
-    parser.add_argument("--name", required=True, help="nombre de la corrida")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--finetune", type=Path)
+    parser.add_argument("--kfold", action="store_true")
+    parser.add_argument("--name", required=True)
     parser.add_argument("--device")
     return parser.parse_known_args()
 

@@ -1,7 +1,3 @@
-"""OE3: lo que la herramienta escribe en cada grabación (las tablas de Raven de `detect.py`) frente
-a lo anotado, en tiempo de grabación y con la regla de RE3.3. Lo usan los dos cuadernos del
-capítulo 6: el que arma el paquete para el equipo y el que lee lo que el equipo devuelve."""
-
 from pathlib import Path
 
 import numpy as np

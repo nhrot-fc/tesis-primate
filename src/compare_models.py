@@ -15,16 +15,11 @@ OUTPUT = "comparacion_modelos"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Compara volcados de `dump_predictions.py`: mismo tope de detecciones para "
-        "todos, umbral elegido en val, test medido una vez."
-    )
-    parser.add_argument("dumps", nargs="+", type=Path, help="los *_predictions.pt, val y test")
-    parser.add_argument("--output", type=Path, help="sin extensión; se escriben .txt y .json")
-    parser.add_argument("--max-det", type=int, default=MAX_DETECTIONS, help="tope por ventana")
-    parser.add_argument(
-        "--min-precision", type=float, default=MIN_PRECISIONS[0], help="precisión mínima en val"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dumps", nargs="+", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--max-det", type=int, default=MAX_DETECTIONS)
+    parser.add_argument("--min-precision", type=float, default=MIN_PRECISIONS[0])
     return parser.parse_args()
 
 

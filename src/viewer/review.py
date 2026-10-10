@@ -1,8 +1,3 @@
-"""Revisión caja por caja de las detecciones: aceptar (con el encuadre y la especie que se hayan
-retocado) o rechazar. Cada decisión se apunta al momento en un archivo temporal por grabación
-—una tabla de Raven con `Score` y `Decision`— y al volver a revisar la misma grabación se
-retoma desde ahí: lo aceptado vuelve a Annotations y lo decidido sale de Detections."""
-
 import hashlib
 import tempfile
 from collections.abc import Callable

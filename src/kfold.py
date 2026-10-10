@@ -1,16 +1,3 @@
-"""Predicciones fuera de muestra sobre train: K modelos, cada uno predice el pliegue que no vio.
-
-Los pliegues van por grabación. Cada modelo elige su `best.pt` sobre val, como `train.py`; el
-pliegue retenido sólo se predice. Los volcados por pliegue se funden en
-`runs/<nombre>/<nombre>_train_predictions.pt`, con el formato de `dump_predictions.py`, que es
-lo que leen `find_issues.py` (CLOD) y `compare_models.py`. YOLO entrena por Ultralytics sobre
-el export de `export_yolo.py`, restringido a las ventanas del pliegue.
-
-    python src/kfold.py --arch detr --hp frontend=logmel --cfg epochs=20
-    python src/kfold.py --arch detr --hp frontend=logmel --cfg epochs=20 --fold 1 3   # otra GPU
-    python src/kfold.py --arch yolo
-"""
-
 import argparse
 import json
 import logging
@@ -41,21 +28,15 @@ HELD_OUT = "held_out_predictions.pt"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=tuple(PRESETS), default="detr")
     parser.add_argument("--folds", type=int, default=5)
-    parser.add_argument(
-        "--fold", type=int, nargs="+", help="sólo estos pliegues; por defecto todos"
-    )
-    parser.add_argument("--name", help="carpeta en runs/; por defecto <arch>_kfold<K>")
-    parser.add_argument("--device", help="'cuda', 'cuda:1', 'cpu'")
-    parser.add_argument("--limit", type=int, help="usa sólo N ventanas de train (pruebas)")
-    parser.add_argument(
-        "--hp", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `Preset.hparams`"
-    )
-    parser.add_argument(
-        "--cfg", nargs="+", default=[], metavar="CLAVE=VALOR", help="pisa `TrainConfig`"
-    )
+    parser.add_argument("--fold", type=int, nargs="+")
+    parser.add_argument("--name")
+    parser.add_argument("--device")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--hp", nargs="+", default=[], metavar="CLAVE=VALOR")
+    parser.add_argument("--cfg", nargs="+", default=[], metavar="CLAVE=VALOR")
     return parser.parse_args()
 
 

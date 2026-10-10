@@ -1,6 +1,3 @@
-"""Ventanas del caché dibujadas: el mel en magma con el grave abajo, las cajas con borde negro
-(se ven igual sobre el fondo oscuro y sobre una llamada brillante) y la clase de interés en verde."""
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patheffects
@@ -90,4 +87,3 @@ def draw_window(
         title = f"{split.recording_of(image_id)} · {split.start_of(image_id):.0f} s"
     ax.set_title(title, fontsize=8)
     ax.grid(False)
-

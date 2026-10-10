@@ -55,9 +55,7 @@ def write_dataset_yaml(names: list[str]) -> None:
 
 
 def main() -> None:
-    argparse.ArgumentParser(
-        description="Exporta el caché de ventanas al layout de dataset de Ultralytics."
-    ).parse_args()
+    argparse.ArgumentParser().parse_args()
     setup_logging()
     original_names = cache.labels().names
     db_low, db_high = cache.db_range()

@@ -1,14 +1,3 @@
-"""Graba el vídeo de demostración del visor (`resources/demo.mp4`): un guion fijo abre una
-grabación de `data/`, corre YOLO en CPU, escucha, revisa, guarda y procesa una carpeta en
-Batch. Cada fotograma es la ventana (`grab()`) con un cursor dibujado, la tecla que se pulsa
-y un subtítulo debajo; los fotogramas van por tubería a ffmpeg.
-
-    uv run python docs/manual/demo.py [--audio WAV] [--model CHECKPOINT] [--out MP4]
-
-Corre con la plataforma `offscreen` de Qt y sin CUDA, así el vídeo sale igual en cualquier
-máquina y la detección es la de una PC sin GPU. No escribe nada junto al audio: lo que
-Batch y Save producen va a una carpeta temporal."""
-
 import argparse
 import os
 import shutil
@@ -240,7 +229,7 @@ def cell_center(viewer, table: QTableView, row: int) -> QPointF:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
+    parser = argparse.ArgumentParser()
     parser.add_argument("--audio", type=Path, default=DEFAULT_AUDIO)
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
