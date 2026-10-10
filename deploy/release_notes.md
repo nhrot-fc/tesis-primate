@@ -2,15 +2,31 @@ Primate vocalization detector for Windows. Portable: unzip and run, nothing to i
 
 ### What's new
 
-- `viewer.exe` replaces `Detector.exe`; `detect.exe` is the console version.
-- Two views: **Spectrogram** (one recording) and **Batch** (a whole folder). Menu bar with
-  shortcuts; *Open audio*, *Open annotations* and *Open folder* are separate.
-- **Settings**: brightness, contrast, volume and audio output device.
-- `Manual.pdf`, the user guide with screenshots (also under *Help → User manual*), and a
+- `viewer.exe` replaces `Detector.exe`: a menu bar with shortcuts and two views, **Spectrogram**
+  (one recording) and **Batch** (a whole folder). `detect.exe` is still the console version.
+- **Batch** counts the detections of every recording, per species and call if you want, and
+  exports them as CSV. Moving *Score* only recounts: the model does not run again.
+- **Settings** (brightness, contrast, volume, audio output) and `Manual.pdf`, the user guide
+  (also under *Help → User manual*). There is also a
   [demo video](https://github.com/nhrot-fc/tesis-primate/blob/main/resources/demo.mp4).
-- Models: unchanged. Use the model zips from
-  [v0.2.0](https://github.com/nhrot-fc/tesis-primate/releases/tag/v0.2.0), or keep your
-  `models\` folder.
+
+### Fixes in {version}
+
+- Fixed: when a recording failed to open, its detections showed up on the next one opened.
+- Fixed: in Review, after editing a label and pressing Enter, the next keys were typed into
+  the label.
+- Fixed: the box under review could be dragged outside the recording.
+- Fixed: annotation tables saved after Review lacked the `View` and `Channel` columns of a
+  Raven table.
+- Fixed: Raven tables saved with the waveform view open showed every selection twice.
+- Fixed: error in Batch when ticking *Count per species and call* before any recording had a
+  table.
+- Fixed: choosing another folder while Batch was still listing the first one kept the first
+  one's list.
+- Fixed: Batch listed the `._*.wav` files that macOS leaves on memory cards.
+- Tables from Excel in Spanish (`;` and decimal comma) or with accents now open; when a file
+  cannot be opened, the message says why.
+- Better performance with 1 h recordings (up to 2 h supported).
 
 ### Install
 
