@@ -24,8 +24,8 @@ Primate vocalization detector for Windows. Portable: unzip and run, nothing to i
 - Fixed: choosing another folder while Batch was still listing the first one kept the first
   one's list.
 - Fixed: Batch listed the `._*.wav` files that macOS leaves on memory cards.
-- Tables from Excel in Spanish (`;` and decimal comma) or with accents now open; when a file
-  cannot be opened, the message says why.
+- Fixed: CSV tables saved by Excel with `;` as separator and a decimal comma (`1,5`), or with
+  accented characters, could not be opened. When a file cannot be opened, the message says why.
 - Better performance with 1 h recordings (up to 2 h supported).
 
 ### Install
