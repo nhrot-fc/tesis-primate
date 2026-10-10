@@ -260,7 +260,7 @@ class SpectrogramView(pg.PlotWidget):
                 # a un borde distinto para que una deteccion encima de su anotacion no lo
                 # tape. Si la caja sale de la pantalla, el rotulo se queda en el borde visible.
                 caption = label(row)
-                if scored:
+                if scored and not pd.isna(row[SCORE]):
                     caption = f"{caption} {row[SCORE]:.2f}".strip()
                 x = max(x0, view_x0)
                 y = min(y0 + height, view_y1) if layer.top else max(y0, view_y0)
@@ -286,20 +286,29 @@ class SpectrogramView(pg.PlotWidget):
         self.highlight.setRect(rect)
         self.highlight.setVisible(True)
 
-    # La caja que se está revisando, con asas; None la esconde.
+    # La caja que se está revisando, con asas; None la esconde. Arrastrarla no la saca del audio:
+    # una anotación en tiempo negativo o sobre Nyquist no existe.
     def set_editable(self, box: tuple[float, float, float, float] | None) -> None:
         if box is None:
             self.roi.hide()
             return
+        if self.waveform is not None:
+            self.roi.maxBounds = QRectF(0.0, 0.0, self.waveform.size / self.sr, self.sr / 2)
         begin, end, low, high = box
         self.roi.setPos([begin, low], update=False)
         self.roi.setSize([end - begin, high - low])
         self.roi.show()
 
+    # Recortada al audio también al leerla: la caja de una tabla ajena puede llegar de fuera.
     def editable_box(self) -> tuple[float, float, float, float]:
         position, size = self.roi.pos(), self.roi.size()
         begin, low = float(position[0]), float(position[1])
-        return begin, begin + float(size[0]), low, low + float(size[1])
+        end, high = begin + float(size[0]), low + float(size[1])
+        bounds = self.roi.maxBounds
+        if bounds is not None:
+            begin, end = (min(max(t, bounds.left()), bounds.right()) for t in (begin, end))
+            low, high = (min(max(f, bounds.top()), bounds.bottom()) for f in (low, high))
+        return begin, end, low, high
 
     def set_playhead(self, seconds: float | None) -> None:
         if seconds is None:
@@ -311,7 +320,11 @@ class SpectrogramView(pg.PlotWidget):
     def export_png(self, path: Path) -> None:
         exporter = ImageExporter(self.getPlotItem())
         exporter.parameters()["width"] = EXPORT_WIDTH
-        exporter.export(str(path))
+        # Qt no lanza nada si no pudo escribir: sólo devuelve False.
+        if not exporter.export(str(path)):
+            raise OSError(
+                f"could not write {path} (does the folder exist, and can you write in it?)"
+            )
 
     def close_renderer(self) -> None:
         self.renderer.close()

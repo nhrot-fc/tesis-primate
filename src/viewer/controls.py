@@ -137,9 +137,11 @@ class Layers(QWidget):
         self.boxes[text].setChecked(not self.boxes[text].isChecked())
 
     # La leyenda dice qué es cada trazo y lo apaga; cuántas cajas hay lo dicen el título de
-    # la ventana y el panel de cajas. Una capa sin tabla ni aparece.
+    # la ventana y el panel de cajas. Una capa sin tabla ni aparece, salvo si está apagada: con
+    # 1 o 2 se apaga sin tocar la leyenda, y sin la casilla las cajas se irían sin rastro.
     def set_state(self, text: str, total: int) -> None:
-        self.boxes[text].setVisible(total > 0)
+        box = self.boxes[text]
+        box.setVisible(total > 0 or not box.isChecked())
 
 
 # La banda de frecuencia como en Raven: una altura elegida de una lista (el zoom) y un scroll

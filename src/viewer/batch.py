@@ -29,11 +29,11 @@ from PyQt6.QtWidgets import (
 )
 
 from core.config import SCORE_THRESHOLD, score_grid
-from data.raven import CALL, SCORE, SPECIES
+from data.raven import BOX_COLUMNS, CALL, SCORE, SPECIES
 from inference.catalog import DETECTIONS_SUFFIX, collect_audio, output_for
 from viewer.controls import ModelPicker, Slider, headline_font
 from viewer.inference import DETECT_THRESHOLD
-from viewer.tasks import Worker
+from viewer.tasks import Worker, describe
 
 logger = logging.getLogger("viewer")
 
@@ -114,6 +114,10 @@ def text_column(table: pd.DataFrame, name: str) -> list[str]:
 def boxes_in(table: Path) -> dict[str, np.ndarray] | None:
     try:
         frame = pd.read_csv(table, sep="\t")
+        # Sin las columnas de las cajas no es una tabla de Raven (un archivo cortado, otro
+        # programa): no se cuenta como "0 detecciones".
+        if absent := [name for name in BOX_COLUMNS if name not in frame.columns]:
+            raise ValueError(f"no {', '.join(absent)} column")
         scores = (
             frame[SCORE].astype(float).fillna(math.inf).to_numpy()
             if SCORE in frame.columns
@@ -256,9 +260,10 @@ class FileModel(QAbstractTableModel):
         label = self.labels[section - len(HEADERS)] if section >= len(HEADERS) else None
         total = self.totals.total() if label is None else self.totals[label]
         if role == Qt.ItemDataRole.DisplayRole:
+            name = label or HEADERS[section]
             if not counted or not any(c is not None for c in self.counts):
-                return HEADERS[section]
-            return f"{label or HEADERS[section]}\n{total:,}"
+                return name
+            return f"{name}\n{total:,}"
         if role == Qt.ItemDataRole.ToolTipRole and counted:
             files = sum(1 for c in self.counts if c and (c[label] if label else c.total()))
             return (
@@ -379,7 +384,7 @@ class BatchWorker(QThread):
             loaded, device = load(self.checkpoint)
         except Exception as exc:
             logger.exception("Could not load the model %s", self.checkpoint)
-            self.failed.emit(f"{type(exc).__name__}: {exc}")
+            self.failed.emit(describe(exc))
             return
         current = -1
 
@@ -417,6 +422,7 @@ class BatchView(QWidget):
         self.blocked = False  # el espectrograma está detectando: un modelo a la vez
         self.worker: BatchWorker | None = None
         self.scanner: Worker | None = None
+        self.rescan_due = False  # otra carpeta u otra opción mientras se escaneaba
         self.reader: Worker | None = None  # lee las clases del modelo elegido
         self.started_at = 0.0
         self.done_audio_s = 0.0
@@ -666,18 +672,34 @@ class BatchView(QWidget):
         self.rescan()
 
     def rescan(self) -> None:
-        if self.folder_path is None or self.running() or self.scanning():
+        if self.folder_path is None or self.running():
             return
+        # El escaneo en curso es de otra carpeta, o de la misma con la otra opción: su lista ya
+        # no vale y se repite al terminar. Si no, la tabla diría una carpeta y el campo otra.
+        if self.scanning():
+            self.rescan_due = True
+            return
+        self.rescan_due = False
         folder, recursive = self.folder_path, self.recursive.isChecked()
         self.said.emit(f"Scanning {folder}…")
         self.scanner = Worker(lambda: scan(folder, recursive), what=f"Scanning {folder}")
         self.scanner.ok.connect(self.scanned)
         self.scanner.error.connect(lambda message: self.said.emit(f"Could not scan: {message}"))
-        self.scanner.finished.connect(self.sync)
+        self.scanner.finished.connect(self.scan_finished)
         self.scanner.start()
         self.sync()
 
+    def scan_finished(self) -> None:
+        if not self.rescan_due:
+            self.sync()
+            return
+        if self.scanner is not None:
+            self.scanner.wait()  # ya entregó: lo que le queda es salir
+        self.rescan()
+
     def scanned(self, entries: list[Entry]) -> None:
+        if self.rescan_due:
+            return  # de lo que se pidió antes: viene otra lista
         self.files.reset(entries)
         self.summary.setText("")
         existing = sum(e.status == EXISTS for e in entries)
@@ -710,6 +732,7 @@ class BatchView(QWidget):
             table.to_csv(path, index=False)
         except Exception as exc:
             logger.exception("Could not save the counts %s", path)
+            self.said.emit("Error.")
             QMessageBox.critical(
                 self, "Error", f"Could not save the counts:\n{type(exc).__name__}: {exc}"
             )

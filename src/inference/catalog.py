@@ -1,7 +1,10 @@
 import json
+import logging
 from pathlib import Path
 
 from core.config import PROJECT_DIR, RUNS_DIR
+
+logger = logging.getLogger(__name__)
 
 AUDIO_SUFFIXES = {".wav", ".flac", ".mp3"}
 CHECKPOINT_SUFFIXES = {".pt", ".pth"}
@@ -15,7 +18,11 @@ OPERATING_POINT = "operating_point.json"
 
 
 def is_audio(path: Path) -> bool:
-    return path.is_file() and path.suffix.lower() in AUDIO_SUFFIXES
+    # `._x.wav` no es audio: es lo que macOS deja junto a cada archivo en una tarjeta o un disco
+    # FAT, y una carpeta copiada desde un Mac trae uno por grabación.
+    return (
+        path.is_file() and path.suffix.lower() in AUDIO_SUFFIXES and not path.name.startswith("._")
+    )
 
 
 def is_checkpoint(path: Path) -> bool:
@@ -49,8 +56,13 @@ def read_operating_point(directory: Path) -> float | None:
     path = directory / OPERATING_POINT
     if not path.is_file():
         return None
-    threshold = json.loads(path.read_text()).get("threshold")
-    return None if threshold is None else float(threshold)
+    # Uno dañado (una copia a medias) deja el modelo sin punto de operación, no sin modelo.
+    try:
+        threshold = json.loads(path.read_text()).get("threshold")
+        return None if threshold is None else float(threshold)
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        logger.warning("Ignoring %s: %s", path, exc)
+        return None
 
 
 def output_for(audio: Path) -> Path:

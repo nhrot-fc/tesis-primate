@@ -152,7 +152,19 @@ ya está en §5.
 - **Hallazgos:** sobre predicciones fuera de muestra (en train, del k-fold `yolo26s_v3_kfold5`;
   en validación, del modelo final), CLOD marca anotaciones que parecen faltar (`missing`: el
   modelo ve con confianza una llamada sin anotar), sobrar (`spurious`: ninguna predicción la toca),
-  tener otra etiqueta (`label`) o estar mal ubicadas (`location`).
+  tener otra etiqueta (`label`) o estar mal ubicadas (`location`). Un `missing` sólo entra si no
+  hay ninguna fila en la tabla cruda debajo de la caja: si la hay, la anotación existe (en el
+  conjunto pero sin ligar con la caja, en revisión, con una clase fuera del modelo o descartada
+  por la limpieza) y no es una omisión.
+- **Tamaño:** 7 728 hallazgos en 1 538 grabaciones:
+
+  | Tipo | Train (k-fold) | Validación | Total |
+  |---|---|---|---|
+  | `missing` | 1 961 | 734 | 2 695 |
+  | `spurious` | 2 232 | 785 | 3 017 |
+  | `location` | 1 310 | 487 | 1 797 |
+  | `label` | 164 | 55 | 219 |
+
 - **Formulario:** el mismo de §5. Cada hallazgo es una caja: la del modelo en `missing`, la
   anotación original en los demás. El revisor no sabe cuál es cuál.
 - **Orden:** al azar dentro de cada tipo e intercalado entre tipos. El equipo revisa desde arriba
@@ -161,7 +173,8 @@ ya está en §5.
   omisión de la anotación; `no` es un falso positivo del modelo), con `no` si es `spurious`, con
   `other` si es `label` y con `box` si es `location`. La proporción confirmada por tipo, con su
   intervalo de Wilson, multiplicada por los hallazgos de ese tipo, estima cuántos errores de
-  anotación tiene el corpus.
+  anotación tiene el corpus. La proporción de `no` entre los `missing` de train es la tasa de
+  falsos positivos del k-fold entre sus predicciones confiadas sin anotación.
 
 ## 8. Qué no se hace
 

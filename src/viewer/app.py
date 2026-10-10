@@ -35,7 +35,7 @@ from PyQt6.QtWidgets import (
 
 from core.config import PROJECT_DIR, SCORE_THRESHOLD, P, score_grid
 from core.runtime import log_location
-from data.raven import BEGIN, END, renumber
+from data.raven import BEGIN, END, selection_table
 from inference.catalog import (
     AUDIO_SUFFIXES,
     CHECKPOINT_SUFFIXES,
@@ -261,7 +261,7 @@ class Viewer(QMainWindow):
         self.worker: Worker | None = None
         self.engine: bool | None = None  # None mientras carga
         self.pending_table: Path | None = None  # tabla que se abre en cuanto cargue su audio
-        self.pending_audio: Path | None = None  # la elegida en Batch mientras cargaba otra
+        self.queued: list[Path] = []  # lo que se pidió abrir mientras otra cosa cargaba
         self.dock_shown = False  # si el panel de cajas estaba abierto al pasar a Batch
         self.help_dialog: QDialog | None = None  # se arma la primera vez que se pide
 
@@ -687,6 +687,9 @@ class Viewer(QMainWindow):
         self.bar.showMessage(message)
 
     def fail(self, message: str) -> None:
+        # La tabla que esperaba a un audio que no cargó no es de nadie: no debe caer sobre el
+        # siguiente que se abra.
+        self.pending_table = None
         self.say("Error.")
         QMessageBox.critical(self, "Error", message)
 
@@ -801,9 +804,8 @@ class Viewer(QMainWindow):
         else:
             self.show_task(None)
         self.sync_controls()
-        if self.pending_audio is not None and not self.busy():
-            path, self.pending_audio = self.pending_audio, None
-            self.load_audio(path)
+        if self.queued and not self.busy():
+            self.open_path(self.queued.pop(0))
 
     # --- Apertura de archivos ---------------------------------------------------
 
@@ -838,7 +840,13 @@ class Viewer(QMainWindow):
             self.picker.select(Path(chosen))
 
     # Lo que se abre o se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
+    # Mientras algo carga, lo pedido espera su turno: por argumento llegan el audio y su tabla
+    # juntos, y la tabla necesita el audio ya abierto.
     def open_path(self, path: Path) -> None:
+        if self.busy():
+            if path not in self.queued:
+                self.queued.append(path)
+            return
         suffix = path.suffix.lower()
         if path.is_dir():
             self.set_mode(BATCH)
@@ -859,8 +867,8 @@ class Viewer(QMainWindow):
 
     # Con el audio viene la tabla que el modelo le dejó al lado, si la hay.
     def load_audio(self, path: Path) -> None:
-        if self.pending_table is None and output_for(path).is_file():
-            self.pending_table = output_for(path)
+        table = output_for(path)
+        self.pending_table = table if table.is_file() else None
         self.start(
             lambda: (path, load_audio(path, P.target_sr)),
             self.audio_loaded,
@@ -911,15 +919,11 @@ class Viewer(QMainWindow):
         else:
             self.say(self.batch.why())
 
-    # Doble clic en Batch: si otra está cargando, espera su turno.
+    # Doble clic en Batch: si otra está cargando, espera su turno (`open_path`).
     def open_recording(self, path: Path) -> None:
         self.set_mode(SPECTROGRAM)
-        if path == self.session.audio_path:
-            return
-        if self.busy():
-            self.pending_audio = path
-        else:
-            self.load_audio(path)
+        if path != self.session.audio_path:
+            self.open_path(path)
 
     # Batch terminó la grabación que está abierta: su tabla nueva entra sola.
     def table_written(self, path: Path) -> None:
@@ -941,10 +945,11 @@ class Viewer(QMainWindow):
     def table_loaded(self, loaded: tuple[str, pd.DataFrame]) -> None:
         source, table = loaded
         self.session.set_table(source, table)
-        if source == DETECTIONS:
-            self.say(f"{len(table)} detections loaded.")
-        else:
-            self.say(f"{len(table)} annotations loaded.")
+        skipped = table.attrs.get("skipped", 0)
+        self.say(
+            f"{len(table)} {source.lower()} loaded."
+            + (f" {skipped} rows without a time or a frequency were left out." if skipped else "")
+        )
 
     def detections_ready(self, table: pd.DataFrame) -> None:
         # Si la corrida pasó por `compare_models.py`, el slider arranca en el umbral que eligió
@@ -1010,6 +1015,8 @@ class Viewer(QMainWindow):
                 f"Review closed: {accepted} accepted, {rejected} rejected. "
                 "Save the Annotations table to keep the accepted ones."
             )
+        else:
+            self.say("Review closed.")  # si no, la barra seguiría contando lo que faltaba
         self.sync_controls()
 
     def track(self, seconds: float, hz: float) -> None:
@@ -1095,7 +1102,7 @@ class Viewer(QMainWindow):
         path = self.save_path(f"Save {source.lower()}", suffix, "Raven (*.txt);;CSV (*.csv)")
         if path is None:
             return
-        table = renumber(table.copy())
+        table = selection_table(table.copy())
         try:
             table.to_csv(path, sep="," if path.suffix.lower() == ".csv" else "\t", index=False)
         except Exception as exc:
@@ -1138,7 +1145,9 @@ class Viewer(QMainWindow):
                 super().keyPressEvent(a0)
             return
         key = a0.key()
-        reviewing = self.reviewer.active and not a0.modifiers()
+        # El Enter del teclado numérico llega con KeypadModifier: cuenta como una tecla sola.
+        modifiers = a0.modifiers() & ~Qt.KeyboardModifier.KeypadModifier
+        reviewing = self.reviewer.active and not modifiers
         if reviewing and key in (Qt.Key.Key_A, Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.reviewer.decide(ACCEPTED)
         elif reviewing and key in (Qt.Key.Key_R, Qt.Key.Key_Delete, Qt.Key.Key_Backspace):

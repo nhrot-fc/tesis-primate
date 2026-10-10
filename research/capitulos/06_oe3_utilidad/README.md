@@ -19,9 +19,13 @@ capítulo de OE2. Está sin redactar; hoy es la estructura y el encargo.
 >   manual); y la tarea de calidad del corpus, con los hallazgos de CLOD de train (k-fold) y
 >   validación en orden aleatorio, para revisar todos los que alcancen. Instrucciones de una
 >   página en inglés. No pide datos nuevos.
-> - **Falta del servidor:** `runs/yolo26s_v3_kfold5/hallazgos_train.csv` (la salida de
->   `find_issues.py` sobre el volcado del k-fold). Sin ella, la tarea de calidad sólo lleva
->   validación (2 174 hallazgos).
+> - Tarea de calidad: 7 728 hallazgos en 1 538 grabaciones (train del k-fold y validación). Los
+>   `missing` con una fila cruda debajo no entran: la anotación existe.
+>   `runs/yolo26s_v3/hallazgos_val.csv` se pasó al formato nuevo de `find_issues.py` con su
+>   `export()`, sobre el contraste con `unified/` que hizo el servidor; el original quedó en
+>   `hallazgos_val_formato_viejo.csv`.
+> - `revision/` está en `.gitignore`: las claves (`clave_*.csv`) no están en git. Volver a correr
+>   `preparar_revision.ipynb` las reproduce mientras no cambien los `hallazgos_*.csv` de `runs/`.
 > - `notebook/analisis_oe3.ipynb`: lee lo que devuelva el equipo en `revision/respuestas/` y
 >   escribe `figures/valores.tex` (macros `\u…`) y las figuras. Probado con respuestas simuladas.
 > - `revision/mensaje_equipo.md`: el pedido a Mark, en inglés.
@@ -105,7 +109,7 @@ Ninguna todavía. Las que pide el capítulo:
 
 - [ ] Revisar `protocolo_oe3.md` y **fecharlo antes** de enviar el paquete; después,
       pasarlo a la sección de metodología.
-- [ ] Copiar `hallazgos_train.csv` del servidor y volver a correr `preparar_revision.ipynb`.
+- [x] Copiar `hallazgos_train.csv` del servidor y volver a correr `preparar_revision.ipynb`.
 - [ ] Enviar `revision/mensaje_equipo.md` y el paquete (~1 GB, por Drive).
 - [ ] Copiar las respuestas a `revision/respuestas/` y correr `notebook/analisis_oe3.ipynb`.
 - [ ] Cronometrar la revisión manual y la asistida sobre material comparable.

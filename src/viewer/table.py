@@ -94,7 +94,7 @@ class BoxModel(QAbstractTableModel):
             f"{row.end:.2f}",
             f"{row.low / 1000:.1f}–{row.high / 1000:.1f}",
             row.label,
-            f"{row.score:.2f}",
+            "" if math.isnan(row.score) else f"{row.score:.2f}",
         ]
         return values[column]
 

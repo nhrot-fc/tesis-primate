@@ -4,7 +4,7 @@ Primate Vocalization Detector - {version} (Windows 64-bit, {variant})
 Everything is in this folder: nothing to install. Keep it in a short path
 (for example C:\detector\), add at least one model and double-click viewer.exe.
 
-  viewer.exe     The program. Two views, switched from the toolbar:
+  viewer.exe     The program. Two views, switched from the View menu:
 
                  Spectrogram  one recording. Drag an audio file (WAV, FLAC,
                               MP3) onto the window, press Detect, then Review

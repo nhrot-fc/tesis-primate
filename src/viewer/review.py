@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -12,6 +13,8 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 from data.raven import BEGIN, CALL, END, HIGH, LOW, SCORE, SPECIES
 from viewer.plot import SpectrogramView
 from viewer.session import ANNOTATIONS, DETECTIONS, SOURCES, Row, Session
+
+logger = logging.getLogger("viewer")
 
 DECISION = "Decision"
 ACCEPTED, REJECTED = "accepted", "rejected"
@@ -46,16 +49,41 @@ class Journal:
     def __init__(self, audio: Path) -> None:
         self.path = journal_path(audio)
 
+    # El diario es una ayuda para retomar: si no se puede escribir (disco lleno, temporal sin
+    # permiso) la decisión vale igual y sólo se pierde el poder retomarla.
     def append(self, decision: str, box: Box, label: str, score: float) -> None:
         species, _, call = label.partition("/")
         row = pd.DataFrame([[*box, species, call, score, decision]], columns=JOURNAL_COLUMNS)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        row.to_csv(self.path, sep="\t", index=False, mode="a", header=not self.path.exists())
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            row.to_csv(self.path, sep="\t", index=False, mode="a", header=not self.path.exists())
+        except OSError:
+            logger.warning("Could not write the review journal %s", self.path, exc_info=True)
 
+    # Un diario ilegible (un corte a mitad de escritura, otra versión del visor) no bloquea la
+    # revisión: se aparta con otro nombre, por si hace falta mirarlo, y se empieza uno nuevo.
     def read(self) -> pd.DataFrame:
+        empty = pd.DataFrame(columns=JOURNAL_COLUMNS)
         if not self.path.is_file():
-            return pd.DataFrame(columns=JOURNAL_COLUMNS)
-        return pd.read_csv(self.path, sep="\t", keep_default_na=False)
+            return empty
+        try:
+            table = pd.read_csv(self.path, sep="\t", keep_default_na=False)
+            # El score queda para quien lo mire a mano: retomar no lo lee.
+            if absent := set(JOURNAL_COLUMNS) - {SCORE} - set(table.columns):
+                raise ValueError(f"missing columns {sorted(absent)}")
+            for column in (BEGIN, END, LOW, HIGH):
+                table[column] = pd.to_numeric(table[column], errors="raise")
+        except (OSError, ValueError) as exc:
+            aside = self.path.with_suffix(".unreadable.txt")
+            logger.warning(
+                "Review journal %s is unreadable (%s); moved to %s", self.path, exc, aside
+            )
+            try:
+                self.path.replace(aside)
+            except OSError:
+                logger.warning("Could not move %s aside", self.path, exc_info=True)
+            return empty
+        return table
 
     def counts(self) -> dict[str, int]:
         return {str(k): int(v) for k, v in self.read()[DECISION].value_counts().items()}
@@ -111,7 +139,8 @@ class ReviewBar(QWidget):
         return button
 
     # Enter en la especie acepta una sola vez: se consume acá para que ni el combo ni la
-    # ventana (que también acepta con Enter) lo vuelvan a ver.
+    # ventana (que también acepta con Enter) lo vuelvan a ver. El foco sale de la etiqueta: si
+    # no, la A o la N que siguen se escribirían en la de la caja siguiente.
     @override
     def eventFilter(self, a0, a1) -> bool:
         if (
@@ -120,6 +149,7 @@ class ReviewBar(QWidget):
             and a1.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
         ):
             self.accepted.emit()
+            self.species.clearFocus()
             return True
         return super().eventFilter(a0, a1)
 

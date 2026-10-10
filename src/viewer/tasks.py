@@ -12,6 +12,17 @@ class StopError(Exception):
     pass
 
 
+# Un archivo que no es lo que dice ser (un audio dañado, una tabla de otro programa, un .pt que no
+# es un modelo): el mensaje ya dice qué pasa y qué hacer, así que se muestra tal cual.
+class UnreadableError(Exception):
+    pass
+
+
+# La línea que ve el usuario: el nombre de la excepción sólo cuando el error no se explica solo.
+def describe(exc: BaseException) -> str:
+    return str(exc) if isinstance(exc, UnreadableError) else f"{type(exc).__name__}: {exc}"
+
+
 class Worker(QThread):
     ok = pyqtSignal(object)
     error = pyqtSignal(str)
@@ -44,11 +55,17 @@ class Worker(QThread):
             result = self.task(self.report) if self.reports else self.task()
         except StopError:
             self.done = True  # quien paró ya sabe
+        except UnreadableError as exc:
+            # Sin traza: no hay nada que arreglar en el código. La causa, si la hay, va al log.
+            cause = f" ({exc.__cause__})" if exc.__cause__ is not None else ""
+            logger.warning("%s: %s%s", self.what, exc, cause)
+            self.done = True
+            self.error.emit(describe(exc))
         except Exception as exc:
             # El diálogo lleva una línea; el log, la traza para quien tenga que arreglarlo.
             logger.exception("%s failed", self.what)
             self.done = True
-            self.error.emit(f"{type(exc).__name__}: {exc}")
+            self.error.emit(describe(exc))
         else:
             self.done = True
             self.ok.emit(result)

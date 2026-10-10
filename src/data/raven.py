@@ -23,6 +23,19 @@ def renumber(table: pd.DataFrame) -> pd.DataFrame:
     return table
 
 
+def selection_table(table: pd.DataFrame) -> pd.DataFrame:
+    # Además de `Selection`, Raven pide `View` y `Channel` al principio y en cada fila: una tabla
+    # armada en el visor (lo aceptado en Review) no los trae, y una caja nueva sobre una tabla de
+    # Raven los deja vacíos.
+    table = renumber(table)
+    absent = pd.Series(index=table.index, dtype=object)
+    table[VIEW] = table.get(VIEW, absent).fillna(DEFAULT_VIEW)
+    channel = pd.to_numeric(table.get(CHANNEL, absent), errors="coerce")
+    table[CHANNEL] = channel.fillna(DEFAULT_CHANNEL).astype(int)
+    first = [SELECTION, VIEW, CHANNEL]
+    return table[[*first, *(c for c in table.columns if c not in first)]]
+
+
 def raven_table(
     begin: Iterable[float],
     end: Iterable[float],

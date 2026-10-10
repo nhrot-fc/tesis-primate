@@ -1,9 +1,12 @@
 import importlib
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pandas as pd
+
+from viewer.tasks import UnreadableError
 
 if TYPE_CHECKING:
     from models.registry import LoadedModel
@@ -23,12 +26,29 @@ def preload() -> None:
         importlib.import_module(module)
 
 
+def not_a_model(path: Path) -> UnreadableError:
+    return UnreadableError(
+        f"'{path.name}' in {path.parent} is not a model of this program, or the file is "
+        "damaged. Unzip the model again (detector-*-model-*.zip)."
+    )
+
+
+# torch guarda los checkpoints como zip: lo que no lo es (otro archivo .pt, una copia cortada)
+# no llega a torch, que lo diría con un error de pickle que no le dice nada a nadie.
+def check(checkpoint_path: Path) -> None:
+    if not checkpoint_path.is_file():
+        raise UnreadableError(f"'{checkpoint_path}' is not there any more.")
+    if not zipfile.is_zipfile(checkpoint_path):
+        raise not_a_model(checkpoint_path)
+
+
 def load(checkpoint_path: Path) -> "tuple[LoadedModel, str]":
     from core.runtime import resolve_device
     from models.registry import load_checkpoint
 
     device = resolve_device()
     if checkpoint_path not in LOADED:
+        check(checkpoint_path)
         LOADED.clear()
         LOADED[checkpoint_path] = load_checkpoint(checkpoint_path, device)
     return LOADED[checkpoint_path], device
@@ -40,7 +60,10 @@ def classes(checkpoint_path: Path) -> list[str]:
         return list(LOADED[checkpoint_path].labels.names)
     import torch
 
+    check(checkpoint_path)
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False, mmap=True)
+    if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
+        raise not_a_model(checkpoint_path)
     return sorted(str(name) for name in checkpoint["labels"])
 
 
