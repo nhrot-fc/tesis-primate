@@ -90,9 +90,8 @@ recuperado en cada motor.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Los tres bloques combinan técnica, tarea y dominio de
-            aplicación. El asterisco es el comodín de truncamiento de ambos
-            motores.
+            \item \textit{Nota.} Bloques: técnica, tarea y dominio. El asterisco
+            trunca el término.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -126,7 +125,6 @@ Tabla~\ref{tab:estudios}, que indica a qué pregunta de revisión responde cada 
             \citet{politis_dataset_2020} & Taller (DCASE) & P1, P2, P4 \\
             \citet{bonet-sola_comparative_2021} & Revista (\textit{Sensors}) & P1 \\
             \citet{kahl_birdnet_2021} & Revista (\textit{Ecological Informatics}) & P1, P2, P4 \\
-            \citet{meedeniya_survey_2023} & Revista (\textit{ACM Computing Surveys}) & Contexto general \\
             \citet{nolasco_learning_2023} & Revista (\textit{Ecological Informatics}) & P1, P2, P4, P5 \\
             \citet{kath_leveraging_2024} & Revista (\textit{Ecological Informatics}) & P2, P5 \\
             \citet{zhu_sound_2025} & Taller (DCASE) & P1 \\
@@ -134,14 +132,13 @@ Tabla~\ref{tab:estudios}, que indica a qué pregunta de revisión responde cada 
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} \textsuperscript{a}~Anterior a 2020: no cumple el
-            criterio de temporalidad de la Tabla~\ref{tab:criterios}, no proviene de
-            la búsqueda y se cita como antecedente.
+            \item \textit{Nota.} \textsuperscript{a}~Anterior a 2020: antecedente,
+            fuera de la búsqueda.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-Siete de los nueve trabajos son de 2020 en adelante, como exige el criterio de
+Seis de los ocho trabajos son de 2020 en adelante, como exige el criterio de
 temporalidad de la Tabla~\ref{tab:criterios}. Los dos anteriores se incorporan
 fuera de la búsqueda, como antecedentes sin los cuales no se leen los demás: la
 arquitectura residual, base de BirdNET, y el estudio de redes de sensores en que
@@ -213,15 +210,13 @@ responde cada pregunta.
         \addlinespace
         \citet{lostanlen_robust_2019} & Detección en redes de sensores de monitoreo acústico & Red convolucional, PCEN y redes adaptativas al contexto & Una red convolucional simple supera a los métodos tradicionales; PCEN y la adaptación al contexto, combinadas, dan detección robusta a escala de red & P1 a P4 \\
         \addlinespace
-        \citet{politis_dataset_2020} & Localización y detección de eventos sonoros (DCASE) & Redes convolucionales recurrentes & Arquitectura predominante en las primeras ediciones; formatos con dirección de llegada; aumento de datos & P1, P2, P4 \\
+        \citet{politis_dataset_2020} & Localización y detección de eventos sonoros (DCASE) & Redes convolucionales recurrentes & Línea base del desafío; formatos con dirección de llegada; aumento de datos & P1, P2, P4 \\
         \addlinespace
-        \citet{bonet-sola_comparative_2021} & Representación de entrada & Comparación de representaciones tiempo--frecuencia & La elección de la representación pesa tanto como la de la arquitectura & P1 \\
+        \citet{bonet-sola_comparative_2021} & Representación de entrada & Descriptores (MFCC, GTCC) con clasificadores clásicos & El descriptor cambia el resultado: GTCC supera a MFCC en la mayoría de los corpus & P1 \\
         \addlinespace
         \citet{kahl_birdnet_2021} & Clasificación de 984 especies de aves & Red residual (BirdNET) & Identifica qué especies están presentes (multiclase); etiquetas débiles por grabación; aumento de datos; el aprendizaje sensible al costo no mejoró & P1, P2, P4 \\
         \addlinespace
-        \citet{meedeniya_survey_2023} & Revisión general & --- & Los dominios adyacentes enfrentan ruido, variabilidad entre sensores y escasez de datos etiquetados & Contexto \\
-        \addlinespace
-        \citet{nolasco_learning_2023} & Detección bioacústica con pocos ejemplos (DCASE) & Redes convolucionales, transformadores, PCEN y redes prototípicas & Las convolucionales dominan; PCEN es la representación mayoritaria; el tipo de llamada es un problema abierto; las redes prototípicas se adaptan a clases nuevas con cinco ejemplos & P1, P2, P4, P5 \\
+        \citet{nolasco_learning_2023} & Detección bioacústica con pocos ejemplos (DCASE) & Redes convolucionales, PCEN y redes prototípicas & Las convolucionales dominan; PCEN es la representación mayoritaria; el tipo de llamada es una tarea sin etiquetas fuertes; las redes prototípicas se adaptan a clases nuevas con cinco ejemplos & P1, P2, P4, P5 \\
         \addlinespace
         \citet{kath_leveraging_2024} & Clasificación de anuros & Transferencia desde los \textit{embeddings} de BirdNET con clasificadores lineales & La proximidad del dominio de origen importa más que el tamaño del modelo & P2, P5 \\
         \addlinespace
@@ -239,7 +234,7 @@ amazónico. Los resultados que siguen se apoyan, por tanto, en la extrapolación
 desde dominios bioacústicos adyacentes pero más desarrollados, sobre todo la
 detección de aves y la localización de eventos sonoros, que enfrentan
 desafíos análogos de ruido ambiental, variabilidad entre sensores y escasez de
-datos etiquetados \citep{lostanlen_robust_2019,meedeniya_survey_2023}.
+datos etiquetados \citep{lostanlen_robust_2019,nolasco_learning_2023}.
 
 \subsection{Respuesta a P1: estrategias de detección tiempo--frecuencia}
 
@@ -249,15 +244,14 @@ supera de forma clara a métodos tradicionales como el flujo espectral o los
 detectores basados en energía, aunque adolece de falta de robustez y de
 generalización ante la variabilidad del ruido \citep{lostanlen_robust_2019}. Las
 redes convolucionales recurrentes añaden capas recurrentes para modelar
-dependencias temporales más largas y fueron la arquitectura predominante en las
-ediciones iniciales de los desafíos de localización y detección de eventos
-sonoros \citep{politis_dataset_2020}. Las variantes residuales facilitan el
+dependencias temporales más largas y son la línea base del desafío de
+localización y detección de eventos sonoros \citep{politis_dataset_2020}. Las variantes residuales facilitan el
 entrenamiento de redes más profundas sin degradación \citep{he_deep_2016}, y son
 la base de BirdNET \citep{kahl_birdnet_2021}.
 
-Los transformadores aparecen como innovación arquitectónica en detección
-bioacústica de pocos ejemplos, si bien la mayoría de sistemas exitosos de ese
-desafío siguieron usando redes convolucionales \citep{nolasco_learning_2023}. En
+En el desafío de detección bioacústica con pocos ejemplos, la mayoría de los
+sistemas usó espectrogramas mel con PCEN y redes convolucionales estándar; lo que
+varió fue el entrenamiento y la inferencia \citep{nolasco_learning_2023}. En
 detección con salida bidimensional, el trabajo relevante sustituye los
 \textit{backbones} preentrenados en imágenes por representaciones nativas de
 audio y añade una pirámide multiescala, precisamente porque las arquitecturas de
@@ -268,8 +262,9 @@ Del lado de la representación de entrada, la ventaja de PCEN sobre el log-mel
 que describe la sección~\ref{sec:frontends} \citep{lostanlen_robust_2019} se
 repite en el desafío de detección con pocos ejemplos, donde fue la
 representación mayoritaria entre los sistemas exitosos
-\citep{nolasco_learning_2023}. La elección de la representación
-resultó, en esos trabajos, tan determinante como la elección de la arquitectura
+\citep{nolasco_learning_2023}. La representación cambia el resultado aun con
+clasificadores clásicos: en cinco corpus, uno de ellos de cantos de aves, los
+coeficientes GTCC superaron en la mayoría a los MFCC, la referencia habitual
 \citep{bonet-sola_comparative_2021}.
 
 \subsection{Respuesta a P2: clasificación jerárquica fina}
@@ -286,9 +281,9 @@ presentes, como BirdNET, que reconoce 984 especies de aves
 clasificación de eventos ya detectados
 en un conjunto plano de clases predefinidas \citep{politis_dataset_2020}.
 
-La necesidad de distinguir tipos de llamada o sílabas se reconoce como un
-desafío de clasificación de grano fino en bioacústica, pero se enuncia como
-problema abierto y no como capacidad demostrada \citep{nolasco_learning_2023}.
+Distinguir tipos de llamada o sílabas es el nivel más fino con que trabaja la
+bioacústica, y una de sus muchas tareas de pequeña escala sin datos con etiquetas
+fuertes \citep{nolasco_learning_2023}.
 Este es, en la revisión, el hueco más nítido y el que sostiene el eje de tarea
 de la sección~\ref{sec:vacio}.
 
@@ -349,16 +344,15 @@ redes prototípicas permiten adaptarse a clases nuevas con apenas cinco ejemplos
 
 La transferencia de aprendizaje es la estrategia central cuando los datos
 etiquetados son limitados \citep{kath_leveraging_2024}. El hallazgo más útil de
-la revisión es que la proximidad del dominio de origen importa más que el tamaño
-del modelo: BirdNET, entrenado en aves, transfiere mejor a la clasificación de
-anuros que modelos entrenados en audio general o en imágenes
-\citep{kath_leveraging_2024}. Eso lo posiciona como candidato razonable para
+la revisión es que el dominio de origen pesa: los \textit{embeddings} de BirdNET,
+entrenado en aves, superaron a los de modelos de audio general y de imágenes al
+clasificar anuros \citep{kath_leveraging_2024}. Eso lo posiciona como candidato razonable para
 transferir a primates.
 
 Sobre el método de adaptación, la revisión distingue dos rutas. La extracción de
 características usa el modelo preentrenado como extractor fijo y entrena un
-clasificador simple sobre sus \textit{embeddings}; la penúltima capa de BirdNET
-resultó particularmente efectiva en esa función \citep{kath_leveraging_2024}. El
+clasificador simple sobre sus \textit{embeddings}; los de BirdNET resultaron los
+más efectivos en esa función \citep{kath_leveraging_2024}. El
 ajuste fino reentrena parcial o totalmente los pesos con los pocos datos de la
 tarea objetivo, y exige cuidado para no sobreajustar \citep{nolasco_learning_2023}.
 Ninguno de los trabajos documenta la adaptación de estos modelos a la detección
@@ -374,9 +368,8 @@ aplique y evalúe modelos de aprendizaje profundo a la detección
 tiempo--frecuencia de primates amazónicos. La literatura de dominios vecinos sí
 ofrece estrategias trasladables: las arquitecturas convolucionales y
 convolucionales recurrentes como base
-\citep{lostanlen_robust_2019,politis_dataset_2020}, las variantes residuales y
-los transformadores para secuencias largas
-\citep{he_deep_2016,nolasco_learning_2023}, y, frente a la variabilidad del
+\citep{lostanlen_robust_2019,politis_dataset_2020}, las variantes residuales
+\citep{he_deep_2016}, y, frente a la variabilidad del
 ruido, la normalización de energía por canal junto con las redes adaptativas
 al contexto, cuya combinación resultó la más efectiva a escala de red de
 sensores \citep{lostanlen_robust_2019}.

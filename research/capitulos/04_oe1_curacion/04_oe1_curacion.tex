@@ -42,11 +42,12 @@ tal como se recibe: es el diagnóstico que justifica cada regla del protocolo.
 El material proviene del 8 Primates Project, el programa de monitoreo acústico
 pasivo que el equipo de investigación mantiene en el Tambopata Research Center,
 en la Reserva Nacional Tambopata (Madre de Dios) (sección~\ref{sec:problema}). Sus
-grabadoras AudioMoth registraron el sonido del bosque en archivos WAV cortos entre
+grabadoras AudioMoth \citep{hill_audiomoth_2018} registraron el sonido del bosque en archivos WAV cortos entre
 el \firstDate{} y el \lastDate{}, sobre todo en el horario de campo que declara el
 proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. Los
 especialistas del equipo seleccionaron grabaciones de cada especie y las anotaron
-a mano en Raven Pro con el procedimiento de la sección~\ref{sec:dominio}: una caja
+a mano en Raven Pro \citep{raven_pro} con el procedimiento de la
+sección~\ref{sec:dominio}: una caja
 tiempo--frecuencia por vocalización, con su especie y su tipo de llamada. El
 equipo entregó para esta tesis esa selección ya anotada, sin el protocolo de
 campo que la acompañó (ubicación de las grabadoras, ganancia, criterio de
@@ -181,8 +182,8 @@ designan solo tres clases.
     \end{threeparttable}
 \end{table}
 
-La tabla recoge solo tres casos. La Tabla~\ref{tab:valores-crudos} lista todos
-los valores distintos de cada columna, con el número de filas que lleva cada uno.
+La Tabla~\ref{tab:valores-crudos} lista todos los valores distintos, con sus
+filas.
 
 \begin{table}[htbp]
     \centering
@@ -191,9 +192,8 @@ los valores distintos de cada columna, con el número de filas que lleva cada un
     \input{\figOE/tablas/valores_crudos}
     \par\smallskip
     \begin{minipage}{0.95\textwidth}
-        \footnotesize\textit{Nota.} Valores tal como aparecen en las \nRawRows{} filas
-        crudas; el signo \code{\char32} marca un espacio. No se cuentan las celdas
-        vacías: \nSpeciesEmpty{} en la columna de especie y \nEmptyCall{} en la de tipo
+        \footnotesize\textit{Nota.} El signo \code{\char32} marca un espacio. No se
+        cuentan las celdas vacías: \nSpeciesEmpty{} de especie y \nEmptyCall{} de tipo
         de llamada.
     \end{minipage}
 \end{table}
@@ -250,7 +250,7 @@ consolidar nada.
 
 \rotulo{Frecuencias por encima de Nyquist.} \nNyquist{} cajas declaran una
 frecuencia superior mayor que el límite de Nyquist de la señal (22\,050\,Hz a
-44,1\,kHz de muestreo), un valor que no puede corresponder a energía observable
+44,1\,kHz de muestreo; \citealp{shannon_communication_1949}), un valor que no puede corresponder a energía observable
 en la grabación.
 
 \rotulo{Variabilidad en la unidad de análisis.} La granularidad de las
@@ -277,11 +277,9 @@ elementos que exige su indicador (Tabla~\ref{tab:iov-oe1}).
 \rotulo{Cómo se alcanzó.} Aplicando a las etiquetas la Fase~3 de CRISP-DM
 (sección~\ref{sec:fase3}), a partir del diagnóstico de la Fase~2 que hace la
 sección~\ref{sec:material}. Como exige la custodia del material primario
-(sección~\ref{sec:procedimientos}), el protocolo es un programa, no una edición
-manual del material recibido. La distinción importa: un protocolo ejecutable vuelve a
-aplicarse sobre los datos primarios cada vez que una regla cambia, y deja
-registro de qué descarta y por qué; una corrección a mano no es reproducible ni
-auditable. El guion \file{src/\allowbreak prepare\_annotations.py} recorre
+(sección~\ref{sec:procedimientos}), el protocolo es un programa y no una edición
+manual: se vuelve a aplicar sobre los datos primarios cada vez que una regla
+cambia y registra qué descarta y por qué. El guion \file{src/\allowbreak prepare\_annotations.py} recorre
 \file{data/raw/}, aplica las reglas de
 \file{src/\allowbreak data/\allowbreak annotations.py} en el orden de la
 Figura~\ref{fig:protocolo} y escribe \file{data/cleaned/}.
@@ -494,7 +492,8 @@ byte, en dos o tres carpetas de especie, y que cada copia lleva solo las
 anotaciones de la especie de su carpeta. Tratarlas como grabaciones distintas
 deja la llamada de la otra especie sin anotar en cada copia, da supervisión
 contradictoria sobre el mismo audio y permite que caiga en dos particiones
-distintas, con la consiguiente fuga entre entrenamiento y prueba. La regla
+distintas, con la consiguiente fuga entre entrenamiento y prueba
+\citep{barz_duplicates_2020}. La regla
 identifica las copias por tamaño y huella MD5 del primer megabyte, las funde en
 una sola grabación con la unión de sus anotaciones y descarta las anotaciones
 repetidas. En el corpus hay \nCopies{} copias, que reducen las grabaciones
@@ -575,8 +574,8 @@ ver las copias sin unir.
           seleccionar las clases del experimento (sección~\ref{sec:anidamiento}),
           porque depende de la forma de salida del detector y no de la calidad de la
           anotación.
-    \item No mide el acuerdo entre anotadores, que exigiría anotar dos veces una
-          muestra; la ficha lo declara entre sus limitaciones.
+    \item No mide el acuerdo entre anotadores \citep{leroy_reliability_2018}, que
+          exigiría anotar dos veces una muestra; la ficha lo declara entre sus limitaciones.
     \item No decide qué hacer con las anotaciones marcadas \code{requires\_review}:
           las conserva y las deja al equipo de investigación.
 \end{itemize}
@@ -753,10 +752,8 @@ frase se excluyen, en consecuencia, antes del entrenamiento.
 \rotulo{Regla.} La unidad de partición es la \emph{grabación}: todas las ventanas
 de un mismo archivo caen en la misma partición. Repartir ventanas sueltas dejaría
 dos ventanas solapadas de una misma anotación en particiones distintas, y la
-prueba mediría memoria en lugar de generalización \citep{koga_lead_2024}.
-
-La alternativa no es un descuido hipotético. El prototipo inicial de este trabajo
-la cometió: barajaba los clips y los repartía por índice, con lo que dos ventanas
+prueba mediría memoria en lugar de generalización. El prototipo inicial de este
+trabajo cometió ese error: barajaba los clips y los repartía por índice, con lo que dos ventanas
 solapadas de la misma anotación podían quedar una en entrenamiento y otra en
 prueba. Sobre esa partición el clasificador alcanzaba un 99\,\% de exactitud, una
 cifra que no medía generalización sino memoria.
@@ -782,9 +779,6 @@ Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
         \draw[flecha] (r3) -- (val.north);
         \draw[flecha] (r4) -- (test.north);
         \draw[flecha] (r5) -- (test.north);
-        \node[nota, anchor=north, text width=12.5cm, align=center] at (5.3, -2.0) {cada grabación va
-            a la partición con mayor déficit de la clase; al terminar la clase se pasa a la
-            siguiente más rara, sin reasignar lo ya asignado};
     \end{tikzpicture}
 \end{figure}
 
@@ -833,12 +827,8 @@ tres particiones tras el ventaneo.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Hay más cajas que anotaciones porque una anotación puede caer en dos
-            ventanas consecutivas: la ventana de \clipLen{}\,s avanza \clipHop{}\,s.
-            \item \nUnreadable{} grabación del conjunto de experimento está dañada y no
-            puede leerse: no entra al caché aunque tenga anotaciones, y por eso el
-            total de grabaciones es menor que las \nRecordingsExperiment{} que aportan
-            alguna anotación de alguna clase.
+            \item \textit{Nota.} Una anotación cuenta como caja en cada ventana en
+            que entra. Falta \nUnreadable{} grabación ilegible.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -863,9 +853,8 @@ composición por clase.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Las tres columnas de partición cuentan cajas en ventanas del caché, no
-            anotaciones. \longClasses{} multiplican su material porque cada llamada larga
-            atraviesa varias ventanas (Tabla~\ref{tab:ventaneo}).
+            \item \textit{Nota.} Train, Val y Test cuentan cajas por ventana, no
+            anotaciones.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -883,11 +872,8 @@ hechos a la vez.
     \includegraphics[width=\textwidth]{\figOE/cajas_por_clase_particion.png}
 \end{figure}
 
-Cada barra conserva la misma proporción entre entrenamiento, validación y prueba;
-lo que cambia de una clase a otra es su longitud. Los puntos marcan las
-anotaciones de cada clase: en las llamadas largas, como \code{as/hc}, la barra las
-supera varias veces, porque cada llamada se reparte entre muchas ventanas, efecto
-que se mide a continuación.
+En las llamadas largas, como \code{as/hc}, las cajas superan varias veces a las
+anotaciones (los puntos), porque cada llamada se reparte entre muchas ventanas.
 
 \subsection{Ventaneo}
 \label{sec:ventaneo}
@@ -928,11 +914,6 @@ límites de la ventana.
     \end{tikzpicture}
 \end{figure}
 
-Los tres casos de la figura resumen la regla: el evento corto entra completo en
-las dos ventanas que lo contienen, el parcial solo en las que cubren la mitad de
-su parte visible, y el largo en todas las que caen dentro de él, recortado a cada
-una.
-
 \rotulo{Efecto sobre los eventos largos.} Lo que el ventaneo cobra es la
 fragmentación, y la Tabla~\ref{tab:ventaneo} la mide. Cada anotación se reparte,
 en promedio, entre \boxesPerAnnotation{} ventanas (el salto de \clipHop{}\,s hace
@@ -959,9 +940,8 @@ conjunto.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Una caja está en el borde cuando su lado temporal izquierdo o derecho
-            coincide con el límite de la ventana, es decir, cuando el evento continúa
-            fuera de ella; ocupa la ventana entera cuando toca los dos.
+            \item \textit{Nota.} En el borde: la caja toca un límite temporal de la
+            ventana. Ventana entera: toca los dos.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -981,8 +961,8 @@ A las ventanas con al menos una anotación se suma un \emptyRatio{} de ventanas
 \emph{vacías}, tomadas al azar (semilla \seed{}) de tramos sin ninguna llamada y
 sin ningún evento a medias: una ventana que ve menos de la mitad de una llamada
 no cuenta como vacía. Sin ellas el modelo nunca ve fondo puro (selva, lluvia,
-insectos) y aprende que en toda entrada hay algo que reportar, que es justamente
-el sesgo que paga la carga de revisión. Son \nEmpty{} ventanas, el \pctEmpty{}
+insectos) y aprende que en toda entrada hay algo que reportar, el sesgo que
+encarece la revisión. Son \nEmpty{} ventanas, el \pctEmpty{}
 del total.
 
 \rotulo{Densidad de eventos por ventana.} La Figura~\ref{fig:densidad} cuenta
@@ -1059,7 +1039,7 @@ reproduce.
         \addlinespace
         Bandas mel & \nMels{} & Lo que espera el extractor preentrenado del modelo propuesto; 256 no dio ganancia medible \\
         \addlinespace
-        Escala mel & HTK ($q=2\,595$,\newline $f_\text{quiebre}=700$\,Hz) & Convención por defecto de \code{torchaudio}; es la misma fórmula con la que se mapean las cajas \\
+        Escala mel & HTK ($q=2\,595$,\newline $f_\text{quiebre}=700$\,Hz) & Convención por defecto de \code{torchaudio} \citep{yang_torchaudio_2022}; es la misma fórmula con la que se mapean las cajas \\
         \addlinespace
         Rango de frecuencia & 25\,Hz -- 22\,050\,Hz & Un techo de 16\,kHz truncaba la mitad de las cajas de \code{sb/spc}, cuya frecuencia superior media supera los 16\,kHz \\
         \addlinespace
@@ -1323,10 +1303,9 @@ Tabla~\ref{tab:composicion} lo desglosa por especie.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Grabaciones y horas cuentan las que tienen al menos una anotación de la
-            especie; una grabación con dos especies anotadas cuenta en ambas, por lo que
-            las filas suman más que el total. Pares: tipos de llamada del vocabulario con
-            al menos una anotación. Clases: pares que entran al experimento.
+            \item \textit{Nota.} Una grabación con dos especies cuenta en ambas filas.
+            Pares: tipos de llamada con al menos una anotación. Clases: pares que
+            entran al experimento.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -1344,16 +1323,9 @@ veces.
 \subsection{Geometría de los eventos}
 \label{sec:geometria}
 
-Las llamadas anotadas son extraordinariamente desiguales en tamaño, y ese hecho
-condiciona todas las decisiones de diseño posteriores. La más larga dura
+Las llamadas anotadas son muy desiguales en tamaño. La más larga dura
 \durMaxS{}\,s y la más corta \durMinMs{}\,ms, una razón de \durRatio{}$\times$;
-el ancho de banda va de \bwMin{} a \bwMax{}\,Hz, \bwRatio{}$\times$. La magnitud
-se aprecia mejor por comparación: en COCO, la colección con la que se evalúan
-habitualmente los detectores de objetos \citep{lin_2014}, los objetos mayores
-superan a los menores en un factor de entre 10 y 100. El problema que enfrenta
-este detector es, en ese eje, un orden de magnitud más severo que aquel para el
-que se diseñaron las arquitecturas que hereda, y la consecuencia inmediata es que
-ninguna longitud de ventana única sirve para todas las clases.
+el ancho de banda va de \bwMin{} a \bwMax{}\,Hz, \bwRatio{}$\times$. Ninguna longitud de ventana única sirve para todas las clases.
 
 La Tabla~\ref{tab:geometria} sitúa cada clase en duración y banda, y hace
 visibles dos efectos a la vez. Las \textbf{especies se separan en buena medida
@@ -1378,18 +1350,15 @@ mientras que la banda mediana de \code{lw/cs} empieza por encima de los
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} RIC: rango intercuartílico (percentiles 25--75). La banda es
-            [mediana de $f_{\min}$, mediana de $f_{\max}$] por clase; el ancho de banda es
-            la mediana de $f_{\max} - f_{\min}$ anotación por anotación, no la resta de la
-            columna anterior. CV: coeficiente de variación del ancho de banda.
+            \item \textit{Nota.} RIC: rango intercuartílico. Banda: medianas de
+            $f_{\min}$ y $f_{\max}$. Ancho de banda: mediana de $f_{\max} - f_{\min}$
+            por anotación. CV: coeficiente de variación del ancho.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-Esa disociación tiene una consecuencia metodológica directa: si la geometría
-distingue especies pero no tipos de llamada, entonces \emph{localizar} y
-\emph{etiquetar} son problemas de dificultad distinta y no deben puntuarse con
-una sola cifra.
+Por eso \emph{localizar} y \emph{etiquetar} son problemas de dificultad
+distinta y no deben puntuarse con una sola cifra.
 
 La Figura~\ref{fig:galeria} muestra \galleryClasses{} clases sobre el
 espectrograma: la más anotada de cada especie y las siguientes en volumen,
@@ -1435,9 +1404,12 @@ grupos separados, como se aprecia al aislar esas dos clases
     \end{subfigure}
 \end{figure}
 
-Las dos nubes no son dos llamadas. Según el equipo de investigación, responden a
-que no hubo, ni hay todavía, un acuerdo sobre cómo encuadrar estas llamadas, de
-modo que cada nube es un criterio de anotación. Es un hallazgo sobre el esquema
+Las dos nubes no son dos llamadas, sino dos criterios de encuadre. Comparten la
+duración y se separan solo en el ancho de banda, como cuando unas cajas encierran
+la fundamental y otras también los armónicos. La guía de campo del equipo deja ese
+punto abierto: en la llamada de alimento de SM, los armónicos se incluyen «si son
+lo bastante claros», y en el ladrido de AC se piden, pero no todas las
+anotaciones los incluyen (\cpGuia). Es un hallazgo sobre el esquema
 de anotación, no sobre el modelo, y un caso medible del desacuerdo de criterio
 que describe la causa C3 (sección~\ref{sec:causas}).
 
@@ -1648,11 +1620,12 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
 
 \begin{itemize}
     \item \textbf{Anotación de una sola fuente.} No hay medición de acuerdo entre
-          anotadores, de modo que el error de etiquetado residual no puede separarse
+          anotadores \citep{nguyen_assessing_2021}, de modo que el error de etiquetado residual no puede separarse
           del error del modelo.
     \item \textbf{La columna de tipo de llamada llega sucia y no se puede sanear
           sin el equipo.} \nPairsOutVocab{} pares quedan fuera del vocabulario
-          cerrado y no figuran en el vocabulario que el equipo documenta, de modo
+          cerrado y no figuran en el vocabulario que el equipo documenta
+          (\cpGuia), de modo
           que no hay forma de separar el error tipográfico de la subdivisión
           legítima aún no documentada
           (sección~\ref{sec:regla-especie}). El protocolo los marca y los conserva
@@ -1689,8 +1662,8 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           \textit{recall}, la causa puede ser el modelo o puede ser que nunca vio
           material suficiente.
     \item \textbf{Etiquetas que esconden dos formas.} \splitShapes{} agrupan cada
-          una dos formas de caja distintas (Figura~\ref{fig:formas}), porque el
-          equipo no tiene un estándar para encuadrarlas.
+          una dos formas de caja distintas (Figura~\ref{fig:formas}), porque la
+          guía del equipo deja a criterio del anotador incluir los armónicos.
     \item \textbf{Copias de grabaciones en la capa primaria.} El mismo audio
           aparece en varias carpetas de especie, anotado solo para la especie de cada
           carpeta; la capa derivada las une, pero la llamada de una tercera especie no

@@ -30,7 +30,7 @@ modo que los encuentros directos son escasos: son las condiciones que hacen del
 bosque tropical uno de los ambientes más difíciles para el monitoreo de fauna
 \citep{zwerts_methods_2021}. El monitoreo acústico pasivo (PAM, por sus siglas en
 inglés) sortea esa dificultad: grabadoras autónomas instaladas en el bosque
-registran el sonido de forma continua durante semanas o meses, sin intervenir en
+registran el sonido de forma continua durante largos periodos, sin intervenir en
 el ecosistema \citep{gibb_2018}.
 
 Esta tesis trabaja con el material de un programa de ese tipo. En el Tambopata
@@ -226,10 +226,7 @@ La figura se lee de abajo hacia arriba. Las tres causas confluyen en el problema
 central y parten del mismo hecho, que la anotación es manual, pero cada una está
 en una etapa distinta del proceso de la Figura~\ref{fig:proceso}: C2 en la
 búsqueda, C1 en lo que sale de la delimitación y el etiquetado, y C3 en la
-revisión. Ninguna se resuelve resolviendo otra. Con anotaciones utilizables pero
-sin una herramienta, la búsqueda seguiría siendo manual; con una herramienta que
-nadie validó, cada propuesta tendría que revisarse; y con la herramienta validada,
-las entregas con errores de registro seguirían volviendo al especialista. Del problema salen tres efectos, también
+revisión, y ninguna se resuelve resolviendo otra. Del problema salen tres efectos, también
 independientes entre sí: recaen sobre los estudios que el equipo construye con
 estas grabaciones, en cuándo llegan, qué cubren y cuánto se interpretan.
 
@@ -327,7 +324,7 @@ construcción del conjunto de datos y la manera de evaluar un detector.
 El problema existe porque grabar se volvió barato y analizar no. Del lado de la
 recolección, una grabadora AudioMoth tiene un costo de fabricación de unos
 43 dólares estadounidenses \citep{hill_audiomoth_2018}, y los sensores de bajo
-costo y de código abierto permiten desplegar redes de muchos micrófonos a escala
+costo y de código abierto amplían rápidamente el acceso al PAM
 \citep{gibb_2018}; el costo de grabar y de almacenar cayó lo suficiente como para
 hacer viable la captura continua \citep{stowell_computational_2022}. La
 consecuencia se mide en horas. Una sola grabadora en registro continuo produce
@@ -363,7 +360,7 @@ según el caso, entre unas ocho y unas treinta veces más tiempo. Y todas
 corresponden a detectar una o pocas especies: la anotación que requiere el
 dominio de esta tesis, con caja y tipo de llamada para varias especies, exige más
 decisiones por evento, y recolectar etiquetas que delimitan cada evento ya es, de
-por sí, lo que más tiempo consume en la detección de eventos sonoros
+por sí, muy costoso en tiempo en la detección de eventos sonoros
 \citep{koga_lead_2024}.
 
 El tercer factor es quién puede hacer ese trabajo. Asignar el tipo de llamada
@@ -428,16 +425,17 @@ grabaciones en que figura en primer plano, es decir, como sujeto principal.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Consulta realizada el 19 de agosto de 2026 sobre el nombre
-            científico de cada especie \citep{Willem-Pier_Vellinga_2026}.
-            Duración en minutos y segundos.
+            \item \textit{Nota.} Consulta del 19 de agosto de 2026
+            \citep{Willem-Pier_Vellinga_2026}. Duración en minutos y segundos.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
 En total hay 32 grabaciones y poco más de una hora de audio; tres de las especies
 no tienen ninguna, y ninguna de las grabaciones disponibles incluye anotaciones
-tiempo--frecuencia. Toda anotación de estas especies se hace, por tanto, a mano y
+tiempo--frecuencia. La misma búsqueda en Zenodo y en Dryad, el 16 de noviembre de
+2026, devuelve 75 y 3 registros, ninguno con audio: son artículos, imágenes y
+datos de otros temas. Toda anotación de estas especies se hace, por tanto, a mano y
 desde cero, y el material del equipo de investigación es el único conjunto
 anotado de que se dispone (Tabla~\ref{tab:resumen-dataset}).
 
@@ -486,13 +484,12 @@ grabación tomó unas 360 horas de trabajo.
 Los detectores que alivian esa búsqueda en otros dominios no lo hacen en este. Los
 clasificadores generales de bioacústica se entrenaron sobre todo con aves, como
 BirdNET \citep{kahl_birdnet_2021}; su desempeño cae en los taxones con pocos datos
-anotados \citep{dubus_deepforestsound_2026}, y los pocos detectores construidos
-para primates se limitan a una especie o a unas pocas
-\citep{perez-granados_passive_2021}. Además, las llamadas tenues, transitorias o
+anotados \citep{dubus_deepforestsound_2026}, y muy pocos estudios han probado el
+reconocimiento automático en primates \citep{perez-granados_passive_2021}. Además, las llamadas tenues, transitorias o
 parcialmente enmascaradas son las que los métodos automáticos pierden con más
 frecuencia \citep{gibb_2018}. Y aun donde existen detectores, los sistemas más difundidos entregan una probabilidad por
 segmento de duración fija, y los que delimitan eventos lo hacen solo sobre el eje
-temporal \citep{kahl_birdnet_2021,ebbers_sound_2024}; ninguno devuelve la banda de
+temporal \citep{kahl_birdnet_2021,ebbers_sound_2024}; ninguno de ellos devuelve la banda de
 frecuencia ni el tipo de llamada. Una salida así indica dónde mirar, pero el
 especialista tiene que volver a dibujar cada caja y a etiquetarla. C2 se mide por
 la fracción de las vocalizaciones que una herramienta encuentra y por cuántas
@@ -515,7 +512,7 @@ cada anotador \citep{nguyen_assessing_2021}. Para primates ese desacuerdo no se 
 medido, pero sí en tareas equivalentes, que también consisten en delimitar
 eventos sobre el espectrograma y etiquetarlos: al anotar llamadas de ballena
 azul, dos analistas coincidieron en menos del 50\,\% de los casos y un mismo
-analista no reprodujo sus propias anotaciones \citep{leroy_reliability_2018}, y
+analista varió entre sus propias anotaciones \citep{leroy_reliability_2018}, y
 con veinte anotadores por clip las etiquetas varían tanto en el tipo de evento
 como en sus tiempos de inicio y fin \citep{koga_lead_2024}. La propia unidad
 acústica carece de una definición estable: las unidades pueden anidarse unas
@@ -540,7 +537,9 @@ contra la referencia no es la del detector, y el especialista no tiene con qué
 decidir qué propuestas aceptar y cuáles revisar: las revisa todas. Por eso
 \citet{leroy_reliability_2018} proponen un enfoque estandarizado para las
 anotaciones humanas y las detecciones automáticas, que incluya una descripción
-cuantitativa de su desempeño.
+cuantitativa de su desempeño, y \citet{romero-mujalli_utilizing_2021}, al validar
+un detector sobre vocalizaciones de un primate, proponen un procedimiento para
+evaluar otras herramientas bioacústicas.
 
 Falta, además, el experimento. Los ahorros de tiempo de la
 sección~\ref{sec:magnitud} se midieron al detectar una o pocas especies, y aun en
@@ -654,7 +653,9 @@ objetos de la visión por computadora a una señal que no es una imagen natural.
 lo es para el
 equipo de investigación, que es quien sostiene el monitoreo: cada hora de
 especialista que se ahorra en la anotación queda disponible para la
-interpretación ecológica de los datos.
+interpretación ecológica de los datos, y su propia guía acústica de campo
+(\textit{Tambopata Primate Acoustic Field Guide}) declara entre sus fines entrenar
+algoritmos que identifiquen las especies (\cpGuia).
 
 \subsubsection{Soluciones existentes}
 \label{sec:soluciones}
@@ -707,12 +708,8 @@ llamada \citep{romero-mujalli_utilizing_2021}.
 \subsubsection{Vacío}
 \label{sec:vacio}
 
-El vacío tiene dos ejes, y esta tesis se ubica en su cruce
-(Tabla~\ref{tab:vacio}). Las filas de la tabla separan los taxones según los datos
-anotados de que disponen; las columnas separan las dos clases de salida que
-importan para la anotación: la que indica dónde hay una llamada, por segmento o
-por intervalo temporal, y la que entrega la caja tiempo--frecuencia con su
-etiqueta. Cada celda cita los trabajos que la ocupan.
+El vacío tiene dos ejes, el taxón y la forma de la salida, y esta tesis se ubica
+en su cruce (Tabla~\ref{tab:vacio}).
 
 \begin{table}[htbp]
     \centering
@@ -751,15 +748,13 @@ taxones o para primates grabados en cautiverio.
 no existe un conjunto público con anotaciones tiempo--frecuencia
 (Tabla~\ref{tab:xenocanto}). El contraste con las aves muestra que el obstáculo
 es el taxón y no la región.
-% TODO Añadir una segunda búsqueda documentada (Dryad, Zenodo o Macaulay
-% Library) con la misma disciplina de término y fecha. Dos fuentes
-% convergentes son mucho más difíciles de refutar que una sola.
 
 De la Reserva Amazónica de Inkaterra, en Madre de Dios, la misma región de las
 grabaciones de esta tesis, se publicó un conjunto de 21 grabaciones de una hora
 de paisaje sonoro con 14\,798 cajas tiempo--frecuencia de 132 especies de aves
 \citep{hopping_collection_2022}, y de dos localidades de Colombia, otro de
-73,62 horas con 15\,372 anotaciones tiempo--frecuencia de 168 especies
+73,62 horas con 15\,372 anotaciones tiempo--frecuencia, 6\,702 de ellas
+identificadas en 168 especies
 \citep{ruiz_pteroset_2026}. Aun así, los autores de este último advierten que los
 conjuntos con anotación temporal precisa siguen siendo escasos en los paisajes
 sonoros tropicales \citep{ruiz_pteroset_2026}, y la investigación con PAM
@@ -771,8 +766,8 @@ datos de este tipo, los primates no cuentan con ninguno.
 necesita el especialista combina dos tareas que la literatura considera poco
 exploradas: la detección de cajas tiempo--frecuencia, un área en gran medida
 inexplorada pese a su utilidad para el analista \citep{zhu_sound_2025}, y la
-clasificación fina del tipo de llamada, que en bioacústica se reconoce como un
-desafío abierto antes que como una capacidad demostrada
+clasificación fina del tipo de llamada, una de las muchas tareas bioacústicas de
+pequeña escala que carecen de datos con etiquetas fuertes
 \citep{nolasco_learning_2023}. A ellas se suma la carencia de la causa C3: los
 trabajos que entregan cajas tiempo--frecuencia no publican datos con que validar
 su ahorro en la anotación completa, solo métricas del modelo
@@ -835,7 +830,9 @@ asumen el papel de pares expertos con quienes se consulta y debate, sin desplaza
 el rol del experto ni el del trabajo colaborativo
 \citep{stowell_computational_2022}. Y tiene precedentes cuantificados, entre ellos
 el del sistema semiautomático para primates de Taï, cuyos ahorros de tiempo se
-revisaron en la sección~\ref{sec:magnitud}.
+revisaron en la sección~\ref{sec:magnitud}, y se estudia combinar el aprendizaje
+por transferencia con el aprendizaje activo para reducir el tiempo de anotación
+de datos de PAM \citep{kath_leveraging_2024}.
 
 El enunciado fija además un compromiso de diseño: priorizar la cobertura, es
 decir, que el sistema encuentre la mayor parte de las vocalizaciones, aunque eso
@@ -900,18 +897,14 @@ por la fracción de las vocalizaciones anotadas que encuentra y por la carga de
 propuestas que genera por hora de audio.
 
 \rotulo{OE3 frente a C3.} La causa C3 es que faltan datos para validar un
-detector en este dominio, y OE3 los produce con sus dos mitades. Caracterizar los
-errores mediante la revisión experta de una muestra de predicciones da la
-referencia que falta: el especialista distingue los errores genuinos del detector
-de las vocalizaciones que la referencia omitió, y con eso se conoce el error real
-del sistema, que es lo que permite decidir qué propuestas aceptar y cuáles revisar
-en lugar de revisarlas todas; de paso, mide también la calidad de las
-anotaciones. Cuantificar la reducción del tiempo de revisión da el experimento
-que falta: cronometra la revisión del mismo tipo de material con y sin las
-propuestas del detector, el ahorro que la literatura ha medido para detectar una
-especie pero no para la anotación completa. Como esa cifra se expresa en la
-magnitud del problema central, es también la que responde si el sistema cumple el
-objetivo general.
+detector en este dominio, y OE3 los produce con sus dos mitades. La revisión
+experta de una muestra de predicciones da la referencia que falta: separa los
+errores del detector de las vocalizaciones que la referencia omitió, y así mide
+el error real del sistema y la calidad de las anotaciones. La medición del tiempo
+de revisión da el experimento que falta: cronometra la revisión del mismo tipo de
+material con y sin las propuestas del detector. Como esa cifra está en la
+magnitud del problema central, es la que responde si se cumple el objetivo
+general.
 
 % ===================================================================
 \subsection{Resultados esperados}
@@ -1026,7 +1019,7 @@ tocan. Sobre esos aciertos se calculan el \textit{recall}, la fracción de
 vocalizaciones anotadas que el detector encuentra; la \emph{precisión}, la
 fracción de sus predicciones que son correctas, y F1, que combina ambas. La
 precisión media (AP) resume la relación entre precisión y \textit{recall} a lo
-largo de todos los umbrales de confianza \citep{lin_2014}, y se reporta con dos
+largo de todos los umbrales de confianza \citep{everingham_pascal_2010}, y se reporta con dos
 exigencias de superposición, IoU 0,25 y 0,5. La matriz de confusión cuenta, para
 cada clase anotada, a qué clase la asignó el detector. Por último, una
 \emph{tabla de selección} es el archivo de texto con que Raven guarda y abre
@@ -1038,7 +1031,7 @@ regla antes de entrenar, para que la comparación no pueda ajustarse a posterior
 al resultado. Parte de formular la anotación como detección de objetos sobre el
 espectrograma, la tercera forma de salida de la Figura~\ref{fig:output-forms}, y
 fija como referencia una línea base establecida sobre espectrogramas
-\citep{gonzalez_yolo-based_2025}.
+\citep{escobar-amado_computer_2024,gonzalez_yolo-based_2025}.
 
 \rotulo{Aporte de RE2.2.} El \textit{pipeline} reproducible permite regenerar
 cada cifra del informe a partir de los datos y del código, y es también lo que el
@@ -1404,9 +1397,9 @@ toda arquitectura cuya cabeza produzca una probabilidad por trama o por segmento
 Lo que se compara, por tanto, no son familias de arquitectura sino
 configuraciones que sí satisfacen la exigencia: la arquitectura propuesta sobre
 un extractor de audio con cabeza de detección, y tres líneas base de detector
-sobre espectrogramas: uno de dos etapas con propuestas de región, uno denso de
-una etapa \citep{gonzalez_yolo-based_2025} y uno de conjuntos con extractor
-preentrenado en imágenes.
+sobre espectrogramas: uno de dos etapas con propuestas de región
+\citep{ren_faster_2017}, uno denso de una etapa \citep{gonzalez_yolo-based_2025} y
+uno de conjuntos con extractor preentrenado en imágenes \citep{zhao_rtdetr_2024}.
 
 La regla de decisión se fija antes de entrenar: gana la configuración con mayor
 valor de la métrica principal definida en la Fase~5, medida sobre la partición de
@@ -1505,8 +1498,9 @@ Tabla~\ref{tab:metricas-sed} porque es la magnitud que conecta esta fase con OE3
 \textbf{El acierto se decide a IoU 0,3 y el encuadre se puntúa aparte.}
 Emparejar a 0,3 responde a si la llamada se \emph{encontró}, que es lo que decide
 si el revisor la ve; exigir 0,5 en el mismo paso mezclaría esa pregunta con la de
-si la caja quedó ajustada, cuando las fronteras del evento son borrosas incluso
-entre anotadores \citep{zhu_sound_2025}. El encuadre se puntúa después, sobre los
+si la caja quedó ajustada, cuando las fronteras del evento son borrosas, lo que
+hace razonable un umbral bajo \citep{zhu_sound_2025}, y varían entre anotadores
+\citep{koga_lead_2024}. El encuadre se puntúa después, sobre los
 pares ya emparejados, con el IoU mediano y con la AP a varios umbrales. La
 Figura~\ref{fig:iou-criterion} muestra por qué conviene separar ambas preguntas:
 compara tres predicciones con la anotación correspondiente, y junto al IoU da el
@@ -1553,54 +1547,54 @@ que se abre en Raven.
     \caption{Stack técnico: pipeline}
     \label{tab:herramientas}
     \small
-    \begin{tabular}{@{}L{2.5cm}L{4.9cm}L{6.6cm}@{}}
+    \begin{tabular}{@{}L{3.1cm}L{4.6cm}L{6.3cm}@{}}
         \toprule
         \textbf{Herramienta}                                                & \textbf{Función en el \textit{pipeline}} & \textbf{Por qué esta y no la alternativa} \\
         \midrule
-        Python 3.12                                                         &
+        Python 3.12 \citep{python_312} &
         Lenguaje de todo el sistema                                         &
         R y MATLAB carecen de implementaciones de referencia de detectores de
         objetos, que es el componente que no se va a reimplementar                                                                                                 \\
         \addlinespace
-        Pandas                                                              &
+        Pandas \citep{mckinney_pandas_2010} &
         Consolidación, limpieza y particionado de las anotaciones tabulares &
         Procesar los archivos de Raven con scripts \textit{ad hoc} no deja
         registro reproducible de qué filas se descartaron y por qué                                                                                                \\
         \addlinespace
-        NumPy                                                               &
+        NumPy \citep{harris_numpy_2020} &
         Representación en memoria del audio y de las cajas antes de pasar a
         tensores                                                            &
         Sin alternativa práctica: es la interfaz común entre SoundFile, PyTorch
         y Matplotlib                                                                                                                                               \\
         \addlinespace
-        SoundFile y soxr                                                    &
+        SoundFile \citep{soundfile_2026} y soxr \citep{soxr_2026} &
         Lectura por bloques de las grabaciones y remuestreo a 44,1\,kHz     &
         Permiten leer solo la ventana pedida de un archivo de una hora, en lugar
         de cargarlo entero en memoria                                                                                                                              \\
         \addlinespace
-        torchaudio                                                          &
+        torchaudio \citep{yang_torchaudio_2022} &
         Cálculo del espectrograma mel que consume el modelo                 &
         Librosa devuelve arreglos de NumPy y obligaría a convertir en cada lote;
         aquí la transformada entrega tensores que van directamente al caché
         y al modelo                                                                                                                                               \\
         \addlinespace
-        PyTorch                                                             &
+        PyTorch \citep{paszke_pytorch_2019} &
         Definición, entrenamiento y evaluación del detector                 &
         Las implementaciones de referencia de detectores están mayoritariamente
         en PyTorch, y portarlas a otro marco no se justifica                                                                                                       \\
         \addlinespace
-        Transformers                                                        &
+        Transformers \citep{wolf_transformers_2020} &
         Carga del \textit{backbone} AST preentrenado en AudioSet            &
         Entrenar un transformador de espectrogramas desde cero excede los datos
         disponibles; la biblioteca aporta los pesos y la interpolación del
         \textit{embedding} posicional                                                                                                                              \\
         \addlinespace
-        torchvision y Ultralytics                                           &
+        torchvision \citep{torchvision_2026} y Ultralytics \citep{ultralytics_2026} &
         Implementaciones de las líneas base: Faster R-CNN, YOLO26s y RT-DETR-L &
         Son las implementaciones de referencia de esas arquitecturas;
         reimplementarlas añadiría diferencias ajenas a la comparación                                                                                             \\
         \addlinespace
-        Raven Pro / Lite                                                    &
+        Raven Pro / Lite \citep{raven_pro} &
         Origen de las anotaciones y destino de las predicciones exportadas  &
         Sin alternativa: es la herramienta del analista, y su formato de tabla de
         selección es un requisito de RE2.4, no una elección de diseño                                                                                              \\
@@ -1622,26 +1616,26 @@ entorno y el estado del código con que se obtuvo cada resultado.
     \caption{Stack técnico: desarrollo}
     \label{tab:herramientas-dev}
     \small
-    \begin{tabular}{@{}L{2.5cm}L{4.9cm}L{6.6cm}@{}}
+    \begin{tabular}{@{}L{3.1cm}L{4.6cm}L{6.3cm}@{}}
         \toprule
         \textbf{Herramienta}                                             & \textbf{Función} & \textbf{Por qué esta y no la alternativa} \\
         \midrule
-        uv                                                               &
+        uv \citep{uv_2026} &
         Entorno virtual, resolución de dependencias y archivo de bloqueo &
         Instalar con \textit{pip} sin bloqueo deja libres las versiones
         transitivas, y sin ellas el entorno de una corrida antigua no se
         reconstruye igual                                                                                                               \\
         \addlinespace
-        Matplotlib                                                       &
+        Matplotlib \citep{hunter_matplotlib_2007} &
         Figuras del análisis exploratorio y de los resultados            &
         Sin alternativa que aporte algo distinto dentro del mismo ecosistema                                                            \\
         \addlinespace
-        Ruff, ty y pytest                                                &
+        Ruff \citep{ruff_2026}, ty \citep{ty_2026} y pytest \citep{pytest_2026} &
         Formato, análisis estático y pruebas del código                  &
         Las pruebas cubren la conversión entre sistemas de coordenadas de caja,
         donde un error silencioso desplazaría todas las métricas sin fallar                                                             \\
         \addlinespace
-        Git                                                              &
+        Git \citep{chacon_progit_2014} &
         Versionado del código y de la configuración de cada experimento  &
         Sin alternativa: es la condición para asociar un resultado reportado a
         un estado exacto del código                                                                                                     \\

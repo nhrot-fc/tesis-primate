@@ -127,8 +127,8 @@ inferior, como \mQueries{} propuestas de caja con sus logits de clase. Tres
 decisiones definen ese recorrido.
 
 \rotulo{Un extractor preentrenado en audio, no en imágenes.} El AST
-(\emph{Audio Spectrogram Transformer}) preentrenado en AudioSet
-(\mAstCheckpoint{}) sustituye al \textit{backbone} convolucional de imágenes que
+(\emph{Audio Spectrogram Transformer}; \citealp{gong_ast_2021}) preentrenado en
+AudioSet \citep{gemmeke_audioset_2017} (\mAstCheckpoint{}) sustituye al \textit{backbone} convolucional de imágenes que
 traen los detectores estándar. La brecha de modalidad entre imagen y audio
 justifica esa sustitución \citep{zhu_sound_2025}: las estadísticas de un
 espectrograma (ejes asimétricos, sin invariancia a la traslación en
@@ -140,14 +140,14 @@ mientras que la duración mediana de las clases va de \mShortestClassMs{}\,ms
 (\mShortestClass{}) a \mLongestClassS{}\,s (\mLongestClass{}), un rango de más de
 dos órdenes de magnitud (sección~\ref{sec:geometria}). La pirámide corrige que
 las arquitecturas de tipo \textit{Vision Transformer} (ViT) produzcan representaciones de escala única
-\citep{zhu_sound_2025}, siguiendo la receta de ViTDet: deconvoluciones y una
+\citep{zhu_sound_2025}, siguiendo la receta de ViTDet \citep{li_vitdet_2022}: deconvoluciones y una
 convolución con paso 2 sobre el mismo mapa.
 
 \rotulo{Un decodificador deformable de predicción de conjuntos.} La cabeza es el
 decodificador de Deformable DETR \citep{zhu_deformable_2021}: \mQueries{}
 consultas aprendidas atienden a unos pocos puntos muestreados alrededor de una
 caja de referencia, en los \mLevels{} niveles, y refinan la caja capa a capa. No
-hay anclas, y el emparejamiento húngaro durante el entrenamiento fuerza una
+hay anclas, y el emparejamiento húngaro \citep{kuhn_hungarian_1955} durante el entrenamiento fuerza una
 predicción por evento.
 
 \subsubsection{Compresión y normalización de entrada}
@@ -299,7 +299,7 @@ capa ocurre lo siguiente:
           su caja de referencia, y los combinan con pesos que también predice
           (\textit{softmax} sobre los $\mLevels \times \mPoints$ puntos). Los
           desplazamientos arrancan en una rejilla radial y no en ruido, como en
-          el diseño original \citep{zhu_deformable_2021}. Es lo que hace tratable
+          la implementación de referencia de \citet{zhu_deformable_2021}. Es lo que hace tratable
           atender a un mapa de $48 \times 128$ celdas y lo que permite mezclar
           escalas sin elegir una.
     \item \textbf{FFN} y normalización residual.
@@ -363,19 +363,11 @@ capa ocurre lo siguiente:
                         \fill[celeste!80!black] (6 + \dx, 3 + \dy) circle (\r pt);
                     }
                 \node[nota, text width=12cm, anchor=north west] at (0, -0.8) {%
-                    Para cada consulta y cabeza, la consulta predice \mPoints{}
-                    desplazamientos $\Delta$ y \mPoints{} pesos $a$ (el tamaño del
-                    punto). El punto muestreado es $c + \Delta \cdot (w, h)/2$ y su
-                    valor, la interpolación bilineal del mapa. Se repite en los
-                    \mLevels{} niveles y los pesos se normalizan sobre los
-                    $\mLevels \times \mPoints$ puntos.};
+                    Punto muestreado: $c + \Delta \cdot (w, h)/2$. Tamaño del
+                    punto: su peso $a$.};
             \end{tikzpicture}}
     \end{minipage}
 \end{figure}
-
-La figura de la izquierda resume una capa; la de la derecha, el paso que la hace
-eficiente: cada consulta lee solo \mPoints{} puntos por nivel alrededor de su caja,
-en lugar de todas las celdas de los cuatro mapas.
 
 \subsubsection{Emparejamiento y pérdida}
 
@@ -387,8 +379,9 @@ uno a uno con el algoritmo húngaro sobre una matriz de costo
     + \mCostBbox\, \lVert b_k - b_j \rVert_1
     - \mCostIou\, \mathrm{GIoU}(b_k, b_j),
 \]
-donde el costo de clase es la pérdida focal positiva menos la negativa que se
-ahorra \citep{zhu_deformable_2021} y GIoU es el IoU generalizado, que sigue
+donde el costo de clase es la pérdida focal \citep{lin_focal_2017} positiva
+menos la negativa que se ahorra \citep{zhu_deformable_2021} y GIoU es el IoU
+generalizado \citep{rezatofighi_giou_2019}, que sigue
 dando señal cuando las cajas no se solapan. Sobre los pares emparejados se calcula la
 pérdida
 \[
@@ -447,8 +440,11 @@ consultas se dimensiona sobre el máximo de cajas por ventana del conjunto
 La cabeza deformable se entrena desde cero, mientras que las líneas base parten
 de un detector completo. Para acortar esa asimetría, la configuración que entra a
 la comparación preentrena la misma arquitectura, con los mismos hiperparámetros,
-sobre un caché aparte de cantos de aves construido con el ventaneo y el mel del
-Capítulo~\ref{cap:curacion} (\file{data/processed\_extra/}), y después la afina
+sobre un caché aparte de cantos de aves, construido con el ventaneo y el mel del
+Capítulo~\ref{cap:curacion} (\file{data/processed\_extra/}) a partir de tres
+conjuntos públicos con cajas tiempo--frecuencia
+\citep{chronister_annotated_2021,hopping_collection_2022,ruiz_pteroset_2026}, y
+después la afina
 con primates: el afinado carga en el modelo recién construido todo tensor del
 preentrenado con el mismo nombre y forma (todo salvo las cabezas de clase, que
 dependen del número de clases) y sigue la receta de la propuesta.
@@ -478,7 +474,7 @@ el código.
             FFN / \textit{dropout} & \mFfn{} / \mDropout{} & Como Deformable DETR \\
             Focal $\alpha$, $\gamma$ & \mFocalAlpha{}, \mFocalGamma{} & Valores de RetinaNet \\
             Costos de emparejamiento (clase, $L_1$, GIoU) & \mCostClass{}, \mCostBbox{}, \mCostIou{} & \citet{zhu_deformable_2021} \\
-            Pesos de la pérdida (clase, $L_1$, GIoU) & \mWeightClass{}, \mCostBbox{}, \mCostIou{} & La clase pesa el doble al asignar que al entrenar \\
+            Pesos de la pérdida (clase, $L_1$, GIoU) & \mWeightClass{}, \mCostBbox{}, \mCostIou{} & Deformable DETR usa 2 para la clase \\
             Prior de las cabezas de clase & \mPrior{} & Casi nada dispara al inicio \\
             Compresión de entrada & \mFrontend{} & La del preentrenamiento del AST \\
             NMS por clase & IoU \mNmsIou{} & El mismo posprocesado que las líneas base \\
@@ -487,9 +483,9 @@ el código.
     \end{threeparttable}
 \end{table}
 
-La mayoría replica los valores de Deformable DETR; los que se ajustaron a este
-material son el paso temporal del parcheo, la dimensión de la cabeza, los niveles
-y las consultas, cada uno con su motivo. La Tabla~\ref{tab:bloques} muestra cuánto
+La mayoría replica los valores de Deformable DETR; se apartan de ellos el paso
+temporal del parcheo, la dimensión de la cabeza, los niveles y las consultas, cada
+uno con su motivo, y el peso de la clase en la pérdida, que en Deformable DETR es 2. La Tabla~\ref{tab:bloques} muestra cuánto
 pesa cada bloque.
 
 \begin{table}[htbp]
@@ -507,16 +503,15 @@ pesa cada bloque.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} La compresión de entrada no aparece con parámetros
-            porque el log-mel no tiene ninguno.
+            \item \textit{Nota.} La compresión log-mel no tiene parámetros.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-El reparto importa para leer la comparación: el extractor concentra el
-\mParamsBackbonePct{} de los \mParams{}\,M de parámetros y la cabeza completa cabe
-en \mParamsHead{}\,M. Cambiar el número de clases o ensanchar la cabeza cuesta
-poco; lo que cuesta, en memoria y en tiempo, es afinar el AST.
+El extractor concentra el \mParamsBackbonePct{} de los \mParams{}\,M de
+parámetros y la cabeza completa cabe en \mParamsHead{}\,M: cambiar el número de
+clases o ensanchar la cabeza cuesta poco; lo que cuesta, en memoria y en tiempo,
+es afinar el AST.
 
 \subsection{Líneas base}
 \label{sec:baselines}
@@ -530,7 +525,8 @@ protocolo con la propuesta.
 \begin{description}
     \item[Faster R-CNN R50-FPN v2.] El detector de dos etapas de referencia, con
         \textit{backbone} ResNet-50 y pirámide de características (FPN,
-        \textit{Feature Pyramid Network}) preentrenados en COCO; el mel
+        \textit{Feature Pyramid Network}) preentrenados en COCO
+        \citep{ren_faster_2017,he_deep_2016,lin_fpn_2017}; el mel
         se reescala a $512 \times 1024$ píxeles y se replica en tres canales. Se
         adaptan las razones de aspecto de las anclas porque las cajas de llamadas
         van de muy anchas a muy altas, lejos de las razones de los objetos de
@@ -538,14 +534,16 @@ protocolo con la propuesta.
         bioacústica \citep{escobar-amado_computer_2024}.
     \item[YOLO26s.] Un detector denso de una etapa, pequeño
         (\cParamsYol{}\,M de parámetros), entrenado con la herramienta de
-        Ultralytics desde sus pesos de COCO sobre una imagen gris de
+        Ultralytics \citep{jocher_yolo26_2026} desde sus pesos de COCO sobre una
+        imagen gris de
         $512 \times 512$; es la línea base de la familia YOLO sobre
         espectrogramas \citep{gonzalez_yolo-based_2025}. Las aumentaciones de
         imagen que no tienen sentido en un espectrograma se apagan (volteos,
         mosaico, tono y saturación) y quedan un corrimiento pequeño, una escala
         y brillo.
     \item[RT-DETR-L.] Un detector de conjuntos con extractor de imagen
-        preentrenado en COCO (\cParamsRtd{}\,M), también por Ultralytics. Es la
+        preentrenado en COCO (\cParamsRtd{}\,M; \citealp{zhao_rtdetr_2024}),
+        también por Ultralytics. Es la
         línea base que separa las dos hipótesis que la propuesta mezcla: si una
         cabeza de tipo DETR rinde distinto por ser una cabeza DETR, o por el
         extractor de audio que la alimenta. Entró al experimento después que las
@@ -603,24 +601,20 @@ comparación, la propuesta y las tres líneas base.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Parámetros según el registro de cada corrida. En la propuesta
-            y en las dos de Ultralytics se entrena todo; en Faster R-CNN, el
-            tallo y las dos primeras etapas del ResNet quedan congelados
-            (\cTrainableFrc{}\,M entrenables de \cParamsFrc{}\,M).
+            \item \textit{Nota.} Faster R-CNN congela el tallo y las dos primeras
+            etapas del ResNet (\cTrainableFrc{}\,M entrenables de
+            \cParamsFrc{}\,M); las demás entrenan todo.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
-
-Las cuatro difieren en extractor, tamaño y preentrenamiento, y la última columna
-dice qué variable controla cada línea base frente a la propuesta.
 
 \subsection{Diseño experimental}
 
 \subsubsection{Recetas de entrenamiento}
 
 Cada configuración se entrena con la receta de su \textit{preset}
-(Tabla~\ref{tab:recetas}). Los modelos del proyecto usan AdamW con un programa
-OneCycle, recorte del gradiente y las mismas aumentaciones sobre el audio:
+(Tabla~\ref{tab:recetas}). Los modelos del proyecto usan AdamW \citep{loshchilov_adamw_2019} con un programa
+OneCycle \citep{smith_superconvergence_2019}, recorte del gradiente y las mismas aumentaciones sobre el audio:
 ganancia aleatoria, mezcla de una ventana vacía a un SNR dado, corrimiento
 temporal y pegado de llamadas de otras ventanas, además de un \textit{jitter} de
 las cajas objetivo. Los dos modelos de Ultralytics se entrenan con su propia
@@ -697,9 +691,9 @@ en el tiempo y que se detallan a continuación.
           IoU \pStrictIou{} el corrimiento temporal tolerado es un tercio del
           ancho de la caja; a \pMatchIou{} sube a la mitad. Más abajo no: a 0,25
           una predicción de banda completa acertaría una parte de las cajas sin
-          encuadrar nada. El encuadre se reporta aparte, a \pStrictIou{}. La precisión media se calcula con la
-          definición y la interpolación de la curva precisión--\textit{recall} que
-          fija COCO \citep{lin_2014}.
+          encuadrar nada. El encuadre se reporta aparte, a \pStrictIou{}. La precisión media es el área bajo la
+          envolvente de la curva precisión--\textit{recall} en todos sus puntos,
+          como en PASCAL VOC desde 2010 \citep{everingham_retrospective_2015}.
     \item \textbf{Umbral por modelo, elegido en validación.} De la rejilla
           0,01--0,99, el umbral de mayor \textit{recall} entre los que alcanzan
           una precisión de al menos \pMinPrecision{}. Un umbral fijo compartido
@@ -707,7 +701,8 @@ en el tiempo y que se detallan a continuación.
           manera, y la sección~\ref{sec:carga-igual} muestra cuánto cambia la
           lectura según dónde se mida.
     \item \textbf{La prueba se mide una vez}, en ese umbral, con intervalos de
-          confianza al 95\,\% por \textit{bootstrap} de \pBootstrap{} remuestreos
+          confianza al 95\,\% por \textit{bootstrap} \citep{efron_bootstrap_1993}
+          de \pBootstrap{} remuestreos
           \emph{de grabaciones}: las ventanas vecinas comparten la mitad del
           audio y la calidad de una grabación es de la grabación entera.
           Remuestrear ventanas daría intervalos más angostos de lo que
@@ -1069,13 +1064,10 @@ parámetros.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Horas de GPU: diferencia entre la primera y la última marca de
-            tiempo del registro de la corrida, de modo que incluye la validación
-            de cada época. La GPU se compartió con otros procesos: son cotas
-            superiores y no son estrictamente comparables entre corridas. Las dos
-            corridas de Ultralytics pararon antes de las 30 épocas por su
-            criterio de paciencia. La corrida de la propuesta cuenta solo el
-            afinado con primates, no el preentrenamiento con aves.
+            \item \textit{Nota.} Horas de GPU: de la primera a la última marca del
+            registro, con la validación incluida; la GPU se compartió, así que son
+            cotas superiores. Ultralytics paró antes de 30 épocas por paciencia. La
+            propuesta no cuenta el preentrenamiento con aves.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -1243,23 +1235,20 @@ cada modelo y lo que ese umbral rinde en prueba.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} El \textit{recall} y la precisión de esta tabla exigen la
-            etiqueta correcta; la Tabla~\ref{tab:ejes} los separa del acierto de
-            detección. Las mAP se promedian sobre las
-            \rNDetectionClasses{} clases de detección, sin las dos de ventana.
-            \item El intervalo es de \pBootstrap{} remuestreos de grabaciones, no
-            de ventanas.
+            \item \textit{Nota.} \textit{Recall} y precisión exigen la clase
+            correcta. mAP: promedio sobre las \rNDetectionClasses{} clases de
+            detección, sin las dos de ventana. IC: \pBootstrap{} remuestreos de
+            grabaciones.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-Lo primero que hay que registrar, porque condiciona todo lo que sigue, es que
-\textbf{la métrica primaria no separa a ninguna pareja de configuraciones}: los
+\textbf{La métrica primaria no separa a ninguna pareja de configuraciones}: los
 cuatro intervalos de confianza se solapan, el \textit{recall} de prueba va de
 \rRecallFrc{} a \rRecallYol{} (una diferencia de \rRecallSpread{}) y las
-cuatro F\textsubscript{1} caben en tres milésimas. Por la regla declarada en la
-sección~\ref{sec:protocolo-oe2}, eso no se redondea a un ganador: se dice que el
-experimento no las distingue en esa magnitud, y se pasa a la secundaria.
+cuatro F\textsubscript{1} caben en tres milésimas. Por la regla de la
+sección~\ref{sec:protocolo-oe2}, no hay ganador en esa magnitud y se pasa a la
+secundaria.
 
 La métrica secundaria sí ordena, y con un margen de \rMapSpread{}:
 
@@ -1268,30 +1257,25 @@ La métrica secundaria sí ordena, y con un margen de \rMapSpread{}:
     AST-Def-DETR (\rMapDet{}) $\approx$ Faster R-CNN (\rMapFrc{})
 \end{center}
 
-La mAP es libre de umbral: integra toda la curva precisión--\textit{recall} en
-lugar de leer un punto, de modo que no depende de dónde cada cabeza puso su
-escala de confianza. Que ordene donde el punto de operación no ordena significa
-que las cuatro configuraciones alcanzan una cobertura equivalente al presupuesto
-de revisión que fija \pMinPrecision{} de precisión, pero no con la misma calidad
-de curva: dos de ellas sostienen mejor la precisión cuando se les pide más
-cobertura. El mismo orden se mantiene a IoU \pLooseIou{} y a IoU \pStrictIou{}, y
+Como la mAP no depende del umbral, que ordene donde el punto de operación no
+ordena significa que las cuatro configuraciones alcanzan una cobertura
+equivalente con \pMinPrecision{} de precisión, pero no con la misma curva: dos
+de ellas sostienen mejor la precisión cuando se les pide más cobertura. El mismo orden se mantiene a IoU \pLooseIou{} y a IoU \pStrictIou{}, y
 la distancia crece al apretar el encuadre (\rMapStrictYol{} contra
 \rMapStrictDet{}), lo que apunta a que la diferencia está en cómo encuadran y
 no en cuánto encuentran.
 
 \rotulo{Los umbrales elegidos son muy distintos entre sí.} \rThresholdYol{} para
 YOLO26s y \rThresholdFrc{} para Faster R-CNN, con la propuesta en
-\rThresholdDet{} y RT-DETR-L en \rThresholdRtd{}. Esto es exactamente lo que la
-cuarta regla del protocolo anticipaba: un umbral fijo compartido (por ejemplo
-el 0,5 de fábrica) habría situado a cada modelo en un punto distinto de su
-curva y habría medido calibración tanto como detección. La
-sección~\ref{sec:carga-igual} desarrolla la consecuencia.
+\rThresholdDet{} y RT-DETR-L en \rThresholdRtd{}. Un umbral compartido, como el
+0,5 de fábrica, habría puesto a cada modelo en un punto distinto de su curva y
+habría medido calibración tanto como detección
+(sección~\ref{sec:carga-igual}).
 
 \subsection{Detección, encuadre y clasificación}
 \label{sec:ejes}
 
-La Tabla~\ref{tab:ejes} separa los tres ejes. Es la tabla más importante del
-capítulo, porque es la que dice dónde está el error.
+La Tabla~\ref{tab:ejes} separa los tres ejes para mostrar dónde está el error.
 
 \begin{table}[htbp]
     \centering
@@ -1310,10 +1294,10 @@ capítulo, porque es la que dice dónde está el error.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Detección: emparejando sin mirar la clase. Encuadre: IoU
-            mediano de esos mismos pares, y \textit{recall} exigiendo la clase a
-            IoU \pStrictIou{}. Clasificación: de lo que se encontró, qué fracción
-            lleva la clase y la especie anotadas.
+            \item \textit{Nota.} Detección: emparejamiento sin mirar la clase.
+            Encuadre: IoU mediano de esos pares y \textit{recall} con clase a IoU
+            \pStrictIou{}. Clasificación: fracción de lo encontrado con la clase o
+            la especie anotada.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -1384,16 +1368,12 @@ etiqueta.
 \subsection{Cobertura frente a carga de revisión}
 \label{sec:carga-igual}
 
-La confianza que emite un detector no es una probabilidad comparable entre
-arquitecturas: depende de la función de pérdida, del número de propuestas que la
-cabeza produce y de cómo se normaliza la puntuación. Los cuatro umbrales elegidos
-(de \rThresholdYol{} a \rThresholdFrc{}) lo muestran sin ambigüedad.
-
-La magnitud que sí es comparable, y además es la que interesa a OE3, es
-\textbf{cuántos eventos recupera cada modelo cuando a todos se les permite
-    proponer la misma cantidad de cajas por hora de audio}. La
-Figura~\ref{fig:carga} barre el umbral de cada configuración y lee su curva a la
-misma abscisa; la Tabla~\ref{tab:carga-igual} la tabula en seis presupuestos.
+La confianza no es comparable entre arquitecturas: depende de la función de
+pérdida, del número de propuestas de la cabeza y de cómo se normaliza la
+puntuación. Lo comparable, y lo que interesa a OE3, es \textbf{cuántos eventos
+recupera cada modelo con la misma cantidad de propuestas por hora de audio}. La
+Figura~\ref{fig:carga} barre el umbral de cada configuración y la
+Tabla~\ref{tab:carga-igual} lee las curvas en seis presupuestos.
 
 \begin{figure}[htbp]
     \centering
@@ -1427,10 +1407,7 @@ misma abscisa; la Tabla~\ref{tab:carga-igual} la tabula en seis presupuestos.
     \end{tikzpicture}
 \end{figure}
 
-Cada curva es un modelo: cuanto más alta, más eventos recupera con la misma
-cantidad de propuestas por hora, y la línea punteada marca la carga de los cuatro
-puntos de operación. La Tabla~\ref{tab:carga-igual} lee las curvas en seis
-presupuestos.
+La línea punteada marca la carga de los cuatro puntos de operación.
 
 \begin{table}[htbp]
     \centering
@@ -1447,17 +1424,12 @@ presupuestos.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Cada columna es la curva de un modelo leída a la misma abscisa.
-            El techo es el \textit{recall} con el umbral en el piso del
-            protocolo, esto es, con todo lo que el modelo es capaz de proponer;
-            la última fila es la carga a la que lo alcanza. Un guion significa
-            que el modelo no llega a emitir tantas propuestas por hora.
+            \item \textit{Nota.} Techo: \textit{recall} con el umbral en el piso
+            del protocolo; la última fila es la carga que lo alcanza. Guion: el
+            modelo no emite tantas propuestas por hora.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
-
-El resultado refuerza la lectura de la Tabla~\ref{tab:resultados-op} y añade algo
-que el punto de operación no dejaba ver.
 
 \rotulo{En el rango de carga que un revisor humano puede absorber, las cuatro
     configuraciones son indistinguibles.} A \rBudgetCommon{} propuestas por hora
@@ -1471,22 +1443,18 @@ cobertura cuando se les da el mismo presupuesto de revisión. \emph{La elección
     punto de operación.}
 
 \rotulo{Lo que separa a las curvas es dónde termina cada una.} El techo de
-cobertura (lo que el modelo recupera emitiendo absolutamente todo lo que puede
-proponer) va de \rCeilingYol{} (YOLO26s) a \rCeilingFrc{} (Faster R-CNN). Pero
-el precio de ese techo es abismalmente distinto: Faster R-CNN necesita
-\rCeilingLoadFrc{} propuestas por hora para alcanzarlo y YOLO26s llega al suyo
-con \rCeilingLoadYol{}, un orden de magnitud menos. Ninguna de esas cifras es
-operativa (revisar ochenta mil cajas por hora de audio no es asistencia),
-pero la comparación sí dice algo: las curvas de los otros tres modelos solo
-superan a YOLO26s en una región de carga que nadie va a usar.
+cobertura (lo que el modelo recupera con todo lo que puede proponer) va de
+\rCeilingYol{} (YOLO26s) a \rCeilingFrc{} (Faster R-CNN), a precios muy
+distintos: Faster R-CNN necesita \rCeilingLoadFrc{} propuestas por hora para
+alcanzarlo y YOLO26s, \rCeilingLoadYol{}, un orden de magnitud menos. Ninguna de
+esas cargas es operativa: los otros tres modelos solo superan a YOLO26s donde
+nadie revisaría.
 
-\rotulo{El umbral de 0,5 de fábrica no habría comparado nada.} El umbral que la
-validación elige para YOLO26s es \rThresholdYol{}, cinco veces menor. Operarlo a
-0,5 lo habría situado en la parte conservadora de su curva y a Faster R-CNN
-(cuyo umbral elegido es \rThresholdFrc{}) en la permisiva, y el orden entre
-los dos se habría invertido sin que ninguna propiedad de las arquitecturas
-cambiara. Es la razón por la que el punto de operación de cada modelo debe
-elegirse barriendo su umbral, y no heredando uno.
+\rotulo{El umbral de 0,5 de fábrica habría invertido el orden.} A 0,5, YOLO26s
+(umbral elegido \rThresholdYol{}) habría quedado en la parte conservadora de su
+curva y Faster R-CNN (\rThresholdFrc{}) en la permisiva, y el orden entre los
+dos se habría invertido sin que cambiara ninguna propiedad de las
+arquitecturas.
 
 \subsection{Lectura por clase}
 
@@ -1495,7 +1463,7 @@ El agregado está dominado por dos clases: \rWindowClasses{} aportan el
 documenta la sección~\ref{sec:ventaneo}, las más fáciles del conjunto, porque sus
 cajas ocupan la ventana entera. Por eso la Tabla~\ref{tab:recall-clase} reporta
 también el promedio por clase, que trata igual a una clase de 37 cajas que a una
-de dos mil.
+de casi ocho mil.
 
 \begin{table}[htbp]
     \centering
@@ -1512,9 +1480,8 @@ de dos mil.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} En negrita, el mejor de las cuatro configuraciones en cada
-            clase. Un asterisco marca las dos clases de ventana, que no entran en
-            el promedio por clase.
+            \item \textit{Nota.} En negrita, el mejor de cada clase. Asterisco: clase
+            de ventana, fuera del promedio por clase.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -1657,19 +1624,12 @@ localiza una por una.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Los archivos de métricas son
-            \file{comparacion\_\allowbreak modelos\_\allowbreak v3.txt}
-            y su \file{.json} con las mismas cifras, en la carpeta RE2.3 del
-            Anexo~\ref{anx:medios}. Toda magnitud de este
-            capítulo procede de volver a aplicar el protocolo sobre los volcados
-            crudos, no de una cifra transcrita.
+            \item \textit{Nota.} Fuente:
+            \file{comparacion\_\allowbreak modelos\_\allowbreak v3.txt} y su
+            \file{.json}, carpeta RE2.3 del Anexo~\ref{anx:medios}.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
-
-Cada fila apunta a una tabla, una figura o una sección de este capítulo, y la
-última columna da el valor del modelo seleccionado, de modo que el indicador
-puede comprobarse sin salir del documento.
 
 % ===================================================================
 \section{Modelo final cargable y demostración funcional (RE2.4)}
@@ -1963,9 +1923,6 @@ y al resultado esperado que lo documenta.
     \end{tabular}
 \end{table}
 
-Cada fila apunta a una ruta del repositorio público, salvo la última, que es un
-archivo de su versión v0.2.0.
-
 \subsection{Qué contiene y qué no}
 
 \rotulo{El código, completo.} Todo el \textit{pipeline} tal como lo describe la
@@ -2055,10 +2012,9 @@ línea del Capítulo~\ref{cap:estado} en tres puntos y discrepan en uno.
 
 Concuerdan en que \textbf{la detección bidimensional sobre el espectrograma es
     una formulación viable en bioacústica}: \citet{escobar-amado_computer_2024}
-reportan con Faster R-CNN sobre llamadas de foca, y \citet{airale_nbm_2025} y
-\citet{gonzalez_yolo-based_2025} con detectores de la familia YOLO, cifras del
-mismo orden que las de la Tabla~\ref{tab:resultados-op} sobre repertorios de
-tamaño comparable. Concuerdan también en que \textbf{un umbral de IoU bajo es lo
+la aplican con YOLOv5 a llamadas de foca, \citet{airale_nbm_2025} con un
+Faster R-CNN de dos etapas a aves migratorias, y \citet{gonzalez_yolo-based_2025}
+con YOLO a eventos sonoros generales. Concuerdan también en que \textbf{un umbral de IoU bajo es lo
     razonable cuando las fronteras del evento son borrosas} \citep{zhu_sound_2025}:
 la Figura~\ref{fig:iou} muestra que incluso los pares que el protocolo cuenta
 como aciertos tienen un IoU mediano de alrededor de 0,78, lejos de lo que se
@@ -2099,13 +2055,14 @@ diez veces más datos anotados, o con un programa de entrenamiento más largo pa
 la propuesta, el orden podría ser otro. Tampoco se generalizan los umbrales
 elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectura.
 
-\rotulo{Limitaciones.} Cinco, ordenadas por cuánto comprometen las conclusiones.
+\rotulo{Limitaciones.} Seis, ordenadas por cuánto comprometen las conclusiones.
 
 \begin{enumerate}
     \item \textbf{No hay techo de evaluación.} No se midió el acuerdo entre
           anotadores sobre una muestra del material, de modo que no se sabe cuánto
           del error que la Tabla~\ref{tab:resultados-op} atribuye al modelo es en
-          realidad desacuerdo entre humanos. Es la limitación más seria de todo el
+          realidad desacuerdo entre humanos
+          \citep{leroy_reliability_2018,koga_lead_2024}. Es la limitación más seria de todo el
           capítulo: sin ella no se puede decir si \rRecallYol{} está cerca o lejos
           de lo alcanzable. OE3 la aborda parcialmente al hacer que un experto
           revise una muestra de predicciones.
@@ -2133,4 +2090,17 @@ elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectur
           movería cada cifra al reentrenar la misma configuración con otra semilla.
           Dado que las cuatro caben en \rRecallSpread{}, esa varianza podría ser del
           mismo orden que las diferencias que se reportan.
+    \item \textbf{La propuesta se aparta de sus trabajos de origen en la entrada y
+              en la receta.} El AST se preentrenó con audio a 16\,kHz, 128 bandas
+          mel hasta 8\,kHz, y se afina a tasas de $10^{-5}$ a $5 \times 10^{-5}$
+          \citep{gong_ast_2021}; aquí recibe 128 bandas hasta 22\,kHz, de modo que
+          cada banda corresponde a otra frecuencia. Lo impone el material, cuyas
+          llamadas más agudas pasan de 8\,kHz (Tabla~\ref{tab:preproc}), pero su
+          costo no se midió. Además, se afina entero a $2 \times 10^{-4}$, la tasa
+          de la cabeza. Y Deformable DETR
+          divide por diez la tasa de las proyecciones que predicen los
+          desplazamientos y los puntos de referencia \citep{zhu_deformable_2021}, y
+          aquí no. Las tres desviaciones juegan en contra de la propuesta y no se
+          midieron por separado: pueden explicar parte de su distancia con el
+          modelo seleccionado.
 \end{enumerate}

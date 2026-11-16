@@ -160,15 +160,10 @@ Cuatro configuraciones, mismo caché, misma partición, mismo protocolo:
       tensores) y su SHA-256. Falta hacer push para que la URL del anexo exista.
 - [ ] **No hay techo de evaluación**: falta medir el acuerdo entre anotadores
       sobre una muestra. Es la limitación más seria del capítulo.
-- [ ] **Faltan once citas.** Las marcas `[CITA: …]` se quitaron del `.tex` el
-      02-10-2026, así que las afirmaciones están **sin respaldo bibliográfico**:
-      AST (Gong et al. 2021, ya en `references.bib` como `gong_ast_2021`) y AudioSet (Gemmeke et al. 2017); ViTDet (Li et al.
-      2022); DETR (Carion et al. 2020); PCEN (Wang et al. 2017); pérdida focal
-      (Lin et al. 2017), GIoU (Rezatofighi et al. 2019) y algoritmo húngaro
-      (Kuhn 1955); Powdermill (Chronister et al. 2021) y PteroSet; Faster R-CNN
-      (Ren et al. 2015) y FPN (Lin et al. 2017); YOLO26 / Ultralytics; AdamW
-      (Loshchilov y Hutter 2019) y OneCycle (Smith 2018); *cluster bootstrap*
-      (Efron y Tibshirani 1993); y el software (PyTorch, Transformers,
-      Ultralytics). La única que sí se cableó es la definición de AP, que ahora
-      cita `lin_2014` (COCO), ya presente en `references.bib`.
+- [x] ~~Faltan once citas~~ **Resuelto el 16-11-2026.** Citadas con DOI
+      verificado en Crossref: AST y AudioSet, ViTDet, DETR (en el cap. 2), focal,
+      GIoU, húngaro, Powdermill/Amazon Basin/PteroSet (caché de aves), Faster R-CNN,
+      ResNet y FPN, YOLO26 (cita preferida del `CITATION.cff` de Ultralytics),
+      RT-DETR, AdamW, OneCycle (Smith y Topin 2019) y *bootstrap* (Efron y
+      Tibshirani 1993). El software se cita en las tablas de herramientas del cap. 1.
 - [x] ~~Repeticiones entre resultados y discusión~~ **Resuelto el 07-10-2026.** «Selección del modelo» queda en resultado (regla, veredicto, contraste con RT-DETR-L); la lista de «tres cosas útiles», el párrafo de alcance y el de Zhu salieron de allí porque la discusión y las limitaciones ya los cubren. La discusión remite a las cifras de la sección de ejes en vez de repetirlas, y la limitación de las clases de ventana ya no copia la regla de la sección de métricas.

@@ -177,8 +177,11 @@ uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curaci
       `notas_tipos_llamada.md`).
 - [x] **16-11-2026, respuestas del autor:** las filas `noise` son selecciones de fondo
       hechas a propósito para medir la potencia en banda; las dos formas de `ac/bc` y
-      `sm/fs` se deben a que no hay un estándar de encuadre. El texto ya lo dice; falta
-      que M. Bowler confirme las dos cosas para citarlas como comunicación personal.
+      `sm/fs` se deben a que no hay un estándar de encuadre. Las dos formas ya se citan
+      con la guía de campo del equipo (`research/papers/Acoustic_Field_Guide_upd.pptx`), citada
+      como comunicación personal (macro `\cpGuia`) porque el lector no puede recuperarla:
+      difieren solo en ancho de banda, y la guía deja a criterio incluir los armónicos.
+      Sigue sin fuente citable lo de las filas de ruido.
 - [ ] Completar los datos de campo de la ficha: número y ubicación de los
       sensores, configuración de grabación y criterio de selección de lo que se
       anotó. *El sitio ya está (06-10-2026): Tambopata Research Center, Reserva
@@ -190,21 +193,14 @@ uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curaci
       del conjunto** en `data/`. O se escribe (puede resumir la ficha y remitir
       a ella), o se declara en la verificación que la ficha del capítulo cumple
       esa función.
-- [ ] **Faltan diez citas.** Las marcas `[CITA: …]` se quitaron del `.tex` el
-      02-10-2026 por pedido del usuario, así que las afirmaciones están en el
-      documento **sin respaldo bibliográfico**. Lo que hay que buscar, y dónde:
-
-  | Afirmación | Referencia que falta |
-  |---|---|
-  | El protocolo es código y no una edición manual | protocolos de monitoreo acústico estandarizables y reproducibles; `gibb_2018` sirve de partida |
-  | Recorte a Nyquist | teorema de muestreo de Nyquist–Shannon |
-  | Fuga entre particiones por duplicados | efecto de las instancias duplicadas sobre la evaluación |
-  | Hace falta medir el acuerdo entre anotadores | `leroy_reliability_2018` es candidata |
-  | Fuga por ventanas solapadas de una misma grabación | un precedente de SED que reporte la inflación al partir por clip |
-  | Ventanas vacías como negativos | muestreo de fondo en SED y su efecto sobre los falsos positivos |
-  | Escala mel y banco HTK | Stevens y Volkmann, o Young et al. (HTK) |
-  | AudioMoth y Raven Pro | Hill et al. (2018); K. Lisa Yang Center for Conservation Bioacoustics |
-  | Variabilidad entre anotadores | `leroy_reliability_2018` o equivalente sobre etiquetas fuertes |
-  | Variabilidad entre sensores de bajo costo | efecto sobre los detectores |
+- [x] ~~Faltan diez citas~~ **Resuelto el 16-11-2026.** Citadas: Nyquist
+      (Shannon 1949), fuga por duplicados (Barz y Denzler 2020), AudioMoth, Raven
+      Pro 1.6.5, acuerdo entre anotadores (`leroy_reliability_2018`), HTK como
+      convención de torchaudio; la escala mel, en el cap. 2. Sin cita, por decisión
+      del autor: el protocolo como programa (es curación de datos, no un aporte que
+      se compare con otro), la fuga por ventanas solapadas (es aritmética, y el 99 %
+      del prototipo es la evidencia; se quitó `koga_lead_2024`, que no trata de
+      fugas), las ventanas vacías (decisión de diseño explicada por su mecanismo) y
+      la limitación de un solo sistema de captura (es un hecho de este trabajo).
 - [x] ~~Comentarios del jurado sobre E1 (material, grafías, partición, referencias adelantadas)~~ **Resuelto el 07-10-2026.** §4.2.1 «Origen y formato» abre con el contexto (proyecto, sitio, fechas, horario, quién anotó, qué se entregó). Las grafías van en la Tabla «Grafías de una misma clase». La figura del reparto tenía flechas que no seguían el algoritmo (con 7, 5, 4, 2 y 1 cajas, la segunda va a train): corregidas y recorridas en el texto. Se quitaron cinco referencias adelantadas (regla de especie, anidamiento, ventanas vacías ×2, ventaneo).
 - [ ] Para E3: las Figuras de valores crudos son capturas del cuaderno; convendría pasarlas a tabla. Quedan referencias adelantadas de hoja de ruta y de verificación (aceptables) y algunas de contenido (geometría, anidamiento, limitaciones).

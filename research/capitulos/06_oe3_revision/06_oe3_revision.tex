@@ -206,7 +206,7 @@ en ninguna de ellas y se reporta aparte, como lo incierto, que no se reparte ent
 las demás.
 
 \rotulo{Estimación.} Por estrato, la proporción de cada respuesta con su intervalo
-de Wilson al 95\,\%. Para las filas nada anotado en conjunto, cada tramo pesa lo
+de Wilson al 95\,\% \citep{wilson_probable_1927}. Para las filas nada anotado en conjunto, cada tramo pesa lo
 que pesa en la población (estimador estratificado, con intervalo normal), y de ahí
 sale el número estimado de eventos no anotados en la partición de prueba y por
 hora de audio. Si dos personas responden por separado las mismas cajas, su
@@ -293,9 +293,8 @@ Tabla~\ref{tab:verificacion-re31} localiza cada uno.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} El protocolo es \file{protocolo.md}, en la carpeta
-            del capítulo; la versión del \textit{commit} \code{63f84a8} contiene las
-            mismas reglas.
+            \item \textit{Nota.} Protocolo: \file{protocolo.md}, con las reglas
+            fijadas en el \textit{commit} \code{63f84a8}.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -349,9 +348,7 @@ cada una tiene al menos una anotación de referencia. Se cuentan tal como llegar
 
 \subsection{Tiempo por condición}
 
-La Tabla~\ref{tab:sesion} da, por carpeta y por condición, el audio, las
-anotaciones del equipo con que se igualaron las carpetas, las propuestas que
-recibió la condición asistida y el tiempo de trabajo.
+La Tabla~\ref{tab:sesion} da el tiempo de trabajo por carpeta y condición.
 
 \begin{table}[htbp]
     \centering
@@ -369,9 +366,8 @@ recibió la condición asistida y el tiempo de trabajo.
         \begin{tablenotes}[flushleft]
             \footnotesize
             \item \textit{Nota.} Carpetas en el orden en que se hicieron.
-            Anotaciones: las del equipo en esas grabaciones. Propuestas: filas de
-            la tabla del modelo que recibió la condición asistida. Trabajo: hora de
-            término menos hora de inicio menos pausas.
+            Anotaciones: las de referencia. Trabajo: fin menos inicio, sin las
+            pausas.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -412,10 +408,9 @@ tablas del modelo sin tocar sobre las mismas grabaciones.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} La referencia son las \uSessionRef{} anotaciones
-            de las clases del modelo, sin filas en revisión, de las
-            \uSessionRecordings{} grabaciones; una tabla devuelta vacía no saca su
-            grabación de la cuenta. Acierto: misma clase e IoU de al menos 0,3.
+            \item \textit{Nota.} Referencia: \uSessionRef{} anotaciones de las
+            clases del modelo en las \uSessionRecordings{} grabaciones. Acierto:
+            misma clase e IoU de al menos 0,3.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -424,10 +419,10 @@ Con las propuestas, las tablas cubrieron \uRecallAssisted{} de la referencia con
 una precisión de \uPrecisionAssisted{}; sin ellas, \uRecallManual{} con
 \uPrecisionManual{}. Las dos quedan lejos de la cobertura de las tablas del
 modelo solo, que encuentran más anotaciones de referencia que cualquier tabla
-humana a costa de una precisión menor. Que las tablas humanas encuentren menos
-que el modelo no significa que sean peores: se miden contra una referencia que
-otras personas hicieron en otro momento, y las \uEmptyTables{} tablas vacías
-cuentan en contra de las dos condiciones.
+humana a costa de una precisión menor. Las tablas humanas se miden contra una
+referencia que otras personas hicieron en otro momento, lo que puede sesgar la
+comparación \citep{koga_lead_2024}, y las \uEmptyTables{}
+tablas vacías cuentan en contra de las dos condiciones.
 
 Lo que se hizo con las propuestas explica parte de esa diferencia. De las
 \uProposals{} propuestas que recibió la condición asistida, se dejaron igual
@@ -477,17 +472,14 @@ las localiza.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Las horas de cada carpeta son las que el equipo
-            anotó en su planilla; las desviaciones de la ejecución están en la
+            \item \textit{Nota.} Tiempos de la planilla del equipo. Desviaciones:
             sección~\ref{sec:desviaciones-oe3}.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-El indicador se cumple: la medición se hizo y se reporta con su material, su
-orden y el costo de la máquina. Que no muestre una reducción del tiempo es un
-resultado, no un incumplimiento, porque el indicador comprometió medir el ahorro y
-no un valor para él.
+El indicador se cumple: comprometió medir el ahorro, no un valor para él, y la
+medición se reporta con su material, su orden y el costo de la máquina.
 
 % ===================================================================
 \section{Análisis cualitativo de errores y hallazgos (RE3.3)}
@@ -521,9 +513,7 @@ sección~\ref{sec:verificacion-re33} contrasta el indicador.
 
 \subsection{Respuestas por estrato}
 
-La Tabla~\ref{tab:estratos} da, para cada estrato, la parte de cada respuesta con
-su intervalo de Wilson al 95\,\%, y la parte de llamada real, que suma las tres
-respuestas que reconocen una llamada de primate en la caja.
+La Tabla~\ref{tab:estratos} resume las respuestas por estrato.
 
 \begin{table}[htbp]
     \centering
@@ -541,13 +531,11 @@ respuestas que reconocen una llamada de primate en la caja.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Los tramos de nada anotado son de confianza.
-            Porcentaje de las cajas revisadas del estrato y, entre paréntesis, su
-            intervalo de Wilson al 95\,\%. Llamada real: \code{correct}, \code{box}
-            u \code{other}. La fila de los tres tramos
-            pesa cada tramo por su población (estimador estratificado, intervalo
-            normal). La respuesta \code{?} suma \uUnsure{} cajas: \uUnsureByStratum{},
-            en el orden de los seis estratos.
+            \item \textit{Nota.} Porcentaje de las revisadas y, entre paréntesis,
+            intervalo de Wilson al 95\,\%. Los tramos de nada anotado son de
+            confianza; su fila conjunta pondera por población (intervalo normal).
+            Llamada real: \code{correct}, \code{box} u \code{other}. Las
+            \uUnsure{} respuestas \code{?} no figuran.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -634,24 +622,15 @@ más frecuente.
     \par\medskip
     \begin{minipage}{\textwidth}
         \footnotesize
-        \textit{Nota.} Cada panel es la ventana de 3~s centrada en la caja, con la
-        frecuencia en escala mel. Línea discontinua celeste: la fila del modelo, con
-        su clase y su confianza; línea continua verde: las anotaciones de referencia,
-        como en el resto del documento. «Anotada» es
-        la clase de la anotación que toca la fila, cuando difiere de la propuesta, y
-        «revisor», la llamada que el revisor nombró.
+        \textit{Nota.} Ventanas de 3~s centradas en la caja, en escala mel. Entre
+        paréntesis, la confianza. «Anotada»: clase de la anotación que toca la caja,
+        si difiere; «revisor»: la llamada que nombró el revisor.
     \end{minipage}
 \end{figure}
 
 El acierto confirmado y la llamada no anotada se parecen: en los dos, una caja
-ajustada sobre una llamada nítida; la diferencia es que en el segundo no hay
-ninguna anotación, y es el caso que la referencia cuenta como falso positivo. El
-ruido es una caja de \code{sm/fs} sobre un sonido que el revisor atribuye a un
-ave. En el error de encuadre, la caja del modelo cubre la llamada pero se extiende
-muy por encima de ella; en el error de clase, el modelo propone un tipo de SB donde
-la referencia anotó uno de SM y el revisor oyó otro tipo de SB, y en la anotación
-por corregir, la caja del modelo encuadra la llamada entera y la anotación, solo
-una parte.
+ajustada sobre una llamada nítida, pero en el segundo no hay anotación y la
+referencia lo cuenta como falso positivo.
 
 \subsection{Sensibilidad}
 
@@ -703,10 +682,10 @@ localiza cada uno.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} Fuera de las tres categorías, la muestra tiene
-            \uCatClass{} errores de clase, \uCatFix{} anotaciones por corregir,
-            \uCatConfirmed{} aciertos confirmados, \uCatDisagree{} desacuerdos con la
-            referencia en los controles y \uCatUnsure{} respuestas inciertas.
+            \item \textit{Nota.} La muestra tiene además \uCatClass{} errores de
+            clase, \uCatFix{} anotaciones por corregir, \uCatConfirmed{} aciertos
+            confirmados, \uCatDisagree{} desacuerdos en los controles y
+            \uCatUnsure{} respuestas inciertas.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -763,8 +742,7 @@ detector de llamadas de langur redujo en un 87\,\% la carga de revisión
 \citep{hong_deep_2026}. Ninguno de esos trabajos medía la anotación completa, con
 caja, especie y tipo de llamada, que es la que esta sesión cronometró
 (sección~\ref{sec:vacio}). Que aquí no aparezca un ahorro es coherente con que
-delimitar cada evento sea lo que más tiempo consume al etiquetar
-\citep{koga_lead_2024}: el detector resuelve la búsqueda, pero no el encuadre, y es
+delimitar cada evento sea muy costoso en tiempo \citep{koga_lead_2024}: el detector resuelve la búsqueda, pero no el encuadre, y es
 en el encuadre donde el especialista y el modelo discrepan. Esa discrepancia
 también es la que anticipa la literatura. La anotación manual tiene errores
 propios de cada anotador \citep{nguyen_assessing_2021}, dos analistas pueden

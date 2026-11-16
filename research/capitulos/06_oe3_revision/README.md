@@ -109,7 +109,7 @@ Desviaciones que el capítulo debe declarar:
 - [x] ~~Redactar RE3.1, RE3.2, RE3.3 y la discusión.~~ Hecho el 15-11-2026, sin reajustar OE3
       ni sus RE: cada resultado se reporta frente a su IOV y lo que no salió como se planeó va a
       las limitaciones.
-- [ ] Decidir qué hacer con `protocolo.md`, que no tiene commit. El capítulo cita el commit
+- [x] ~~Decidir qué hacer con `protocolo.md`~~ **16-11-2026:** ya tiene commit (c39dda6, d7f8adb). El capítulo cita el commit
       63f84a8 (10-10-2026) como la fecha de las reglas. Si se hace commit ahora, el mensaje
       debe decir que es la versión reordenada del 27-10, sin cambios de reglas; su encabezado
       («La fecha es la del commit de esta versión») y «Cambios después del commit (ninguno)»

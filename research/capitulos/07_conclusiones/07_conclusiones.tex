@@ -41,7 +41,8 @@ consistirá sobre todo en ajustar cajas, no en corregir etiquetas.
 
 La segunda implicación es metodológica. Al declarar la regla de decisión antes de
 entrenar, el experimento pudo cerrarse con un resultado que no favorece a la
-arquitectura propuesta sin que eso lo invalide, y al separar la medición en
+arquitectura propuesta, tal como se implementó (sección~\ref{sec:discusion-oe2}),
+sin que eso lo invalide, y al separar la medición en
 detección, encuadre y clasificación quedó visible qué parte del problema está
 resuelta y cuál no. Una sola cifra agregada habría escondido ambas cosas.
 
@@ -159,13 +160,10 @@ las \nReview{} anotaciones que ninguna regla puede decidir, marcadas y
 conservadas.
 
 Contra la búsqueda manual de las vocalizaciones en la grabación entera
-(C2) actúa OE2, y aquí conviene ser preciso sobre lo que el sistema es y
-lo que no. No sustituye al analista ni pretende hacerlo: la cabeza
-emite cajas con la forma exacta en que el equipo ya anota, y el analista las
-recibe en su propia herramienta para aceptarlas, corregirlas o borrarlas. Es
-pre-anotación asistida, y por eso el compromiso elegido privilegia la cobertura
-sobre la precisión: perder una vocalización cuesta más que descartar una
-propuesta falsa, porque el humano revisa la salida de todos modos.
+(C2) actúa OE2. El sistema no sustituye al analista: emite cajas con la forma en
+que el equipo ya anota, y el analista las acepta, corrige o borra en su propia
+herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura sobre
+la precisión (sección~\ref{sec:objetivos}).
 
 Contra la falta de datos para validar las propuestas (C3) actúa OE3, que los
 produce: la revisión ciega y la sesión cronometrada. La revisión ciega separa lo que es error del detector de lo que es omisión
@@ -201,22 +199,41 @@ que aquí se afirma.
           registrando cuánto tiempo va a buscar, a dibujar y a borrar, diría si el
           sistema ahorra tiempo y en qué parte del trabajo. La revisión de cajas
           sugiere probar además otra forma de usarlo: aceptar primero las
-          propuestas de alta confianza, en lugar de juzgarlas todas una a una.
+          propuestas de alta confianza, en lugar de juzgarlas todas una a una:
+          para estimar ocupación, la salida sin depurar ya da un indicador
+          fiable en algunas especies \citep{kalan_towards_2015}.
     \item \textbf{Medir el acuerdo entre anotadores.} Sin él no hay techo de
           evaluación, y OE3 mostró que hace falta: la referencia también se
           equivoca, y las dos personas que revisaron juzgaron el encuadre con
           criterios distintos. Basta con que dos especialistas respondan por
-          separado las mismas cajas.
-    \item \textbf{Completar la referencia.} Las propuestas de alta confianza sin
-          anotación son, en su mayoría, llamadas reales. Revisarlas en todo el
-          corpus, empezando por los hallazgos de entrenamiento y validación que la
-          tarea opcional de OE3 ya dejó preparados, daría una referencia más
-          completa y métricas más justas para el modelo.
+          separado las mismas cajas, como en las campañas con varios anotadores
+          de \citet{nguyen_assessing_2021}.
+    \item \textbf{Mejorar la calidad de los datos originales.} Las propuestas de
+          alta confianza sin anotación son, en su mayoría, llamadas reales, y en
+          entrenamiento esas omisiones le enseñan al modelo que una llamada es
+          fondo. Revisarlas en todo el corpus, empezando por los hallazgos de
+          entrenamiento y validación que la tarea opcional de OE3 ya dejó
+          preparados, y convertir en reglas medibles los criterios de selección de
+          la guía del equipo, que hoy dejan a criterio del anotador incluir los
+          armónicos (\cpGuia), daría datos más completos para
+          entrenar y métricas más justas para evaluar.
+    \item \textbf{Un ciclo de mejora continua.} El modelo propone cajas sobre
+          grabaciones nuevas, el especialista las corrige en Raven, las tablas
+          corregidas entran al entrenamiento y el modelo se reentrena; cada ronda
+          se mide contra una misma referencia revisada, para saber si mejora.
+          Elegir qué propuestas revisar primero, con aprendizaje activo, reduce el
+          costo de anotar \citep{kath_leveraging_2024} y permite que el modelo
+          aprenda de las correcciones del especialista
+          \citep{stowell_computational_2022}.
     \item \textbf{Separar el extractor de la cabeza.} Dos variantes de la
           propuesta lo harían: con el extractor congelado, y el mismo
           decodificador sobre el ResNet-50 de COCO con la misma receta. El
           código ya las admite; sin ellas, la comparación entre configuraciones
           no puede atribuir la diferencia a un componente.
+    \item \textbf{Reentrenar la propuesta con la receta de sus trabajos de
+              origen.} Una tasa de aprendizaje menor para el extractor y el factor de
+          0,1 de Deformable DETR en los desplazamientos, y medir cuánto pierde el
+          AST por recibir otro rango de bandas (sección~\ref{sec:discusion-oe2}).
     \item \textbf{Reconstruir el evento largo.} Las clases de duración mayor que
           la ventana sobreviven fragmentadas, sin ningún mecanismo que las
           reagrupe antes de puntuarlas.
@@ -225,6 +242,6 @@ que aquí se afirma.
           vocal.
     \item \textbf{Cerrar el vocabulario con el equipo.} Los pares fuera de
           vocabulario mezclan error tipográfico y subdivisión legítima, no figuran
-          en el vocabulario que el equipo documenta, y solo el equipo puede decir
+          en el vocabulario que el equipo documenta (\cpGuia), y solo el equipo puede decir
           cuáles son tipos de llamada.
 \end{itemize}

@@ -55,6 +55,8 @@ venv/
 /.vscode/
 *.zip
 research/capitulos/06_oe3_revision/team/
+# PDF de los trabajos citados, para validar las citas (derechos de autor)
+research/papers/
 
 # Add exceptions for research build artifacts
 !research/build/

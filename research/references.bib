@@ -43,8 +43,10 @@
   journal      = {Remote Sensing in Ecology and Conservation},
   publisher    = {Wiley},
   author       = {Campos, Rafael and Krofel, Miha and Rio-Maior, Helena and Renna, Francesco},
-  year         = {2025},
-  month        = sep,
+  year         = {2026},
+  volume       = {12},
+  number       = {1},
+  pages        = {58--70},
   language     = {en}
 }
 
@@ -100,14 +102,16 @@
 }
 
 @article{gibb_2018,
-  title   = {Emerging opportunities and challenges in passive acoustic monitoring},
+  % Corregida el 16-11-2026: título, volumen, páginas, año y DOI eran de otro
+  % trabajo; estos son los del PDF y de Crossref.
+  title   = {Emerging opportunities and challenges for passive acoustics in ecological assessment and monitoring},
   author  = {Gibb, Rory and Browning, Ella and Glover-Kapfer, Paul and Jones, Kate E.},
   journal = {Methods in Ecology and Evolution},
-  volume  = {9},
-  number  = {5},
-  pages   = {1191--1201},
-  year    = {2018},
-  doi     = {10.1111/2041-210X.12978}
+  volume  = {10},
+  number  = {2},
+  pages   = {169--185},
+  year    = {2019},
+  doi     = {10.1111/2041-210X.13101}
 }
 
 @article{gonzalez_yolo-based_2025,
@@ -300,7 +304,7 @@
   volume  = {56},
   number  = {3},
   pages   = {1--36},
-  year    = {2023},
+  year    = {2024},
   doi     = {10.1145/3618104}
 }
 
@@ -543,7 +547,8 @@
   booktitle = {{International Conference on Learning Representations (ICLR)}},
   year      = {2021},
   eprint    = {2010.04159},
-  archivePrefix = {arXiv}
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2010.04159}
 }
 
 % ===================================================================
@@ -732,7 +737,10 @@
   author    = {{K. Lisa Yang Center for Conservation Bioacoustics}},
   title     = {{Raven Pro}: Interactive sound analysis software},
   titleaddon = {Software},
+  version   = {1.6.5},
+  year      = {2026},
   publisher = {The Cornell Lab of Ornithology},
+  location  = {Ithaca, NY},
   url       = {https://www.ravensoundsoftware.com/}
 }
 
@@ -783,5 +791,340 @@
   titleaddon = {Base de datos},
   url        = {https://www.macaulaylibrary.org/},
   urldate    = {2026-10-07}
+}
+
+% --- Agregadas el 16-11-2026. Artículos y ponencias: DOI, autores, volumen y
+% páginas verificados en Crossref; arXiv y NeurIPS por la página del trabajo.
+% Software: versión del uv.lock, autor y fecha de PyPI o del CITATION.cff.
+@inproceedings{carion_detr_2020,
+  author    = {Carion, Nicolas and Massa, Francisco and Synnaeve, Gabriel and Usunier, Nicolas and Kirillov, Alexander and Zagoruyko, Sergey},
+  title     = {End-to-End Object Detection with Transformers},
+  booktitle = {Computer Vision -- {ECCV} 2020},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {12346},
+  pages     = {213--229},
+  publisher = {Springer},
+  year      = {2020},
+  doi       = {10.1007/978-3-030-58452-8_13}
+}
+@inproceedings{gemmeke_audioset_2017,
+  author    = {Gemmeke, Jort F. and Ellis, Daniel P. W. and Freedman, Dylan and Jansen, Aren and Lawrence, Wade and Moore, R. Channing and Plakal, Manoj and Ritter, Marvin},
+  title     = {Audio Set: An ontology and human-labeled dataset for audio events},
+  booktitle = {2017 {IEEE} International Conference on Acoustics, Speech and Signal Processing ({ICASSP})},
+  pages     = {776--780},
+  year      = {2017},
+  doi       = {10.1109/ICASSP.2017.7952261}
+}
+@inproceedings{lin_focal_2017,
+  author    = {Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
+  title     = {Focal Loss for Dense Object Detection},
+  booktitle = {2017 {IEEE} International Conference on Computer Vision ({ICCV})},
+  pages     = {2999--3007},
+  year      = {2017},
+  doi       = {10.1109/ICCV.2017.324}
+}
+@inproceedings{rezatofighi_giou_2019,
+  author    = {Rezatofighi, Hamid and Tsoi, Nathan and Gwak, JunYoung and Sadeghian, Amir and Reid, Ian and Savarese, Silvio},
+  title     = {Generalized Intersection Over Union: A Metric and a Loss for Bounding Box Regression},
+  booktitle = {2019 {IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  pages     = {658--666},
+  year      = {2019},
+  doi       = {10.1109/CVPR.2019.00075}
+}
+@article{kuhn_hungarian_1955,
+  author  = {Kuhn, H. W.},
+  title   = {The {Hungarian} method for the assignment problem},
+  journal = {Naval Research Logistics Quarterly},
+  volume  = {2},
+  number  = {1--2},
+  pages   = {83--97},
+  year    = {1955},
+  doi     = {10.1002/nav.3800020109}
+}
+@article{ren_faster_2017,
+  author  = {Ren, Shaoqing and He, Kaiming and Girshick, Ross and Sun, Jian},
+  title   = {{Faster R-CNN}: Towards Real-Time Object Detection with Region Proposal Networks},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {39},
+  number  = {6},
+  pages   = {1137--1149},
+  year    = {2017},
+  doi     = {10.1109/TPAMI.2016.2577031}
+}
+@inproceedings{lin_fpn_2017,
+  author    = {Lin, Tsung-Yi and Doll{\'a}r, Piotr and Girshick, Ross and He, Kaiming and Hariharan, Bharath and Belongie, Serge},
+  title     = {Feature Pyramid Networks for Object Detection},
+  booktitle = {2017 {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  pages     = {936--944},
+  year      = {2017},
+  doi       = {10.1109/CVPR.2017.106}
+}
+@inproceedings{zhao_rtdetr_2024,
+  author    = {Zhao, Yian and Lv, Wenyu and Xu, Shangliang and Wei, Jinman and Wang, Guanzhong and Dang, Qingqing and Liu, Yi and Chen, Jie},
+  title     = {{DETRs} Beat {YOLOs} on Real-time Object Detection},
+  booktitle = {2024 {IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  pages     = {16965--16974},
+  year      = {2024},
+  doi       = {10.1109/CVPR52733.2024.01605}
+}
+@online{jocher_yolo26_2026,
+  author      = {Jocher, Glenn and Qiu, Jing and Liu, Mengyu and Lyu, Shuai and Akyon, Fatih Cagatay and Kalfaoglu, Muhammet Esat},
+  title       = {{Ultralytics YOLO26}: Unified Real-Time End-to-End Vision Models},
+  year        = {2026},
+  eprint      = {2606.03748},
+  eprinttype  = {arXiv},
+  doi         = {10.48550/arXiv.2606.03748}
+}
+@inproceedings{loshchilov_adamw_2019,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {Decoupled Weight Decay Regularization},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2019},
+  url       = {https://arxiv.org/abs/1711.05101}
+}
+@inproceedings{smith_superconvergence_2019,
+  author    = {Smith, Leslie N. and Topin, Nicholay},
+  title     = {Super-convergence: Very fast training of neural networks using large learning rates},
+  booktitle = {Artificial Intelligence and Machine Learning for Multi-Domain Operations Applications},
+  series    = {Proceedings of SPIE},
+  volume    = {11006},
+  pages     = {1100612},
+  year      = {2019},
+  doi       = {10.1117/12.2520589}
+}
+@book{efron_bootstrap_1993,
+  author    = {Efron, Bradley and Tibshirani, Robert J.},
+  title     = {An Introduction to the Bootstrap},
+  publisher = {Chapman \& Hall/CRC},
+  year      = {1993},
+  doi       = {10.1201/9780429246593}
+}
+@article{wilson_probable_1927,
+  author  = {Wilson, Edwin B.},
+  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal = {Journal of the American Statistical Association},
+  volume  = {22},
+  number  = {158},
+  pages   = {209--212},
+  year    = {1927},
+  doi     = {10.1080/01621459.1927.10502953}
+}
+@inproceedings{wang_pcen_2017,
+  author    = {Wang, Yuxuan and Getreuer, Pascal and Hughes, Thad and Lyon, Richard F. and Saurous, Rif A.},
+  title     = {Trainable frontend for robust and far-field keyword spotting},
+  booktitle = {2017 {IEEE} International Conference on Acoustics, Speech and Signal Processing ({ICASSP})},
+  pages     = {5670--5674},
+  year      = {2017},
+  doi       = {10.1109/ICASSP.2017.7953242}
+}
+@article{shannon_communication_1949,
+  author  = {Shannon, C. E.},
+  title   = {Communication in the Presence of Noise},
+  journal = {Proceedings of the IRE},
+  volume  = {37},
+  number  = {1},
+  pages   = {10--21},
+  year    = {1949},
+  doi     = {10.1109/JRPROC.1949.232969}
+}
+@article{stevens_scale_1937,
+  author  = {Stevens, S. S. and Volkmann, J. and Newman, E. B.},
+  title   = {A Scale for the Measurement of the Psychological Magnitude Pitch},
+  journal = {The Journal of the Acoustical Society of America},
+  volume  = {8},
+  number  = {3},
+  pages   = {185--190},
+  year    = {1937},
+  doi     = {10.1121/1.1915893}
+}
+@article{barz_duplicates_2020,
+  author  = {Barz, Bj{\"o}rn and Denzler, Joachim},
+  title   = {Do We Train on Test Data? {Purging CIFAR} of Near-Duplicates},
+  journal = {Journal of Imaging},
+  volume  = {6},
+  number  = {6},
+  pages   = {41},
+  year    = {2020},
+  doi     = {10.3390/jimaging6060041}
+}
+@inproceedings{paszke_pytorch_2019,
+  author    = {Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and Desmaison, Alban and K{\"o}pf, Andreas and Yang, Edward and DeVito, Zachary and Raison, Martin and Tejani, Alykhan and Chilamkurthy, Sasank and Steiner, Benoit and Fang, Lu and Bai, Junjie and Chintala, Soumith},
+  title     = {{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {32},
+  pages     = {8024--8035},
+  year      = {2019},
+  url       = {https://proceedings.neurips.cc/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html}
+}
+@inproceedings{wolf_transformers_2020,
+  author    = {Wolf, Thomas and Debut, Lysandre and Sanh, Victor and Chaumond, Julien and Delangue, Clement and Moi, Anthony and Cistac, Pierric and Rault, Tim and Louf, Remi and Funtowicz, Morgan and Davison, Joe and Shleifer, Sam and others},
+  title     = {Transformers: State-of-the-Art Natural Language Processing},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
+  pages     = {38--45},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.emnlp-demos.6}
+}
+@inproceedings{yang_torchaudio_2022,
+  author    = {Yang, Yao-Yuan and Hira, Moto and Ni, Zhaoheng and Astafurov, Artyom and Chen, Caroline and Puhrsch, Christian and Pollack, David and Genzel, Dmitriy and Greenberg, Donny and Yang, Edward Z. and Lian, Jason and Hwang, Jeff and others},
+  title     = {{TorchAudio}: Building Blocks for Audio and Speech Processing},
+  booktitle = {2022 {IEEE} International Conference on Acoustics, Speech and Signal Processing ({ICASSP})},
+  pages     = {6982--6986},
+  year      = {2022},
+  doi       = {10.1109/ICASSP43922.2022.9747236}
+}
+@article{harris_numpy_2020,
+  author  = {Harris, Charles R. and Millman, K. Jarrod and van der Walt, St{\'e}fan J. and Gommers, Ralf and Virtanen, Pauli and Cournapeau, David and Wieser, Eric and Taylor, Julian and Berg, Sebastian and Smith, Nathaniel J. and Kern, Robert and Picus, Matti and others},
+  title   = {Array programming with {NumPy}},
+  journal = {Nature},
+  volume  = {585},
+  number  = {7825},
+  pages   = {357--362},
+  year    = {2020},
+  doi     = {10.1038/s41586-020-2649-2}
+}
+@inproceedings{mckinney_pandas_2010,
+  author    = {McKinney, Wes},
+  title     = {Data Structures for Statistical Computing in {Python}},
+  booktitle = {Proceedings of the 9th Python in Science Conference},
+  pages     = {56--61},
+  year      = {2010},
+  doi       = {10.25080/Majora-92bf1922-00a}
+}
+@article{hunter_matplotlib_2007,
+  author  = {Hunter, John D.},
+  title   = {Matplotlib: A {2D} Graphics Environment},
+  journal = {Computing in Science \& Engineering},
+  volume  = {9},
+  number  = {3},
+  pages   = {90--95},
+  year    = {2007},
+  doi     = {10.1109/MCSE.2007.55}
+}
+@book{chacon_progit_2014,
+  author    = {Chacon, Scott and Straub, Ben},
+  title     = {Pro {Git}},
+  edition   = {2},
+  publisher = {Apress},
+  year      = {2014},
+  doi       = {10.1007/978-1-4842-0076-6}
+}
+@software{python_312,
+  author     = {{Python Software Foundation}},
+  title      = {Python},
+  titleaddon = {Software},
+  version    = {3.12},
+  year       = {2023},
+  url        = {https://www.python.org/}
+}
+@software{torchvision_2026,
+  author     = {{PyTorch Core Team}},
+  title      = {{TorchVision}},
+  titleaddon = {Software},
+  version    = {0.29.0},
+  year       = {2026},
+  url        = {https://github.com/pytorch/vision}
+}
+@software{ultralytics_2026,
+  author     = {Jocher, Glenn and Qiu, Jing and Chaurasia, Ayush},
+  title      = {{Ultralytics YOLO}},
+  titleaddon = {Software},
+  version    = {8.4.148},
+  year       = {2026},
+  url        = {https://github.com/ultralytics/ultralytics}
+}
+@software{soundfile_2026,
+  author     = {Bechtold, Bastian},
+  title      = {{python-soundfile}},
+  titleaddon = {Software},
+  version    = {0.14.0},
+  year       = {2026},
+  url        = {https://github.com/bastibe/python-soundfile}
+}
+@software{soxr_2026,
+  author     = {Keum, Myungchul},
+  title      = {{python-soxr}},
+  titleaddon = {Software},
+  version    = {1.1.0},
+  year       = {2026},
+  url        = {https://github.com/dofuuz/python-soxr}
+}
+@software{uv_2026,
+  author     = {{Astral Software}},
+  title      = {{uv}},
+  titleaddon = {Software},
+  version    = {0.13.8},
+  year       = {2026},
+  url        = {https://github.com/astral-sh/uv}
+}
+@software{ruff_2026,
+  author     = {{Astral Software}},
+  title      = {Ruff},
+  titleaddon = {Software},
+  version    = {0.16.7},
+  year       = {2026},
+  url        = {https://github.com/astral-sh/ruff}
+}
+@software{ty_2026,
+  author     = {{Astral Software}},
+  title      = {{ty}},
+  titleaddon = {Software},
+  version    = {0.0.80},
+  year       = {2026},
+  url        = {https://github.com/astral-sh/ty}
+}
+@software{pytest_2026,
+  author     = {Krekel, Holger and others},
+  title      = {{pytest}},
+  titleaddon = {Software},
+  version    = {9.1.1},
+  year       = {2026},
+  url        = {https://github.com/pytest-dev/pytest}
+}
+@inproceedings{li_vitdet_2022,
+  author    = {Li, Yanghao and Mao, Hanzi and Girshick, Ross and He, Kaiming},
+  title     = {Exploring Plain Vision Transformer Backbones for Object Detection},
+  booktitle = {Computer Vision -- {ECCV} 2022},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {13669},
+  pages     = {280--296},
+  publisher = {Springer},
+  year      = {2022},
+  doi       = {10.1007/978-3-031-20077-9_17}
+}
+@article{chronister_annotated_2021,
+  author  = {Chronister, Lauren M. and Rhinehart, Tessa A. and Place, Aidan and Kitzes, Justin},
+  title   = {An annotated set of audio recordings of {Eastern North American} birds containing frequency, time, and species information},
+  journal = {Ecology},
+  volume  = {102},
+  number  = {6},
+  pages   = {e03329},
+  year    = {2021},
+  doi     = {10.1002/ecy.3329}
+}
+@article{everingham_pascal_2010,
+  author  = {Everingham, Mark and Van Gool, Luc and Williams, Christopher K. I. and Winn, John and Zisserman, Andrew},
+  title   = {The {Pascal} Visual Object Classes ({VOC}) Challenge},
+  journal = {International Journal of Computer Vision},
+  volume  = {88},
+  number  = {2},
+  pages   = {303--338},
+  year    = {2010},
+  doi     = {10.1007/s11263-009-0275-4}
+}
+@online{coco_eval,
+  author  = {{COCO Consortium}},
+  title   = {Detection evaluation},
+  url     = {https://cocodataset.org/#detection-eval},
+  urldate = {2026-11-16}
+}
+@article{everingham_retrospective_2015,
+  author  = {Everingham, Mark and Eslami, S. M. Ali and Van Gool, Luc and Williams, Christopher K. I. and Winn, John and Zisserman, Andrew},
+  title   = {The {Pascal} Visual Object Classes Challenge: A Retrospective},
+  journal = {International Journal of Computer Vision},
+  volume  = {111},
+  number  = {1},
+  pages   = {98--136},
+  year    = {2015},
+  doi     = {10.1007/s11263-014-0733-5}
 }
 
