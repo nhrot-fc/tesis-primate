@@ -15,19 +15,18 @@ FLOOR_CHUNK = 256
 
 
 @dataclass(frozen=True)
-# Sobre el audio, recalculando el mel
 class AugmentConfig:
     p_gain: float = 0.8
     gain_db: tuple[float, float] = (-6.0, 6.0)
 
-    p_background: float = 0.5  # mezcla una ventana vacía a este SNR
+    p_background: float = 0.5  # mezcla una ventana vacía al SNR de snr_db
     snr_db: tuple[float, float] = (6.0, 24.0)
 
     p_shift: float = 0.5  # corrimiento temporal, en fracción del clip
     max_shift: float = 0.10
-    min_overlap: float = P.min_overlap  # el mismo criterio con el que entró al manifest
+    min_overlap: float = P.min_overlap
 
-    p_paste: float = 0.5  # pega llamadas de otras ventanas (copy-paste)
+    p_paste: float = 0.5  # copy-paste de llamadas de otras ventanas
     max_events: int = 3
     max_event_area: float = 0.25
     paste_jitter_db: tuple[float, float] = (-3.0, 3.0)
@@ -38,7 +37,6 @@ def band_floor(mel: Tensor) -> Tensor:
     return mel.quantile(FLOOR_QUANTILE, dim=-1, keepdim=True)
 
 
-# Recortes de llamadas pegables, muestreados con peso inverso a su clase
 class EventBank:
     def __init__(
         self, images: Tensor, boxes: list[Tensor], labels: list[Tensor], max_area: float

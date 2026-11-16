@@ -61,7 +61,6 @@ def main() -> None:
     if not audio:
         raise SystemExit("No audio files to process.")
 
-    # torch y el resto se importan acá para que un error de argumentos no espere a torch.
     print("Loading detection engine...", flush=True)
     from inference.batch import DONE, FAILED, SKIPPED, STOPPED, run_batch
     from models.registry import load_checkpoint
@@ -90,7 +89,7 @@ def main() -> None:
         if outcome.status == SKIPPED:
             logger.info("%s already has a table; --overwrite redoes it", where)
         elif outcome.status == FAILED:
-            failed += 1  # `run_batch` ya dejó el error con su traza
+            failed += 1
         elif outcome.status == DONE:
             logger.info(
                 "%s: %d detections in %.0f s -> %s",
@@ -111,5 +110,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        # Cada tabla se escribe al terminar su archivo: las hechas quedan.
         raise SystemExit("\nStopped. Tables already written are kept.") from None

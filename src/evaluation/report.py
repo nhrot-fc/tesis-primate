@@ -7,8 +7,8 @@ NAME_WIDTH = 26
 WINDOW_MARK = "*"
 
 
-def fmt(value: float | None, digits: int = 3) -> str:
-    return f"{value:.{digits}f}" if value is not None else "n/a"
+def fmt(value: float | None) -> str:
+    return f"{value:.3f}" if value is not None else "n/a"
 
 
 def format_line(metrics: DetectionMetrics) -> str:
@@ -19,7 +19,7 @@ def format_line(metrics: DetectionMetrics) -> str:
 
 
 def cell(value: object, width: int) -> str:
-    # Sin separador entre celdas: el relleno separa. Ancho negativo alinea a la izquierda.
+    # ancho negativo: a la izquierda
     text = str(value)
     limit = abs(width) - 1 if width < 0 else abs(width)
     if len(text) > limit:
@@ -111,7 +111,6 @@ def wide_table(
     subcolumns: dict[str, int],
     rows: list[list],
 ) -> list[str]:
-    # Una fila por clase; cada modelo agrega un grupo de subcolumnas a la derecha.
     group = sum(subcolumns.values())
     first_width = sum(abs(w) for w in first.values())
     lines = [

@@ -15,15 +15,13 @@ from training.trainer import TrainConfig
 logger = logging.getLogger(__name__)
 
 PATIENCE = 10
-# Lo que deja Ultralytics en la corrida. Coinciden con `checkpoint.BEST`/`LAST` por casualidad:
-# son sus nombres, no los del proyecto.
+# Los de Ultralytics, no checkpoint.BEST/LAST
 ULTRALYTICS_BEST = Path("weights") / "best.pt"
 ULTRALYTICS_LAST = Path("weights") / "last.pt"
 RESULTS = "results.csv"
-# Fitness de Ultralytics: con ella elige `best.pt`
+# Fitness con que Ultralytics elige su best.pt
 FITNESS = {"metrics/mAP50(B)": 0.1, "metrics/mAP50-95(B)": 0.9}
 
-# Aumentaciones: espectrograma, no foto.
 AUGMENTATION = {
     "hsv_h": 0.0,  # el gris no tiene tono ni saturación
     "hsv_s": 0.0,
@@ -46,13 +44,10 @@ AUGMENTATION = {
 
 
 def image_path(split: str, index: int) -> Path:
-    # Ventana `index` de `split` en el export; su etiqueta está en labels/ con el mismo nombre.
     return YOLO_DIR / "images" / split / f"{split}_{index:06d}.png"
 
 
 def fold_dataset(run_dir: Path, train_images: list[Path]) -> Path:
-    # Un dataset.yaml propio de la corrida que entrena sólo con estas imágenes del export:
-    # Ultralytics acepta en `train:` un .txt con rutas y busca cada etiqueta en images/ -> labels/.
     run_dir.mkdir(parents=True, exist_ok=True)
     train_list = run_dir / "train.txt"
     train_list.write_text("".join(f"{path}\n" for path in train_images))
@@ -68,7 +63,6 @@ def fold_dataset(run_dir: Path, train_images: list[Path]) -> Path:
 
 
 def check_export() -> dict:
-    # El export tiene que ser del caché actual.
     if not (YOLO_DIR / "dataset.yaml").exists():
         raise FileNotFoundError(
             f"no hay dataset YOLO en {YOLO_DIR}; corré `python src/export_yolo.py`"
@@ -82,8 +76,7 @@ def check_export() -> dict:
 
 
 def best_epoch(run_dir: Path) -> tuple[int, dict[str, float]]:
-    # -> (época de `best.pt`, desde 0, y sus métricas de Ultralytics). Con `patience` la corrida
-    # puede parar antes de `epochs`: la época real sale de results.csv, no de la config.
+    # -> (época de best.pt desde 0, sus métricas); con patience puede parar antes de epochs
     results = pd.read_csv(run_dir / RESULTS)
     results.columns = [column.strip() for column in results.columns]
     fitness = (results[list(FITNESS)] * pd.Series(FITNESS)).sum(axis=1)
@@ -95,7 +88,6 @@ def best_epoch(run_dir: Path) -> tuple[int, dict[str, float]]:
 def export_checkpoint(
     run_dir: Path, labels: LabelSet, hparams: dict[str, Any], config: dict
 ) -> Path:
-    # Al formato del proyecto, que es el que `load_checkpoint` abre.
     model = SpectrogramYOLO(n_classes=len(labels), **hparams)
     load_ultralytics_weights(model, run_dir / ULTRALYTICS_BEST)
     epoch, metrics = best_epoch(run_dir)
@@ -119,7 +111,7 @@ def fit(
     config: TrainConfig,
     device: str,
     limit: int | None = None,
-    train_images: list[Path] | None = None,  # k-fold: sólo estas ventanas del export de train
+    train_images: list[Path] | None = None,  # k-fold: sólo estas ventanas de train
 ) -> Path:
     from ultralytics import RTDETR, YOLO
 
@@ -134,9 +126,7 @@ def fit(
             f"el export es de {meta['image_size']} px y el modelo pide {hparams['imgsz']}"
         )
 
-    # RT-DETR no converge con el optimizador que elige Ultralytics por su cuenta: necesita
-    # AdamW y una tasa baja, y así se entrenó la corrida que compara el capítulo 5. YOLO sí
-    # usa "auto", y dejarlo explícito aquí cambiaría la receta de una corrida ya publicada.
+    # RT-DETR no converge con el optimizador "auto" de Ultralytics
     is_rtdetr = stem.startswith(RTDETR_PREFIX)
     optimizacion: dict[str, Any] = (
         {
@@ -189,8 +179,6 @@ def fit(
         "batch_size": config.batch_size,
         "seed": config.seed,
         "patience": PATIENCE,
-        # Sólo cuando se fija a mano: con "auto" la elige Ultralytics y escribirla aquí
-        # daría a entender que es parte de la receta.
         **({} if optimizacion["optimizer"] == "auto" else optimizacion),
         "augmentation": AUGMENTATION,
         "score_threshold": config.score_threshold,

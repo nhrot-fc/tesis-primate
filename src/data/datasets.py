@@ -25,7 +25,7 @@ class BoxJitter:
     freq_scale: float = 0.15  # ±% del ancho de banda
     time_shift: float = 0.10  # corrimiento, en fracción de la duración
     freq_shift: float = 0.10  # corrimiento, en fracción del ancho de banda
-    min_size: float = MIN_BOX_SIZE  # el mismo mínimo por eje que aceptó el manifest
+    min_size: float = MIN_BOX_SIZE
 
 
 def jitter_boxes(boxes: Tensor, jitter: BoxJitter) -> Tensor:
@@ -61,7 +61,7 @@ class SpectrogramDataset(Dataset):
         self.images: Tensor = stored["images"]  # (N, 1, n_mels, T), potencia mel
         self.boxes: list[Tensor] = stored["boxes"]
         self.labels: list[Tensor] = stored["labels"]
-        self.jitter = jitter  # sólo en train
+        self.jitter = jitter
         self.augmenter = None
         if augment is not None:
             clips = cache.clips(path.stem, len(self.boxes))
@@ -81,7 +81,6 @@ class SpectrogramDataset(Dataset):
         return image, {"boxes": target["boxes"].clone(), "labels": target["labels"].clone()}
 
 
-# Una ventana como PNG en gris más sus líneas de etiqueta
 class YOLODataset:
     def __init__(self, path: Path, db_low: float, db_high: float, image_size: int):
         self.windows = SpectrogramDataset(path)

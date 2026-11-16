@@ -13,17 +13,13 @@ from data.raven import BEGIN, SELECTION, renumber
 
 logger = logging.getLogger("unify_recordings")
 
-# Carpeta de origen de cada fila: el mismo wav está anotado en varias carpetas de especie
-# y la columna `Species` de la tabla no siempre está cargada.
 FOLDER_SPECIES = "Folder Species"
-# Mapa de cada archivo de unified/ a los de raw/ que lo originaron
 SOURCES = "sources.tsv"
-# PteroSet: symlink a /data, 95 GB y sin copias; no aporta nada a la unificación
 SKIP_FOLDERS = ["birds__AV"]
 
 
 def read_table(annotation: Path) -> pd.DataFrame | None:
-    # Tal cual está: todo como texto para no reformatear nada al volver a escribir.
+    # dtype=str: se reescribe sin reformatear nada
     try:
         return pd.read_csv(annotation, sep="\t", dtype=str, keep_default_na=False)
     except pd.errors.EmptyDataError:
@@ -31,8 +27,6 @@ def read_table(annotation: Path) -> pd.DataFrame | None:
 
 
 def merge_tables(frames: list[pd.DataFrame]) -> tuple[pd.DataFrame, int]:
-    # Unión de las tablas de las copias: columnas en el orden en que aparecen, sin las filas
-    # repetidas entre copias, ordenada por tiempo y con `Selection` correlativo para Raven.
     table = pd.concat(frames, ignore_index=True, sort=False).fillna("")
     annotation_columns = [c for c in table.columns if c not in (SELECTION, FOLDER_SPECIES)]
     n_before = len(table)
@@ -68,7 +62,6 @@ def main() -> None:
     table_of = {w: tables.pop((w.parent, w.stem), None) for w in wavs}
     without_audio = sorted(str(t.relative_to(args.raw)) for t in tables.values())
 
-    # Copias byte-idénticas, en el orden de raw/: la primera da el nombre.
     groups: dict[tuple[int, str], list[Path]] = defaultdict(list)
     for wav in wavs:
         groups[audio_signature(wav)].append(wav)
@@ -82,7 +75,6 @@ def main() -> None:
     empty: list[str] = []
     failed: list[str] = []
     for signature, copies in groups.items():
-        # Mismo nombre con otro audio (raíz vs. subcarpeta): se numera la segunda en adelante.
         stem = copies[0].stem
         names[stem] += 1
         if names[stem] > 1:

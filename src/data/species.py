@@ -13,7 +13,6 @@ class Species(Enum):
     SM = "large_headed_capuchin"  # Sapajus macrocephalus
 
 
-# Código en la anotación -> nombre legible.
 CALL_TYPES: dict[Species, dict[str, str]] = {
     Species.AA: {
         "gc": "gulp_call",
@@ -73,8 +72,7 @@ VALID_PAIRS: frozenset[tuple[str, str]] = frozenset(
     (species.name.lower(), code) for species, codes in CALL_TYPES.items() for code in codes
 )
 
-# Una etiqueta del `LabelSet` es `<especie>/<llamada>`, en minúscula: "lw/cs".
-LABEL_SEPARATOR = "/"
+LABEL_SEPARATOR = "/"  # "lw/cs": especie/llamada
 
 
 def make_label(species: str, call_type: str) -> str:

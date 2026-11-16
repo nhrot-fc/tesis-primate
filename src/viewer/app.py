@@ -68,22 +68,17 @@ from viewer.transport import Transport
 logger = logging.getLogger("viewer")
 
 BASE_TITLE = "Primate Vocalization Detector"
-# Las dos vistas, como las dos ventanas de Raven: una grabación o una carpeta entera.
 SPECTROGRAM, BATCH = "Spectrogram", "Batch"
 SCORE_WIDTH = 200
-# La ayuda es una ventana aparte con scroll: la lista es más alta que muchas pantallas.
 HELP_SIZE = (640, 620)
-# El emblema de la bienvenida: el mismo dibujo que el icono del .exe (deploy/build_windows.py).
 EMBLEM_SIZE = 96
 EMBLEM_BACKGROUND, EMBLEM_STROKE = "#1c1b22", 5
-# Al encuadrar una caja en revisión: la banda mide al menos el doble que la caja.
-REVIEW_BAND_MARGIN = 2.0
+REVIEW_BAND_MARGIN = 2.0  # la banda mide al menos el doble de la caja
 
 AUDIO = "*.wav *.flac *.mp3 *.WAV *.FLAC *.MP3"
 TABLES = "*.txt *.csv"
 MODELS = "*.pth *.pt"
 TABLE_SUFFIXES = {".txt", ".csv"}
-# El manual, si está: junto al programa en el paquete, en docs/ en el repo.
 MANUAL_PATHS = (
     PROJECT_DIR / "Manual.pdf",
     PROJECT_DIR / "docs" / "manual" / "build" / "manual.pdf",
@@ -156,7 +151,6 @@ HELP = {
 }  # fmt: skip
 
 
-# La fila del transporte, con los dos zooms al final.
 class ControlsRow(QWidget):
     CLOCK_FROM = 520
 
@@ -175,16 +169,12 @@ class ControlsRow(QWidget):
         row.addWidget(band.heights_label)
         row.addWidget(band.heights)
 
-    # Estrecha, la barra de tiempo se queda sin sitio y la fila deja de servir; antes de eso
-    # se suelta el reloj, que el eje y el cabezal también dicen.
     @override
     def resizeEvent(self, a0) -> None:
         super().resizeEvent(a0)
         self.clock.setVisible(self.width() >= self.CLOCK_FROM)
 
 
-# La ventana sin grabación: una frase, una aclaración y los dos modos de empezar. Un sitio
-# vacío que no explica nada es el momento en que más se necesita la explicación.
 class Welcome(QWidget):
     def __init__(self, open_audio, open_folder) -> None:
         super().__init__()
@@ -220,8 +210,6 @@ class Welcome(QWidget):
         layout.addStretch(1)
 
 
-# Un cuadro oscuro con las cajas de las dos capas, pintado a mano para no depender de un
-# archivo: lo mismo que el icono del programa, así la ventana vacía ya dice de qué va.
 def emblem_pixmap(size: int) -> QPixmap:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -249,12 +237,8 @@ class Viewer(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(BASE_TITLE)
-        # Sin mínimo propio: lo pone el contenido, así nada se corta al estrechar.
         self.resize(1280, 820)
         self.setAcceptDrops(True)
-        # La ventana no deja nada escrito al cerrarse: cada arranque es igual al anterior.
-        # La única carpeta que se lleva memoria es la de los diálogos, y sólo mientras dura
-        # la sesión.
         self.last_folder = ""
 
         self.session = Session()
@@ -263,7 +247,7 @@ class Viewer(QMainWindow):
         self.pending_table: Path | None = None  # tabla que se abre en cuanto cargue su audio
         self.queued: list[Path] = []  # lo que se pidió abrir mientras otra cosa cargaba
         self.dock_shown = False  # si el panel de cajas estaba abierto al pasar a Batch
-        self.help_dialog: QDialog | None = None  # se arma la primera vez que se pide
+        self.help_dialog: QDialog | None = None
 
         self.plot = SpectrogramView()
         self.plot.moved.connect(self.track)
@@ -276,7 +260,6 @@ class Viewer(QMainWindow):
         self.plot.clicked.connect(self.transport.seek)
         self.plot.zoomed.connect(self.transport.zoom)
 
-        # Cómo se ve y cómo se oye, en una ventana aparte que se deja abierta al lado.
         self.settings = SettingsPanel()
         self.settings.brightness.changed.connect(self.draw_spectrogram)
         self.settings.contrast.changed.connect(self.draw_spectrogram)
@@ -289,7 +272,6 @@ class Viewer(QMainWindow):
         self.settings_dialog.setWindowFlag(Qt.WindowType.Tool)
         QVBoxLayout(self.settings_dialog).addWidget(self.settings)
 
-        # La banda: el control manda al espectrograma y este devuelve lo que pudo (recortado).
         self.band = Band()
         self.band.changed.connect(self.plot.set_band)
         self.plot.banded.connect(self.band.set_values)
@@ -310,7 +292,6 @@ class Viewer(QMainWindow):
         self.batch.said.connect(self.say)
         self.batch.state_changed.connect(self.sync_controls)
 
-        # El modelo es uno: cada vista tiene su lista y la ventana las mantiene iguales.
         self.picker = ModelPicker()
         self.pickers = (self.picker, self.batch.picker)
         for picker in self.pickers:
@@ -331,12 +312,7 @@ class Viewer(QMainWindow):
         self.first_model()
         self.start_engine()
 
-    # --- Construccion -----------------------------------------------------------
-
-    # Cada acción se define una vez y aparece donde toca: en el menú, en la barra o en las
-    # dos. Los atajos van con la acción, así el menú los enseña solo.
     def build_actions(self) -> None:
-        # Las dos vistas: un botón marcado por cada una.
         self.modes = QActionGroup(self)
         self.mode_actions: dict[str, QAction] = {}
         for mode, tip in ((SPECTROGRAM, "One recording at a time"), (BATCH, "A whole folder")):
@@ -346,7 +322,6 @@ class Viewer(QMainWindow):
             action.triggered.connect(lambda _, name=mode: self.set_mode(name))
             self.mode_actions[mode] = action
 
-        # Tres aperturas, como en Raven: el audio, la tabla que va encima y la carpeta.
         self.open_audio_action = self.action(
             "Open audio…", "Ctrl+O", self.open_audio, "WAV, FLAC or MP3"
         )
@@ -394,8 +369,7 @@ class Viewer(QMainWindow):
             "Wider band", "Ctrl+Down", lambda: self.band.zoom(1),
             "More frequency range on screen (Shift + wheel)",
         )  # fmt: skip
-        # La F sola se atiende en keyPressEvent, para que no dispare mientras se escribe una
-        # especie; el tabulador en el texto la enseña en el menú sin registrarla.
+        # "\tF" enseña el atajo sin registrarlo: F va por keyPressEvent
         self.full_band_action = self.action("Full band\tF", "", self.band.full)
         self.boxes_action = self.table.toggleViewAction()
         if self.boxes_action is not None:
@@ -431,9 +405,6 @@ class Viewer(QMainWindow):
         self.addAction(action)
         return action
 
-    # Una barra de menús como la de Raven o Audacity, y ninguna otra barra: todo lo que se
-    # puede hacer está acá, con su atajo al lado. Lo de cada día (el modelo, Detect, el
-    # score, Review) va debajo del espectrograma, que es donde se usa.
     def build_menus(self) -> None:
         bar = self.menuBar()
         if bar is None:
@@ -476,11 +447,8 @@ class Viewer(QMainWindow):
             help_menu.addAction(self.help_action)
             help_menu.addAction(self.manual_action)
 
-    # La vista de espectrograma: el mensaje de bienvenida hasta que haya audio; con audio, el
-    # espectrograma, la barra de tiempo y una fila de contexto (leyenda y score, o la revisión).
     def build_page(self) -> QWidget:
         self.welcome = Welcome(self.open_audio, self.open_folder)
-        # El espectrograma con el scroll de la banda pegado a su derecha.
         self.spectrogram = QWidget()
         with_scroll = QHBoxLayout(self.spectrogram)
         with_scroll.setContentsMargins(0, 0, 0, 0)
@@ -501,14 +469,8 @@ class Viewer(QMainWindow):
         layout.addWidget(self.build_context())
         page = QWidget()
         page.setLayout(layout)
-        # Sin mínimo propio: el que sale de sus filas es el que vale, y al estrechar la
-        # ventana es el panel de cajas el que encoge primero. Con un mínimo fijo más chico
-        # la fila de abajo se cortaba por la derecha.
         return page
 
-    # Una sola fila debajo del transporte, de izquierda a derecha en el orden en que se usa:
-    # el modelo y Detect, el umbral y la leyenda de las capas, y Review al final. Durante la
-    # revisión la fila entera pasa a ser la revisión: es lo único que se está haciendo.
     def build_context(self) -> QWidget:
         picker_label = QLabel("Model")
         picker_label.setToolTip(self.picker.toolTip())
@@ -519,8 +481,7 @@ class Viewer(QMainWindow):
         self.layers = Layers([(s, COLORS[s], STYLES[s], WIDTHS[s]) for s in SOURCES])
         self.layers.changed.connect(self.draw_boxes)
 
-        # Sólo esconde cajas: nada de lo que se escribe depende de esto. Arranca en el punto
-        # de operación del modelo, que es lo que el modelo llama una detección.
+        # Sólo esconde cajas: nada de lo que se escribe depende de esto
         thresholds = score_grid(DETECT_THRESHOLD, 1.0)
         self.score = Slider(
             "Score ≥", thresholds, thresholds.index(SCORE_THRESHOLD), "{:.2f}", label_width=52
@@ -533,7 +494,6 @@ class Viewer(QMainWindow):
         self.review_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.review_button.clicked.connect(self.reviewer.start)
 
-        # Una fila con dos caras y nunca las dos a la vez: mirar o revisar.
         self.model_tools = QWidget()
         row = QHBoxLayout(self.model_tools)
         row.setContentsMargins(0, 0, 0, 0)
@@ -568,9 +528,6 @@ class Viewer(QMainWindow):
         else:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
-    # Una ventana aparte, con scroll y sin bloquear: se deja abierta al lado mientras se
-    # aprende, y F1 la trae al frente. Un QMessageBox no hace scroll y esta lista es más alta
-    # que la pantalla de un portátil.
     def show_help(self) -> None:
         if self.help_dialog is None:
             rows = "".join(
@@ -604,9 +561,6 @@ class Viewer(QMainWindow):
         self.help_dialog.raise_()
         self.help_dialog.activateWindow()
 
-    # A la izquierda lo que acaba de pasar; a la derecha, mientras dure, qué está corriendo
-    # con su barra, y las coordenadas del puntero. Una barra de progreso sin nombre al lado
-    # no dice qué espera.
     def build_status_bar(self) -> None:
         self.task = QLabel("")
         self.progress = QProgressBar()
@@ -628,22 +582,15 @@ class Viewer(QMainWindow):
         self.task.setVisible(text is not None)
         self.progress.setVisible(text is not None)
 
-    # --- Arranque ---------------------------------------------------------------
-
-    # El primero de la lista queda elegido: con un solo modelo instalado, que es lo normal,
-    # nunca hay que tocar el desplegable.
     def first_model(self) -> None:
         listed = self.picker.paths()
         if listed:
             self.picker.select(listed[0])
 
-    # La carpeta de los diálogos: la del audio abierto, si no la última de esta sesión.
     def folder(self) -> str:
         if self.session.audio_path is not None:
             return str(self.session.audio_path.parent)
         return self.last_folder
-
-    # --- Motor ------------------------------------------------------------------
 
     def start_engine(self) -> None:
         self.say("Loading the detection engine… you can open a recording meanwhile.")
@@ -664,9 +611,6 @@ class Viewer(QMainWindow):
         else:
             self.say("Ready.")
 
-    # Sin motor el visor sigue sirviendo para mirar y escuchar tablas ya hechas. Se avisa con
-    # un diálogo: en la barra de estado lo tapa el siguiente mensaje y Detect queda apagado
-    # sin que se sepa por qué.
     def engine_failed(self, message: str) -> None:
         self.engine = False
         self.batch.set_engine(False)
@@ -681,20 +625,15 @@ class Viewer(QMainWindow):
             f"Details are in {log_location() or 'the console'}.",
         )
 
-    # --- Estado -----------------------------------------------------------------
-
     def say(self, message: str) -> None:
         self.bar.showMessage(message)
 
     def fail(self, message: str) -> None:
-        # La tabla que esperaba a un audio que no cargó no es de nadie: no debe caer sobre el
-        # siguiente que se abra.
         self.pending_table = None
         self.say("Error.")
         QMessageBox.critical(self, "Error", message)
 
-    # Ocupado de verdad: el hilo corre y todavía no entregó. Entre que entrega y termina hay
-    # un instante en que `isRunning` sigue en alto; ahí no se está ocupado, se está saliendo.
+    # Entre que el hilo entrega y termina, isRunning sigue en alto un instante
     def busy(self) -> bool:
         return self.worker is not None and self.worker.isRunning() and not self.worker.done
 
@@ -713,7 +652,6 @@ class Viewer(QMainWindow):
             self.dock_shown = False
         self.sync_controls()
 
-    # Lo que no se puede usar todavía no se muestra apagado: se muestra cuando sirve.
     def sync_controls(self) -> None:
         busy = self.busy()
         loaded = self.session.waveform is not None
@@ -767,7 +705,6 @@ class Viewer(QMainWindow):
         self.controls.setVisible(loaded)
         self.context.setVisible(loaded)
         self.context.setCurrentIndex(1 if reviewing else 0)
-        # El umbral y Review sólo tienen sentido con detecciones delante.
         self.score.setEnabled(detections and not busy)
         self.review_button.setEnabled(detections and not busy)
 
@@ -779,7 +716,7 @@ class Viewer(QMainWindow):
         if self.busy():
             return
         if self.worker is not None:
-            self.worker.wait()  # ya entregó: lo que le queda es salir
+            self.worker.wait()
         self.say(message)
         self.worker = Worker(task, reports, what=message.rstrip("…"))
         self.worker.ok.connect(done)
@@ -796,7 +733,6 @@ class Viewer(QMainWindow):
         self.progress.setValue(done)
 
     def finish(self) -> None:
-        # La barra se queda mientras el motor o una tarea sigan cargando.
         if self.busy():
             pass
         elif self.engine is None:
@@ -806,8 +742,6 @@ class Viewer(QMainWindow):
         self.sync_controls()
         if self.queued and not self.busy():
             self.open_path(self.queued.pop(0))
-
-    # --- Apertura de archivos ---------------------------------------------------
 
     def open_audio(self) -> None:
         chosen, _ = QFileDialog.getOpenFileName(
@@ -839,9 +773,6 @@ class Viewer(QMainWindow):
         if chosen:
             self.picker.select(Path(chosen))
 
-    # Lo que se abre o se suelta en la ventana se enruta por extensión; una carpeta va a Batch.
-    # Mientras algo carga, lo pedido espera su turno: por argumento llegan el audio y su tabla
-    # juntos, y la tabla necesita el audio ya abierto.
     def open_path(self, path: Path) -> None:
         if self.busy():
             if path not in self.queued:
@@ -865,7 +796,6 @@ class Viewer(QMainWindow):
         else:
             self.say(f"Cannot open '{path.name}'.")
 
-    # Con el audio viene la tabla que el modelo le dejó al lado, si la hay.
     def load_audio(self, path: Path) -> None:
         table = output_for(path)
         self.pending_table = table if table.is_file() else None
@@ -878,8 +808,7 @@ class Viewer(QMainWindow):
     def load_table(self, path: Path) -> None:
         self.start(lambda: read_table(path), self.table_loaded, f"Loading {path.name}…")
 
-    # Lo elige una de las dos listas; la otra se pone igual (`select` no emite si ya lo
-    # está), y el resto se hace una sola vez.
+    # select no emite si ya está elegido
     def model_chosen(self, path: Path | None) -> None:
         for picker in self.pickers:
             picker.select(path)
@@ -908,8 +837,6 @@ class Viewer(QMainWindow):
             reports=True,
         )
 
-    # Ctrl+Shift+R: la vista Batch es la que lleva la corrida, así que se muestra antes de
-    # arrancar; sin carpeta, lo primero es elegir una.
     def run_batch(self) -> None:
         self.set_mode(BATCH)
         if not self.batch.listed():
@@ -919,13 +846,11 @@ class Viewer(QMainWindow):
         else:
             self.say(self.batch.why())
 
-    # Doble clic en Batch: si otra está cargando, espera su turno (`open_path`).
     def open_recording(self, path: Path) -> None:
         self.set_mode(SPECTROGRAM)
         if path != self.session.audio_path:
             self.open_path(path)
 
-    # Batch terminó la grabación que está abierta: su tabla nueva entra sola.
     def table_written(self, path: Path) -> None:
         if path == self.session.audio_path and not self.reviewer.active:
             self.load_table(output_for(path))
@@ -952,8 +877,7 @@ class Viewer(QMainWindow):
         )
 
     def detections_ready(self, table: pd.DataFrame) -> None:
-        # Si la corrida pasó por `compare_models.py`, el slider arranca en el umbral que eligió
-        # en val (su `operating_point.json`); si no, se queda donde estaba.
+        # Sin operating_point.json el slider se queda donde estaba
         operating = table.attrs.get("operating_point")
         if operating is not None:
             self.score.set_value(operating)
@@ -963,11 +887,6 @@ class Viewer(QMainWindow):
             + ("" if operating is None else f"   Operating point: {operating:.2f}")
         )
 
-    # --- Recorrido --------------------------------------------------------------
-
-    # Anterior / siguiente: en revisión es la caja en curso; si no, la fila siguiente de la
-    # tabla de cajas, que al elegirse se encuadra y se marca (`focus`). Con el panel abierto
-    # se ve la fila avanzar; cerrado, la caja igual se marca en el espectrograma.
     def skip(self, direction: int) -> None:
         if self.reviewer.active:
             self.reviewer.step(direction)
@@ -983,8 +902,6 @@ class Viewer(QMainWindow):
         self.frame(row)
         self.plot.set_highlight((row.begin, row.end, row.low, row.high))
 
-    # Trae la caja a la vista sin mover nada que ya la muestre: el tiempo se centra si se sale
-    # de la ventana y la banda se reencuadra si se sale de la visible.
     def frame(self, row: Row) -> None:
         start, stop = self.transport.time_window()
         if not (start <= row.begin and row.end <= stop):
@@ -993,8 +910,6 @@ class Viewer(QMainWindow):
         if not (low <= row.low and row.high <= high):
             self.band.frame(row.low, row.high)
 
-    # En revisión cada caja se presenta igual: encuadrada en tiempo y en banda, con el cabezal
-    # en su inicio para que Space la haga sonar.
     def present(self, row: Row) -> None:
         self.transport.fit(row.begin, row.end)
         self.band.frame(row.low, row.high, margin=REVIEW_BAND_MARGIN)
@@ -1016,21 +931,18 @@ class Viewer(QMainWindow):
                 "Save the Annotations table to keep the accepted ones."
             )
         else:
-            self.say("Review closed.")  # si no, la barra seguiría contando lo que faltaba
+            self.say("Review closed.")
         self.sync_controls()
 
     def track(self, seconds: float, hz: float) -> None:
         if self.session.waveform is not None:
             self.readout.setText(f"{seconds:.3f} s   {hz:,.0f} Hz")
 
-    # --- Dibujo -----------------------------------------------------------------
-
     def refresh(self) -> None:
         self.draw_spectrogram()
         self.draw_boxes()
 
     def draw_spectrogram(self) -> None:
-        # El tramo visible ya lo dice el eje: la barra de estado se guarda para lo demás.
         start = self.transport.time_window()[0]
         self.plot.draw(
             start,
@@ -1041,8 +953,6 @@ class Viewer(QMainWindow):
 
     def draw_boxes(self) -> None:
         start, stop = self.transport.time_window()
-        # Una capa apagada entra como None: ni se dibuja ni se cuenta. Las anotaciones se
-        # rotulan en el borde de arriba y las detecciones en el de abajo.
         layers = [
             Layer(
                 self.session.visible(source) if self.layers.enabled(source) else None,
@@ -1058,7 +968,6 @@ class Viewer(QMainWindow):
         both = all(counts.values())
         for source in SOURCES:
             self.layers.set_state(source, counts[source] if both else 0)
-        # Las mismas capas, en miniatura, sobre la barra de tiempo.
         marks = [
             (float(begin), float(end), layer.color)
             for layer in layers
@@ -1066,8 +975,6 @@ class Viewer(QMainWindow):
             for begin, end in zip(layer.table[BEGIN], layer.table[END], strict=True)
         ]
         self.transport.set_marks(marks)
-
-    # --- Exportacion ------------------------------------------------------------
 
     def save_path(self, title: str, suffix: str, file_filter: str) -> Path | None:
         audio = self.session.audio_path
@@ -1093,7 +1000,7 @@ class Viewer(QMainWindow):
         else:
             self.say(f"Image saved as {path.name}")
 
-    # Se guardan las cajas visibles: las detecciones bajo el score del slider no van.
+    # Sólo las cajas visibles: las detecciones bajo el slider no van
     def export_table(self, source: str) -> None:
         table = self.session.visible(source)
         if table is None:
@@ -1110,8 +1017,6 @@ class Viewer(QMainWindow):
             self.fail(f"Could not save the table:\n{type(exc).__name__}: {exc}")
         else:
             self.say(f"{len(table)} rows saved to {path.name}")
-
-    # --- Eventos ----------------------------------------------------------------
 
     def dropped(self, event) -> Path | None:
         mime = event.mimeData() if event is not None else None
@@ -1136,8 +1041,6 @@ class Viewer(QMainWindow):
             a0.acceptProposedAction()
             self.open_path(path)
 
-    # Las teclas sueltas (sin modificador) del espectrograma. Las combinaciones con Ctrl son
-    # acciones del menú y no pasan por acá.
     @override
     def keyPressEvent(self, a0) -> None:
         if a0 is None or self.session.waveform is None or self.mode() != SPECTROGRAM:
@@ -1200,8 +1103,6 @@ class Viewer(QMainWindow):
         super().closeEvent(a0)
 
 
-# El arranque (main.py) crea la QApplication y muestra el splash antes de importar este
-# módulo; acá se termina de configurar y se abre la ventana con lo que venga por argumento.
 def run(app: QApplication, paths: list[Path]) -> Viewer:
     app.setApplicationName(BASE_TITLE)
     app.setStyle("Fusion")

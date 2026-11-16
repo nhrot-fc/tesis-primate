@@ -8,14 +8,11 @@ from torchvision.ops import box_convert, box_iou
 from core.config import SCORE_THRESHOLD
 from utils.boxes import Detections, Target
 
-# Mínimo IoU para considerar una predicción como acierto
 MATCH_IOU = 0.3
-# Ancho a partir de la cual una clase ocupa la ventana entera
-WINDOW_CLASS_WIDTH = 0.95
+WINDOW_CLASS_WIDTH = 0.95  # fracción de la ventana
 
 
-# Cajas de muchas ventanas apiladas, cada una con el id de la suya. El orden de los campos es
-# el de los volcados `*_predictions.pt` ya guardados: no se cambia.
+# Orden de campos fijado por los volcados *_predictions.pt guardados
 class Boxes(NamedTuple):
     boxes: Tensor
     image_ids: Tensor
@@ -149,7 +146,7 @@ def mean_average_precision(ap: PerClassAP, classes: list[int] | None = None) -> 
 
 
 def window_classes(truth: Boxes, n_classes: int) -> list[int]:
-    # Clases cuya llamada dura más que el clip: la caja ocupa la ventana y no es detección.
+    # Llamadas más largas que el clip: la caja ocupa la ventana y no es detección
     saturated = []
     for class_id in range(n_classes):
         widths = truth.boxes[truth.labels == class_id][:, 2]

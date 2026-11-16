@@ -13,17 +13,14 @@ from utils.audio import hz_to_y, mel_to_unit
 CLASS_COLOR, OTHER_COLOR, HIGHLIGHT_COLOR = "#3ddc84", "#bdbdbd", "#00e5ff"
 OUTLINE = [patheffects.withStroke(linewidth=4, foreground="black")]
 TICKS_HZ = np.array([500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0])
-# Ancho de las figuras de paneles y alto de cada fila, en pulgadas
-GRID_WIDTH, ROW_HEIGHT = 16.0, 3.1
+GRID_WIDTH, ROW_HEIGHT = 16.0, 3.1  # pulgadas
 
 
-def jpeg_figures(quality: int = 88) -> None:
-    # Figuras de espectrogramas: en jpeg pesan diez veces menos que en png
-    set_matplotlib_formats("jpeg", pil_kwargs={"quality": quality})
+def jpeg_figures() -> None:
+    set_matplotlib_formats("jpeg", pil_kwargs={"quality": 88})
 
 
 def panel_grid(n_rows: int, n_cols: int) -> tuple[Figure, np.ndarray]:
-    # Paneles apagados; `draw_window` enciende cada uno que usa
     fig, axes = plt.subplots(
         n_rows,
         n_cols,
@@ -46,7 +43,7 @@ def draw_box(
     text: str,
     dashed: bool = False,
 ) -> None:
-    # Caja en segundos × fila del mel en [0, 1], con su etiqueta arriba a la izquierda
+    # x en segundos, y en [0, 1] sobre el mel
     ax.add_patch(
         Rectangle(
             (x0, y0),
@@ -65,7 +62,6 @@ def draw_box(
 def draw_window(
     ax: Axes, split: Split, image_id: int, class_id: int, title: str | None = None
 ) -> None:
-    # La ventana con sus anotaciones: las de `class_id` en verde, el resto en gris
     ax.axis("on")
     ax.imshow(
         mel_to_unit(split.images[image_id][0], *split.db_range).numpy(),

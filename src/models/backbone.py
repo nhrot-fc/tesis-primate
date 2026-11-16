@@ -14,29 +14,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 AST_CHECKPOINT = "MIT/ast-finetuned-audioset-10-10-0.4593"
-# Paso temporal de los parches del AST (el checkpoint trae 10); con 331 cuadros deja 32 tokens
-TIME_STRIDE = 10
+TIME_STRIDE = 10  # con 331 cuadros deja 32 tokens
 # Pirámide {4x, 2x, 1x, 1/2x} sobre el mapa de tokens del AST, como en ViTDet.
 N_LEVELS = 4
 
 
-def local_ast_dir(checkpoint: str = AST_CHECKPOINT) -> Path:
-    return HF_DIR / checkpoint.replace("/", "__")
+def local_ast_dir() -> Path:
+    return HF_DIR / AST_CHECKPOINT.replace("/", "__")
 
 
-def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> "ASTModel":
-    # `transformers` es el extra `detr`: sólo hace falta si se carga esta arquitectura.
+def load_ast_model() -> "ASTModel":
     from transformers import ASTModel
 
-    local_dir = local_ast_dir(checkpoint)
+    local_dir = local_ast_dir()
     if local_dir.is_dir():
         try:
             return ASTModel.from_pretrained(local_dir, local_files_only=True)
         except Exception:
             logger.warning("Local copy in %s is unusable; downloading it again.", local_dir)
 
-    logger.info("Downloading the AST backbone '%s' from HuggingFace...", checkpoint)
-    model = ASTModel.from_pretrained(checkpoint)
+    logger.info("Downloading the AST backbone '%s' from HuggingFace...", AST_CHECKPOINT)
+    model = ASTModel.from_pretrained(AST_CHECKPOINT)
     local_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(local_dir)
     logger.info("AST backbone saved to %s", local_dir)
@@ -44,30 +42,24 @@ def load_ast_model(checkpoint: str = AST_CHECKPOINT) -> "ASTModel":
 
 
 class ASTBackbone(nn.Module):
-    # Se afina entero, a la misma tasa que la cabeza, salvo que se pida congelarlo.
     def __init__(
         self,
         n_frames: int | None = None,
         time_stride: int = TIME_STRIDE,
-        checkpoint: str = AST_CHECKPOINT,
         frozen: bool = False,
     ) -> None:
         super().__init__()
-        self.model = load_ast_model(checkpoint)
+        self.model = load_ast_model()
         self.n_frames = n_frames if n_frames is not None else P.n_frames
         self.time_stride = time_stride
         self.interpolate_position_embeddings(self.n_frames, time_stride)
-        # Ablación: el extractor queda como está y sólo aprende la cabeza. Separa lo que
-        # aporta el preentrenamiento en audio de lo que aporta afinarlo sobre este corpus.
         self.frozen = frozen
         if frozen:
             for parameter in self.model.parameters():
                 parameter.requires_grad_(False)
 
     def train(self, mode: bool = True) -> "ASTBackbone":
-        # Congelado también significa sin dropout ni estadísticas de lote nuevas: si el
-        # extractor no aprende, tiene que dar la misma salida en entrenamiento y en
-        # validación, o la comparación mediría ruido de regularización.
+        # Congelado = sin dropout: la misma salida en train y en val
         super().train(mode)
         if self.frozen:
             self.model.eval()
@@ -126,13 +118,13 @@ class ASTBackbone(nn.Module):
 
 
 class MultiScalePyramid(nn.Module):
-    def __init__(self, dim: int, num_groups: int = 8) -> None:
+    def __init__(self, dim: int) -> None:
         super().__init__()
         self.blocks = nn.ModuleList(
             [
                 nn.Sequential(
                     nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
-                    nn.GroupNorm(num_groups, dim),
+                    nn.GroupNorm(8, dim),
                     nn.GELU(),
                     nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2),
                 ),
@@ -145,7 +137,6 @@ class MultiScalePyramid(nn.Module):
 
     @staticmethod
     def check_input_size(height: int, width: int) -> None:
-        # Con una dimensión impar el nivel 1/2x pierde una fila y los niveles se desalinean.
         if height % 2 or width % 2:
             raise ValueError(
                 f"the pyramid needs even sizes, not ({height}, {width}); set "

@@ -7,33 +7,25 @@ import soxr
 
 from viewer.tasks import UnreadableError
 
-# Piso del log del STFT en pantalla. Más bajo que `P.eps` (el del mel del modelo) a propósito:
-# el STFT crudo no suma bandas y en una grabación silenciosa un 13 % de los bins queda bajo
-# -60 dB; con el piso del modelo se aplastarían.
+# Más bajo que P.eps: el STFT crudo no suma bandas y se aplastaría bajo -60 dB
 EPS = 1e-10
-# Rango en dB de una grabación para el contraste inicial (`utils.audio.DB_PERCENTILES` es el
-# del caché para normalizar la entrada de los modelos)
+# De cada grabación; no los DB_PERCENTILES del caché
 DISPLAY_PERCENTILES = (5.0, 99.5)
-# Muestras por tramo al pasar a PCM: unos 95 s a 44,1 kHz
-PCM_BLOCK = 1 << 22
+PCM_BLOCK = 1 << 22  # muestras: unos 95 s a 44,1 kHz
 
 Waveform = npt.NDArray[np.float32]
 
 
-# Sin torch a propósito: el visor abre audio aunque el motor de detección no cargue. El mismo
-# paso (mono, resampleo) lo hace `utils.audio.read_clip` para el modelo, con torchaudio.
 def load_audio(path: Path, target_sr: int) -> Waveform:
     if not path.is_file():
         raise UnreadableError(f"'{path.name}' is not in {path.parent} any more.")
     try:
         frames, source_sr = soundfile.read(str(path), dtype="float32", always_2d=True)
-        # Mono: la columna ya es la señal, sin la copia del promedio (una hora son 600 MB).
         waveform = frames[:, 0] if frames.shape[1] == 1 else frames.mean(axis=1)
         if source_sr != target_sr:
             waveform = soxr.resample(waveform, source_sr, target_sr)
         waveform = np.ascontiguousarray(waveform, dtype=np.float32)
     except soundfile.LibsndfileError as exc:
-        # libsndfile dice "File does not exist" de un archivo que existe pero está roto.
         raise UnreadableError(
             f"Could not open '{path.name}': it is not a WAV, FLAC or MP3 recording, "
             "or the file is damaged."
@@ -43,12 +35,9 @@ def load_audio(path: Path, target_sr: int) -> Waveform:
             f"Not enough memory to open '{path.name}'. Close other programs, or cut the "
             "recording into shorter files."
         ) from exc
-    # Un WAV en coma flotante puede traer NaN o infinitos: dejarían el espectrograma en negro.
     return np.nan_to_num(waveform, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
 
 
-# Las grabaciones de campo llegan a -45 dBFS RMS: sin llevarlas al pico no se oyen. Se convierte
-# por tramos: con una hora de audio, cada copia entera en coma flotante son 600 MB.
 def pcm16(waveform: Waveform, gain: float = 1.0) -> bytes:
     peak = max(float(waveform.max(initial=0.0)), -float(waveform.min(initial=0.0)))
     scale = 32767.0 * (gain / peak if peak > 0.0 else 1.0)
@@ -83,8 +72,6 @@ def stft_db(
 
 
 def db_baseline(waveform: Waveform, sr: int, n_fft: int) -> tuple[float, float]:
-    # Sin el relleno de los bordes: a dos percentiles no les cambia nada, y rellenar copia el
-    # audio entero.
     spec = stft_db(waveform, n_fft, max(sr // 10, waveform.size // 3000, 1), pad=False)
     lo, hi = np.percentile(spec, DISPLAY_PERCENTILES)
     return float(lo), float(hi)

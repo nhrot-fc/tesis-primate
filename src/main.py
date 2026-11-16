@@ -20,9 +20,6 @@ LOG_FILE = PROJECT_DIR / "viewer.log"
 LOG_MAX_BYTES = 2_000_000
 
 
-# Con el hook de fábrica PyQt aborta el proceso ante una excepción en un slot, y bajo
-# `pythonw.exe` (paquete de Windows) lo haría sin decir nada. Con uno propio la registra, lo
-# avisa en la barra de estado y sigue. Ctrl+C en la terminal sí cierra.
 def log_uncaught(kind, value, traceback) -> None:
     if issubclass(kind, KeyboardInterrupt):
         QApplication.quit()
@@ -33,8 +30,6 @@ def log_uncaught(kind, value, traceback) -> None:
             bar.showMessage(f"Unexpected error: {value}. Details in {LOG_FILE}.")
 
 
-# Junto al programa; si esa carpeta no deja escribir (un disco de red, Archivos de programa),
-# en la temporal del sistema, para que el visor arranque igual.
 def start_logging() -> None:
     global LOG_FILE
     try:
@@ -44,8 +39,6 @@ def start_logging() -> None:
         setup_logging(log_file=LOG_FILE, max_bytes=LOG_MAX_BYTES)
 
 
-# Un cartel pintado a mano: no depende de ningún archivo y sale antes que cualquier import
-# pesado. Es lo único que se ve mientras cargan pandas, pyqtgraph y el audio.
 def splash_pixmap() -> QPixmap:
     width, height = SPLASH_SIZE
     pixmap = QPixmap(width, height)
@@ -78,7 +71,6 @@ def main() -> None:
     splash.show()
     app.processEvents()
 
-    # Lo que tarda: pandas, pyqtgraph, soundfile. torch viene después, en segundo plano.
     from viewer.app import run
 
     viewer = run(app, [Path(argument) for argument in sys.argv[1:]])

@@ -29,7 +29,6 @@ def save(
     scheduler: LRScheduler | None = None,
     best_score: float = float("-inf"),
 ) -> None:
-    # Sin optimizador queda un checkpoint de inferencia; con él, uno que `resume` retoma.
     checkpoint: dict[str, Any] = {
         "architecture": architecture,
         "hparams": hparams,
@@ -53,7 +52,7 @@ def save(
 def resume(
     run_dir: Path, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler
 ) -> tuple[int, float]:
-    # -> (próxima época a correr, mejor score). Sin `last.pt`, empieza en 0.
+    # -> (próxima época, mejor score)
     path = run_dir / LAST
     if not path.is_file():
         return 0, float("-inf")

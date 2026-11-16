@@ -18,8 +18,7 @@ Indices = list[tuple[Tensor, Tensor]]
 
 # Focal sigmoide por clase, sin canal de no-objeto
 FOCAL_ALPHA, FOCAL_GAMMA = 0.25, 2.0
-# Pesos de clase / L1 / GIoU. El matcher y la pérdida comparten los de caja; el de clase pesa
-# el doble al asignar que al entrenar (Zhu et al. 2021 usan 2 en los dos lados).
+# clase / L1 / GIoU
 COST_CLASS, COST_BBOX, COST_IOU = 2.0, 5.0, 2.0
 WEIGHT_CLASS, WEIGHT_BBOX, WEIGHT_IOU = 1.0, COST_BBOX, COST_IOU
 
@@ -32,20 +31,9 @@ def focal_cost(probabilities: Tensor, alpha: float, gamma: float) -> Tensor:
 
 
 class HungarianMatcher(nn.Module):
-    def __init__(
-        self,
-        cost_class: float = COST_CLASS,
-        cost_bbox: float = COST_BBOX,
-        cost_iou: float = COST_IOU,
-    ) -> None:
-        super().__init__()
-        self.cost_class = cost_class
-        self.cost_bbox = cost_bbox
-        self.cost_iou = cost_iou
-
     @torch.no_grad()
     def forward(self, outputs: Outputs, targets: list[Target]) -> Indices:
-        from scipy.optimize import linear_sum_assignment  # grupo `train`: sólo al entrenar
+        from scipy.optimize import linear_sum_assignment
 
         batch_size, n_queries = outputs["pred_logits"].shape[:2]
         device = outputs["pred_logits"].device
@@ -62,9 +50,7 @@ class HungarianMatcher(nn.Module):
             box_convert(target_boxes, "cxcywh", "xyxy"),
         )
 
-        cost_matrix = (
-            self.cost_class * class_cost + self.cost_bbox * box_cost + self.cost_iou * iou_cost
-        )
+        cost_matrix = COST_CLASS * class_cost + COST_BBOX * box_cost + COST_IOU * iou_cost
         cost_matrix = cost_matrix.view(batch_size, n_queries, target_boxes.shape[0]).cpu()
 
         box_counts = [len(target["boxes"]) for target in targets]
@@ -82,18 +68,9 @@ class HungarianMatcher(nn.Module):
 
 
 class SetCriterion(nn.Module):
-    def __init__(
-        self,
-        matcher: nn.Module | None = None,
-        weight_class: float = WEIGHT_CLASS,
-        weight_bbox: float = WEIGHT_BBOX,
-        weight_iou: float = WEIGHT_IOU,
-    ) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.matcher = matcher or HungarianMatcher()
-        self.weight_class = weight_class
-        self.weight_bbox = weight_bbox
-        self.weight_iou = weight_iou
+        self.matcher = HungarianMatcher()
 
     @staticmethod
     def matched_positions(indices: Indices) -> tuple[Tensor, Tensor]:
@@ -139,11 +116,11 @@ class SetCriterion(nn.Module):
             / n_matched
         )
 
-        # Ya ponderados: quien entrena los suma tal cual.
+        # ya ponderadas
         return {
-            "loss_cls": self.weight_class * loss_class,
-            "loss_bbox": self.weight_bbox * loss_bbox,
-            "loss_iou": self.weight_iou * loss_iou,
+            "loss_cls": WEIGHT_CLASS * loss_class,
+            "loss_bbox": WEIGHT_BBOX * loss_bbox,
+            "loss_iou": WEIGHT_IOU * loss_iou,
         }
 
     def forward(self, outputs: Outputs, targets: list[Target]) -> dict[str, Tensor]:

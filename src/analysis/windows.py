@@ -10,8 +10,7 @@ from torchvision.ops import box_convert
 from data import cache
 from data.species import LabelSet
 
-# Una anotación de ejemplo tiene que estar entera en la ventana (lejos de los bordes)
-MARGIN = 0.02
+MARGIN = 0.02  # fracción de la ventana
 
 
 class Split:
@@ -42,7 +41,6 @@ class Split:
 
     @cached_property
     def all_boxes(self) -> tuple[Tensor, Tensor]:
-        # Todas las cajas del split apiladas, con su clase
         return torch.cat(self.boxes), torch.cat(self.labels)
 
     def boxes_of(self, class_id: int) -> Tensor:
@@ -51,7 +49,6 @@ class Split:
 
     @cached_property
     def whole_box_windows(self) -> dict[int, list[int]]:
-        # Por clase, las ventanas (en orden) con una anotación suya entera, lejos de los bordes
         boxes, labels = self.all_boxes
         image_ids = torch.repeat_interleave(
             torch.arange(len(self)), torch.tensor([len(b) for b in self.boxes])
@@ -67,8 +64,6 @@ class Split:
     def examples(
         self, class_id: int, n: int, seed: int, exclude: Collection[str] = ()
     ) -> list[int]:
-        # `n` ventanas con una anotación entera de la clase, al azar: de grabaciones distintas
-        # mientras alcancen (nunca de las de `exclude`), y después las que queden
         order = np.random.default_rng(seed).permutation(self.whole_box_windows[class_id])
         candidates = [i for i in order.tolist() if self.recording_of(i) not in exclude]
         distinct: list[int] = []

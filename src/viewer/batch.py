@@ -46,22 +46,18 @@ PENDING, EXISTS, RUNNING, DONE, SKIPPED, FAILED, STOPPED = (
     "failed",
     "stopped",
 )
-# Desdobladas, después de estas va una columna por clase del modelo (`ESPECIE/LLAMADA`)
+# Desdobladas, sigue una columna por clase (ESPECIE/LLAMADA)
 HEADERS = ("File", "Duration", "Detections")
 FILE_COLUMN, DURATION_COLUMN, TOTAL_COLUMN = 0, 1, 2
-# Una caja sin especie ni llamada (una tabla editada a mano)
 UNLABELED = "(no label)"
-# El CSV lleva la duración en segundos, que es lo que se suma en una hoja de cálculo
+# en segundos, en el CSV
 DURATION_SECONDS = "Duration (s)"
 ROW_HEIGHT = 22
-# Margen de una celda a cada lado del texto, para los anchos fijos
-CELL_PADDING = 16
+CELL_PADDING = 16  # px a cada lado del texto
 RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-# La barra global avanza también dentro del archivo en curso, en centésimas
-PROGRESS_STEPS = 100
+PROGRESS_STEPS = 100  # centésimas del archivo en curso
 RUN_WIDTH = 96
 SCORE_WIDTH = 240
-# Segundos de corrida antes de fiarse de la velocidad medida para el tiempo restante
 ETA_AFTER_S = 5.0
 ROOT = QModelIndex()
 
@@ -79,8 +75,8 @@ class Entry:
     name: str  # relativo a la carpeta elegida
     duration: float  # NaN si no se pudo leer la cabecera
     status: str = PENDING
-    fraction: float = 0.0  # avance del archivo en curso
-    # Los scores de su tabla por etiqueta, de menor a mayor; None si no tiene tabla
+    fraction: float = 0.0
+    # Scores por etiqueta, de menor a mayor; None: sin tabla
     found: dict[str, np.ndarray] | None = None
     message: str = ""
 
@@ -101,21 +97,17 @@ def duration_of(path: Path) -> float:
         return float("nan")
 
 
-# En mayúscula, como las escribe el modelo: `lw` y `LW` de una tabla retocada cuentan juntas.
+# lw y LW de una tabla retocada cuentan juntas
 def text_column(table: pd.DataFrame, name: str) -> list[str]:
     if name not in table.columns:
         return [""] * len(table)
     return table[name].fillna("").astype(str).str.strip().str.upper().tolist()
 
 
-# Los scores de una tabla ya escrita por `ESPECIE/LLAMADA`, ordenados: contar lo que pasa un
-# umbral es una búsqueda binaria por etiqueta. Sin score (una tabla hecha a mano, o una fila
-# que se agregó en Raven) la caja cuenta siempre.
+# Ordenados: contar lo que pasa un umbral es una búsqueda binaria. Sin score cuenta siempre.
 def boxes_in(table: Path) -> dict[str, np.ndarray] | None:
     try:
         frame = pd.read_csv(table, sep="\t")
-        # Sin las columnas de las cajas no es una tabla de Raven (un archivo cortado, otro
-        # programa): no se cuenta como "0 detecciones".
         if absent := [name for name in BOX_COLUMNS if name not in frame.columns]:
             raise ValueError(f"no {', '.join(absent)} column")
         scores = (
@@ -124,7 +116,6 @@ def boxes_in(table: Path) -> dict[str, np.ndarray] | None:
             else np.full(len(frame), math.inf)
         )
     except (OSError, ValueError) as exc:
-        # La grabación queda sin conteo, como si no tuviera tabla; el log dice por qué.
         logger.warning("Could not read %s: %s", table, exc)
         return None
     labels = [
@@ -144,8 +135,6 @@ def count(found: dict[str, np.ndarray], score: float) -> Counter[str]:
     )
 
 
-# Lista los audios de la carpeta con su duración y lo que ya tienen; corre en un hilo porque
-# en una carpeta de red leer mil cabeceras tarda.
 def scan(folder: Path, recursive: bool) -> list[Entry]:
     entries = []
     for path in collect_audio([folder], recursive):
@@ -157,10 +146,6 @@ def scan(folder: Path, recursive: bool) -> list[Entry]:
     return entries
 
 
-# Una fila por grabación con cuántas detecciones de su tabla pasan el score; desdoblada, una
-# columna más por cada clase del modelo (y por cualquier otra etiqueta que traigan las
-# tablas), en orden de especie. El encabezado de cada conteo lleva el total de la carpeta. Sin
-# tabla las celdas quedan vacías; los ceros de las clases también, para que resalte lo hallado.
 class FileModel(QAbstractTableModel):
     def __init__(self) -> None:
         super().__init__()
@@ -168,7 +153,7 @@ class FileModel(QAbstractTableModel):
         self.score = SCORE_THRESHOLD
         self.classes: list[str] = []  # las del modelo elegido, como `LW/CS`
         self.expanded = False
-        self.labels: list[str] = []  # las columnas desdobladas; el CSV las lleva siempre
+        self.labels: list[str] = []
         self.counts: list[Counter[str] | None] = []
         self.totals: Counter[str] = Counter()
         self.ceilings: Counter[str] = Counter()  # todas las cajas, sin umbral: el ancho máximo
@@ -195,7 +180,6 @@ class FileModel(QAbstractTableModel):
             self.ceilings.update(count(entry.found or {}, -math.inf))
         self.endResetModel()
 
-    # Mover el score no cambia las columnas, sólo los números.
     def recount(self) -> None:
         self.counts, self.totals = self.tally()
         last = self.columnCount() - 1
@@ -205,7 +189,6 @@ class FileModel(QAbstractTableModel):
             )
         self.headerDataChanged.emit(Qt.Orientation.Horizontal, TOTAL_COLUMN, last)
 
-    # Un archivo terminó con tabla nueva: si trae una etiqueta que no es columna, se rehace.
     def update(self, index: int) -> None:
         found = self.entries[index].found or {}
         if set(found) - set(self.labels):
@@ -228,8 +211,7 @@ class FileModel(QAbstractTableModel):
     def shown(self) -> list[str]:
         return self.labels if self.expanded else []
 
-    # Una fila por grabación al score elegido, con todas las clases aunque la vista esté
-    # plegada; sin tabla los conteos quedan vacíos (no 0).
+    # Sin tabla, los conteos quedan vacíos (no 0)
     def table(self) -> pd.DataFrame:
         columns = [HEADERS[FILE_COLUMN], DURATION_SECONDS, HEADERS[TOTAL_COLUMN], *self.labels]
         rows = [
@@ -278,8 +260,6 @@ class FileModel(QAbstractTableModel):
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         entry = self.entries[index.row()]
         column = index.column()
-        # Sin columna de estado: un archivo que falló, o cuya tabla no se pudo leer, lo dice
-        # al pasar el ratón.
         if role == Qt.ItemDataRole.ToolTipRole:
             if entry.status == FAILED:
                 return f"{entry.path}\nFailed: {entry.message}"
@@ -303,10 +283,7 @@ class FileModel(QAbstractTableModel):
         return f"{found:,}" if found else ""
 
 
-# Anchos fijos, calculados con la fuente cuando cambian las columnas: con `ResizeToContents`
-# Qt vuelve a medir las filas en cada aviso de progreso y la ventana se traba durante la
-# corrida. Cada conteo se mide con lo más que podría llegar a decir (todas sus cajas). El
-# nombre se estira si todo cabe; si no, queda a su ancho y la tabla se desplaza de lado.
+# Anchos fijos: con ResizeToContents Qt mide las filas en cada aviso de progreso y se traba
 class FileTable(QTableView):
     def __init__(self, files: FileModel) -> None:
         super().__init__()
@@ -356,13 +333,11 @@ class FileTable(QTableView):
         self.fit()
 
 
-# Un hilo para toda la lista: carga el modelo (o lo toma del caché del visor) y recorre los
-# archivos con `run_batch`. Parar es una bandera que el recorrido consulta entre lotes.
 class BatchWorker(QThread):
     started_file = pyqtSignal(int)
     progressed = pyqtSignal(int, int, int)
     finished_file = pyqtSignal(object)  # inference.batch.Outcome
-    failed = pyqtSignal(str)  # el modelo no cargó: no se procesó nada
+    failed = pyqtSignal(str)
 
     def __init__(self, files: list[Path], checkpoint: Path, threshold: float, overwrite: bool):
         super().__init__()
@@ -410,20 +385,20 @@ class BatchWorker(QThread):
 class BatchView(QWidget):
     open_requested = pyqtSignal(object)  # Path del audio
     finished_file = pyqtSignal(object)  # Path con tabla nueva
-    state_changed = pyqtSignal()  # empezó o terminó una corrida
-    said = pyqtSignal(str)  # para la barra de estado
+    state_changed = pyqtSignal()
+    said = pyqtSignal(str)
 
     def __init__(self) -> None:
         super().__init__()
         self.folder_path: Path | None = None
         self.model_path: Path | None = None
         self.engine_ready: bool | None = None  # None mientras carga; False si no cargó
-        self.model_error = ""  # el modelo de la última corrida no cargó
-        self.blocked = False  # el espectrograma está detectando: un modelo a la vez
+        self.model_error = ""
+        self.blocked = False
         self.worker: BatchWorker | None = None
         self.scanner: Worker | None = None
-        self.rescan_due = False  # otra carpeta u otra opción mientras se escaneaba
-        self.reader: Worker | None = None  # lee las clases del modelo elegido
+        self.rescan_due = False
+        self.reader: Worker | None = None
         self.started_at = 0.0
         self.done_audio_s = 0.0
 
@@ -436,13 +411,9 @@ class BatchView(QWidget):
         self.recursive.setChecked(True)
         self.recursive.toggled.connect(lambda _: self.rescan())
 
-        # El modelo es el mismo que el del espectrograma: la ventana mantiene los dos
-        # selectores iguales. Acá hay uno para no tener que cambiar de vista para elegirlo.
         self.picker = ModelPicker()
 
-        # El mismo slider que en el espectrograma: Run escribe todo lo que pasa DETECT_THRESHOLD
-        # y el score sólo filtra lo que cuenta la tabla, así que moverlo no vuelve a detectar.
-        # Arranca en el punto de operación del modelo (el que eligió la comparación en val).
+        # Run escribe todo lo que pasa DETECT_THRESHOLD; el slider sólo filtra el conteo
         thresholds = score_grid(DETECT_THRESHOLD, 1.0)
         self.score = Slider(
             "Score ≥", thresholds, thresholds.index(SCORE_THRESHOLD), "{:.2f}", label_width=52
@@ -480,7 +451,6 @@ class BatchView(QWidget):
             vertical.setVisible(False)
             vertical.setDefaultSectionSize(ROW_HEIGHT)
 
-        # Sin carpeta: una frase, una aclaración y el botón, como la bienvenida del espectrograma.
         headline = QLabel(HEADLINE)
         headline.setFont(headline_font(headline))
         headline.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -504,7 +474,6 @@ class BatchView(QWidget):
         self.pages.addWidget(empty)
         self.pages.addWidget(self.table)
 
-        # Plegada, la tabla sólo cuenta detecciones; desdoblada, una columna por clase.
         self.expand = QCheckBox("Count per species and call")
         self.expand.setToolTip("One column per class of the model, ordered by species")
         self.expand.toggled.connect(self.files.set_expanded)
@@ -562,8 +531,6 @@ class BatchView(QWidget):
         layout.addWidget(self.hint)
         self.sync()
 
-    # --- Estado -----------------------------------------------------------------
-
     def running(self) -> bool:
         return self.worker is not None and self.worker.isRunning()
 
@@ -584,8 +551,6 @@ class BatchView(QWidget):
         self.read_classes()
         self.sync()
 
-    # Las columnas desdobladas son las clases del modelo, aunque ninguna tabla las tenga
-    # todavía. Leerlas pide torch, así que se espera al motor y se hace en un hilo.
     def read_classes(self) -> None:
         path = self.model_path
         if path is None:
@@ -608,8 +573,6 @@ class BatchView(QWidget):
         self.blocked = blocked
         self.sync()
 
-    # Si Run puede correr ahora, y por qué no: la ventana lo usa para su propio menú, así que
-    # la razón se escribe una vez y se lee desde los dos sitios.
     def can_run(self) -> bool:
         return (
             not self.running()
@@ -644,7 +607,6 @@ class BatchView(QWidget):
         self.picker.setEnabled(not running and not self.blocked)
         self.run_button.setEnabled(self.can_run())
         self.run_button.setToolTip(self.why())
-        # Un solo botón a la vista: Run, que mientras corre es Stop.
         self.run_button.setVisible(not running)
         self.stop_button.setVisible(running)
         self.stop_button.setEnabled(running)
@@ -652,8 +614,6 @@ class BatchView(QWidget):
         self.progress.setVisible(running)
         self.summary.setVisible(bool(self.summary.text()))
         self.hint.setVisible(listed)
-
-    # --- Carpeta ----------------------------------------------------------------
 
     def browse(self) -> None:
         start = str(self.folder_path) if self.folder_path else ""
@@ -674,8 +634,6 @@ class BatchView(QWidget):
     def rescan(self) -> None:
         if self.folder_path is None or self.running():
             return
-        # El escaneo en curso es de otra carpeta, o de la misma con la otra opción: su lista ya
-        # no vale y se repite al terminar. Si no, la tabla diría una carpeta y el campo otra.
         if self.scanning():
             self.rescan_due = True
             return
@@ -694,12 +652,12 @@ class BatchView(QWidget):
             self.sync()
             return
         if self.scanner is not None:
-            self.scanner.wait()  # ya entregó: lo que le queda es salir
+            self.scanner.wait()
         self.rescan()
 
     def scanned(self, entries: list[Entry]) -> None:
         if self.rescan_due:
-            return  # de lo que se pidió antes: viene otra lista
+            return
         self.files.reset(entries)
         self.summary.setText("")
         existing = sum(e.status == EXISTS for e in entries)
@@ -713,9 +671,7 @@ class BatchView(QWidget):
         self.sync()
         self.state_changed.emit()
 
-    # --- Exportar ---------------------------------------------------------------
-
-    # La tabla con todas las clases, al score de ahora, que va en el nombre: el CSV no lo lleva.
+    # El score va en el nombre: el CSV no lo lleva
     def export(self) -> None:
         folder = self.folder_path
         if folder is None or not self.listed() or self.running():
@@ -738,8 +694,6 @@ class BatchView(QWidget):
             )
         else:
             self.said.emit(f"{len(table)} recordings saved to {path.name}")
-
-    # --- Corrida ----------------------------------------------------------------
 
     def run(self) -> None:
         if not self.can_run() or self.model_path is None:
@@ -800,8 +754,6 @@ class BatchView(QWidget):
             self.finished_file.emit(entry.path)
         self.progress.setValue((outcome.index + 1) * PROGRESS_STEPS)
 
-    # Sin modelo no se procesó nada: se avisa con un diálogo y el cierre de la corrida no lo
-    # tapa con un "Done".
     def on_model_failed(self, message: str) -> None:
         self.model_error = message
         name = self.model_path.parent.name if self.model_path is not None else "the model"
@@ -832,7 +784,7 @@ class BatchView(QWidget):
         self.sync()
         self.state_changed.emit()
 
-    # Velocidad medida en segundos de audio por segundo de reloj y lo que falta a ese ritmo.
+    # Velocidad en segundos de audio por segundo de reloj
     def eta(self, current: int) -> str:
         entries = self.files.entries
         elapsed = time.perf_counter() - self.started_at
@@ -848,6 +800,5 @@ class BatchView(QWidget):
         return f"{head} · {rate:.1f}× realtime · ~{clock(remaining / rate)} left"
 
     def queued(self, index: int) -> bool:
-        # Lo que aún va a procesarse: lo pendiente y, con Overwrite, lo que ya tiene tabla.
         status = self.files.entries[index].status
         return status == PENDING or (status == EXISTS and self.overwrite.isChecked())

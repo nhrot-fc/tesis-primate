@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-from core.config import PROCESSED_DIR, SEED, P, Parameters
+from core.config import PROCESSED_DIR, SEED, P
 from core.runtime import setup_logging
 from data import cache
 from data.annotations import load_annotations
@@ -19,11 +19,8 @@ from utils.audio import load_clip, mel_db_range, mel_spectrogram
 
 logger = logging.getLogger("prepare_data")
 
-# Mínimo de anotaciones de una etiqueta species/call_type para ser clase
 MIN_PAIR_COUNT = 100
-# Fracción de ventanas sin anotaciones, sobre el total
-EMPTY_RATIO = 0.25
-# Splits train/val/test por grabación
+EMPTY_RATIO = 0.25  # ventanas vacías sobre el total
 SPLIT_RATIOS = (0.6, 0.225, 0.175)
 EXCLUDED_LABELS = ("lw/cc", "sm/fc", "sb/pcs")
 JOINED_LABELS = {
@@ -36,8 +33,6 @@ JOINED_LABELS = {
 
 
 def select_experiment(annotations: pd.DataFrame) -> tuple[pd.DataFrame, LabelSet]:
-    # Las filas con `requires_review` no entran: `build_manifest` las recibe aparte para
-    # descartar sus ventanas, así no se enseñan ni como caja ni como fondo.
     raven_df = annotations.loc[~annotations["requires_review"]].copy()
     raven_df["low_freq_hz"] = raven_df["low_freq_hz"].clip(lower=P.f_min)
     raven_df["label"] = (raven_df["species"] + LABEL_SEPARATOR + raven_df["call_type"]).replace(
@@ -60,13 +55,13 @@ def select_experiment(annotations: pd.DataFrame) -> tuple[pd.DataFrame, LabelSet
     return experiment, labels
 
 
-def build_dataset(manifest: list[ClipWindow], params: Parameters = P) -> dict[str, Any]:
-    to_mel = mel_spectrogram(params)
-    images = torch.empty(len(manifest), 1, params.n_mels, params.n_frames, dtype=torch.float32)
+def build_dataset(manifest: list[ClipWindow]) -> dict[str, Any]:
+    to_mel = mel_spectrogram(P)
+    images = torch.empty(len(manifest), 1, P.n_mels, P.n_frames, dtype=torch.float32)
     boxes: list[torch.Tensor] = []
     labels: list[torch.Tensor] = []
     for index, window in enumerate(tqdm(manifest, desc="materializando", disable=None)):
-        images[index] = to_mel(load_clip(window.audio_path, window.clip_start_s, params))
+        images[index] = to_mel(load_clip(window.audio_path, window.clip_start_s))
         boxes.append(torch.from_numpy(window.boxes.astype(np.float32)))
         labels.append(torch.from_numpy(window.labels))
     return {"images": images, "boxes": boxes, "labels": labels}

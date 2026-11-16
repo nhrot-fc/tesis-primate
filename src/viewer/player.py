@@ -9,7 +9,6 @@ TICK_MS = 30
 CLOCK_WIDTH = 118
 
 
-# Reproduccion del audio mono ya cargado en memoria.
 class AudioPlayer(QWidget):
     moved = pyqtSignal(float)
     stopped = pyqtSignal()
@@ -23,11 +22,9 @@ class AudioPlayer(QWidget):
         self.sr = 1
         self.origin = 0.0
         self.paused = False
-        # None es la salida del sistema, leída en cada `play`: así sigue al sistema si cambia.
+        # None: la salida del sistema, leída en cada play
         self.device: QAudioDevice | None = None
 
-        # Los iconos del tema en vez de glifos de texto: el triangulo y la pausa se leen
-        # igual en cualquier tipografia y a cualquier tamaño.
         style = self.style()
         self.icons = (
             (
@@ -44,14 +41,11 @@ class AudioPlayer(QWidget):
         self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.button.clicked.connect(self.toggle)
         self.show_playing(False)
-        # Monoespaciada: los dígitos no bailan al correr el tiempo.
         self.clock = QLabel("0.00 / 0.00 s")
         self.clock.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self.clock.setFixedWidth(CLOCK_WIDTH)
         self.clock.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-        # El reloj no entra en este layout: lo coloca el transporte, que es quien sabe qué
-        # va al lado de qué en su fila.
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -74,20 +68,18 @@ class AudioPlayer(QWidget):
         self.set_origin(0.0)
 
     def set_origin(self, seconds: float) -> None:
-        # Se ignora mientras suena el audio: ahi manda el reloj del sink.
+        # Mientras suena manda el reloj del sink
         if self.sink is None:
             self.origin = max(seconds, 0.0)
             self.display_time(self.origin)
 
     def seek(self, seconds: float) -> None:
-        # Si esta sonando, reanuda desde el punto nuevo en vez de obligar a detener.
         resume = self.playing()
         self.stop()
         self.set_origin(seconds)
         if resume:
             self.play()
 
-    # Cambiar el volumen rehace el PCM: se conserva el punto y, si sonaba, sigue sonando.
     def set_pcm(self, pcm: bytes) -> None:
         at, resume = self.elapsed(), self.playing()
         self.stop()
@@ -96,7 +88,6 @@ class AudioPlayer(QWidget):
         if resume:
             self.play()
 
-    # Otra salida (Settings): el sink se rehace sobre ella, desde el mismo punto.
     def set_device(self, device: QAudioDevice | None) -> None:
         at, resume = self.elapsed(), self.playing()
         self.stop()
@@ -142,8 +133,7 @@ class AudioPlayer(QWidget):
         self.buffer.open(QIODevice.OpenModeFlag.ReadOnly)
         self.buffer.seek(2 * int(self.origin * self.sr))
 
-        # Con padre, el sink lo destruye Qt cuando toca y no al soltar la referencia
-        # de Python, que podia caer mientras su hilo de audio seguia leyendo.
+        # Con padre: lo destruye Qt, no el GC mientras su hilo de audio lee
         self.sink = QAudioSink(device, self.format(), self)
         self.sink.start(self.buffer)
         self.timer.start()

@@ -34,7 +34,6 @@ def db_range() -> tuple[float, float]:
     return float(low), float(high)
 
 
-# Ventana -> grabación
 class Sources(NamedTuple):
     recordings: list[str]
     recording_of_window: list[int]

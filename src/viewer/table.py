@@ -21,14 +21,12 @@ from data.raven import SCORE
 from viewer.controls import Panel
 from viewer.session import ANNOTATIONS, SOURCES, Row, Session
 
-# La banda en kHz con un decimal: en Hz son once caracteres y se come la etiqueta.
 HEADERS = ("Start (s)", "End (s)", "kHz", "Label")
 LABEL_COLUMN = 3
 TRASH_WIDTH = 34
 PANEL_WIDTH, PANEL_LEAST = 360, 260
 ROW_HEIGHT = 24
 ROOT = QModelIndex()
-# Qué decir cuando una pestaña está vacía: lo que falta hacer, no el hecho de que falte.
 EMPTY = {
     ANNOTATIONS: "No annotations yet.\nAccept boxes in Review, or open a Raven table.",
 }
@@ -45,7 +43,6 @@ class BoxModel(QAbstractTableModel):
         style = QApplication.style()
         self.trash = style.standardIcon(QStyle.StandardPixmap.SP_TrashIcon) if style else QIcon()
 
-    # La columna de score solo aparece si el origen la trae: las anotaciones no.
     def refresh(self) -> int:
         self.beginResetModel()
         self.rows = self.session.rows(self.source)
@@ -68,7 +65,6 @@ class BoxModel(QAbstractTableModel):
             return None
         if role == Qt.ItemDataRole.DisplayRole:
             return self.headers[section]
-        # El encabezado se alinea como su columna: si no, el número queda debajo de nada.
         if role == Qt.ItemDataRole.TextAlignmentRole and section != LABEL_COLUMN:
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         return None
@@ -113,8 +109,6 @@ class SourceTable(QTableView):
         self.setAlternatingRowColors(True)
         self.setShowGrid(False)
         self.setWordWrap(False)
-        # Por el medio: la etiqueta es `especie/llamada` y lo que distingue una fila de otra
-        # está al final, así que cortar por la derecha las deja todas iguales.
         self.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         vertical = self.verticalHeader()
@@ -133,7 +127,6 @@ class SourceTable(QTableView):
         remove.setContext(Qt.ShortcutContext.WidgetShortcut)
         remove.activated.connect(self.remove_selected)
 
-    # Se rehace en cada reset porque la columna de score aparece y desaparece.
     def fit_columns(self) -> None:
         header = self.horizontalHeader()
         if header is None:
@@ -153,9 +146,7 @@ class SourceTable(QTableView):
             row = self.boxes.rows[index.row()]
             self.session.remove([(row.source, row.index)])
 
-    # La fila siguiente o anterior, que al volverse la actual se encuadra sola (`picked`).
-    # Sin fila elegida arranca desde `near`: hacia adelante la primera caja que empieza ahí o
-    # después, hacia atrás la última que empieza antes. Falso cuando no queda ninguna.
+    # Sin fila elegida arranca en near; False si no queda ninguna
     def step(self, direction: int, near: float) -> bool:
         rows = self.boxes.rows
         if not rows:
@@ -172,8 +163,6 @@ class SourceTable(QTableView):
         self.scrollTo(self.boxes.index(target, 0))
         return True
 
-    # Las teclas del espectrograma que la tabla se comería (N y P buscan por letra, Space
-    # marca la fila) siguen su camino hasta la ventana, que es quien las atiende.
     @override
     def keyPressEvent(self, e) -> None:
         if e is not None and e.key() in (Qt.Key.Key_N, Qt.Key.Key_P, Qt.Key.Key_Space):
@@ -197,7 +186,6 @@ class SourceTable(QTableView):
             self.session.remove([(row.source, row.index) for row in rows])
 
 
-# Una tabla y, en su lugar cuando no hay filas, una frase que dice cómo se llenan.
 class SourcePage(QStackedWidget):
     def __init__(self, session: Session, source: str) -> None:
         super().__init__()
@@ -223,8 +211,6 @@ class SourcePage(QStackedWidget):
         return self.rows
 
 
-# Panel de cajas: una pestaña por origen, cada caja borrable con su papelera. Es el inspector
-# de la ventana, y el único sitio donde las cajas se cuentan una por una.
 class BoxTable(QDockWidget):
     picked = pyqtSignal(object)
 
@@ -234,7 +220,6 @@ class BoxTable(QDockWidget):
         self.setAllowedAreas(
             Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea
         )
-        # Un panel lateral, no una ventana flotante: sólo se cierra.
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
         self.pages = {source: SourcePage(session, source) for source in SOURCES}
         self.tabs = QTabWidget()
@@ -242,7 +227,7 @@ class BoxTable(QDockWidget):
         for source, page in self.pages.items():
             page.table.picked.connect(self.picked)
             self.tabs.addTab(page, source)
-        self.pinned = False  # el usuario eligió pestaña: no se le cambia por debajo
+        self.pinned = False  # el usuario eligió pestaña
         self.tabs.currentChanged.connect(self.on_tab)
         tabbar = self.tabs.tabBar()
         if tabbar is not None:
@@ -259,7 +244,6 @@ class BoxTable(QDockWidget):
     def pin(self, _index: int) -> None:
         self.pinned = True
 
-    # La pestaña lleva el conteo de lo que se ve; si el score esconde filas, lo dice entero.
     def refresh(self) -> None:
         for index, (source, page) in enumerate(self.pages.items()):
             table = self.session.tables[source]
@@ -271,8 +255,6 @@ class BoxTable(QDockWidget):
             self.tabs.setTabText(index, label)
         self.show_filled()
 
-    # Abrir el panel en una pestaña vacía teniendo la otra llena es un clic de más; mientras
-    # nadie elija pestaña a mano, se muestra la que tiene cajas.
     def show_filled(self) -> None:
         pages = list(self.pages.values())
         if self.pinned or pages[self.tabs.currentIndex()].count():
@@ -284,7 +266,6 @@ class BoxTable(QDockWidget):
     def on_tab(self, index: int) -> None:
         list(self.pages.values())[index].table.emit_current()
 
-    # Siguiente o anterior caja de la pestaña que se está viendo (N / P).
     def step(self, direction: int, near: float) -> bool:
         page = list(self.pages.values())[self.tabs.currentIndex()]
         return page.table.step(direction, near)

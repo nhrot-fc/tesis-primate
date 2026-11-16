@@ -11,17 +11,13 @@ from utils.audio import mel_to_gray
 from utils.boxes import Detections
 
 DEFAULT_MODEL = "yolo26s"
-# Lado de la imagen cuadrada: el del export (`export_yolo.py`) y el de `imgsz` al entrenar
 IMAGE_SIZE = 512
-# RT-DETR usa otra tarea de Ultralytics (decodificador de conjuntos, no cabeza densa) y por
-# tanto otra clase de modelo y otro envoltorio; lo demás del flujo es idéntico al de YOLO.
 RTDETR_PREFIX = "rtdetr"
 RTDETR_MODEL = "rtdetr-l"
 
 
 class SpectrogramYOLO(Detector):
-    # YOLO26 sale sin NMS; el pos-proceso de anidadas se aplica igual que al resto
-    nms_iou = NMS_IOU
+    nms_iou = NMS_IOU  # YOLO26 sale sin NMS
     clip_grad = 1.0
     needs_db_range = True
     ultralytics_predictor: Any
@@ -39,15 +35,13 @@ class SpectrogramYOLO(Detector):
         from ultralytics.nn.tasks import DetectionModel, RTDETRDetectionModel
 
         is_rtdetr = model.startswith(RTDETR_PREFIX)
-        task, api = (
-            (RTDETRDetectionModel, RTDETR) if is_rtdetr else (DetectionModel, YOLO)
-        )
+        task, api = (RTDETRDetectionModel, RTDETR) if is_rtdetr else (DetectionModel, YOLO)
 
         self.db_low, self.db_high = db_low, db_high
         self.imgsz = imgsz
         self.detector = task(f"{model}.yaml", nc=n_classes, verbose=False)
 
-        # `YOLO.train()` entrena en vez de cambiar de modo: se lo deja fuera del árbol de módulos.
+        # Fuera del árbol de módulos: YOLO.train() entrena en vez de cambiar de modo
         wrapper = api(f"{model}.yaml")
         wrapper.model = self.detector
         self.__dict__["ultralytics_predictor"] = wrapper
@@ -86,6 +80,6 @@ class SpectrogramYOLO(Detector):
 
 
 def load_ultralytics_weights(model: SpectrogramYOLO, weights: Path) -> None:
-    # Ultralytics guarda el modelo pickleado (en fp16); acá sólo interesan sus pesos.
+    # pickle del modelo entero, en fp16
     trained = torch.load(weights, weights_only=False)["model"]
     model.detector.load_state_dict({k: v.float() for k, v in trained.state_dict().items()})

@@ -7,28 +7,22 @@ from torchvision.ops import box_area, box_convert, box_iou
 
 from core.config import RAW_DIR, P
 from data.annotations import SPECIES_CODES, clean_annotations, list_files, species_of, unify_copies
-from data.raven import BEGIN, CALL, END, HIGH, LOW, SCORE, SPECIES
+from data.raven import BEGIN, CALL, CLEANED_BOX_COLUMNS, END, HIGH, LOW, SCORE, SPECIES
 from evaluation.metrics import MATCH_IOU, Boxes, assignments, overlaps, rows_by_image
 from models.registry import LoadedModel
 from prepare_annotations import COLUMNS, find_recording
 from utils.audio import hz_to_y
 
-# Una detección "cubre" una anotación si tapa al menos esta fracción de su área (RE3.3)
-COVER = 0.5
-# Las categorías de RE3.3: acierto, caja distinta, otra llamada, nada anotado
+COVER = 0.5  # fracción del área de la anotación
+# acierto, caja distinta, otra llamada, nada anotado
 MATCH, BOX, LABEL, NONE = "match", "box", "label", "none"
-# Las cajas de las anotaciones limpias, en el orden de las de Raven
-CLEANED = ["begin_time_s", "end_time_s", "low_freq_hz", "high_freq_hz"]
 
 
 def relative(path: str | Path) -> str:
-    # Una grabación por su ruta bajo raw/, que es la misma en el servidor, en local y en el equipo
     return Path(str(path).split("data/raw/", 1)[-1]).as_posix()
 
 
 def load_annotations(joined: dict[str, str]) -> pd.DataFrame:
-    # Las tablas crudas de raw/, limpiadas en memoria igual que `prepare_annotations.py`, con las
-    # copias unidas y las etiquetas unidas de la corrida. Incluye las filas en revisión.
     frames: list[pd.DataFrame] = []
     for table in list_files(RAW_DIR, ".txt"):
         audio = find_recording(table) if species_of(table) in SPECIES_CODES else None
@@ -36,7 +30,7 @@ def load_annotations(joined: dict[str, str]) -> pd.DataFrame:
             continue
         try:
             frame = clean_annotations(pd.read_csv(table, sep="\t"), species_of(audio))
-        except Exception:  # una tabla ilegible no detiene nada, igual que en el pipeline
+        except Exception:
             continue
         if len(frame):
             frames.append(frame[COLUMNS].assign(audio_path=str(audio)))
@@ -49,14 +43,11 @@ def load_annotations(joined: dict[str, str]) -> pd.DataFrame:
     )
 
 
-def tool_tables(
-    loaded: LoadedModel, recordings: list[str], threshold: float, device: str = "cpu"
-) -> pd.DataFrame:
-    # La tabla de Raven que `detect.py` escribe para cada grabación, todas juntas
+def tool_tables(loaded: LoadedModel, recordings: list[str], threshold: float) -> pd.DataFrame:
     from inference.predictor import predict
 
     tables = [
-        predict(loaded, RAW_DIR / recording, device, threshold).assign(recording=recording)
+        predict(loaded, RAW_DIR / recording, "cpu", threshold).assign(recording=recording)
         for recording in recordings
     ]
     table = pd.concat(tables, ignore_index=True)
@@ -64,9 +55,7 @@ def tool_tables(
 
 
 def xyxy(frame: pd.DataFrame, columns: list[str]) -> torch.Tensor:
-    # Cajas en segundos × fila del mel en [0, 1]: la misma escala de frecuencia que ve el modelo.
-    # El IoU no cambia si cada eje se estira por separado, así que segundos sirven igual que
-    # fracciones de ventana.
+    # x en segundos, y en [0, 1] sobre el mel: el IoU no cambia si un eje se estira solo
     begin, end, low, high = (frame[c].to_numpy(dtype=float) for c in columns)
     y0, y1 = (np.clip(hz_to_y(f, P), 0.0, 1.0) for f in (low, high))
     return torch.tensor(np.stack([begin, y0, end, y1], axis=1), dtype=torch.float32).reshape(-1, 4)
@@ -86,8 +75,7 @@ def to_boxes(
 def miss(
     p: torch.Tensor, label: int, t: torch.Tensor, t_labels: torch.Tensor, t_claimed: torch.Tensor
 ) -> tuple[str, int | None]:
-    # La regla de RE3.3 para una detección que no acertó, frente a las anotaciones de su
-    # grabación (cajas xyxy): su categoría y la anotación a que se refiere
+    # t: anotaciones de la grabación, xyxy -> (categoría, índice en t)
     if not len(t):
         return NONE, None
     iou = box_iou(p[None], t)[0]
@@ -106,9 +94,6 @@ def miss(
 
 
 def categorize(det: pd.DataFrame, reference: pd.DataFrame, names: list[str]) -> pd.DataFrame:
-    # Cada detección (una fila de las tablas de la herramienta) con su categoría de RE3.3 frente a
-    # `reference`, y la fila de `reference` a que se refiere. Acierta si toma una anotación de su
-    # clase con IoU ≥ 0,3, en orden de score; si no, va por la regla de `miss`.
     ids = {name: i for i, name in enumerate(names)}
     recordings = {r: i for i, r in enumerate(sorted({*det.recording, *reference.recording}))}
     det = det.sort_values(SCORE, ascending=False, kind="stable")
@@ -120,7 +105,7 @@ def categorize(det: pd.DataFrame, reference: pd.DataFrame, names: list[str]) -> 
     )
     truth = to_boxes(
         reference,
-        CLEANED,
+        CLEANED_BOX_COLUMNS,
         [ids[n] for n in reference.label],
         [recordings[r] for r in reference.recording],
     )
@@ -150,13 +135,13 @@ def categorize(det: pd.DataFrame, reference: pd.DataFrame, names: list[str]) -> 
 
 
 def touches(det: pd.DataFrame, others: pd.DataFrame) -> pd.Series:
-    # Si cada detección se superpone, aunque sea un poco, con alguna fila de `others` de su
-    # grabación (sin mirar la clase)
     recordings = {r: i for i, r in enumerate(sorted({*det.recording, *others.recording}))}
     pred = to_boxes(
         det, [BEGIN, END, LOW, HIGH], [0] * len(det), [recordings[r] for r in det.recording]
     )
-    rest = to_boxes(others, CLEANED, [0] * len(others), [recordings[r] for r in others.recording])
+    rest = to_boxes(
+        others, CLEANED_BOX_COLUMNS, [0] * len(others), [recordings[r] for r in others.recording]
+    )
     hit = np.zeros(len(det), dtype=bool)
     for overlap in overlaps(pred, rest, class_aware=False):
         hit[overlap.prediction_rows] = (overlap.iou > 0).any(dim=1).numpy()

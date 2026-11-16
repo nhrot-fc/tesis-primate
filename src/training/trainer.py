@@ -33,9 +33,8 @@ class TrainConfig:
     warmup: float = 0.05  # fracción de pasos del OneCycle en subida
     workers: int = WORKERS
     seed: int = SEED
-    # Umbral del recall/precisión que se loguea; `best.pt` se elige por mAP@0.3
-    score_threshold: float = SCORE_THRESHOLD
-    jitter: BoxJitter | None = BoxJitter()  # sólo en train
+    score_threshold: float = SCORE_THRESHOLD  # sólo para el log: best.pt va por mAP@0.3
+    jitter: BoxJitter | None = BoxJitter()
     augment: AugmentConfig | None = AugmentConfig()
 
 
@@ -43,7 +42,7 @@ class Trainer:
     def __init__(
         self,
         model: Detector,
-        architecture: str,  # clave en `models.registry.ARCHITECTURES`
+        architecture: str,
         hparams: dict[str, Any],
         labels: LabelSet,
         train_loader: DataLoader,

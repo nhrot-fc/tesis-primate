@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from data.species import LabelSet
-from evaluation.protocol import read_operating_point
+from inference.catalog import read_operating_point
 from models.base import Detector
 from models.coco_deformable_detr import ResNetDeformableDETR
 from models.deformable_detr import ASTDeformableDETR
@@ -15,14 +15,12 @@ from models.yolo import SpectrogramYOLO
 
 logger = logging.getLogger(__name__)
 
-# Cada una se rearma con `n_classes` más los `hparams` del checkpoint.
 ARCHITECTURES: dict[str, type[Detector]] = {
     "ast_deformable_detr": ASTDeformableDETR,
     "resnet_deformable_detr": ResNetDeformableDETR,
     "faster_rcnn": SpectrogramFasterRCNN,
     "yolo": SpectrogramYOLO,
 }
-# Extra de `pyproject.toml` que trae las librerías de cada arquitectura; el Faster R-CNN va de base.
 EXTRAS = {"ast_deformable_detr": "detr", "resnet_deformable_detr": "detr", "yolo": "yolo"}
 
 
@@ -49,8 +47,7 @@ class LoadedModel(NamedTuple):
     architecture: str
     labels: LabelSet
     config: dict[str, Any]
-    # Umbral elegido en val por `compare_models.py`; None si la corrida no se comparó
-    operating_point: float | None
+    operating_point: float | None  # None: corrida sin comparar
 
 
 def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> LoadedModel:
@@ -64,7 +61,6 @@ def load_checkpoint(path: Path | str, device: str | torch.device = "cpu") -> Loa
     name = checkpoint["architecture"]
     labels = LabelSet(checkpoint["labels"])
     model = build_model(name, len(labels), checkpoint["hparams"]).to(device)
-    # Estricto: otra versión del grafo no carga a medias
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
     operating_point = read_operating_point(path.parent)

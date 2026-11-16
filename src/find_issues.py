@@ -25,32 +25,26 @@ from utils.boxes import suppress_nested
 
 logger = logging.getLogger("find_issues")
 
-# Columnas de trabajo: cajas con las columnas de `cleaned/`, el tipo de hallazgo, su calidad
-# (peor es menor) y la ruta de la grabación en el caché.
+# QUALITY: peor es menor
 ISSUE, QUALITY, RECORDING = "issue", "Calidad", "recording"
 SPURIOUS, MISSING, LOCATION, LABEL = "spurious", "missing", "location", "label"
 
-# Liga predicción y anotación
 LINK_IOU = MATCH_IOU
-# Por debajo, una pareja de la misma clase es `location`
-LOCATION_IOU = 0.6
-# Predicciones que entran al análisis
-SCORE_FLOOR = 0.05
+LOCATION_IOU = 0.6  # por debajo, un par de la misma clase es location
+SCORE_FLOOR = 0.05  # el de este análisis, no el de core.config
 LABEL_COLUMN, SUGGESTION, SCORE, WINDOW = "species", "sugerencia", "score", "ventana"
 WINDOW_START = "ventana_inicio_s"
 
-# Contraste con `unified/`: la fila cruda debajo del hallazgo y qué hizo la limpieza con ella
 RAW_IOU, RAW_SPECIES, RAW_CALL, RAW_FOLDER, RAW_RATING, RAW_LABEL, RAW_STATE = (
     "raw_iou",
     "raw_species",
     "raw_call",
     "raw_folder",
     "raw_rating",
-    "raw_clase",  # especie/llamada con que quedó en cleaned/, ya unidas las sinónimas
+    "raw_clase",  # la de cleaned/, con las sinónimas ya unidas
     "raw_estado",
 )
-# Estados: nada anotado; la limpieza la quitó (ruido, caja degenerada); `requires_review`;
-# quedó pero su clase no entró al conjunto (`excluded_labels`, < 100); es una anotación del conjunto.
+# sin clase: quedó en cleaned/ pero su clase no entró al conjunto
 NO_ROW, DROPPED, REVIEW, EXCLUDED, CLEAN = (
     "sin fila",
     "descartada",
@@ -59,12 +53,9 @@ NO_ROW, DROPPED, REVIEW, EXCLUDED, CLEAN = (
     "limpia",
 )
 STATES = [NO_ROW, DROPPED, REVIEW, EXCLUDED, CLEAN]
-# Columna de la tabla cruda que no está en `data.raven`
 RATING = "Rating"
-# Una fila cruda está en `cleaned/` si su caja aparece con esta tolerancia (s y Hz)
-BOX_TOLERANCE = 1e-3
+BOX_TOLERANCE = 1e-3  # s y Hz
 
-# La tabla que se escribe (ver el docstring)
 FOLDER, FILE, ANNOTATED, PREDICTED = "folder", "file", "annotated", "predicted"
 EXISTING = "existing_annotation"
 EXISTING_NAMES = {
@@ -82,8 +73,7 @@ class Copies(NamedTuple):
 
 
 def read_copies(unified: Path) -> dict[str, Copies]:
-    # Cada copia de una grabación (relativa a raw/) -> la tabla de `unified/` que las une y todas
-    # sus copias. El nombre no alcanza: hay wavs distintos con el mismo nombre en subcarpetas.
+    # Por ruta: hay wavs distintos con el mismo nombre en subcarpetas
     path = unified / SOURCES
     if not path.is_file():
         return {}
@@ -231,9 +221,7 @@ def to_table(findings: list[Finding], dump: RawPredictions, labels: LabelSet) ->
 
 
 def merge_duplicates(table: pd.DataFrame) -> pd.DataFrame:
-    # La misma caja sale en dos ventanas solapadas, con bordes algo distintos o recortada por una
-    # de ellas: por grabación, tipo y clase se funden como el predictor funde las detecciones
-    # entre ventanas (`suppress_nested` a NMS_IOU, y la anidada en otra); queda la de peor calidad.
+    # La misma caja en dos ventanas solapadas se funde como en el predictor; queda la de peor calidad
     begin, end, low, high = CLEANED_BOX_COLUMNS
     kept: list[int] = []
     for _, group in table.groupby([RECORDING, ISSUE]):
@@ -246,7 +234,6 @@ def merge_duplicates(table: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_raw(path: Path) -> pd.DataFrame | None:
-    # Una tabla de `unified/`, todo texto salvo la caja.
     if not path.is_file():
         return None
     table = pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False)
@@ -260,16 +247,14 @@ def read_raw(path: Path) -> pd.DataFrame | None:
 
 
 def to_window_space(xyxy: Tensor) -> Tensor:
-    # Tiempo en segundos, frecuencia en la fila del mel en [0, 1]: el IoU sale igual que el del
-    # modelo, que mira la ventana y no los hercios.
+    # x en segundos, y en [0, 1] sobre el mel: el IoU del modelo, que no mira hercios
     y = torch.tensor(hz_to_y(xyxy[:, [1, 3]].numpy(), P)).clamp(0.0, 1.0)
     return torch.stack([xyxy[:, 0], y[:, 0], xyxy[:, 2], y[:, 1]], dim=1)
 
 
 def clipped_iou(findings_xyxy: Tensor, starts: Tensor, raw_xyxy: Tensor) -> Tensor:
-    # [hallazgos, filas crudas]: IoU con la fila cruda recortada a la ventana del hallazgo, que
-    # es lo que el modelo y la anotación limpia vieron; una llamada más larga que la ventana no
-    # liga con su propia fila si se compara entera.
+    # -> [hallazgos, filas crudas]; la fila se recorta a la ventana del hallazgo, o una llamada
+    # más larga que la ventana no liga con su propia fila
     f = to_window_space(findings_xyxy)[:, None, :]
     r = to_window_space(raw_xyxy)[None, :, :].expand(len(findings_xyxy), -1, -1).clone()
     r[..., 0] = torch.maximum(r[..., 0], starts[:, None])
@@ -285,7 +270,6 @@ def clipped_iou(findings_xyxy: Tensor, starts: Tensor, raw_xyxy: Tensor) -> Tens
 
 
 def read_cleaned(wavs: list[str]) -> pd.DataFrame:
-    # Las tablas de `cleaned/` de todas las copias de la grabación, una por carpeta de especie.
     paths = [CLEANED_DIR / Path(wav).with_suffix(".txt") for wav in wavs]
     frames = [
         pd.read_csv(path, sep="\t", keep_default_na=False) for path in paths if path.is_file()
@@ -299,8 +283,7 @@ def read_cleaned(wavs: list[str]) -> pd.DataFrame:
 def cleaning_state(
     raw: pd.DataFrame, cleaned: pd.DataFrame, names: list[str]
 ) -> list[tuple[str, str | None]]:
-    # Una fila cruda sigue en `cleaned/` si su caja aparece ahí (la frecuencia alta se recorta al
-    # tope del mel); si alguna copia la lleva con `requires_review`, el manifest descarta sus ventanas.
+    # La limpieza recorta la frecuencia alta al tope del mel
     raw_boxes = torch.tensor(raw[BOX_COLUMNS].to_numpy(dtype=float))
     raw_boxes[:, 3] = raw_boxes[:, 3].clamp(max=MAX_FREQ_HZ)
     if not len(cleaned):
@@ -326,9 +309,7 @@ def cleaning_state(
     return states
 
 
-def contrast(table: pd.DataFrame, labels: LabelSet, unified: Path = UNIFIED_DIR) -> pd.DataFrame:
-    # Por grabación: la fila cruda de mayor IoU bajo cada hallazgo, si liga. La tabla trae la
-    # ventana de cada hallazgo (`WINDOW_START`): las filas se recortan a ella.
+def contrast(table: pd.DataFrame, labels: LabelSet, unified: Path) -> pd.DataFrame:
     begin, end, low, high = CLEANED_BOX_COLUMNS
     columns = [RAW_IOU, RAW_SPECIES, RAW_CALL, RAW_FOLDER, RAW_RATING, RAW_LABEL, RAW_STATE]
     raw_columns = pd.DataFrame(index=table.index, columns=columns, dtype=object)
@@ -406,8 +387,7 @@ def summarize_contrast(table: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
-def export(table: pd.DataFrame, unified: Path = UNIFIED_DIR) -> pd.DataFrame:
-    # La tabla de trabajo, contrastada o no, a las columnas que se escriben (ver el docstring).
+def export(table: pd.DataFrame, unified: Path) -> pd.DataFrame:
     missing_columns = [c for c in (RAW_FOLDER, RAW_LABEL, RAW_STATE) if c not in table]
     table = table.reindex(columns=[*table.columns, *missing_columns])
     copies = read_copies(unified)

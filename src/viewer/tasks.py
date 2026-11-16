@@ -12,13 +12,10 @@ class StopError(Exception):
     pass
 
 
-# Un archivo que no es lo que dice ser (un audio dañado, una tabla de otro programa, un .pt que no
-# es un modelo): el mensaje ya dice qué pasa y qué hacer, así que se muestra tal cual.
 class UnreadableError(Exception):
     pass
 
 
-# La línea que ve el usuario: el nombre de la excepción sólo cuando el error no se explica solo.
 def describe(exc: BaseException) -> str:
     return str(exc) if isinstance(exc, UnreadableError) else f"{type(exc).__name__}: {exc}"
 
@@ -29,16 +26,13 @@ class Worker(QThread):
     progress = pyqtSignal(int, int)
 
     def __init__(self, task, reports: bool = False, what: str = "Background task") -> None:
-        # Con `reports=True` la tarea recibe un callback (hechos, total) para el progreso, y
-        # por ese callback se la corta: `stop()` la hace fallar en el siguiente reporte.
-        # `what` nombra la tarea en el log.
+        # reports=True: la tarea recibe un callback (hechos, total); stop() la corta en el siguiente
         super().__init__()
         self.task = task
         self.reports = reports
         self.what = what
         self.stopping = threading.Event()
-        # `ok` y `error` salen desde dentro del hilo, antes de que `isRunning` baje: quien
-        # los atiende y quiere arrancar otro trabajo mira esto y espera lo poco que queda.
+        # ok y error salen antes de que isRunning baje
         self.done = False
 
     def stop(self) -> None:
@@ -54,15 +48,13 @@ class Worker(QThread):
         try:
             result = self.task(self.report) if self.reports else self.task()
         except StopError:
-            self.done = True  # quien paró ya sabe
+            self.done = True
         except UnreadableError as exc:
-            # Sin traza: no hay nada que arreglar en el código. La causa, si la hay, va al log.
             cause = f" ({exc.__cause__})" if exc.__cause__ is not None else ""
             logger.warning("%s: %s%s", self.what, exc, cause)
             self.done = True
             self.error.emit(describe(exc))
         except Exception as exc:
-            # El diálogo lleva una línea; el log, la traza para quien tenga que arreglarlo.
             logger.exception("%s failed", self.what)
             self.done = True
             self.error.emit(describe(exc))
@@ -71,8 +63,7 @@ class Worker(QThread):
             self.ok.emit(result)
 
 
-# Hilo de un solo trabajo a la vez: si llega otro mientras calcula, el que esperaba se
-# descarta. Es lo que mantiene fluido el scroll del espectrograma.
+# Un trabajo a la vez: si llega otro mientras calcula, el que esperaba se descarta
 class Latest(QThread):
     done = pyqtSignal(int, object)
 
@@ -118,6 +109,5 @@ class Latest(QThread):
             try:
                 self.done.emit(job_id, task())
             except Exception:
-                # Una banda fallida no merece una alerta, pero sí quedar en el log.
                 logger.warning("Spectrogram render failed", exc_info=True)
                 self.done.emit(job_id, None)

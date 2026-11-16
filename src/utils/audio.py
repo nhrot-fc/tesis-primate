@@ -13,50 +13,40 @@ from core.config import SEED, P, Parameters
 
 FloatArray = npt.NDArray[np.float64]
 
-# Rango de dB del mel para normalizar la entrada de los modelos: recorta el 1 % más callado y
-# el 0.1 % más fuerte de 2000 ventanas de train. (El visor calibra su propio rango sobre el
-# STFT de cada grabación; ver `viewer.spectrogram.DISPLAY_PERCENTILES`.)
+# Normalización robusta de la entrada: percentiles del dB en una muestra de ventanas de train
 DB_PERCENTILES = (1.0, 99.9)
 DB_RANGE_WINDOWS = 2000
-# Cuantil de |onda| que se toma como piso de ruido al rellenar un clip corto
 PAD_FLOOR_QUANTILE = 0.1
 
 
-def pad_to_clip(waveform: Tensor, params: Parameters) -> Tensor:
-    missing = params.clip_len_samples - waveform.numel()
+def pad_to_clip(waveform: Tensor) -> Tensor:
+    missing = P.clip_len_samples - waveform.numel()
     if missing <= 0:
-        return waveform[: params.clip_len_samples]
-    # Ruido al nivel del piso de la grabación: el silencio digital sería un escalón.
+        return waveform[: P.clip_len_samples]
+    # Ruido al nivel del piso: el silencio digital sería un escalón en el espectrograma.
     noise_floor = float(waveform.abs().quantile(PAD_FLOOR_QUANTILE)) if waveform.numel() else 0.0
-    generator = torch.Generator().manual_seed(params.pad_seed)
+    generator = torch.Generator().manual_seed(P.pad_seed)
     return torch.cat([waveform, torch.randn(missing, generator=generator) * noise_floor])
 
 
-# Lo que oye el modelo: mono y resampleado con torchaudio, igual que al construir el caché.
-# El visor tiene su propio lector sin torch (`viewer.spectrogram.load_audio`) porque tiene que
-# abrir audio aunque el motor de detección no cargue.
-def read_clip(
-    audio_file: soundfile.SoundFile, clip_start_s: float, params: Parameters = P
-) -> Tensor:
+def read_clip(audio_file: soundfile.SoundFile, clip_start_s: float) -> Tensor:
     source_sr = audio_file.samplerate
     audio_file.seek(int(clip_start_s * source_sr))
-    frames = audio_file.read(int(params.clip_len_s * source_sr), dtype="float32", always_2d=True)
+    frames = audio_file.read(int(P.clip_len_s * source_sr), dtype="float32", always_2d=True)
     waveform = torch.from_numpy(frames.mean(axis=1))
-    if source_sr != params.target_sr:
-        waveform = torchaudio.functional.resample(waveform, source_sr, params.target_sr)
-    return pad_to_clip(waveform, params)
+    if source_sr != P.target_sr:
+        waveform = torchaudio.functional.resample(waveform, source_sr, P.target_sr)
+    return pad_to_clip(waveform)
 
 
-def load_clip(audio_path: Path | str, clip_start_s: float, params: Parameters = P) -> Tensor:
+def load_clip(audio_path: Path | str, clip_start_s: float) -> Tensor:
     with soundfile.SoundFile(audio_path) as audio_file:
-        return read_clip(audio_file, clip_start_s, params)
+        return read_clip(audio_file, clip_start_s)
 
 
-def load_clips(
-    audio_path: Path | str, clip_starts: Iterable[float], params: Parameters = P
-) -> list[Tensor]:
+def load_clips(audio_path: Path | str, clip_starts: Iterable[float]) -> list[Tensor]:
     with soundfile.SoundFile(audio_path) as audio_file:
-        return [read_clip(audio_file, float(start), params) for start in clip_starts]
+        return [read_clip(audio_file, float(start)) for start in clip_starts]
 
 
 def window_starts(duration_s: float, params: Parameters) -> FloatArray:
@@ -75,7 +65,7 @@ def hz_to_mel(hz: FloatArray | float, params: Parameters) -> FloatArray:
 
 
 def hz_to_y(freq_hz: FloatArray, params: Parameters) -> FloatArray:
-    # Fila del espectrograma en [0, 1].
+    # y en [0, 1] sobre la escala mel
     low, high = hz_to_mel(params.f_min, params), hz_to_mel(params.f_max, params)
     return (hz_to_mel(freq_hz, params) - low) / (high - low)
 
@@ -100,17 +90,17 @@ def mel_spectrogram(params: Parameters = P) -> nn.Module:
     )
 
 
-def mel_to_db(mel: Tensor, params: Parameters = P) -> Tensor:
-    # 10 y no 20: el mel va en potencia. El visor repite la fórmula en numpy sobre su STFT
-    # (`viewer.spectrogram.stft_db`) con un piso más bajo, porque no pasa por el banco mel.
-    return 10.0 * torch.log10(mel + params.eps)
+def mel_to_db(mel: Tensor) -> Tensor:
+    # 10 y no 20: el mel va en potencia
+    return 10.0 * torch.log10(mel + P.eps)
 
 
 def mel_db_range(mels: Tensor) -> tuple[float, float]:
     index = np.random.default_rng(SEED).choice(
         len(mels), size=min(DB_RANGE_WINDOWS, len(mels)), replace=False
     )
-    db = mel_to_db(mels[torch.from_numpy(index)].float()).numpy()  # `torch.quantile` no escala
+    # numpy: torch.quantile tiene tope de tamaño
+    db = mel_to_db(mels[torch.from_numpy(index)].float()).numpy()
     low, high = np.percentile(db, DB_PERCENTILES)
     return float(low), float(high)
 

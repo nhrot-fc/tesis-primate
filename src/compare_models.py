@@ -30,7 +30,6 @@ def main() -> None:
     comparison = compare(
         [(d.val, d.test) for d in dumps], min_precision=args.min_precision, max_det=args.max_det
     )
-    # El punto de operación de cada modelo queda junto a su checkpoint: el visor arranca de ahí.
     for dump, compared in zip(dumps, comparison.models, strict=True):
         if compared.threshold is not None:
             write_operating_point(dump.directory, dump.model, compared, comparison.protocol)

@@ -18,7 +18,6 @@ from data.raven import CALL, CLEANED_BOX_COLUMNS, SPECIES
 
 logger = logging.getLogger("prepare_annotations")
 
-# Columnas de la tabla de anotaciones que se conservan en cleaned/
 COLUMNS = [
     cleaned(SPECIES),
     "written_species",
@@ -66,7 +65,6 @@ def main() -> None:
             failed.append(f"{relative}: {exc}")
             continue
 
-        # Se llama como su `.wav`.
         out = args.out / relative.with_name(audio.stem + ".txt")
         out.parent.mkdir(parents=True, exist_ok=True)
         frame[COLUMNS].to_csv(out, sep="\t", index=False)

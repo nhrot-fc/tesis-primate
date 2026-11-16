@@ -13,7 +13,6 @@ from models.registry import LoadedModel
 logger = logging.getLogger(__name__)
 
 DONE, SKIPPED, FAILED, STOPPED = "done", "skipped", "failed", "stopped"
-# En CPU el lote grande sólo sube el pico de memoria (Faster R-CNN: 4,8 GB con 16)
 CPU_BATCH_SIZE = 4
 
 
@@ -44,8 +43,7 @@ def run_batch(
     on_progress: Callable[[int, int, int], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> Iterator[Outcome]:
-    # `on_progress(índice, ventanas hechas, ventanas totales)` va por archivo; `should_stop`
-    # se consulta entre archivos y entre lotes de ventanas, y corta con `stopped`.
+    # on_progress(índice de archivo, ventanas hechas, ventanas totales)
     batch_size = batch_size_for(device)
     for index, path in enumerate(files):
         if should_stop is not None and should_stop():
@@ -77,8 +75,6 @@ def run_batch(
             yield Outcome(index, path, STOPPED)
             return
         except Exception as exc:
-            # Un archivo roto no corta la lista; su traza queda en el log (el del visor o la
-            # consola de `detect.exe`) y la corrida sigue con el siguiente.
             logger.exception("%s failed", path)
             yield Outcome(index, path, FAILED, message=f"{type(exc).__name__}: {exc}")
             continue

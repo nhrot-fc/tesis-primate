@@ -6,14 +6,13 @@ import torch.nn.functional as F
 from torch.nn.init import constant_, xavier_uniform_
 
 from core.config import NMS_IOU, SCORE_THRESHOLD
-from models.backbone import N_LEVELS, TIME_STRIDE
+from models.backbone import N_LEVELS, TIME_STRIDE, ASTBackbone, MultiScalePyramid
 from models.base import Detector
-from models.criterion import Outputs
+from models.criterion import Outputs, SetCriterion
 from models.frontend import build_frontend
 from utils.boxes import Detections
 
 PRIOR_PROB = 0.01
-# El de la corrida que compara el capítulo 5; PCEN y `none` son las ablaciones.
 FRONTEND = "logmel"
 DIM = 128
 N_QUERIES = 100
@@ -24,19 +23,19 @@ FFN = 1024
 DROPOUT = 0.1
 
 
-def mlp(dim: int, hidden: int, out: int, layers: int = 3) -> nn.Sequential:
-    stack: list[nn.Module] = []
-    width = dim
-    for _ in range(layers - 1):
-        stack += [nn.Linear(width, hidden), nn.ReLU(inplace=True)]
-        width = hidden
-    stack += [nn.Linear(width, out)]
-    return nn.Sequential(*stack)
+def mlp(dim: int, hidden: int, out: int) -> nn.Sequential:
+    return nn.Sequential(
+        nn.Linear(dim, hidden),
+        nn.ReLU(inplace=True),
+        nn.Linear(hidden, hidden),
+        nn.ReLU(inplace=True),
+        nn.Linear(hidden, out),
+    )
 
 
-def inverse_sigmoid(coordinates: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+def inverse_sigmoid(coordinates: torch.Tensor) -> torch.Tensor:
     coordinates = coordinates.clamp(min=0, max=1)
-    return torch.log(coordinates.clamp(min=eps) / (1 - coordinates).clamp(min=eps))
+    return torch.log(coordinates.clamp(min=1e-5) / (1 - coordinates).clamp(min=1e-5))
 
 
 def sigmoid_detections(outputs: Outputs, score_threshold: float) -> list[Detections]:
@@ -53,22 +52,15 @@ def sigmoid_detections(outputs: Outputs, score_threshold: float) -> list[Detecti
 
 
 class DeformableAttention(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        n_heads: int = N_HEADS,
-        n_points: int = N_POINTS,
-        n_levels: int = N_LEVELS,
-        dropout: float = DROPOUT,
-    ):
+    def __init__(self, dim: int):
         super().__init__()
-        self.n_heads, self.n_points, self.n_levels = n_heads, n_points, n_levels
-        self.offsets = nn.Linear(dim, n_heads * n_levels * n_points * 2)
-        self.weights = nn.Linear(dim, n_heads * n_levels * n_points)
+        self.n_heads, self.n_points, self.n_levels = N_HEADS, N_POINTS, N_LEVELS
+        self.offsets = nn.Linear(dim, N_HEADS * N_LEVELS * N_POINTS * 2)
+        self.weights = nn.Linear(dim, N_HEADS * N_LEVELS * N_POINTS)
         self.value = nn.Linear(dim, dim)
         self.out = nn.Linear(dim, dim)
-        self.dropout = nn.Dropout(dropout)
-        self.head_dim = dim // n_heads
+        self.dropout = nn.Dropout(DROPOUT)
+        self.head_dim = dim // N_HEADS
         self.initialize_parameters()
 
     def initialize_parameters(self) -> None:
@@ -147,24 +139,16 @@ class DeformableAttention(nn.Module):
 
 
 class DeformableDecoderLayer(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        n_heads: int = N_HEADS,
-        n_points: int = N_POINTS,
-        n_levels: int = N_LEVELS,
-        ffn: int = FFN,
-        dropout: float = DROPOUT,
-    ):
+    def __init__(self, dim: int):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(dim, n_heads, dropout=dropout, batch_first=True)
-        self.cross_attn = DeformableAttention(dim, n_heads, n_points, n_levels, dropout=dropout)
+        self.self_attn = nn.MultiheadAttention(dim, N_HEADS, dropout=DROPOUT, batch_first=True)
+        self.cross_attn = DeformableAttention(dim)
         self.ffn = nn.Sequential(
-            nn.Linear(dim, ffn),
+            nn.Linear(dim, FFN),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(ffn, dim),
-            nn.Dropout(dropout),
+            nn.Dropout(DROPOUT),
+            nn.Linear(FFN, dim),
+            nn.Dropout(DROPOUT),
         )
         self.n1, self.n2, self.n3 = (nn.LayerNorm(dim) for _ in range(3))
 
@@ -187,31 +171,18 @@ class DeformableDecoderLayer(nn.Module):
 
 
 class DeformableDETR(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        n_queries: int,
-        n_classes: int,
-        n_decoder_layers: int = N_DECODER_LAYERS,
-        n_heads: int = N_HEADS,
-        n_points: int = N_POINTS,
-    ):
+    def __init__(self, dim: int, n_queries: int, n_classes: int):
         super().__init__()
-        self.n_queries = n_queries
-
         self.query_embed = nn.Embedding(n_queries, dim)
         self.query_pos = nn.Embedding(n_queries, dim)
         self.ref_point_head = nn.Linear(dim, 2)
 
-        self.layers = nn.ModuleList(
-            DeformableDecoderLayer(dim, n_heads, n_points, N_LEVELS)
-            for _ in range(n_decoder_layers)
-        )
-        class_heads = [nn.Linear(dim, n_classes) for _ in range(n_decoder_layers)]
+        self.layers = nn.ModuleList(DeformableDecoderLayer(dim) for _ in range(N_DECODER_LAYERS))
+        class_heads = [nn.Linear(dim, n_classes) for _ in range(N_DECODER_LAYERS)]
         for head in class_heads:
             constant_(head.bias, -math.log((1 - PRIOR_PROB) / PRIOR_PROB))
         self.class_heads = nn.ModuleList(class_heads)
-        self.bbox_heads = nn.ModuleList(mlp(dim, dim, 4) for _ in range(n_decoder_layers))
+        self.bbox_heads = nn.ModuleList(mlp(dim, dim, 4) for _ in range(N_DECODER_LAYERS))
 
     def forward(self, features: list[torch.Tensor]) -> Outputs:
         batch_size = features[0].shape[0]
@@ -246,8 +217,6 @@ class DetectionHead(nn.Module):
         dim: int,
     ):
         super().__init__()
-        from models.backbone import MultiScalePyramid
-
         self.freq_out, self.time_out = freq_out, time_out
         self.proj = nn.Linear(token_dim, dim)
         self.pyramid = MultiScalePyramid(dim)
@@ -264,10 +233,7 @@ class DetectionHead(nn.Module):
 
 
 class ASTDeformableDETR(Detector):
-    # El matching húngaro es uno a uno al entrenar, pero en inferencia 100 consultas sobre 1-3
-    # llamadas dejan duplicados y cajas anidadas: el mismo postprocesado que las cabezas densas
-    # (+0,02 mAP en val y test, y el visor sale mucho más limpio).
-    nms_iou = NMS_IOU
+    nms_iou = NMS_IOU  # 100 queries sobre 1-3 llamadas dejan duplicados y anidadas
     clip_grad = 0.1
 
     def __init__(
@@ -281,9 +247,6 @@ class ASTDeformableDETR(Detector):
         frozen_backbone: bool = False,
     ):
         super().__init__()
-        from models.backbone import ASTBackbone
-        from models.criterion import SetCriterion
-
         self.backbone = ASTBackbone(
             n_frames=n_frames, time_stride=time_stride, frozen=frozen_backbone
         )

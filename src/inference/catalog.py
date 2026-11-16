@@ -8,18 +8,14 @@ logger = logging.getLogger(__name__)
 
 AUDIO_SUFFIXES = {".wav", ".flac", ".mp3"}
 CHECKPOINT_SUFFIXES = {".pt", ".pth"}
-# Donde el paquete portable deja los checkpoints: `models/<nombre>/best.pt` (+ operating_point.json)
 MODELS_DIR = PROJECT_DIR / "models"
-# La tabla queda junto al audio con el mismo nombre que exporta el visor; `<audio>.txt` a
-# secas es la anotación de Raven.
+# <audio>.txt a secas es la anotación de Raven
 DETECTIONS_SUFFIX = ".detections.txt"
-# Umbral elegido en val por `compare_models.py`, junto al checkpoint
 OPERATING_POINT = "operating_point.json"
 
 
 def is_audio(path: Path) -> bool:
-    # `._x.wav` no es audio: es lo que macOS deja junto a cada archivo en una tarjeta o un disco
-    # FAT, y una carpeta copiada desde un Mac trae uno por grabación.
+    # ._x.wav: metadatos de macOS
     return (
         path.is_file() and path.suffix.lower() in AUDIO_SUFFIXES and not path.name.startswith("._")
     )
@@ -33,7 +29,6 @@ def is_checkpoint(path: Path) -> bool:
     )
 
 
-# Un checkpoint por carpeta: `best.pt` si está, si no el único que haya.
 def checkpoint_in(directory: Path) -> Path | None:
     best = directory / "best.pt"
     if best.is_file():
@@ -43,7 +38,6 @@ def checkpoint_in(directory: Path) -> Path | None:
 
 
 def available_models() -> list[Path]:
-    # `models/` del paquete y, en el repo, también las corridas de `runs/`.
     found = []
     for root in (MODELS_DIR, RUNS_DIR):
         if root.is_dir():
@@ -52,11 +46,10 @@ def available_models() -> list[Path]:
 
 
 def read_operating_point(directory: Path) -> float | None:
-    # -> umbral de score, o None si la corrida no pasó por `compare_models.py`
+    # None: corrida sin comparar
     path = directory / OPERATING_POINT
     if not path.is_file():
         return None
-    # Uno dañado (una copia a medias) deja el modelo sin punto de operación, no sin modelo.
     try:
         threshold = json.loads(path.read_text()).get("threshold")
         return None if threshold is None else float(threshold)

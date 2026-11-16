@@ -20,7 +20,7 @@ Detect = Callable[[Tensor, float], list[Detections]]
 SUFFIX = "_predictions.pt"
 
 
-# Volcado de un modelo sobre un split, hasta `SCORE_FLOOR`
+# hasta SCORE_FLOOR
 class RawPredictions(NamedTuple):
     model: str
     split: str
@@ -79,7 +79,6 @@ def evaluate(
     return detection_metrics(predictions, truth, n_classes, score_threshold)
 
 
-# Los términos de pérdida de un lote más su suma, que es lo que se optimiza y se loguea.
 def loss_terms(model: nn.Module, batch: Batch, device: str | torch.device) -> dict[str, Tensor]:
     images, targets = to_device(batch, device)
     terms: dict[str, Tensor] = model(images, targets)
@@ -115,10 +114,9 @@ def path_for(directory: Path, model: str, split: str) -> Path:
     return directory / f"{model}_{split}{SUFFIX}"
 
 
-# Los dos volcados de un modelo y dónde viven: val elige el umbral y test lo mide.
 class ModelDumps(NamedTuple):
     model: str
-    directory: Path  # la del volcado de val; ahí va `operating_point.json`
+    directory: Path  # la del volcado de val
     val: RawPredictions
     test: RawPredictions
 

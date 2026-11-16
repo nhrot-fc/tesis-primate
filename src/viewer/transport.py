@@ -16,22 +16,18 @@ from viewer.player import AudioPlayer
 from viewer.spectrogram import Waveform, pcm16
 
 TIME_STEP = 0.05
-# La llamada mediana dura 0,2 s: por debajo de 1 s también hace falta ventana.
 SPANS = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0]
 SPAN_WIDTH = 78
 MARK_ALPHA = 150
 MARK_MIN_PX = 2
 
 
-# Un rótulo delante de un mando: dice qué es.
 def caption(text: str, tip: str = "") -> QLabel:
     label = QLabel(text)
     label.setToolTip(tip)
     return label
 
 
-# El scroll del tiempo con las cajas pintadas encima, como la barra de un editor: se ve dónde
-# hay llamadas en toda la grabación y se salta ahí de un clic.
 class Timeline(QScrollBar):
     def __init__(self) -> None:
         super().__init__(Qt.Orientation.Horizontal)
@@ -57,7 +53,6 @@ class Timeline(QScrollBar):
         handle = style.subControlRect(
             QStyle.ComplexControl.CC_ScrollBar, option, QStyle.SubControl.SC_ScrollBarSlider, self
         )
-        # El asa queda limpia: es lo que se está viendo; las marcas dicen qué hay alrededor.
         painter = QPainter(self)
         painter.setClipRegion(QRegion(groove).subtracted(QRegion(handle)))
         painter.setPen(Qt.PenStyle.NoPen)
@@ -73,8 +68,6 @@ class Timeline(QScrollBar):
         painter.end()
 
 
-# Qué tramo del tiempo se ve, dónde está el cabezal y qué suena. La banda de frecuencia es
-# de `controls.Band`; la ventana la pone a su lado.
 class Transport(QWidget):
     changed = pyqtSignal()
     playhead = pyqtSignal(object)  # float mientras hay cabezal, None cuando se apaga
@@ -102,11 +95,8 @@ class Transport(QWidget):
         self.spans.setToolTip("How much time fits on screen (Ctrl + wheel, Ctrl+1 / Ctrl+3)")
         self.spans.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.spans.currentIndexChanged.connect(self.rescale)
-        # El rótulo va con el combo: "5 s" solo no dice que es el ancho de la ventana.
         self.spans_label = caption("Window", self.spans.toolTip())
 
-        # Reproducir, la barra de tiempo con todo el sitio que sobra, y el reloj al final.
-        # Al principio y al final se va con Home y End: no hacen falta botones.
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -135,7 +125,6 @@ class Transport(QWidget):
         return start, min(start + self.span(), self.duration)
 
     def rescale(self) -> None:
-        # Conserva el instante actual al cambiar el ancho de ventana.
         start = self.bar.value() * TIME_STEP
         span = self.span()
         self.bar.blockSignals(True)
@@ -171,7 +160,6 @@ class Transport(QWidget):
     def center(self, seconds: float) -> None:
         self.bar.setValue(int(max(seconds - self.span() / 2, 0.0) / TIME_STEP))
 
-    # Encuadra un tramo: la ventana más angosta que lo deja con aire, centrada en él.
     def fit(self, begin: float, end: float, margin: float = 2.5, floor: float = 1.0) -> None:
         wanted = max((end - begin) * margin, floor)
         index = next((i for i, span in enumerate(SPANS) if span >= wanted), len(SPANS) - 1)

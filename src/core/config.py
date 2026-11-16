@@ -3,61 +3,43 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SEED = 42
-# Workers del DataLoader
 WORKERS = min(8, os.cpu_count() or 1)
 
-# Raíz del repo
 PROJECT_DIR = Path(__file__).resolve().parents[2]
-# Copia local del AST
 HF_DIR = PROJECT_DIR / "hf"
 DATA_DIR = PROJECT_DIR / "data"
-# Audio y tablas de Raven
 RAW_DIR = DATA_DIR / "raw"
-# Anotaciones normalizadas, una por grabación
 CLEANED_DIR = DATA_DIR / "cleaned"
-# Grabaciones únicas de raw/ (sin copias) con la unión de sus tablas de Raven, sin limpiar
 UNIFIED_DIR = DATA_DIR / "unified"
-# Caché de ventanas
 PROCESSED_DIR = DATA_DIR / "processed"
-# Export PNG para Ultralytics
 YOLO_DIR = DATA_DIR / "yolo"
 RUNS_DIR = PROJECT_DIR / "runs"
 
-# Detección: lo comparten los modelos, el protocolo de evaluación, la inferencia y el visor.
-# Umbral de score por defecto: el que loguea el entrenamiento y con el que arranca el visor
 SCORE_THRESHOLD = 0.5
-# Mínimo score que devuelve un modelo; los volcados y la comparación parten de acá
 SCORE_FLOOR = 0.001
-# Paso de la rejilla de umbrales (protocolo y slider del visor)
 SCORE_STEP = 0.01
-# IoU del NMS de las cabezas densas y de la fusión de ventanas solapadas en inferencia
 NMS_IOU = 0.3
-# Tope de detecciones por ventana
-MAX_DETECTIONS = 100
+MAX_DETECTIONS = 100  # por ventana
 
 
 def score_grid(start: float, stop: float) -> list[float]:
-    # Umbrales de `start` a `stop` inclusive, en pasos de SCORE_STEP y sin ruido de coma flotante.
+    # `stop` inclusive; i / n en vez de sumar pasos evita el error de coma flotante
     n = round(1 / SCORE_STEP)
     return [i / n for i in range(round(start * n), round(stop * n) + 1)]
 
 
 @dataclass
 class Parameters:
-    # Ventanas
     clip_len_s: float = 3.0
     clip_hop_s: float = 1.5
-    # Fracción de la llamada que debe caer en la ventana
-    min_overlap: float = 0.5
+    min_overlap: float = 0.5  # fracción de la llamada dentro de la ventana
     pad_seed: int = 0
 
-    # STFT
     target_sr: int = 44100
     n_fft: int = 4096
     win_length: int = 1024
     hop_length: int = 400
 
-    # Mel
     n_mels: int = 128
     f_min: float = 25.0
     f_max: float = 22050.0

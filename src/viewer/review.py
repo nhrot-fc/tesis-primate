@@ -21,15 +21,12 @@ ACCEPTED, REJECTED = "accepted", "rejected"
 JOURNAL_COLUMNS = [BEGIN, END, LOW, HIGH, SPECIES, CALL, SCORE, DECISION]
 JOURNAL_DIR = Path(tempfile.gettempdir()) / "primate-detector"
 SPECIES_WIDTH = 220
-# Una decisión del diario se casa con la detección que más se le parece; por debajo de esto
-# (la caja se retocó mucho o la tabla es otra) se deja la detección en la cola.
+# Mínimo para casar una decisión del diario con una detección
 RESUME_IOU = 0.5
 
 Box = tuple[float, float, float, float]
 
 
-# El diario de una grabación vive en la carpeta temporal del sistema, con nombre fijo por
-# ruta de audio: si el visor se cierra, al volver a abrir el audio se sigue sobre el mismo.
 def journal_path(audio: Path) -> Path:
     digest = hashlib.md5(str(audio.resolve()).encode()).hexdigest()[:8]
     return JOURNAL_DIR / f"{audio.stem}.{digest}.review.txt"
@@ -49,8 +46,6 @@ class Journal:
     def __init__(self, audio: Path) -> None:
         self.path = journal_path(audio)
 
-    # El diario es una ayuda para retomar: si no se puede escribir (disco lleno, temporal sin
-    # permiso) la decisión vale igual y sólo se pierde el poder retomarla.
     def append(self, decision: str, box: Box, label: str, score: float) -> None:
         species, _, call = label.partition("/")
         row = pd.DataFrame([[*box, species, call, score, decision]], columns=JOURNAL_COLUMNS)
@@ -60,15 +55,12 @@ class Journal:
         except OSError:
             logger.warning("Could not write the review journal %s", self.path, exc_info=True)
 
-    # Un diario ilegible (un corte a mitad de escritura, otra versión del visor) no bloquea la
-    # revisión: se aparta con otro nombre, por si hace falta mirarlo, y se empieza uno nuevo.
     def read(self) -> pd.DataFrame:
         empty = pd.DataFrame(columns=JOURNAL_COLUMNS)
         if not self.path.is_file():
             return empty
         try:
             table = pd.read_csv(self.path, sep="\t", keep_default_na=False)
-            # El score queda para quien lo mire a mano: retomar no lo lee.
             if absent := set(JOURNAL_COLUMNS) - {SCORE} - set(table.columns):
                 raise ValueError(f"missing columns {sorted(absent)}")
             for column in (BEGIN, END, LOW, HIGH):
@@ -89,8 +81,6 @@ class Journal:
         return {str(k): int(v) for k, v in self.read()[DECISION].value_counts().items()}
 
 
-# La fila de mandos: dónde va la revisión, la especie de la caja (se puede corregir antes de
-# aceptar) y las decisiones. Enter en la especie acepta: se tipea y se sigue.
 class ReviewBar(QWidget):
     accepted = pyqtSignal()
     rejected = pyqtSignal()
@@ -98,8 +88,6 @@ class ReviewBar(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
-        # Dónde va la revisión, a la izquierda y con todas las letras: es lo único que hay
-        # que saber para seguir, y durante la revisión la fila es sólo suya.
         self.position = QLabel("")
         self.score = QLabel("")
         self.species = QComboBox()
@@ -110,7 +98,6 @@ class ReviewBar(QWidget):
         edit = self.species.lineEdit()
         if edit is not None:
             edit.installEventFilter(self)
-        # Las teclas van en el tooltip: la revisión se hace con el teclado.
         self.accept_button = self.button(
             "Accept", "Keep the box as framed and labelled (A or Enter)", self.accepted.emit
         )
@@ -138,9 +125,7 @@ class ReviewBar(QWidget):
         button.clicked.connect(lambda: action())
         return button
 
-    # Enter en la especie acepta una sola vez: se consume acá para que ni el combo ni la
-    # ventana (que también acepta con Enter) lo vuelvan a ver. El foco sale de la etiqueta: si
-    # no, la A o la N que siguen se escribirían en la de la caja siguiente.
+    # Enter se consume acá: la ventana también acepta con Enter
     @override
     def eventFilter(self, a0, a1) -> bool:
         if (
@@ -166,9 +151,6 @@ class ReviewBar(QWidget):
         return self.species.currentText().strip()
 
 
-# Recorre las detecciones visibles en orden de tiempo. Aceptar mueve la caja a Annotations con
-# el encuadre y la especie que tenga en ese momento; rechazar la quita; las dos quedan en el
-# diario. La cola se recorta sola: lo decidido deja de estar en Detections.
 class Reviewer(QObject):
     changed = pyqtSignal()
 
@@ -204,7 +186,7 @@ class Reviewer(QObject):
         if self.session.audio_path is None:
             return
         self.journal = Journal(self.session.audio_path)
-        # Antes de activarse: lo que `resume` agrega y quita no debe redibujar la revisión.
+        # Antes de activarse: lo que resume agrega y quita no redibuja la revisión
         self.resumed = self.resume()
         self.active = True
         self.cursor = 0
@@ -217,8 +199,6 @@ class Reviewer(QObject):
         self.plot.set_editable(None)
         self.changed.emit()
 
-    # Lo que el diario ya decidió sobre estas detecciones: cada fila se casa con la detección
-    # más parecida y la saca de la cola; las aceptadas vuelven a Annotations si no están ya.
     def resume(self) -> int:
         if self.journal is None:
             return 0
@@ -268,14 +248,14 @@ class Reviewer(QObject):
         if self.session.audio_path is None or (
             self.journal is not None and self.journal.path != journal_path(self.session.audio_path)
         ):
-            self.stop()  # cambió el audio: la revisión era de otro
+            self.stop()
             return
         self.show()
 
     def show(self) -> None:
         rows = self.rows()
         if not rows:
-            self.stop()  # cola vacía: la revisión terminó
+            self.stop()
             return
         self.cursor = min(max(self.cursor, 0), len(rows) - 1)
         row = rows[self.cursor]
@@ -317,7 +297,7 @@ class Reviewer(QObject):
                     CALL: call,
                 },
             )
-        # Quitarla de Detections dispara `changed` -> `refresh` -> `show` con la siguiente
+        # Quitarla dispara changed -> refresh -> show con la siguiente
         self.session.remove([(row.source, row.index)])
 
     def counts(self) -> dict[str, int]:

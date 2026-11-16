@@ -21,11 +21,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Deformable DETR de dos etapas con refinamiento de cajas, entrenado en COCO (Zhu et al. 2021)
 DETR_CHECKPOINT = "SenseTime/deformable-detr-with-box-refine-two-stage"
-# Queries y propuestas con las que se entrenó en COCO
 COCO_QUERIES = 300
-# Con lo que se normalizaron las imágenes que vio su ResNet-50
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -37,8 +34,6 @@ def local_detr_dir(checkpoint: str = DETR_CHECKPOINT) -> Path:
 def load_detr(
     n_classes: int, n_queries: int, checkpoint: str = DETR_CHECKPOINT
 ) -> "DeformableDetrForObjectDetection":
-    # `transformers` y `timm` (su ResNet-50) son el extra `detr`: sólo hacen falta si se carga
-    # esta arquitectura.
     from transformers import DeformableDetrConfig, DeformableDetrForObjectDetection
 
     local_dir = local_detr_dir(checkpoint)
@@ -52,17 +47,14 @@ def load_detr(
         raise ValueError(f"{checkpoint} is not two-stage; `outputs` expects its proposals")
     config.num_labels = n_classes
     config.num_queries = config.two_stage_num_proposals = n_queries
-    # Las cabezas de clase (91 clases de COCO) se reinician; el resto carga tal cual.
+    # reinicia las cabezas de clase (91 de COCO)
     return DeformableDetrForObjectDetection.from_pretrained(
         local_dir, config=config, ignore_mismatched_sizes=True
     )
 
 
 class ResNetDeformableDETR(Detector):
-    # El Deformable DETR de COCO tal cual sale de HF, ResNet-50 incluido, con la receta de Zhu
-    # et al. 2021: el mel pintado como imagen ImageNet, 300 queries, stem y layer1 congelados.
-    # Mismo postprocesado que el resto (ver ASTDeformableDETR): 300 consultas dejan duplicados.
-    nms_iou = NMS_IOU
+    nms_iou = NMS_IOU  # 300 queries dejan duplicados
     clip_grad = 0.1
     needs_db_range = True
     mean: Tensor
@@ -84,7 +76,7 @@ class ResNetDeformableDETR(Detector):
         self.detr = load_detr(n_classes, n_queries, checkpoint)
         for name, parameter in self.detr.model.backbone.model.named_parameters():
             parameter.requires_grad_(any(f"layer{i}" in name for i in (2, 3, 4)))
-        # Cabezas nuevas con el prior de Zhu et al. 2021; la última puntúa las propuestas del encoder.
+        # Prior de Zhu et al. 2021; la última cabeza puntúa las propuestas del encoder
         for head in self.detr.class_embed:
             assert isinstance(head, nn.Linear)
             constant_(head.bias, -math.log((1 - PRIOR_PROB) / PRIOR_PROB))
@@ -93,7 +85,6 @@ class ResNetDeformableDETR(Detector):
         self.register_buffer("std", torch.tensor(IMAGENET_STD).view(1, 3, 1, 1))
 
     def pixels(self, mel: Tensor) -> Tensor:
-        # Como el Faster R-CNN: el mel en dB a [0, 1], escalado a 396 x 1024 y en tres canales
         image = mel_to_unit(mel, self.db_low, self.db_high)
         height, width = image.shape[-2:]
         scale = min(self.min_size / min(height, width), self.max_size / max(height, width))

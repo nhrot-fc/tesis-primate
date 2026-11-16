@@ -23,7 +23,7 @@ from training.trainer import Trainer
 logger = logging.getLogger("kfold")
 
 FOLDS = "folds.json"
-# Predicciones de un modelo sobre su pliegue retenido, con los ids de ventana de train
+# image_ids: ventanas de train
 HELD_OUT = "held_out_predictions.pt"
 
 
@@ -40,14 +40,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def assign_folds(recording_of_window: list[int], n_folds: int, seed: int = SEED) -> list[int]:
-    # -> pliegue de cada ventana. Cada grabación entera al pliegue con menos ventanas, de la
-    # más grande a la más chica, para que queden parejos.
+def assign_folds(recording_of_window: list[int], n_folds: int) -> list[int]:
+    # Cada grabación entera al pliegue con menos ventanas, de la más grande a la más chica
     windows: dict[int, list[int]] = defaultdict(list)
     for window, recording in enumerate(recording_of_window):
         windows[recording].append(window)
     recordings = list(windows)
-    random.Random(seed).shuffle(recordings)
+    random.Random(SEED).shuffle(recordings)
     recordings.sort(key=lambda r: -len(windows[r]))
 
     sizes = [0] * n_folds
@@ -79,7 +78,6 @@ def predict_held_out(
     run_dir: Path, dataset: SpectrogramDataset, held_out: list[int], batch_size: int, device: str
 ) -> None:
     loaded = load_checkpoint(run_dir / checkpoint.BEST, device)
-    # Sin aumento ni jitter: el pliegue retenido se predice tal como está en el caché.
     augmenter, jitter = dataset.augmenter, dataset.jitter
     dataset.augmenter, dataset.jitter = None, None
     try:
@@ -138,7 +136,6 @@ def main() -> None:
     device = resolve_device(args.device)
     labels = cache.labels()
 
-    # YOLO no lee el caché al entrenar: sólo hace falta para predecir el pliegue retenido
     train_set = (
         SpectrogramDataset(cache.split_path(cache.TRAIN))
         if is_yolo

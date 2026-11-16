@@ -15,8 +15,7 @@ from utils.audio import FloatArray, hz_to_y, window_starts
 logger = logging.getLogger(__name__)
 
 IntArray = npt.NDArray[np.int64]
-# Lado mínimo de una caja, en fracción del clip: la duración mínima de una anotación.
-MIN_BOX_SIZE = MIN_DURATION_S / P.clip_len_s
+MIN_BOX_SIZE = MIN_DURATION_S / P.clip_len_s  # fracción del clip
 
 
 class ClipWindow(NamedTuple):
@@ -56,7 +55,6 @@ def boxes_in_window(
 
 
 def touches(group: pd.DataFrame, clip_start_s: float, params: Parameters) -> bool:
-    # Si alguna anotación del grupo pisa la ventana, aunque sea un instante.
     begin = group["begin_time_s"].to_numpy()
     end = group["end_time_s"].to_numpy()
     return bool(
@@ -67,13 +65,10 @@ def touches(group: pd.DataFrame, clip_start_s: float, params: Parameters) -> boo
 def build_manifest(
     df: pd.DataFrame,
     labels: LabelSet,
-    params: Parameters = P,
     empty_ratio: float = 0.0,
     seed: int = SEED,
     under_review: pd.DataFrame | None = None,
 ) -> list[ClipWindow]:
-    # `under_review`: anotaciones con `requires_review`; toda ventana que pise una se descarta,
-    # para no enseñarla como fondo.
     if not 0.0 <= empty_ratio < 1.0:
         raise ValueError(f"empty_ratio debe estar en [0, 1): {empty_ratio}")
     unknown = {name for name in df["label"].unique() if name not in labels}
@@ -91,11 +86,11 @@ def build_manifest(
             unreadable.append(str(audio_path))
             continue
         class_ids = group["label"].map(labels.id).to_numpy(dtype=np.int64)
-        for clip_start_s in window_starts(duration_s, params):
-            if audio_path in blocked and touches(blocked[audio_path], float(clip_start_s), params):
+        for clip_start_s in window_starts(duration_s, P):
+            if audio_path in blocked and touches(blocked[audio_path], float(clip_start_s), P):
                 skipped += 1
                 continue
-            boxes, ids, incomplete = boxes_in_window(group, class_ids, float(clip_start_s), params)
+            boxes, ids, incomplete = boxes_in_window(group, class_ids, float(clip_start_s), P)
             window = ClipWindow(str(audio_path), float(clip_start_s), boxes, ids)
             if len(boxes):
                 positive.append(window)
@@ -121,7 +116,7 @@ def split_manifest(
     ratios: tuple[float, float, float] = (0.7, 0.15, 0.15),
     seed: int = SEED,
 ) -> tuple[list[ClipWindow], list[ClipWindow], list[ClipWindow]]:
-    # Por grabación, estratificado por clase: cada archivo va entero a un split.
+    # Cada grabación entera a un split, estratificado por clase
     if not np.isclose(sum(ratios), 1.0):
         raise ValueError(f"los ratios deben sumar 1.0: {ratios} suma {sum(ratios)}")
 
@@ -153,7 +148,6 @@ def split_manifest(
             current[best] += counts[file]
             n_windows[best] += len(windows_by_file[file])
 
-    # Sin cajas de ninguna clase: van donde falten ventanas
     for file in files:
         if file not in assigned:
             best = int(np.argmax(target_windows - n_windows))

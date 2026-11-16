@@ -11,17 +11,13 @@ from viewer.tasks import UnreadableError
 if TYPE_CHECKING:
     from models.registry import LoadedModel
 
-# El visor pide al modelo todo lo que supere esto y el slider de score filtra de acá para
-# arriba: bajar el slider no vuelve a correr el modelo.
+# Piso de la inferencia; el slider filtra encima sin volver a correr el modelo
 DETECT_THRESHOLD = 0.05
 
-# Cache en memoria del checkpoint cargado, uno solo: el visor y la vista Batch comparten el
-# modelo, y con <= 400 MB por checkpoint cabe recargarlo al cambiar de modelo.
 LOADED: dict[Path, "LoadedModel"] = {}
 
 
 def preload() -> None:
-    # Carga torch, transformers y los modelos fuera del hilo de la interfaz.
     for module in ("inference.batch", "inference.predictor", "models.registry"):
         importlib.import_module(module)
 
@@ -33,8 +29,6 @@ def not_a_model(path: Path) -> UnreadableError:
     )
 
 
-# torch guarda los checkpoints como zip: lo que no lo es (otro archivo .pt, una copia cortada)
-# no llega a torch, que lo diría con un error de pickle que no le dice nada a nadie.
 def check(checkpoint_path: Path) -> None:
     if not checkpoint_path.is_file():
         raise UnreadableError(f"'{checkpoint_path}' is not there any more.")
@@ -54,7 +48,6 @@ def load(checkpoint_path: Path) -> "tuple[LoadedModel, str]":
     return LOADED[checkpoint_path], device
 
 
-# Las clases de un checkpoint sin armar el modelo: con mmap los pesos no se leen.
 def classes(checkpoint_path: Path) -> list[str]:
     if checkpoint_path in LOADED:
         return list(LOADED[checkpoint_path].labels.names)

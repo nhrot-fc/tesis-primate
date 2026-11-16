@@ -19,16 +19,10 @@ from evaluation.metrics import (
     overlaps,
     window_classes,
 )
-
-# El punto de operación de cada modelo, junto a su `best.pt`: es el umbral con el que arranca
-# el visor. Lo escribe `compare_models.py` y lo lee `models.registry.load_checkpoint`;
-# el lector vive en `inference.catalog` para que el visor lo consulte sin torch.
-from inference.catalog import OPERATING_POINT, read_operating_point  # noqa: E402, F401
+from inference.catalog import OPERATING_POINT
 
 THRESHOLD_GRID = score_grid(SCORE_STEP, 1.0 - SCORE_STEP)
-# Precisión mínima en val del punto de operación; la segunda sólo la usan los cuadernos
 MIN_PRECISIONS = (0.70, 0.50)
-# IoU al que se mide el encuadre, además del de acierto
 STRICT_IOU = 0.5
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
@@ -42,8 +36,6 @@ class Point(NamedTuple):
     n_tp: int
 
 
-# Umbral elegido en val a una precisión mínima, medido en test con IC de grabaciones. Lo usan
-# los cuadernos (`pair`); la comparación imprime sólo el primer umbral, sin intervalo.
 class Paired(NamedTuple):
     min_precision: float
     threshold: float | None
@@ -52,7 +44,7 @@ class Paired(NamedTuple):
     interval: dict[str, list[float]]
 
 
-# Una clase de ventana por ventana: se acierta la ventana, no la caja. Sólo para los cuadernos.
+# Se acierta la ventana, no la caja
 class WindowLevel(NamedTuple):
     name: str
     windows_gt: int
@@ -61,7 +53,6 @@ class WindowLevel(NamedTuple):
     precision: float | None
 
 
-# Por especie/llamada, al umbral del modelo y sobre toda la curva
 class ClassRow(NamedTuple):
     name: str
     n_gt: int
@@ -72,7 +63,6 @@ class ClassRow(NamedTuple):
     window_class: bool  # la caja ocupa la ventana; no entra en la mAP
 
 
-# Detección, encuadre y clasificación por separado, al umbral del modelo
 class Axes(NamedTuple):
     recall: float | None  # emparejando sin clase
     precision: float | None
@@ -130,7 +120,7 @@ def as_json(value: Any) -> Any:
 def equalize(
     predictions: Boxes, max_det: int = MAX_DETECTIONS, score_floor: float = SCORE_FLOOR
 ) -> Boxes:
-    # Mismo presupuesto para todos: las `max_det` mejores de cada ventana, en orden de score.
+    # Las max_det mejores de cada ventana, en orden de score
     kept = predictions.select(predictions.scores >= score_floor)
     if not len(kept.boxes):
         return kept
@@ -142,7 +132,7 @@ def equalize(
     return kept.select(by_image[rank_in_image < max_det].sort().values)
 
 
-# Predicciones en orden de score, con su acierto y su ventana
+# En orden de score: las n primeras son las que pasan un umbral
 class Matched(NamedTuple):
     scores: Tensor
     found: Tensor
@@ -157,16 +147,10 @@ class Matched(NamedTuple):
         return int((self.scores >= threshold).sum())
 
 
-def match(
-    predictions: Boxes,
-    truth: Boxes,
-    n_images: int,
-    iou: float = MATCH_IOU,
-    class_aware: bool = True,
-) -> Matched:
+def match(predictions: Boxes, truth: Boxes, n_images: int) -> Matched:
     return Matched(
         scores=predictions.scores,
-        found=hits(overlaps(predictions, truth, class_aware), len(predictions.boxes), iou),
+        found=hits(overlaps(predictions, truth, True), len(predictions.boxes), MATCH_IOU),
         image_ids=predictions.image_ids.to(torch.int64),
         gt_per_image=torch.bincount(truth.image_ids.to(torch.int64), minlength=n_images),
     )
@@ -192,11 +176,8 @@ def select(matched: Matched, min_precision: float) -> Point | None:
     return max(feasible, key=lambda p: (p.recall or 0.0, p.precision or 0.0))
 
 
-def bootstrap(
-    matched: Matched, recordings: Tensor, threshold: float, n_boot: int = N_BOOTSTRAP
-) -> dict[str, list[float]]:
-    # IC por remuestreo de grabaciones: las ventanas de una misma grabación no son independientes.
-    # Lo usan los cuadernos; la comparación no lo imprime.
+def bootstrap(matched: Matched, recordings: Tensor, threshold: float) -> dict[str, list[float]]:
+    # Remuestreo por grabación: sus ventanas no son independientes
     n_images = len(matched.gt_per_image)
     n_above = matched.above(threshold)
     above = matched.image_ids[:n_above]
@@ -211,7 +192,7 @@ def bootstrap(
         ]
     )
     generator = torch.Generator().manual_seed(SEED)
-    draws = torch.randint(0, n_recordings, (n_boot, n_recordings), generator=generator)
+    draws = torch.randint(0, n_recordings, (N_BOOTSTRAP, n_recordings), generator=generator)
     tp, predicted, n_gt = per_recording[:, draws].sum(dim=-1)
 
     samples = {"recall": tp / n_gt.clamp(min=1), "precision": tp / predicted.clamp(min=1)}
@@ -251,8 +232,7 @@ def window_level(
 
 
 def measure_axes(predictions: Boxes, truth: Boxes, names: list[str], threshold: float) -> Axes:
-    # Emparejando sin clase se separa encontrar la llamada de nombrarla; el encuadre es el IoU
-    # de esos pares y el recall estricto con clase.
+    # Emparejar sin clase separa encontrar la llamada de nombrarla
     above = predictions.select(torch.arange(int((predictions.scores >= threshold).sum())))
     pairs = assignments(overlaps(above, truth, class_aware=False), MATCH_IOU)
     n_gt, n_above = len(truth.boxes), len(above.boxes)
@@ -349,7 +329,6 @@ def compare(
     min_precision: float = MIN_PRECISIONS[0],
     max_det: int = MAX_DETECTIONS,
 ) -> Comparison:
-    # Umbral de cada modelo elegido en val; todo lo demás medido en test con ese umbral.
     check_comparable(models)
     reference_val, reference_test = models[0]
     names = reference_val.labels

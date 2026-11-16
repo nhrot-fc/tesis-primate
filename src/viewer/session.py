@@ -15,13 +15,10 @@ from viewer.tasks import UnreadableError
 ANNOTATIONS = "Annotations"
 DETECTIONS = "Detections"
 SOURCES = (ANNOTATIONS, DETECTIONS)
-# Sobre el espectrograma magma (negro, púrpura, amarillo) verde y celeste se separan de la
-# imagen y entre sí; el trazo lo confirma para quien no distingue colores: la verdad va
-# entera, el modelo a rayas.
 COLORS = {ANNOTATIONS: "#3ddc84", DETECTIONS: "#4fc3f7"}
 STYLES = {ANNOTATIONS: Qt.PenStyle.SolidLine, DETECTIONS: Qt.PenStyle.DashLine}
 WIDTHS = {ANNOTATIONS: 2, DETECTIONS: 2}
-# Raven escribe en UTF-8 o, en Windows, en la codificación del sistema; Excel le pone BOM.
+# utf-8-sig: el BOM de Excel; cp1252: Raven en Windows
 ENCODINGS = ("utf-8-sig", "cp1252")
 NOT_A_TABLE = (
     "'{name}' is not a Raven selection table: a tab-separated text file with the columns "
@@ -29,9 +26,7 @@ NOT_A_TABLE = (
 )
 
 
-# Una tabla de Raven con columna `Score` la escribió un modelo y va a la capa de detecciones,
-# donde el slider la filtra; sin ella es una anotación. Lo que no se puede dibujar se dice con
-# el nombre del archivo y qué tiene mal: lo arregla quien la hizo, no quien programó esto.
+# Con columna Score es del modelo; sin ella, una anotación
 def read_table(path: Path) -> tuple[str, pd.DataFrame]:
     table = parse(path)
     absent = [name for name in BOX_COLUMNS if name not in table.columns]
@@ -41,13 +36,11 @@ def read_table(path: Path) -> tuple[str, pd.DataFrame]:
         )
     for column in [*BOX_COLUMNS, *([SCORE] if SCORE in table.columns else [])]:
         table[column] = numeric(table[column], column, path)
-    # Con el oscilograma abierto, Raven escribe cada selección dos veces, una por vista: la del
-    # espectrograma es la que lleva la banda.
+    # Con el oscilograma abierto Raven escribe cada selección una vez por vista
     if VIEW in table.columns:
         spectrogram = ~table[VIEW].astype(str).str.startswith("Waveform")
         if spectrogram.any():
             table = table.loc[spectrogram]
-    # Una caja sin tiempo o sin banda no se puede dibujar: queda fuera y se avisa cuántas.
     complete = np.isfinite(table[BOX_COLUMNS].to_numpy(dtype=float)).all(axis=1)
     table = table.loc[complete].reset_index(drop=True)
     table.attrs["skipped"] = int((~complete).sum())
@@ -67,8 +60,7 @@ def parse(path: Path) -> pd.DataFrame:
     raise UnreadableError(NOT_A_TABLE.format(name=path.name) + " It is not even text.")
 
 
-# Excel en castellano guarda "1,5": la coma decimal se acepta. Lo demás que no sea un número se
-# señala con su fila, que es lo que hay que buscar para corregirlo.
+# "1,5": coma decimal de Excel en castellano
 def numeric(values: pd.Series, column: str, path: Path) -> pd.Series:
     if pd.api.types.is_numeric_dtype(values):
         return values.astype(float)
@@ -84,13 +76,11 @@ def numeric(values: pd.Series, column: str, path: Path) -> pd.Series:
     return converted.astype(float)
 
 
-# `especie/llamada`; una celda vacía (NaN en la tabla) no escribe "nan".
 def label(row: pd.Series) -> str:
     parts = [row[c] for c in (SPECIES, CALL) if c in row.index]
     return "/".join(str(p) for p in parts if not pd.isna(p) and str(p).strip())
 
 
-# `label` de todas las filas de una vez: armar una Series por fila tarda con miles de cajas.
 def labels(table: pd.DataFrame) -> list[str]:
     columns = [table[c] for c in (SPECIES, CALL) if c in table.columns]
     if not columns:
@@ -113,8 +103,6 @@ class Row:
     score: float  # NaN cuando la tabla no trae `SCORE`
 
 
-# Estado compartido entre el espectrograma y la tabla de cajas: quien mira las cajas las lee
-# de aquí y quien las edita emite `changed`. El audio va primero: cargar otro vacía las capas.
 class Session(QObject):
     changed = pyqtSignal()
 
@@ -133,7 +121,7 @@ class Session(QObject):
 
     def set_audio(self, path: Path, waveform: Waveform, sr: int) -> None:
         self.audio_path, self.waveform, self.sr = path, waveform, sr
-        self.tables = dict.fromkeys(SOURCES)  # eran de otro audio
+        self.tables = dict.fromkeys(SOURCES)
         self.changed.emit()
 
     def set_table(self, source: str, table: pd.DataFrame | None) -> None:
@@ -144,16 +132,14 @@ class Session(QObject):
         self.score = score
         self.changed.emit()
 
-    # Una fila sin score (agregada a mano en Raven) se ve con cualquier umbral, como cuenta Batch.
+    # Sin score (agregada a mano en Raven): visible con cualquier umbral
     def visible(self, source: str) -> pd.DataFrame | None:
         table = self.tables[source]
         if table is None or SCORE not in table.columns:
             return table
         return table.loc[table[SCORE].isna() | (table[SCORE] >= self.score)]
 
-    # Una caja nueva al final de la tabla de `source`; si no había tabla, la crea con las
-    # columnas de la caja y la clase. La etiqueta de fila sigue a la mayor que hubiera, así las
-    # de las demás filas no cambian.
+    # La etiqueta de fila nueva sigue a la mayor: las de las demás filas no cambian
     def add(self, source: str, values: dict[str, object]) -> None:
         table = self.tables[source]
         if table is None:
@@ -171,7 +157,6 @@ class Session(QObject):
                 self.tables[source] = table.drop(index=indices)
         self.changed.emit()
 
-    # Las cajas de un origen ordenadas por tiempo, que es como se revisan.
     def rows(self, source: str) -> list[Row]:
         table = self.visible(source)
         if table is None:

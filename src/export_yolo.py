@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 
@@ -15,10 +14,8 @@ from training.yolo import image_path
 
 logger = logging.getLogger("export_yolo")
 
-# Nivel de compresión PNG (0-9)
 PNG_COMPRESSION = 1
-# El "/" de las etiquetas rompe YOLO: en dataset.yaml y meta.json va "-"
-NAME_SEPARATOR = "-"
+NAME_SEPARATOR = "-"  # "/" rompe YOLO
 
 
 def export_split(split: str, db_low: float, db_high: float) -> dict[str, int]:
@@ -55,7 +52,6 @@ def write_dataset_yaml(names: list[str]) -> None:
 
 
 def main() -> None:
-    argparse.ArgumentParser().parse_args()
     setup_logging()
     original_names = cache.labels().names
     db_low, db_high = cache.db_range()

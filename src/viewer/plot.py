@@ -15,38 +15,27 @@ from viewer.spectrogram import Waveform, db_baseline, db_levels, stft_db
 from viewer.tasks import Latest
 
 COLORMAP = "magma"
-# Blanco y ámbar: ninguno de los dos es el color de una capa de cajas.
 PLAYHEAD_COLOR = "#ffffff"
 HIGHLIGHT_COLOR = "#ffd54f"
 HIGHLIGHT_MARGIN = 0.012
-# Un relleno tenue: la caja se lee como region aunque su borde cruce una zona clara.
 FILL_ALPHA = 34
 CAPTION_ALPHA = 165
 CAPTION_POINT_SIZE = 8
 AXIS_PAD = 10
 AXIS_SAMPLE = "00000"
-# Arriba y a la derecha el eje sólo cierra el marco: sin valores que escribir, cuanto más
-# fino, más espectrograma. Lo que se gana ahí es lo que más se mira.
 EDGE_AXIS = 2
 EXPORT_WIDTH = 2400
-# Se calcula una banda mas ancha que la ventana visible: mientras el scroll no salga
-# de ella, moverse no cuesta ni una FFT.
-BAND = 4.0
+BAND = 4.0  # veces la ventana visible: el scroll dentro de ella no recalcula la FFT
 
 # n_fft = 8 * hop en todas: el solape fija la resolucion en frecuencia.
 RESOLUTIONS = [(512, 64), (1024, 128), (2048, 256), (4096, 512), (8192, 1024)]
 COLUMNS_ON_SCREEN = 900
 
-# La banda visible no baja de esto; sus alturas las elige `controls.Band`.
 MIN_BAND_HZ = 200.0
-# Separación entre marcas a partir de la cual el eje escribe kHz en vez de Hz.
-KHZ_FROM_HZ = 500.0
-# La caja en revisión se dibuja con asas más grandes que las de pyqtgraph.
+KHZ_FROM_HZ = 500.0  # separación entre marcas
 HANDLE_SIZE = 9
 
 
-# En banda ancha "20k" se lee de un vistazo y "20000" hay que contarlo. Cuando las marcas
-# caen a menos de 500 Hz el kilo ya no las distingue y vuelven los Hz enteros.
 class FrequencyAxis(pg.AxisItem):
     @override
     def tickStrings(self, values, scale, spacing) -> list[str]:
@@ -95,9 +84,6 @@ class SpectrogramView(pg.PlotWidget):
         item.getAxis("bottom").setHeight(metrics.height() + AXIS_PAD)
         item.getAxis("right").setWidth(EDGE_AXIS)
         item.getAxis("top").setHeight(EDGE_AXIS)
-        # Sin marco ni margen propios: el espectrograma llega al borde del hueco que le toca.
-        # El margen interno del PlotItem se queda: llegar a él es `item.layout`, un atributo
-        # que pyqtgraph pone encima del método `layout()` de Qt, y son dos píxeles.
         self.setFrameStyle(0)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -105,7 +91,7 @@ class SpectrogramView(pg.PlotWidget):
         self.vb.setMouseEnabled(x=False, y=False)
         self.vb.setDefaultPadding(0.0)
         self.image = pg.ImageItem()
-        self.image.setColorMap(COLORMAP)  # pyqtgraph resuelve el nombre; es el magma de matplotlib
+        self.image.setColorMap(COLORMAP)
         self.vb.addItem(self.image)
         self.playhead = pg.InfiniteLine(angle=90, movable=False)
         self.playhead.setPen(pg.mkPen(PLAYHEAD_COLOR, width=1.5))
@@ -117,7 +103,6 @@ class SpectrogramView(pg.PlotWidget):
         self.highlight.setZValue(15)
         self.highlight.setVisible(False)
         self.vb.addItem(self.highlight)
-        # La caja en revisión: se arrastra entera o por cualquiera de sus cuatro esquinas.
         self.roi = pg.RectROI(
             [0.0, 0.0],
             [1.0, 1.0],
@@ -127,10 +112,10 @@ class SpectrogramView(pg.PlotWidget):
             rotatable=False,
             removable=False,
         )
-        self.roi.handleSize = HANDLE_SIZE  # las que se agregan salen de este tamaño
+        self.roi.handleSize = HANDLE_SIZE
         for position, center in (([0, 0], [1, 1]), ([1, 0], [0, 1]), ([0, 1], [1, 0])):
             self.roi.addScaleHandle(position, center)
-        for handle in self.roi.getHandles():  # y la que RectROI trae de fábrica
+        for handle in self.roi.getHandles():
             handle.radius = HANDLE_SIZE
             handle.buildPath()
         self.roi.setZValue(16)
@@ -160,7 +145,6 @@ class SpectrogramView(pg.PlotWidget):
         self.band = None
         self.set_highlight(None)
         self.set_editable(None)
-        # La banda elegida se conserva de una grabación a otra: moverla es cosa del usuario.
         if sr != previous:
             self.set_band(0.0, sr / 2)
 
@@ -178,8 +162,7 @@ class SpectrogramView(pg.PlotWidget):
         band_start = max(start - (band_span - span) / 2, 0.0)
         first = int(band_start * self.sr)
         chunk = self.waveform[first : first + int(band_span * self.sr)]
-        # La linea base recorre el audio entero, asi que solo se recalcula al cambiar
-        # n_fft y viaja al hilo junto con la banda.
+        # La línea base es de todo el audio: sólo cambia con n_fft
         whole = self.waveform if n_fft != self.baseline_n_fft else None
         sr = self.sr
 
@@ -191,7 +174,6 @@ class SpectrogramView(pg.PlotWidget):
             )
         )
 
-    # La banda visible se acota a [0, Nyquist], que es todo lo que hay dibujado.
     def set_band(self, low: float, high: float) -> None:
         top = self.sr / 2
         span = min(max(high - low, MIN_BAND_HZ), top)
@@ -222,7 +204,6 @@ class SpectrogramView(pg.PlotWidget):
     def box_slot(self, index: int) -> tuple[QGraphicsRectItem, pg.TextItem]:
         while len(self.pool) <= index:
             rect = QGraphicsRectItem()
-            # Fondo translucido: sin el, el rotulo sobre una zona clara es ilegible.
             text = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(0, 0, 0, CAPTION_ALPHA))
             font = QFont(self.font())
             font.setPointSize(CAPTION_POINT_SIZE)
@@ -233,7 +214,6 @@ class SpectrogramView(pg.PlotWidget):
         return self.pool[index]
 
     def draw_boxes(self, layers: list[Layer], start: float, stop: float) -> list[int]:
-        # Reusa los items ya creados: redibujar al mover la barra no construye nada.
         counts, used = [], 0
         (view_x0, _), (view_y0, view_y1) = self.vb.viewRange()
         for layer in layers:
@@ -256,9 +236,6 @@ class SpectrogramView(pg.PlotWidget):
                 rect.setPen(pen)
                 rect.setBrush(brush)
                 rect.setVisible(True)
-                # Cada caja lleva siempre su rotulo, por chica que sea, y cada capa lo pega
-                # a un borde distinto para que una deteccion encima de su anotacion no lo
-                # tape. Si la caja sale de la pantalla, el rotulo se queda en el borde visible.
                 caption = label(row)
                 if scored and not pd.isna(row[SCORE]):
                     caption = f"{caption} {row[SCORE]:.2f}".strip()
@@ -279,15 +256,13 @@ class SpectrogramView(pg.PlotWidget):
             self.highlight.setVisible(False)
             return
         begin, end, low, high = box
-        # El marco se separa un poco del borde: encima de la caja sus lineas se confunden.
         (x0, x1), (y0, y1) = self.vb.viewRange()
         dx, dy = HIGHLIGHT_MARGIN * (x1 - x0), HIGHLIGHT_MARGIN * (y1 - y0)
         rect = QRectF(begin - dx, low - dy, end - begin + 2 * dx, high - low + 2 * dy)
         self.highlight.setRect(rect)
         self.highlight.setVisible(True)
 
-    # La caja que se está revisando, con asas; None la esconde. Arrastrarla no la saca del audio:
-    # una anotación en tiempo negativo o sobre Nyquist no existe.
+    # None la esconde
     def set_editable(self, box: tuple[float, float, float, float] | None) -> None:
         if box is None:
             self.roi.hide()
@@ -299,7 +274,6 @@ class SpectrogramView(pg.PlotWidget):
         self.roi.setSize([end - begin, high - low])
         self.roi.show()
 
-    # Recortada al audio también al leerla: la caja de una tabla ajena puede llegar de fuera.
     def editable_box(self) -> tuple[float, float, float, float]:
         position, size = self.roi.pos(), self.roi.size()
         begin, low = float(position[0]), float(position[1])
@@ -346,7 +320,6 @@ class SpectrogramView(pg.PlotWidget):
         direction = -1 if ev.angleDelta().y() > 0 else 1
         modifiers = ev.modifiers()
         if modifiers & Qt.KeyboardModifier.ShiftModifier:
-            # Alrededor del puntero: se apunta a la caja y se acerca sin perderla.
             self.band_zoomed.emit(direction, self.vb.mapSceneToView(ev.position()).y())
         elif modifiers & Qt.KeyboardModifier.ControlModifier:
             self.zoomed.emit(direction)

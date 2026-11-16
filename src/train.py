@@ -22,17 +22,14 @@ from training.trainer import TrainConfig, Trainer
 logger = logging.getLogger("train")
 
 
-# Una receta de entrenamiento: qué `models.registry.ARCHITECTURES` y con qué hiperparámetros.
-# Los valores repiten los defaults de cada modelo para que queden escritos en el checkpoint.
+# Repite los defaults de cada modelo para que queden escritos en el checkpoint
 class Preset(NamedTuple):
     arch: str
     config: TrainConfig
-    # Hiperparámetros del modelo usado en `build_model`
     hparams: dict[str, Any]
 
 
 PRESETS: dict[str, Preset] = {
-    # AST-Deformable-DETR
     "detr": Preset(
         "ast_deformable_detr",
         TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
@@ -45,7 +42,6 @@ PRESETS: dict[str, Preset] = {
             "frozen_backbone": False,  # True: sólo aprende la cabeza
         },
     ),
-    # Deformable DETR de COCO entero, ResNet-50 incluido, sobre el mel pintado como imagen
     "detr_resnet": Preset(
         "resnet_deformable_detr",
         TrainConfig(epochs=30, batch_size=8, learning_rate=2e-4),
@@ -56,7 +52,6 @@ PRESETS: dict[str, Preset] = {
             "checkpoint": DETR_CHECKPOINT,
         },
     ),
-    # Faster R-CNN con ResNet50-FPN
     "frcnn": Preset(
         "faster_rcnn",
         TrainConfig(epochs=12, batch_size=4, learning_rate=1e-4),
@@ -68,13 +63,10 @@ PRESETS: dict[str, Preset] = {
             "pretrained": True,
         },
     ),
-    # Ultralytics YOLO
     "yolo": Preset(
         "yolo", TrainConfig(epochs=30, batch_size=32), {"model": DEFAULT_MODEL, "imgsz": IMAGE_SIZE}
     ),
-    # Ultralytics RT-DETR. Mismo flujo que YOLO, pero con AdamW y una tasa baja fijadas a
-    # mano: con el optimizador que Ultralytics elige por su cuenta no converge. El lote baja
-    # a 16 porque el decodificador de conjuntos no entra en memoria con 32.
+    # AdamW y tasa baja: con el optimizador auto no converge; lote 16 por memoria
     "rtdetr": Preset(
         "yolo",
         TrainConfig(epochs=30, batch_size=16, learning_rate=1e-4, weight_decay=1e-4),
