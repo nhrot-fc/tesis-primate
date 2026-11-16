@@ -1,4 +1,4 @@
-\chapter{Conclusiones}
+\chapter{Conclusiones y Trabajos Futuros}
 \label{cap:conclusiones}
 
 % ===================================================================
@@ -15,13 +15,15 @@
 % respondidas en la Discusión de cada capítulo de objetivo, y repetirlas aquí
 % sería redundancia.
 %
-% BLOQUEADO POR EL CAPÍTULO 6. Las secciones de OE3 y del objetivo general no
-% pueden redactarse hasta que RE3.2 entregue los minutos por hora de audio en
-% condición manual y asistida: el OG se compromete con esa magnitud y no con
-% ninguna otra. Lo que falta está señalado abajo en cada sección.
+% El veredicto del objetivo general usa el criterio de éxito que fija el
+% capítulo 1: la reducción del tiempo de revisión experta, que mide RE3.2. Las
+% cifras de OE3 son las macros \u... del capítulo 6.
 % ===================================================================
 
-\section{Implicaciones de los resultados}
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+\subsection{Implicaciones de los resultados}
 
 El trabajo deja dos cosas que no existían al empezar. La primera es un conjunto
 acústico utilizable: \nKept{} anotaciones curadas bajo un vocabulario cerrado, de
@@ -43,7 +45,18 @@ arquitectura propuesta sin que eso lo invalide, y al separar la medición en
 detección, encuadre y clasificación quedó visible qué parte del problema está
 resuelta y cuál no. Una sola cifra agregada habría escondido ambas cosas.
 
-\section{Cumplimiento de los resultados esperados}
+La tercera implicación es la del Capítulo~\ref{cap:revision}, y tiene dos caras.
+La primera es que la referencia con que se mide el modelo es incompleta: de lo
+que esa referencia cuenta como error del modelo, solo una de cada cinco filas es
+ruido, y las predicciones sin anotación son, en su mayoría, llamadas que nadie
+anotó. El error del sistema puede entonces leerse, separarse y usarse para
+decidir qué revisar. La segunda es que tener buenas propuestas no basta para
+ahorrar tiempo: en la sesión cronometrada, las personas que revisaron borraron
+dos de cada tres propuestas, incluidas muchas correctas, y el tiempo asistido
+igualó al manual. El ahorro depende tanto del modelo como de la forma en que el
+especialista trabaja con sus propuestas, y esa forma no se midió.
+
+\subsection{Cumplimiento de los resultados esperados}
 
 La Tabla~\ref{tab:cumplimiento} contrasta cada resultado esperado del
 Capítulo~\ref{cap:generalidades} con la sección que lo entrega y lo verifica
@@ -67,19 +80,24 @@ contra su indicador.
         RE2.3 & Informe comparativo desagregado          & Sección~\ref{sec:verificacion-re23} & Cumplido \\
         RE2.4 & Modelo final y salida a tabla de Raven   & Sección~\ref{sec:demo-oe2} & Cumplido \\
         RE2.5 & Repositorio con código y modelo          & Sección~\ref{sec:re25} & Cumplido \\
+        \addlinespace
+        RE3.1 & Metodología de validación comparativa    & Sección~\ref{sec:verificacion-re31} & Cumplido \\
+        RE3.2 & Medición comparativa del tiempo de revisión & Sección~\ref{sec:verificacion-re32} & Cumplido \\
+        RE3.3 & Análisis cualitativo de errores y hallazgos & Sección~\ref{sec:verificacion-re33} & Cumplido \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-% PENDIENTE (capítulo 6): añadir a la tabla las filas de RE3.1, RE3.2 y RE3.3 con
-% su sección de verificación y su veredicto, y ampliar el párrafo siguiente.
-
-Los ocho resultados de OE1 y OE2 se entregan y se verifican contra su indicador.
-La única desviación respecto de lo comprometido se declara en su sección: los
+Los once resultados se entregan y se verifican contra su indicador. En OE2, los
 nombres de archivo que citan los indicadores de RE2.2 y RE2.4, heredados del
 prototipo, corresponden en la implementación final a otros con la misma función.
+En OE3, la ejecución se apartó del protocolo en cuatro puntos que no cambian
+ninguna regla (sección~\ref{sec:desviaciones-oe3}); el que más pesa es que las
+dos tareas las hicieron dos personas y no una. RE3.2 se cumple aunque la medición
+no muestre una reducción del tiempo, porque su indicador compromete medirla y
+reportarla, no un valor para ella.
 
-\section{Cumplimiento de los objetivos específicos}
+\subsection{Cumplimiento de los objetivos específicos}
 
 \rotulo{OE1.} Cumplido. El Capítulo~\ref{cap:curacion} entrega el protocolo, el
 conjunto particionado por grabación y la ficha, y mide cada uno contra su
@@ -94,36 +112,43 @@ selecciona \rWinner{} por la métrica secundaria, con \rRecallYol{} de
 vez. El modelo final se carga y produce una tabla que Raven abre sobre la
 grabación, y el repositorio contiene el código y el \textit{checkpoint}.
 
-\rotulo{OE3.} Se entrega en E3: el cronograma (Tabla~\ref{tab:cronograma})
-programa sus tres resultados después de esta entrega, y el
-Capítulo~\ref{cap:utilidad} fija su estructura.
+\rotulo{OE3.} Cumplido. El Capítulo~\ref{cap:revision} fija la metodología un
+mes antes de medir, cuantifica el tiempo de revisión con y sin el sistema
+(\uMinManual{} y \uMinAssisted{} minutos por hora de audio, sin reducción en esta
+sesión) y caracteriza sus errores mediante la revisión ciega de \uItems{}
+predicciones, que separa los del modelo de los de la referencia. El objetivo
+pedía cuantificar la reducción, y la cuantificación se hizo: su valor es que, en
+estas condiciones, no la hubo.
 
-% PENDIENTE (capítulo 6): el párrafo de OE3, con el mismo formato, una vez que
-% RE3.1 a RE3.3 estén entregados y verificados.
+\subsection{Cumplimiento del objetivo general}
 
-\section{Cumplimiento del objetivo general}
+\rotulo{Parcialmente cumplido.} El objetivo general tiene dos verbos y un fin. Los
+dos verbos se cumplen: el sistema se desarrolló (OE1 y OE2) y se evaluó (OE3).
+El fin, reducir el tiempo de revisión experta, es también el criterio de éxito
+que fijó el Capítulo~\ref{cap:generalidades}, y la evaluación no lo muestra: en
+la sesión cronometrada, la revisión asistida costó \uMinAssisted{} minutos por
+hora de audio y la manual \uMinManual{}.
 
-El objetivo general se compromete con la reducción del tiempo de revisión
-experta, y esa magnitud la mide RE3.2. Su veredicto se enuncia en E3, una vez
-medida; adelantarlo sería fijar la conclusión antes que la evidencia.
+Las condiciones de esa medición limitan lo que puede concluirse en los dos
+sentidos (sección~\ref{sec:discusion-oe3}). La hicieron dos personas, y la
+condición asistida quedó casi entera en manos de la que tenía menos experiencia
+con estas especies; la variación entre carpetas fue mayor que la diferencia entre
+condiciones, y el material fue de \uSessionMinutes{} minutos de audio denso. Con
+esas condiciones, la sesión no muestra que el sistema reduzca el tiempo, y
+tampoco basta para afirmar que no pueda reducirlo. Lo que sí muestra es que el
+tiempo asistido se fue en borrar y volver a dibujar propuestas que en su mayoría
+eran llamadas reales, y que con el mismo tiempo las tablas asistidas salieron más
+completas y más precisas que las manuales.
 
-% PENDIENTE (capítulo 6). El objetivo general se compromete con la reducción del
-% tiempo de revisión experta, y esa magnitud sale de RE3.2. Cuando exista, el
-% veredicto se enuncia aquí sin rodeos: cuántos minutos por hora de audio cuesta
-% la revisión manual, cuántos la asistida, y en qué condiciones vale la
-% comparación. Hasta entonces no hay respuesta que dar, y adelantarla sería
-% exactamente lo que el Capítulo 5 evitó al declarar la regla de decisión antes
-% de medir.
-
-\section{La propuesta frente al problema central}
+\subsection{La propuesta frente al problema central}
 
 El problema central del Capítulo~\ref{cap:generalidades} es que anotar las
 vocalizaciones de primates neotropicales en grabaciones de monitoreo acústico
-pasivo exige más tiempo de especialista del que está disponible. La alternativa de solución ataca sus dos causas, una por objetivo
-específico, y con el tercero mide su efecto sobre el problema.
+pasivo exige más tiempo de especialista del que está disponible. La alternativa
+de solución ataca sus tres causas, una por objetivo específico, y con el tercero
+mide además su efecto sobre el problema.
 
-Contra la inconsistencia de la anotación manual, que exige una segunda pasada del
-especialista (C1), actúa OE1. El vocabulario
+Contra la falta de anotaciones utilizables para estas especies (C1) actúa OE1. El vocabulario
 cerrado, el mapa de
 sinónimos y la regla que hace de la carpeta la fuente de verdad de la especie
 convierten un material escrito a mano, con decenas de grafías para la misma
@@ -133,7 +158,7 @@ desacuerdo que era de escritura y no de criterio, y reduce la segunda pasada a
 las \nReview{} anotaciones que ninguna regla puede decidir, marcadas y
 conservadas.
 
-Contra la búsqueda manual de vocalizaciones escasas y breves en horas de audio
+Contra la búsqueda manual de las vocalizaciones en la grabación entera
 (C2) actúa OE2, y aquí conviene ser preciso sobre lo que el sistema es y
 lo que no. No sustituye al analista ni pretende hacerlo: la cabeza
 emite cajas con la forma exacta en que el equipo ya anota, y el analista las
@@ -142,24 +167,51 @@ pre-anotación asistida, y por eso el compromiso elegido privilegia la cobertura
 sobre la precisión: perder una vocalización cuesta más que descartar una
 propuesta falsa, porque el humano revisa la salida de todos modos.
 
-% PENDIENTE (capítulo 6). Falta el párrafo de OE3, que no responde a una causa:
-% mide la magnitud del problema central (minutos de especialista por hora de
-% audio, con y sin asistencia) y la calidad de la referencia (C1). Lo anterior establece que la propuesta se
-% enfoca en el problema central, que es lo que pide la pauta. Cuánto lo reduce es otra
-% pregunta, y la responde RE3.2: hasta tenerla, este capítulo no afirma que el
-% caudal de anotación haya aumentado, solo que el sistema está construido para
-% aumentarlo y que entrega la salida en la forma que ese aumento requiere.
+Contra la falta de datos para validar las propuestas (C3) actúa OE3, que los
+produce: la revisión ciega y la sesión cronometrada. La revisión ciega separa lo que es error del detector de lo que es omisión
+de la referencia, y lo cuantifica: unas \uUnannotatedPerHour{} llamadas por hora
+de audio que la referencia no tiene y el modelo sí propone, una precisión que
+pasa de \uPrecisionRef{} contra la referencia a entre \uPrecisionStrict{} y
+\uPrecisionLenient{} según el especialista, y un ruido que se concentra en pocas
+fuentes. Con eso el especialista ya no necesita tratar todas las propuestas por
+igual: puede aceptar primero las de alta confianza, filtrar las clases ruidosas y
+revisar el resto, que es la decisión que C3 impedía tomar.
 
-\section{Trabajo futuro}
+La propuesta se enfoca, entonces, en el problema central, que es lo que pide la
+pauta: cada causa del árbol tiene un objetivo que la ataca, y el tercero mide el
+efecto sobre la magnitud del problema. Cuánto lo reduce es otra pregunta, y la
+medición de RE3.2 no la responde a favor: en esta sesión, el tiempo de
+especialista por hora de audio fue el mismo con el sistema que sin él. Por eso
+este capítulo no afirma que el caudal de anotación haya aumentado. Afirma que el
+sistema entrega propuestas en la forma que ese aumento requiere, que la mayoría
+de ellas son llamadas reales y que el especialista ahora puede saber cuáles, y
+deja la medición del ahorro en las condiciones que la sesión no tuvo como el
+primer trabajo futuro.
+
+\section{Trabajos futuros}
 
 Lo que queda fuera no es una lista de deseos: son las limitaciones declaradas en
 las discusiones de los capítulos de objetivo, ordenadas por cuánto comprometen lo
 que aquí se afirma.
 
 \begin{itemize}
-    \item \textbf{Medir el acuerdo entre anotadores.} Es la carencia más seria.
-          Sin ella no hay techo de evaluación, y una parte del error que este
-          trabajo atribuye al modelo podría ser desacuerdo humano.
+    \item \textbf{Volver a medir el tiempo de revisión.} Es lo que más
+          compromete la conclusión sobre el objetivo general. Una sola persona con
+          experiencia en las especies, sobre grabaciones continuas y más largas, y
+          registrando cuánto tiempo va a buscar, a dibujar y a borrar, diría si el
+          sistema ahorra tiempo y en qué parte del trabajo. La revisión de cajas
+          sugiere probar además otra forma de usarlo: aceptar primero las
+          propuestas de alta confianza, en lugar de juzgarlas todas una a una.
+    \item \textbf{Medir el acuerdo entre anotadores.} Sin él no hay techo de
+          evaluación, y OE3 mostró que hace falta: la referencia también se
+          equivoca, y las dos personas que revisaron juzgaron el encuadre con
+          criterios distintos. Basta con que dos especialistas respondan por
+          separado las mismas cajas.
+    \item \textbf{Completar la referencia.} Las propuestas de alta confianza sin
+          anotación son, en su mayoría, llamadas reales. Revisarlas en todo el
+          corpus, empezando por los hallazgos de entrenamiento y validación que la
+          tarea opcional de OE3 ya dejó preparados, daría una referencia más
+          completa y métricas más justas para el modelo.
     \item \textbf{Separar el extractor de la cabeza.} Dos variantes de la
           propuesta lo harían: con el extractor congelado, y el mismo
           decodificador sobre el ResNet-50 de COCO con la misma receta. El
@@ -171,8 +223,8 @@ que aquí se afirma.
     \item \textbf{Cubrir el nivel de frase.} Las clases de frase quedan fuera por
           anidamiento jerárquico, y con ellas el nivel superior de la jerarquía
           vocal.
-    \item \textbf{Cerrar el vocabulario con el repertorio de referencia.} Los
-          pares fuera de vocabulario mezclan error tipográfico y subdivisión
-          legítima, y no hay forma de separarlos sin una referencia del
-          repertorio vocal de cada especie.
+    \item \textbf{Cerrar el vocabulario con el equipo.} Los pares fuera de
+          vocabulario mezclan error tipográfico y subdivisión legítima, no figuran
+          en el vocabulario que el equipo documenta, y solo el equipo puede decir
+          cuáles son tipos de llamada.
 \end{itemize}

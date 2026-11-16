@@ -54,7 +54,7 @@ venv/
 /secrets/
 /.vscode/
 *.zip
-research/capitulos/06_oe3_utilidad/revision/
+research/capitulos/06_oe3_revision/team/
 
 # Add exceptions for research build artifacts
 !research/build/

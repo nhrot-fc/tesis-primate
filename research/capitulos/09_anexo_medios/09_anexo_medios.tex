@@ -43,14 +43,18 @@ Tabla~\ref{tab:medios} resume el contenido de las once carpetas.
         \addlinespace
         RE2.5 & \file{05\_oe2\_detector/\allowbreak RE2.5} & \file{README.md} & El índice del repositorio y de su versión v0.2.0 \\
         \addlinespace
-        RE3.1--RE3.3 & \file{06\_oe3\_utilidad} & \file{README.md} & Lo que contendrá cada carpeta en el entregable final \\
+        RE3.1 & \file{06\_oe3\_revision/\allowbreak RE3.1} & \file{protocolo.md} & Las reglas de la evaluación y el \textit{commit} que las fijó antes de medir \\
+        \addlinespace
+        RE3.2 & \file{06\_oe3\_revision/\allowbreak RE3.2} & \file{tiempos\_sesion.csv}, \file{test\_cpu\_times.csv} & Las horas de inicio, término y pausa de cada carpeta de la sesión, y el costo de inferencia en CPU \\
+        \addlinespace
+        RE3.3 & \file{06\_oe3\_revision/\allowbreak RE3.3} & \file{respuestas\_revision.csv}, \file{revision\_ejemplos.png} & La respuesta, el estrato y la categoría de cada una de las \uItems{} cajas, y los espectrogramas anotados \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Los ocho resultados de OE1 y OE2 tienen ya su evidencia en la carpeta. Los tres de
-OE3 la tendrán en el entregable final, como establece el cronograma
-(Tabla~\ref{tab:cronograma}), y su carpeta adelanta qué contendrá. Dos carpetas
+Los once resultados tienen su evidencia en la carpeta. Las carpetas de OE3 no
+incluyen los nombres de las personas que revisaron, que la planilla original del
+equipo sí registra. Dos carpetas
 contienen lo que el documento no puede sustituir: la de RE1.2 da acceso a los
 metadatos de un conjunto que no se publica, y la de RE1.3 es el \file{README} que
 nombra el medio de verificación de la ficha.
@@ -65,6 +69,6 @@ está en su versión v0.2.0, con su suma SHA-256.
 \rotulo{Cómo se genera.} Ninguna cifra de la carpeta se transcribe a mano. Un
 programa del repositorio, \file{research/\allowbreak medios\_\allowbreak verificacion/\allowbreak generar.py},
 la construye a partir de los mismos archivos de los que salen las tablas de los
-Capítulos~\ref{cap:curacion} y~\ref{cap:deteccion}: las cifras que dejan sus
+Capítulos~\ref{cap:curacion}, \ref{cap:deteccion} y~\ref{cap:revision}: las cifras que dejan sus
 cuadernos, los archivos de las corridas y las constantes del código de curación.
 Por eso las cifras de la carpeta y las del documento coinciden.

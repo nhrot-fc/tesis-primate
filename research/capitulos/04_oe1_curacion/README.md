@@ -172,12 +172,19 @@ uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curaci
       `labels.json`**, así que el caché es válido y no hay que reentrenar nada.
 - [ ] Resolver con el equipo los pares marcados para revisión, en especial si
       `as/cp`, `as/pp` e `as/ip` son tipos legítimos de *Alouatta sara*.
+      Preguntado el 16-11-2026 (`06_oe3_revision/team/questions.md`, punto 4): ninguno
+      figura en el vocabulario documentado del equipo (una presentación y
+      `notas_tipos_llamada.md`).
+- [x] **16-11-2026, respuestas del autor:** las filas `noise` son selecciones de fondo
+      hechas a propósito para medir la potencia en banda; las dos formas de `ac/bc` y
+      `sm/fs` se deben a que no hay un estándar de encuadre. El texto ya lo dice; falta
+      que M. Bowler confirme las dos cosas para citarlas como comunicación personal.
 - [ ] Completar los datos de campo de la ficha: número y ubicación de los
       sensores, configuración de grabación y criterio de selección de lo que se
       anotó. *El sitio ya está (06-10-2026): Tambopata Research Center, Reserva
       Nacional Tambopata. La limitación pasó a llamarse «Procedencia de campo
       incompleta».*
-- [ ] Decidir si el conjunto derivado se libera y en qué términos.
+- [x] ~~Decidir si el conjunto derivado se libera y en qué términos.~~ **16-11-2026:** el equipo no lo autoriza; la ficha lo dice.
 - [ ] El medio de verificación congelado de RE1.3 (Capítulo 1) dice «Capítulo de
       curación, README y metadatos del conjunto», pero **no existe un README
       del conjunto** en `data/`. O se escribe (puede resumir la ficha y remitir

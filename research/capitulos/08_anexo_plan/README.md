@@ -58,8 +58,17 @@ resultado depende de un revisor externo.
       - estados actualizados (2.1 y 2.4–2.6 ya están completos);
       - cifras quitadas de los nombres de tarea (19 029 anotaciones, 70/10/20),
         porque no coinciden con las macros de los capítulos;
-      - Bloque 3 reetiquetado con los RE3.x congelados (ver
-        `06_oe3_utilidad/PENDIENTES_RE3.md`);
+      - Bloque 3 reetiquetado con los RE3.x congelados, con las fechas del
+        original. El acuerdo entre anotadores ya no es un RE: pasó a trabajo
+        futuro en las conclusiones.
+
+        | Original | En el anexo |
+        |---|---|
+        | 3.1 RE3.1 «Metodología de validación frente a anotaciones de expertos» | 3.1 RE3.1 «Metodología de validación» |
+        | (no había 3.2: hueco del 25/10 al 02/11) | — |
+        | 3.3 RE3.2 «Acuerdo inter-anotador sobre subconjunto de prueba» | 3.2 RE3.2 «Medición del tiempo de revisión manual y asistida» |
+        | 3.4 RE3.2 «Informe de análisis comparativo modelo vs experto» | 3.3 RE3.3 «Análisis de errores y revisión experta de la muestra» |
+
       - **4.1 «Redacción del informe final» termina el 20/11, no el 26/11,**
         para que llegue a E3 (el 20/11 se envía al asesor). Confirmar con el
         autor.
@@ -72,3 +81,8 @@ resultado depende de un revisor externo.
       elegido en validación») y la Tabla de criterios de aceptación lo sigue.
 - [ ] Revisar que los costos sigan reflejando el hardware usado (las corridas
       pasaron por varias GPU).
+- [x] ~~Estados del cronograma a la fecha de E2.~~ **Actualizado el 15-11-2026** a la fecha
+      de E3: 3.1 a 3.3 completados y 4.1 en curso (19 de 23 tareas, 11 de 11 resultados). Las
+      fechas de la tabla son las previstas; el párrafo siguiente da las reales de OE3 (3.1 el
+      10/10, antes de lo previsto; 3.2 del 11 al 13/11 y 3.3 hasta el 15/11, después, por el
+      riesgo R3).

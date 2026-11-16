@@ -33,7 +33,7 @@ SLIDES_PDF   := $(SLIDES_DIR)/build/presentacion.pdf
 MANUAL_PDF   := $(MANUAL_DIR)/build/manual.pdf
 DEMO         := resources/demo.mp4
 
-.PHONY: all clean warnings help manual screenshots demo medios slides
+.PHONY: all clean warnings help manual screenshots demo medios slides figuras
 
 all: $(PDF)
 
@@ -64,6 +64,17 @@ warnings:
 	@echo '--- Citas o referencias sin resolver ---'
 	@grep -aoE "Citation [\`'][^']*'" $(LOG) | sort -u | grep . || echo '  ninguna'
 	@grep -a 'Reference .* undefined' $(LOG) || true
+
+# Los cuadernos de figuras de los capítulos, cada uno en su carpeta. Las celdas que necesitan
+# el caché de ventanas y la GPU del documento sólo corren en el servidor:
+#   TESIS_SERVIDOR=1 make figuras CAP="04 05"
+CAP          ?= 01 02 04 05 06
+CUADERNOS    := $(foreach c,$(CAP),$(wildcard $(RESEARCH_DIR)/capitulos/$(c)_*/notebook/figuras_*.ipynb))
+figuras:
+	@for nb in $(CUADERNOS); do \
+	  echo "--- $$nb"; \
+	  (cd "$$(dirname "$$nb")" && uv run jupyter nbconvert --to notebook --execute --inplace "$$(basename "$$nb")") || exit 1; \
+	done
 
 # Los medios de verificación de OE1 y OE2 (research/medios_verificacion/), regenerados desde
 # los cuadernos y las corridas, y el zip que se adjunta al documento.
@@ -114,6 +125,7 @@ help:
 	  '              (APA 7 con biber si está instalado; si no, natbib + apalike)' \
 	  'make BIB=apalike  Fuerza natbib + apalike aunque haya biber' \
 	  'make warnings Vuelve a mostrar los avisos del último log' \
+	  'make figuras  Ejecuta los cuadernos de figuras (CAP="04 05" elige capítulos)' \
 	  'make medios   Regenera los medios de verificación y su zip' \
 	  'make manual   Compila la guía de usuario (docs/manual/build/manual.pdf)' \
 	  'make slides   Compila la presentación al equipo (research/presentacion/build/)' \

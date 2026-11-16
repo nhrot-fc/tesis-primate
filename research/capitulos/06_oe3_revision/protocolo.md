@@ -1,198 +1,160 @@
 # Protocolo de evaluación de OE3 (RE3.1)
 
-> **Fijado el: ____ /____ /2026.** Se fecha *antes* de enviar el paquete al equipo y antes de
-> leer cualquier respuesta. Después de esa fecha, nada de lo que sigue se cambia a la vista de
-> los resultados: ni el umbral, ni los estratos, ni las reglas de lectura. Lo que haya que
-> cambiar por fuerza mayor se anota al final, con su fecha y su motivo.
+Reglas fijadas antes de enviar el paquete al equipo. La fecha es la del commit de esta versión.
+No cambian después; un cambio forzoso se anota al final, con fecha y motivo.
 
-Este documento es la base de la sección de metodología del capítulo 6. Lo implementan
-`notebook/preparar_revision.ipynb` (arma la muestra y la sesión) y `notebook/analisis_oe3.ipynb`
-(lee lo que devuelve el equipo); el código común está en `src/analysis/review.py`.
+Implementación: `notebook/paquete_06_oe3_revision.ipynb` (paquete),
+`notebook/figuras_06_oe3_revision.ipynb` (análisis), `src/analysis/review.py` (reglas) e
+`instrucciones.md` (lo que lee el revisor).
 
 ## 1. Qué se evalúa
 
-El sistema tal como lo usaría el equipo:
-
-- **Modelo:** el seleccionado en el capítulo 5 (`yolo26s_v3`, RE2.4).
-- **Punto de operación:** score ≥ 0,11, el umbral elegido en validación. No se vuelve a elegir.
-- **Salida:** la tabla de Raven que `detect.py` escribe para cada grabación. La herramienta
-  recorre la grabación en ventanas de 3 s con salto de 1,5 s, aplica el NMS propio del modelo y
-  el tope de detecciones por ventana, y funde los duplicados entre ventanas solapadas.
-
-La unidad de análisis es **una fila de esa tabla**, no una detección por ventana como en el
-capítulo 5. Por eso las cifras de este capítulo no se comparan una a una con las del 5.
-
-## 2. Subconjunto de prueba
-
-Las 601 grabaciones de la partición de prueba (4,93 h de audio), que el modelo no vio ni al
-entrenar ni al elegir el umbral. La revisión experta y la sesión cronometrada usan grabaciones
-**distintas** de este mismo subconjunto: quien revisó una grabación la conocería en la sesión.
-
-## 3. Referencia y emparejamiento
-
-- **Referencia:** las anotaciones del equipo, limpiadas con el protocolo de RE1.1, de las 25
-  clases del modelo y sin las filas que quedaron en revisión.
-- **Verdadero positivo:** una detección y una anotación de la misma clase con IoU ≥ 0,3. El
-  emparejamiento es voraz por score y cada anotación se toma una sola vez. El IoU se mide en
-  segundos × escala mel, la misma escala de frecuencia que ve el modelo.
-- **Fuera del análisis:** las dos clases de ventana (`as/hc`, `pt/dc`), cuya caja ocupa la
-  ventana entera, como en RE3.3.
-
-## 4. Categorías automáticas
-
-Cada detección que no acierta cae en una sola categoría, en este orden (la regla de RE3.3):
-
-| Categoría | Regla |
+| | |
 |---|---|
-| Caja distinta | se superpone con una anotación de su clase sin acertarla (IoU < 0,3, o la anotación ya la tomó otra detección, o cubre varias) |
-| Otra llamada | encuadra (IoU ≥ 0,3) una anotación de otra clase |
-| Nada anotado | no toca ninguna anotación de su clase ni encuadra una de otra |
+| Modelo | `yolo26s_v3` (capítulo 5) |
+| Umbral | score ≥ 0,11, elegido en validación |
+| Salida | tabla de Raven de `detect.py` por grabación: ventanas de 3 s, salto de 1,5 s, NMS del modelo, duplicados entre ventanas fundidos |
+| Unidad | una fila de esa tabla, no una detección por ventana como en el capítulo 5 |
 
-Una detección «nada anotado» que se superpone con una fila en revisión, una frase o un tipo de
-llamada sin clase se cuenta aparte y no se revisa: ahí ya hay algo anotado.
+## 2. Datos
 
-## 5. Revisión de una muestra de cajas (RE3.3)
+- Prueba: 601 grabaciones, 4,93 h. El modelo no las vio al entrenar ni al elegir el umbral.
+- Referencia: anotaciones del equipo limpiadas con RE1.1, de las 25 clases del modelo, sin las
+  filas en revisión.
+- Se excluyen las detecciones de las clases de ventana `as/hc` y `pt/dc`.
+- Las tareas 1 y 2 usan grabaciones distintas.
 
-**Población y estratos.** Las detecciones de §4, más los aciertos como controles:
+## 3. Emparejamiento y categorías
 
-| Estrato | Población | Muestra | Para qué |
-|---|---|---|---|
-| Nada anotado, score ≥ 0,5 | 583 | 300 | el de alta confianza que pide el IOV |
-| Nada anotado, 0,3–0,5 | 638 | 200 | |
-| Nada anotado, 0,11–0,3 | 1 016 | 133 | cubrir todo el rango de operación |
-| Caja distinta | 220 | 220 | todas |
-| Otra llamada | 87 | 87 | todas |
-| Acierto (control) | 2 150 | 60 | medir qué tan exigente es el revisor |
+Acierto: misma clase e IoU ≥ 0,3, en segundos × escala mel. En orden de score, cada detección
+toma la anotación libre de mayor IoU; cada anotación se usa una vez.
 
-Las 98 detecciones «nada anotado» que caen sobre otra fila (§4) quedan fuera. En total, 1 000
-cajas en 310 grabaciones, unas 16 a 18 horas de trabajo.
+Una detección sin acierto toma la primera categoría que cumpla:
 
-Muestreo aleatorio simple dentro de cada estrato, semilla 42; «caja distinta» y «otra llamada» van
-completas. Con 300 cajas, una proporción queda con un intervalo del 95 % de ±6 puntos en el peor
-caso; con las 633 de «nada anotado» juntas, ±4.
-
-**Ciego.** El revisor ve la caja, la especie y la llamada propuestas. No ve el score, el estrato
-ni la anotación de referencia, y no sabe que hay controles. Trabaja con una copia del audio, sin
-las tablas originales a mano.
-
-**Formulario.** Una fila por caja y una sola palabra por fila:
-
-| Respuesta | Cuándo | Veredicto |
+| | Categoría | Regla |
 |---|---|---|
-| `correct` | es una llamada de primate del tipo propuesto y la caja la encuadra | correcta |
-| `other` | es una llamada de primate, pero de otra especie o tipo | error de clase |
-| `box` | es la llamada propuesta, pero la caja está mal puesta | error de encuadre |
-| `no` | no hay ninguna llamada de primate en la caja | ruido |
-| `?` | no se puede decir | incierto |
+| 1 | Caja distinta | IoU ≥ 0,3 con una anotación de su clase ya tomada |
+| 2 | Otra llamada | IoU ≥ 0,3 con una anotación de otra clase |
+| 3 | Caja distinta | IoU > 0 con una anotación de su clase |
+| 4 | Nada anotado | ninguna de las anteriores |
 
-Si la especie o el tipo y la caja están mal a la vez, el revisor escribe `other`. Un comentario
-libre opcional dice cuál es la llamada correcta o qué es el sonido.
+Una «nada anotado» que toca una anotación fuera de la referencia (en revisión, o de una clase que
+el modelo no tiene) no se revisa.
 
-**Lectura.** Según el estrato, el veredicto se lee como la categoría del IOV:
+## 4. Tarea 1: tiempo de revisión (RE3.2)
 
-| Estrato | `correct` | Otras respuestas |
+**Material.** 4 carpetas de 14 grabaciones de prueba: 2 de cada una de las 7 especies con algún
+tipo entrenado (sin *Cebus*). Cada grabación dura ≤ 2 min y tiene ≥ 1 anotación. Es el mejor de
+20 000 sorteos para igualar minutos y anotaciones: 5,9–6,1 min y 47–51 anotaciones por carpeta,
+23,8 min en total.
+
+**Condiciones.** Manual: anotar desde cero. Asistida: partir de la tabla del modelo, con su
+score, y borrar, corregir y agregar. Mismo revisor, estándar y ajustes de Raven.
+
+**Orden.** La tarea 1 va antes que la 2, cuando el revisor aún no conoce las cajas del modelo.
+Carpetas: manual, asistida, asistida, manual.
+
+**Medidas.**
+
+- Tiempo de una carpeta: término − inicio − pausas.
+- Por condición: minutos de trabajo por hora de audio, y el cociente asistida / manual. No se fija
+  un ahorro esperado.
+- Calidad de cada tabla entregada frente a la referencia (§3): cobertura y precisión.
+- Cada caja del modelo, en la asistida: igual (la entregada más parecida tiene IoU ≥ 0,9 y su
+  clase), corregida (IoU ≥ 0,3) o borrada. Agregadas: las entregadas con IoU < 0,3 frente a todas
+  las del modelo. Una tabla del modelo devuelta sin cambios cuenta como aceptada.
+- Costo del modelo: minutos de cómputo por hora de audio en GPU (capítulo 5) y en CPU.
+
+## 5. Tarea 2: revisión de cajas (RE3.3)
+
+**Muestra.** 1 000 cajas en 310 grabaciones, al azar dentro de cada estrato (semilla 42). IC 95 %
+en el peor caso: ±6 puntos con 300 cajas, ±4 con las 633 de «nada anotado».
+
+| Estrato | Población | Muestra |
 |---|---|---|
-| Nada anotado | **evento no anotado**; también con `other` o `box`: hay una llamada que la referencia no tiene | `no`: ruido · `?`: incierto |
-| Caja distinta | la caja del modelo es la buena: anotación por corregir | `box`: error de encuadre · `other`: error de clase · `no`: ruido |
-| Otra llamada | la etiqueta del modelo es la buena: anotación por corregir | `other`: error de clase · `box`: error de encuadre · `no`: ruido |
-| Acierto | acierto confirmado | desacuerdo del revisor con la referencia |
+| Nada anotado, score > 0,5 | 583 | 300 |
+| Nada anotado, 0,3–0,5 | 638 | 200 |
+| Nada anotado, 0,11–0,3 | 1 016 | 133 |
+| Caja distinta | 220 | 220 |
+| Otra llamada | 87 | 87 |
+| Acierto (control) | 2 150 | 60 |
 
-Las tres categorías que compromete el IOV son evento no anotado, ruido y error de encuadre. El
-error de clase no cabe en ninguna de las tres y se reporta aparte, igual que lo incierto, que no
-se reparte entre las demás.
+**Planilla.** Grabaciones en orden aleatorio y, dentro de cada una, cajas por tiempo. Se responde
+de arriba abajo sin saltar filas.
 
-**Estimación.** Por estrato, la proporción de cada veredicto con su intervalo de Wilson al 95 %.
-Para «nada anotado» en conjunto, cada tramo de score pesa lo que pesa en la población (estimador
-estratificado, intervalo normal), y de ahí el número estimado de eventos no anotados en prueba y
-por hora de audio.
+**Ciego.** El revisor ve la caja y la clase propuesta. No ve el score, el estrato ni la
+referencia, y no sabe que hay controles.
 
-**Acuerdo.** Basta una persona. Si una segunda responde también la planilla, o parte de ella, sin
-hablarlo con la primera, se reporta el kappa de Cohen sobre la respuesta y sobre si hay una
-llamada. Con una sola persona, se declara como limitación.
+**Respuesta.** Una palabra por caja, más un comentario opcional:
 
-## 6. Medición del tiempo de revisión (RE3.2)
+| Respuesta | Significa |
+|---|---|
+| `correct` | es la llamada propuesta y la caja la encuadra |
+| `other` | es una llamada de primate de otra especie o tipo, aunque la caja también esté mal |
+| `box` | es la llamada propuesta, con la caja mal puesta |
+| `no` | no hay llamada de primate |
+| `?` | no se puede decir |
 
-**Material.** Cuatro carpetas de 14 grabaciones de prueba, dos de cada especie con algún tipo
-entrenado (5,9 a 6,1 min de audio cada carpeta, 24 min en total), de hasta 2 min y con al menos
-una anotación. De muchas elecciones al azar se elige la que deja las cuatro carpetas más parecidas
-en minutos y en anotaciones: quedaron con 47 a 51 anotaciones cada una (7,8 a 8,4 por minuto). Quedan
-fuera las grabaciones de la muestra de §5 y *Cebus*, sin ningún tipo entrenado (la condición
-asistida no propondría nada).
+**Lectura.**
 
-**Condiciones.**
+| Estrato | `correct` | `other` | `box` | `no` |
+|---|---|---|---|---|
+| Nada anotado | evento no anotado | evento no anotado | evento no anotado | ruido |
+| Caja distinta | anotación por corregir | error de clase | error de encuadre | ruido |
+| Otra llamada | anotación por corregir | error de clase | error de encuadre | ruido |
+| Acierto | acierto confirmado | desacuerdo con la referencia | ídem | ídem |
 
-- *Manual:* el revisor anota la grabación desde cero, con su protocolo habitual.
-- *Asistida:* el revisor parte de la tabla de la herramienta y borra, corrige y agrega hasta
-  dejarla como la entregaría.
+`?` es incierto. El error de clase se reporta aparte: no es una de las tres categorías del IOV.
 
-En las dos, el mismo estándar de calidad y los mismos ajustes de Raven.
+**Estimación.**
 
-**Orden.** Una persona hace las cuatro carpetas en el orden manual, asistida, asistida, manual,
-para que el aprendizaje a lo largo de la sesión caiga parejo en las dos condiciones.
+- Por estrato: proporción de cada respuesta, con IC de Wilson al 95 %.
+- «Nada anotado» en conjunto: estimador estratificado, con cada tramo pesado por su población e
+  IC normal. De ahí salen los eventos no anotados en prueba y por hora de audio.
 
-**Medida.** Por carpeta, tiempo de trabajo = hora de término − hora de inicio − pausas anotadas.
-Se suma por condición y se divide por las horas de audio: **minutos de trabajo por hora de
-audio**, en cada condición, y su cociente asistida / manual. No se fija ningún ahorro esperado:
-se reporta lo que salga.
+**Si queda incompleta.** Se analizan las filas respondidas, que son las primeras: una muestra por
+grabaciones de cada estrato. Se reporta el número revisado por estrato y que el IC de Wilson no
+corrige por grabación.
 
-**Calidad de lo entregado.** Para que un ahorro de tiempo no oculte un trabajo peor, las tablas
-entregadas en cada condición se comparan con la referencia con la regla de §3: cobertura y
-precisión. En la condición asistida, además, qué pasó con cada propuesta (se dejó igual, se
-corrigió o se borró) y cuántas cajas se agregaron.
+**Acuerdo.** Si una segunda persona responde por separado, kappa de Cohen sobre la respuesta y
+sobre si hay llamada. Si no, se declara como limitación.
 
-**Costo de la máquina.** Minutos de cómputo por hora de audio en GPU (capítulo 5), en CPU (la
-corrida que arma el paquete) y en el computador del equipo, si lo reporta.
+## 6. Tarea 3, opcional: calidad del corpus
 
-## 7. Calidad del corpus (complemento de RE3.3)
+Fuera del IOV. Son los hallazgos de CLOD (`src/find_issues.py`) sobre predicciones fuera de
+muestra: en train, del k-fold `yolo26s_v3_kfold5`; en validación, del modelo final. Se responden
+con las mismas cinco palabras.
 
-Fuera de lo que compromete el IOV, y para contrastar las anotaciones del corpus entero, el equipo
-resuelve los hallazgos de CLOD (`src/find_issues.py`) de train y validación. Prueba queda fuera:
-ya está en §5.
+| Hallazgo | Qué indica | Caja mostrada | Train | Val. | Se confirma con |
+|---|---|---|---|---|---|
+| `missing` | llamada predicha con confianza, sin anotar | la del modelo | 1 961 | 734 | `correct`, `other`, `box` |
+| `spurious` | anotación que ninguna predicción toca | la anotación | 2 232 | 785 | `no` |
+| `location` | anotación mal ubicada | la anotación | 1 310 | 487 | `box` |
+| `label` | anotación con otra etiqueta | la anotación | 164 | 55 | `other` |
 
-- **Hallazgos:** sobre predicciones fuera de muestra (en train, del k-fold `yolo26s_v3_kfold5`;
-  en validación, del modelo final), CLOD marca anotaciones que parecen faltar (`missing`: el
-  modelo ve con confianza una llamada sin anotar), sobrar (`spurious`: ninguna predicción la toca),
-  tener otra etiqueta (`label`) o estar mal ubicadas (`location`). Un `missing` sólo entra si no
-  hay ninguna fila en la tabla cruda debajo de la caja: si la hay, la anotación existe (en el
-  conjunto pero sin ligar con la caja, en revisión, con una clase fuera del modelo o descartada
-  por la limpieza) y no es una omisión.
-- **Tamaño:** 7 728 hallazgos en 1 538 grabaciones:
+- 7 728 hallazgos en 1 538 grabaciones. Un `missing` entra solo si ninguna fila cruda está bajo
+  la caja.
+- El revisor no sabe si la caja es del modelo o una anotación.
+- Orden: al azar dentro de cada tipo, con los tipos intercalados. Se responde de arriba abajo
+  hasta donde alcance.
+- Estimación por tipo: proporción confirmada (IC de Wilson, sobre lo respondido, incluidos los
+  `?`) × hallazgos del tipo = errores de anotación estimados. La proporción de `no` entre los
+  `missing` de train es la tasa de falsos positivos del k-fold.
 
-  | Tipo | Train (k-fold) | Validación | Total |
-  |---|---|---|---|
-  | `missing` | 1 961 | 734 | 2 695 |
-  | `spurious` | 2 232 | 785 | 3 017 |
-  | `location` | 1 310 | 487 | 1 797 |
-  | `label` | 164 | 55 | 219 |
+## 7. Reglas
 
-- **Formulario:** el mismo de §5. Cada hallazgo es una caja: la del modelo en `missing`, la
-  anotación original en los demás. El revisor no sabe cuál es cuál.
-- **Orden:** al azar dentro de cada tipo e intercalado entre tipos. El equipo revisa desde arriba
-  todo lo que alcance; lo revisado es una muestra al azar de cada tipo.
-- **Lectura:** un hallazgo se confirma con `correct`, `other` o `box` si es `missing` (una
-  omisión de la anotación; `no` es un falso positivo del modelo), con `no` si es `spurious`, con
-  `other` si es `label` y con `box` si es `location`. La proporción confirmada por tipo, con su
-  intervalo de Wilson, multiplicada por los hallazgos de ese tipo, estima cuántos errores de
-  anotación tiene el corpus. La proporción de `no` entre los `missing` de train es la tasa de
-  falsos positivos del k-fold entre sus predicciones confiadas sin anotación.
+- Ninguna regla cambia después de ver respuestas.
+- Ninguna caja ni grabación se descarta por su resultado. Las filas sin respuesta se cuentan y se
+  declaran.
+- La sesión no se repite.
 
-## 8. Qué no se hace
+## 8. Limitaciones previstas
 
-- No se cambia el umbral ni ninguna regla después de ver respuestas.
-- No se descarta ningún ítem ni ninguna grabación a la vista de su resultado. Las filas sin
-  respuesta o ilegibles se cuentan y se declaran.
-- No se repite la sesión para mejorar una cifra.
+- El audio de prueba es más denso en llamadas que una grabación continua: el tiempo por hora no
+  se extrapola a una temporada.
+- Un solo revisor y 23,8 min de audio.
+- El revisor puede haber anotado alguna de estas grabaciones: se le pregunta y se declara.
 
-## 9. Limitaciones previstas
-
-- El audio de prueba es la selección que el equipo anotó, más densa en llamadas que una
-  grabación continua: el tiempo por hora de audio no se extrapola sin más a una temporada
-  entera.
-- Una sola persona y 24 min de audio en la sesión: la variación entre personas y entre
-  grabaciones queda poco medida.
-- Si el revisor es uno de los anotadores originales, puede reconocer grabaciones; se le pregunta
-  y se declara.
-
-## Cambios después de la fecha
+## Cambios después del commit
 
 (ninguno)

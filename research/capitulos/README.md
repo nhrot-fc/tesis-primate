@@ -7,9 +7,19 @@ Un capítulo, una carpeta. `main.tex` solo tiene el preámbulo, la portada, los
 capitulos/<nn>_<nombre>/
 ├── <nn>_<nombre>.tex   el capítulo: se incluye desde main.tex, no se compila solo
 ├── README.md           qué va en el capítulo, cómo se redacta, qué falta
-├── figures/            sus imágenes (+ figures/data/ con las series)
-└── notebook/           el cuaderno que genera esas imágenes
+├── figures/            valores.tex (macros), tablas/, data/ (series de pgfplots) e imágenes
+└── notebook/           el cuaderno que los genera
 ```
+
+**Cuadernos (15-11-2026).** Son guiones cortos, de unas 25 celdas como máximo y sin
+explicaciones: el capítulo explica. El estilo y las salidas comunes están en
+`src/utils/figuras.py` (paleta de `estilos.tex`, caja anotada verde y continua, caja del
+modelo celeste y discontinua, espectrograma magma; `Salidas` escribe macros, filas, series y
+figuras). `make figuras` los ejecuta todos; `CAP="04 05"` elige capítulos. Las celdas marcadas
+`SERVIDOR` necesitan el caché de ventanas y la GPU del documento, que sólo están en el servidor:
+allí se corre `TESIS_SERVIDOR=1 make figuras CAP="04 05"`. Fuera del servidor esas celdas no
+corren y sus cifras y figuras se conservan. Las anotaciones se limpian en memoria desde
+`data/raw/` (`utils.figuras.anotaciones`), así que ningún cuaderno depende de `data/cleaned/`.
 
 | Carpeta | Capítulo | Objetivo |
 |---|---|---|
@@ -18,7 +28,7 @@ capitulos/<nn>_<nombre>/
 | `03_estado_del_arte` | Estado del Arte | — |
 | `04_oe1_curacion` | Curación del Conjunto de Datos | **OE1** |
 | `05_oe2_detector` | Detección y Evaluación del Modelo | **OE2** |
-| `06_oe3_utilidad` | Tiempo de Revisión y Análisis de Errores | **OE3** |
+| `06_oe3_revision` | Tiempo de Revisión y Análisis de Errores | **OE3** |
 | `07_conclusiones` | Conclusiones | — |
 | `08_anexo_plan` | Plan del Proyecto (anexo) | — |
 | `09_anexo_medios` | Medios de Verificación (anexo) | — |
@@ -156,11 +166,15 @@ trabajar en un solo capítulo, descomenta el `\includeonly` de `main.tex`.
 > - Los conjuntos de datos son `@dataset` con
 >   `titleaddon = {Conjunto de datos}`.
 >
-> Rótulos al estilo APA: número en negrita, título en cursiva en la línea
-> siguiente y **encima** de la figura (el `\caption` va al principio del
-> entorno), más «*Nota.*» en las notas generales de las tablas. `icomma` hace
-> que «2,0» no salga «2, 0» en las fórmulas; por eso los intervalos se escriben
-> `[0, 1]`, con espacio.
+> **14-11-2026, formato del curso (`research/Formato(2025).docx`).** Times New
+> Roman de 12 pt, doble espacio, márgenes de 2,54 cm y párrafos sin sangría.
+> **Los rótulos siguen en APA 7**, como antes: «**Figura 1**» en negrita y el
+> título en cursiva en la línea siguiente, a la izquierda y **encima** de la
+> figura o de la tabla (el `\caption` va al principio del entorno). La plantilla
+> pone el título de la figura debajo, pero la rúbrica exige APA 7 «en todo el
+> documento», y el autor eligió APA 7. La fuente de una figura ajena va en la
+> «*Nota.*», debajo. `icomma` hace que «2,0» no salga «2, 0» en las fórmulas;
+> por eso los intervalos se escriben `[0, 1]`, con espacio.
 
 > **06-10-2026.** Cambios en la compilación:
 >
@@ -186,10 +200,13 @@ Cada `README.md` de capítulo termina con su propia lista. En grande:
 - OE2 (cap. 5) está **redactado entero** (RE2.1–RE2.5 + discusión), sobre la
   comparación vigente `runs/comparacion/comparacion_modelos_v3`. Sus cinco
   reportes están absorbidos.
-- OE3 (cap. 6) está sin redactar, y **RE3.2 necesita una medición de tiempo que
-  todavía no se ha hecho**. Es lo único que responde directamente al objetivo
-  general.
-- Las conclusiones (cap. 7) se escriben al final.
+- OE3 (cap. 6) está **redactado entero** (15-11-2026) con las tareas 1 y 2 del equipo:
+  RE3.1–RE3.3 cumplidos. La sesión no muestra reducción del tiempo (asistida / manual =
+  1,04), y el capítulo lo explica con sus limitaciones (dos personas, sesión corta y densa).
+- Las conclusiones (cap. 7) están redactadas: OE1, OE2 y OE3 cumplidos; el objetivo
+  general, parcialmente cumplido.
+- **Falta `research/medios_verificacion/`**, que el Anexo B describe: ver
+  `09_anexo_medios/README.md`.
 - **Medios de verificación** (07-10-2026): `research/medios_verificacion/`
   reúne, por capítulo y por RE, la evidencia de cada IOV que no cabe en el
   documento, y el Anexo B la describe. `make medios` la regenera con su zip, que

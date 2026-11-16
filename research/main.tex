@@ -3,12 +3,16 @@
 % === Codificación e idioma =========================================
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
+% Formato del curso (Formato 2025): Times New Roman de 12 pt.
+\usepackage{newtxtext}
 % es-noquoting: sin él, babel spanish deja activos < y >, y las flechas <-> de
 % los esquemas TikZ dejan de compilar.
 \usepackage[spanish,es-tabla,es-noquoting]{babel}
-% El texto los llama anexos; babel los titularía «Apéndice».
-\addto\captionsspanish{\renewcommand{\appendixname}{Anexo}}
+% El texto los llama anexos; babel los titularía «Apéndice». El índice se
+% titula como en el formato del curso.
+\addto\captionsspanish{%
+    \renewcommand{\appendixname}{Anexo}%
+    \renewcommand{\contentsname}{Tabla de Contenido}}
 
 % === Tipografía =====================================================
 % microtype ajusta el espaciado dentro del renglón (protrusión y
@@ -21,7 +25,9 @@
 % === Figuras, tablas y listas =======================================
 \usepackage{graphicx}
 \usepackage{amsmath}
-\usepackage{amssymb}
+% newtxmath reemplaza a amssymb: trae los mismos símbolos en Times, y cargar
+% los dos choca.
+\usepackage{newtxmath}
 % Coma decimal en modo matemático: «2,0» y no «2, 0». Una coma seguida de espacio
 % sigue siendo separador, por eso los intervalos se escriben [0, 1].
 \usepackage{icomma}
@@ -33,10 +39,12 @@
 \usepackage{enumitem}
 \usepackage[font=small,labelfont=bf,skip=8pt]{caption}
 \usepackage{titlesec}
+\usepackage{titletoc}
 
 % === Geometría ======================================================
+% Formato del curso: A4 con márgenes de 2,54 cm por lado.
 \usepackage{geometry}
-\geometry{left=3cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\geometry{margin=2.54cm}
 
 % === Subfiguras, código y esquemas ==================================
 % subcaption va después de caption; listings para los comandos de consola;
@@ -113,18 +121,23 @@
 % AJUSTES DE FORMATO
 % ===================================================================
 
-% Interlineado 1,5 SOLO en el cuerpo. Tablas, pies de figura, índices y
-% bibliografía van a espacio simple; mezclar ambos es lo que hacía que
-% encabezados de dos líneas y celdas se vieran descuadrados.
-\setstretch{1.5}
+% Formato del curso: cuerpo a doble espacio, justificado, sin sangría y con
+% espacio entre párrafos. Tablas, pies de figura, índices y bibliografía van a
+% espacio simple; mezclar ambos es lo que hacía que encabezados de dos líneas y
+% celdas se vieran descuadrados.
+\doublespacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
 \AtBeginEnvironment{tabular}{\setstretch{1}}
 \AtBeginEnvironment{tabularx}{\setstretch{1}}
 \AtBeginEnvironment{thebibliography}{\setstretch{1}}
 \captionsetup{font={small,stretch=1}}
-% Rótulos al estilo APA 7: número en negrita, título en cursiva en la línea
-% siguiente, alineados a la izquierda y encima de la tabla o de la figura (en
-% las figuras, el \caption va al principio del entorno). Los subrótulos «(a)»
-% conservan su formato, debajo de cada panel.
+% Rótulos al estilo APA 7, que la rúbrica del curso exige «en todo el
+% documento»: número en negrita, título en cursiva en la línea siguiente,
+% alineados a la izquierda y encima de la tabla o de la figura (en las figuras,
+% el \caption va al principio del entorno). La fuente de una figura ajena va en
+% la nota, debajo. Los subrótulos «(a)» conservan su formato, debajo de cada
+% panel.
 \captionsetup{labelsep=newline, textfont=it, justification=raggedright,
     singlelinecheck=false}
 \captionsetup[figure]{position=top}
@@ -132,11 +145,29 @@
 \captionsetup[sub]{labelsep=space, textfont=up, justification=centering,
     singlelinecheck=true, position=bottom}
 
-% Los títulos de sección de dos líneas van a espacio simple y sin
-% justificar: justificados, TeX los partía con guion y dejaba huecos.
-\titleformat*{\section}{\setstretch{1}\raggedright\normalfont\Large\bfseries}
-\titleformat*{\subsection}{\setstretch{1}\raggedright\normalfont\large\bfseries}
-\titleformat*{\subsubsection}{\setstretch{1}\raggedright\normalfont\normalsize\bfseries}
+% Títulos como en el formato del curso: «Capítulo 1. Generalidades» en una
+% línea, 14 pt y negrita; secciones y subsecciones en 12 pt y negrita. Los
+% títulos sin número (índices, referencias, anexos) van centrados. Los de dos
+% líneas van a espacio simple y sin justificar: justificados, TeX los partía con
+% guion y dejaba huecos.
+\newcommand{\capsep}{.}
+\titleformat{\chapter}[hang]
+    {\setstretch{1}\raggedright\normalfont\fontsize{14}{17}\selectfont\bfseries}
+    {\chaptertitlename\ \thechapter\capsep}{0.5em}{}
+\titleformat{name=\chapter,numberless}[block]
+    {\setstretch{1}\centering\normalfont\fontsize{14}{17}\selectfont\bfseries}
+    {}{0pt}{}
+\titlespacing*{\chapter}{0pt}{0pt}{18pt}
+\titleformat*{\section}{\setstretch{1}\raggedright\normalfont\normalsize\bfseries}
+\titleformat*{\subsection}{\setstretch{1}\raggedright\normalfont\normalsize\bfseries}
+\titleformat*{\subsubsection}{\setstretch{1}\raggedright\normalfont\normalsize\bfseries\itshape}
+% En el índice, los capítulos se nombran como en el título: «Capítulo 1.» y,
+% después de \appendix, «Anexo A:».
+\newcommand{\tocchapname}{Capítulo}
+\newcommand{\tocchapsep}{.}
+\titlecontents{chapter}[0pt]{\addvspace{6pt}\bfseries}
+    {\tocchapname\ \thecontentslabel\tocchapsep\ }{}
+    {\titlerule*[0.6pc]{.}\contentspage}
 
 % \paragraph pasa a ser un encabezado de bloque en lugar de un título
 % incrustado: las etiquetas largas (S1, C1, E1...) ocupan dos líneas y
@@ -191,6 +222,7 @@
 \input{capitulos/01_generalidades/figures/valores}
 \input{capitulos/04_oe1_curacion/figures/valores}
 \input{capitulos/05_oe2_detector/figures/valores}
+\input{capitulos/06_oe3_revision/figures/valores}
 
 % ===================================================================
 % NOTA DE MANTENIMIENTO
@@ -216,8 +248,8 @@
 % PORTADA
 % ===================================================================
 % La portada va a espacio simple y con bloques de ancho fijo: con el
-% interlineado 1,5 del cuerpo las líneas centradas quedaban separadas de
-% forma irregular, y sin ancho fijo el título partía donde le tocaba.
+% interlineado del cuerpo las líneas centradas quedaban separadas de forma
+% irregular, y sin ancho fijo el título partía donde le tocaba.
 \begin{titlepage}
     \setstretch{1}
     \centering
@@ -238,22 +270,21 @@
     \end{minipage}
     \vspace{1.8cm}
 
-    \begin{minipage}{0.80\textwidth}
-        \centering
-        {\large Tesis para obtener el título profesional de\\
-            Ingeniero Informático que presenta:\par}
-    \end{minipage}
-    \vspace{0.8cm}
+    % Bloques y rótulos como en la portada del formato del curso.
+    {\large Tesis para obtener el título profesional de Ingeniero Informático\par}
+    \vspace{1.2cm}
 
-    {\large\bfseries Fernando Nelson Candia Aroni\par}
-    \vspace{1.6cm}
+    {\large\bfseries AUTOR:\par}
+    \vspace{0.2cm}
+    {\large Fernando Nelson Candia Aroni\par}
+    \vspace{0.9cm}
 
-    {\large Asesor:\par}
-    \vspace{0.3cm}
-    {\large\bfseries Dr. Edwin Rafael Villanueva Talavera\par}
+    {\large\bfseries ASESOR:\par}
+    \vspace{0.2cm}
+    {\large Edwin Rafael Villanueva Talavera\par}
 
     \vfill
-    {\large Lima, 2026\par}
+    {\large Lima, noviembre de 2026\par}
 \end{titlepage}
 
 % ===================================================================
@@ -266,6 +297,7 @@
 \pagenumbering{roman}
 \begingroup
 \setstretch{1.15}
+\setlength{\parskip}{0pt}
 \tableofcontents
 \listoffigures
 \listoftables
@@ -286,6 +318,9 @@
 % previa).
 % \includeonly{capitulos/05_oe2_detector/05_oe2_detector}
 % ===================================================================
+% \clearpage antes de numerar: sin él, la página 1 era la última del índice de
+% tablas y el capítulo 1 empezaba en la 2.
+\clearpage
 \pagenumbering{arabic}
 
 \include{capitulos/01_generalidades/01_generalidades}
@@ -293,7 +328,7 @@
 \include{capitulos/03_estado_del_arte/03_estado_del_arte}
 \include{capitulos/04_oe1_curacion/04_oe1_curacion}
 \include{capitulos/05_oe2_detector/05_oe2_detector}
-\include{capitulos/06_oe3_utilidad/06_oe3_utilidad}
+\include{capitulos/06_oe3_revision/06_oe3_revision}
 \include{capitulos/07_conclusiones/07_conclusiones}
 
 % ===================================================================
@@ -310,6 +345,16 @@
 % ANEXOS
 % ===================================================================
 \appendix
+% Como en el formato del curso: una página «Anexos» y, después, cada anexo
+% titulado «Anexo A: …», también en el índice.
+\renewcommand{\capsep}{:}
+\addtocontents{toc}{\protect\renewcommand{\protect\tocchapname}{Anexo}%
+    \protect\renewcommand{\protect\tocchapsep}{:}}
+\chapter*{Anexos}
+\addcontentsline{toc}{chapter}{Anexos}
+Los anexos amplían el plan del proyecto (Anexo~\ref{anx:plan}) y los medios de
+verificación de los resultados esperados (Anexo~\ref{anx:medios}), a los que
+remiten los capítulos anteriores.
 \include{capitulos/08_anexo_plan/08_anexo_plan}
 \include{capitulos/09_anexo_medios/09_anexo_medios}
 

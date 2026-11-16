@@ -400,7 +400,8 @@ equivocada ni se descarta en silencio. La unión de copias resuelve el caso en q
 esa llamada sí está anotada en su propia carpeta.
 
 \rotulo{Descarte de ruido.} Las filas cuyo tipo de llamada normalizado es
-\code{noise} (\nNoise{}) marcan la ausencia de evento, no un evento, y se
+\code{noise} (\nNoise{}) no son eventos: el equipo selecciona a propósito un tramo
+de fondo para medir en Raven su potencia en banda (\code{Inband Power}). Se
 eliminan. El fondo que el detector debe aprender a no proponer entra al conjunto
 por otra vía, como ventanas de audio sin ninguna anotación, y no por estas
 filas. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son cajas que el
@@ -993,7 +994,7 @@ cuántas cajas anotadas lleva cada ventana con contenido.
     \label{fig:densidad}
     \begin{tikzpicture}
         \begin{axis}[
-                ybar, bar width=13pt,
+                ybar, bar width=13pt, area legend,
                 width=0.82\textwidth, height=5.2cm,
                 ymode=log, log origin=infty, ymin=0.7,
                 xlabel={cajas anotadas en la ventana}, ylabel={ventanas},
@@ -1003,9 +1004,12 @@ cuántas cajas anotadas lleva cada ventana con contenido.
                 every node near coord/.append style={font=\scriptsize},
                 axis line style={black!50}, tick style={black!50},
                 ymajorgrids, grid style={black!12},
+                legend style={font=\scriptsize, draw=black!30, fill=white,
+                        at={(0.98,0.97)}, anchor=north east},
             ]
             \addplot[fill=azul!70, draw=azul!80!black]
             table[x=cajas, y=ventanas] {\figOE/data/cajas_por_ventana.dat};
+            \addlegendentry{ventanas con ese número de cajas}
         \end{axis}
     \end{tikzpicture}
 \end{figure}
@@ -1229,7 +1233,7 @@ estructura de las \textit{datasheets} para conjuntos de datos
 previstos y limitaciones. Se omite deliberadamente el apartado de distribución y mantenimiento
 que esa estructura contempla: publicar el conjunto o sostenerlo como recurso de
 terceros está fuera del alcance de la tesis y es una decisión del equipo de
-investigación, no del autor. La ficha distingue dos capas de responsabilidad
+investigación, no del autor, que decidió no publicarlo. La ficha distingue dos capas de responsabilidad
 (Figura~\ref{fig:capas}), y esa distinción gobierna todo lo que sigue.
 
 \rotulo{Cómo reproducirlo.} Ninguna cifra, tabla o figura de la ficha se escribe a
@@ -1431,9 +1435,11 @@ grupos separados, como se aprecia al aislar esas dos clases
     \end{subfigure}
 \end{figure}
 
-Que una etiqueta cubra dos nubes disjuntas sugiere que agrupa dos variantes de
-llamada que el vocabulario actual no distingue. Es un hallazgo sobre el esquema de
-anotación, no sobre el modelo.
+Las dos nubes no son dos llamadas. Según el equipo de investigación, responden a
+que no hubo, ni hay todavía, un acuerdo sobre cómo encuadrar estas llamadas, de
+modo que cada nube es un criterio de anotación. Es un hallazgo sobre el esquema
+de anotación, no sobre el modelo, y un caso medible del desacuerdo de criterio
+que describe la causa C3 (sección~\ref{sec:causas}).
 
 \subsection{Recolección (capa primaria)}
 
@@ -1459,11 +1465,14 @@ tipo de llamada se escriben a mano.
                     ybar, bar width=4pt, width=\linewidth, height=5cm,
                     axis line style={black!50}, tick style={black!50},
                     ymajorgrids, grid style={black!12},
-                    ylabel={grabaciones}, xlabel={hora del día},
+                    ylabel={grabaciones}, xlabel={hora del día}, area legend,
                     xmin=-0.5, xmax=23.5, xtick={0,4,...,20},
+                    legend style={font=\scriptsize, draw=black!30, fill=white,
+                            at={(0.5,1.03)}, anchor=south},
                 ]
                 \addplot[fill=azul!70, draw=none]
                 table[x=hora, y=grabaciones] {\figOE/data/horas.dat};
+                \addlegendentry{grabaciones que empiezan a esa hora}
             \end{axis}
         \end{tikzpicture}
         \caption{Hora del día}
@@ -1475,16 +1484,19 @@ tipo de llamada se escriben a mano.
                     ybar, bar width=4pt, width=\linewidth, height=5cm,
                     axis line style={black!50}, tick style={black!50},
                     ymajorgrids, grid style={black!12},
-                    ylabel={grabaciones}, xlabel={mes},
+                    ylabel={grabaciones}, xlabel={mes}, area legend,
                     symbolic x coords={2023-12,2024-01,2024-02,2024-03,2024-04,2024-05,
                             2024-06,2024-07,2024-08,2024-09,2024-10,2024-11,2024-12,
                             2025-01,2025-02},
                     xtick={2023-12,2024-03,2024-06,2024-09,2024-12,2025-02},
                     x tick label style={rotate=45, anchor=east, font=\scriptsize},
                     enlarge x limits=0.05,
+                    legend style={font=\scriptsize, draw=black!30, fill=white,
+                            at={(0.5,1.03)}, anchor=south},
                 ]
                 \addplot[fill=celeste!80, draw=none]
                 table[x=mes, y=grabaciones] {\figOE/data/meses.dat};
+                \addlegendentry{grabaciones del mes}
             \end{axis}
         \end{tikzpicture}
         \caption{Mes}
@@ -1639,9 +1651,10 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           anotadores, de modo que el error de etiquetado residual no puede separarse
           del error del modelo.
     \item \textbf{La columna de tipo de llamada llega sucia y no se puede sanear
-          sin el repertorio de referencia.} \nPairsOutVocab{} pares quedan fuera del
-          vocabulario cerrado y, entre ellos, no hay forma de separar el error
-          tipográfico de la subdivisión legítima aún no documentada
+          sin el equipo.} \nPairsOutVocab{} pares quedan fuera del vocabulario
+          cerrado y no figuran en el vocabulario que el equipo documenta, de modo
+          que no hay forma de separar el error tipográfico de la subdivisión
+          legítima aún no documentada
           (sección~\ref{sec:regla-especie}). El protocolo los marca y los conserva
           en lugar de decidir, pero el conjunto de experimento se construye
           asumiendo que lo que quedó fuera es ruido. Si parte de ello fuera
@@ -1676,7 +1689,8 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           \textit{recall}, la causa puede ser el modelo o puede ser que nunca vio
           material suficiente.
     \item \textbf{Etiquetas que esconden dos formas.} \splitShapes{} agrupan cada
-          una dos variantes geométricas distintas (Figura~\ref{fig:formas}).
+          una dos formas de caja distintas (Figura~\ref{fig:formas}), porque el
+          equipo no tiene un estándar para encuadrarlas.
     \item \textbf{Copias de grabaciones en la capa primaria.} El mismo audio
           aparece en varias carpetas de especie, anotado solo para la especie de cada
           carpeta; la capa derivada las une, pero la llamada de una tercera especie no

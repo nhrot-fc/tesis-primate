@@ -4,6 +4,7 @@
 % ===================================================================
 \section{Problemática}
 \label{sec:problematica}
+\label{sec:problema}
 % ===================================================================
 % NOTA DE ESTRUCTURA (06-10-2026)
 % Reescrita a partir de la observación del jurado: el problema se enuncia en
@@ -14,12 +15,14 @@
 % el plan de los pasos siguientes están en REESTRUCTURACION.md, en esta misma
 % carpeta.
 %
+% 14-11-2026: secciones ordenadas como en el formato del curso (Formato
+% 2025): 1.1 Problemática (árbol, descripción, problema seleccionado), 1.2
+% Objetivos (general, específicos, resultados esperados, mapeo) y 1.3 Métodos y
+% procedimientos. El contenido no cambió: se movió de lugar.
+%
 % Regla que se mantiene: la problemática es narrativa y carga el peso de las
 % citas; el árbol es la síntesis causal y remite a la evidencia de aquí.
 % ===================================================================
-
-\subsection{Definición del problema}
-\label{sec:problema}
 
 Los primates de la Amazonía son difíciles de seguir. Viven en un bosque de
 vegetación densa, y muchas de sus especies son crípticas o poco abundantes, de
@@ -47,11 +50,73 @@ y para establecer un programa de monitoreo con pobladores locales
 \citep{wiredamazon_8primates}. En adelante, \emph{equipo de investigación}
 designa al de ese proyecto.
 
-Para que las grabaciones sirvan a ese fin, cada vocalización tiene que
-encontrarse dentro del audio, delimitarse en el tiempo y en la frecuencia, y
-recibir la especie y el tipo de llamada. Esa tarea, la \emph{anotación}, la hace a
-mano un especialista que conoce el repertorio de cada especie, y es el paso más
-lento de todo el proceso. El problema que aborda esta tesis se enuncia así:
+Ese uso de las grabaciones enfrenta el problema general de los programas de PAM:
+grabar dejó de ser lo difícil, y lo que hoy limita la investigación con
+vocalizaciones animales es el análisis de las grabaciones y no la técnica para
+obtenerlas \citep{romero-mujalli_utilizing_2021}. Para ver dónde se origina ese
+límite conviene seguir el proceso por el que una grabación se convierte en
+información sobre las especies. La Figura~\ref{fig:proceso} lo muestra para el
+equipo de investigación, en seis etapas.
+
+\begin{figure}[htbp]
+    \centering
+    \caption{Proceso del monitoreo acústico del equipo de investigación}
+    \label{fig:proceso}
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+                every node/.style={font=\footnotesize,
+                        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+                automatica/.style={caja, draw=gris!80, fill=gris!8, text width=25mm,
+                        minimum height=25mm, inner sep=3pt},
+                manual/.style={automatica, draw=azul!70, fill=azul!8},
+                paso/.style={-{Stealth[length=2.2mm]}, thick, draw=black!55},
+                llave/.style={decorate, decoration={brace, mirror, amplitude=5pt}, thick},
+                pie/.style={font=\scriptsize, align=center},
+            ]
+            \node[automatica] (i) {\textbf{1. Instalación}\\[1pt]
+                {\scriptsize grabadoras autónomas en el bosque}};
+            \node[automatica, right=4mm of i] (g) {\textbf{2. Grabación}\\[1pt]
+                {\scriptsize registro continuo durante semanas o meses}};
+            \node[manual, right=4mm of g] (b) {\textbf{3. Búsqueda}\\[1pt]
+                {\scriptsize recorrer el espectrograma de cada grabación}};
+            \node[manual, right=4mm of b] (d) {\textbf{4.~Delimitación}\\\textbf{y etiquetado}\\[1pt]
+                {\scriptsize caja, especie y tipo de llamada}};
+            \node[manual, right=4mm of d] (r) {\textbf{5. Revisión}\\[1pt]
+                {\scriptsize un especialista de mayor experiencia corrige}};
+            \node[automatica, right=4mm of r] (u) {\textbf{6. Uso}\\[1pt]
+                {\scriptsize bibliotecas de llamadas, detección y monitoreo}};
+            \foreach \a/\b in {i/g, g/b, b/d, d/r, r/u} \draw[paso] (\a) -- (\b);
+            \draw[llave, draw=gris] ([yshift=-2mm]i.south west) -- ([yshift=-2mm]g.south east)
+            node[pie, midway, below=6pt, text width=54mm, text=black!70]
+            {automáticas: más horas grabadas no exigen más trabajo humano};
+            \draw[llave, draw=azul!80!black] ([yshift=-2mm]b.south west) -- ([yshift=-2mm]r.south east)
+            node[pie, midway, below=6pt, text width=84mm, text=azul!80!black]
+            {\textbf{anotación}: manual, crece con las horas grabadas y consume tiempo
+                de especialista};
+            \draw[llave, draw=gris] ([yshift=-2mm]u.south west) -- ([yshift=-2mm]u.south east)
+            node[pie, midway, below=6pt, text width=28mm, text=black!70]
+            {espera a que termine la anotación};
+        \end{tikzpicture}}
+\end{figure}
+
+Las dos primeras etapas son las que el PAM automatizó: una vez instaladas, las
+grabadoras registran sin intervención. Las tres siguientes son manuales y las hace
+un especialista que conoce el repertorio de cada especie. Primero recorre el
+espectrograma de cada grabación en busca de vocalizaciones; después delimita cada
+una en el tiempo y en la frecuencia y le asigna la especie y el tipo de llamada, y
+al final un especialista de mayor experiencia revisa lo anotado y rehace las
+etiquetas o las cajas que encuentra mal. Esas tres etapas forman la
+\emph{anotación}. La sexta es la que justifica el proceso: con las anotaciones el
+equipo arma sus bibliotecas de llamadas, detecta a los monos y sostiene el
+monitoreo con pobladores locales \citep{wiredamazon_8primates}.
+
+La figura muestra también dónde se concentra el costo. Una grabadora más produce
+más horas sin más trabajo humano; cada hora más, en cambio, hay que recorrerla,
+anotarla y revisarla a mano, con el tiempo de analistas entrenados, que es el
+recurso escaso de la bioacústica \citep{stowell_computational_2022}, y el uso
+espera a que eso termine. La anotación es así el paso más lento del proceso y el
+que fija su ritmo, y es la parte del problema general que esta tesis selecciona.
+Se enuncia así:
 
 \begin{quote}
     Anotar las vocalizaciones de primates neotropicales en grabaciones de
@@ -59,13 +124,130 @@ lento de todo el proceso. El problema que aborda esta tesis se enuncia así:
     disponible.
 \end{quote}
 
-\subsection{El material y su anotación}
+% ===================================================================
+\subsection{Árbol de problemas}
+\label{sec:arbol}
+% ===================================================================
+% 14-11-2026. Reestructurado por observación del jurado: cada objetivo
+% específico ataca una causa, las causas son independientes (sin la flecha
+% C1 -> C2) y los efectos salen del problema sin encadenarse. La C1 anterior se
+% dividió: lo que resuelve una regla quedó en C1 (faltan anotaciones
+% utilizables) y lo que solo decide un especialista pasó a C3 (el error no está
+% medido). La conservación dejó de ser un efecto y queda en la relevancia.
+% 16-11-2026. Observaciones: C3 pasa a ser la falta de datos de validación
+% (referencia de calidad conocida y experimento de tiempo), que OE3 produce; la
+% entrada de la problemática describe el proceso del problema general
+% (fig:proceso) antes del problema seleccionado.
+% ===================================================================
+
+El árbol de problemas ordena en relaciones de causa y efecto el problema
+enunciado arriba. Se construye con el heurístico de \citet{vesely_problem_2008}:
+el problema central ocupa el centro, sus causas se ubican debajo y sus efectos
+encima, y cada flecha se lee como ``conduce a''. Las flechas no se cuantifican,
+pero cada causa se presenta con la magnitud con que puede medirse. La función
+del árbol es explicar por qué ocurre el problema y qué provoca, y servir de
+puente hacia los objetivos, que se derivan de él invirtiendo su lógica. La
+Figura~\ref{fig:problem-tree} lo resume, y la sección~\ref{sec:descripcion}
+desarrolla cada elemento con la evidencia que lo sostiene.
+
+\begin{figure}[htbp]
+    \centering
+    \caption{Árbol de problemas}
+    \label{fig:problem-tree}
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+                % Las cajas llevan el enunciado abreviado del apartado que las
+                % desarrolla. El font va después de `caja`, que impone \small y
+                % descuadraba las alturas.
+                % Sin partición de palabras: en cajas estrechas cortaba "espe-cies".
+                % Tres columnas iguales: cada causa y cada efecto se une solo al
+                % problema central, sin flechas entre elementos del mismo nivel.
+                nodo/.style={caja, font=\footnotesize, align=center, text width=40mm,
+                        minimum height=15mm, inner sep=4pt,
+                        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+                efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8, minimum height=19mm},
+                causa/.style={nodo, draw=azul!70, fill=azul!8, align=flush left,
+                        minimum height=47mm, anchor=north},
+                central/.style={nodo, draw=azul!80!black, fill=azul, text=white,
+                        text width=129mm, minimum height=17mm},
+                sube/.style={-{Stealth[length=2.2mm]}, thick, draw=ambar!80!black},
+                nace/.style={-{Stealth[length=2.2mm]}, thick, draw=azul!70},
+                franja/.style={font=\scriptsize\bfseries, rotate=90},
+            ]
+            % --- efectos ---
+            \node[efecto] (e1) at (-4.5, 7.9)
+            {\textbf{E1.} Los estudios llegan tarde porque el audio se acumula sin
+                analizar};
+            \node[efecto] (e2) at (0, 7.9)
+            {\textbf{E2.} Los estudios cubren pocas especies y sus llamadas más
+                evidentes};
+            \node[efecto] (e3) at (4.5, 7.9)
+            {\textbf{E3.} El especialista gasta en anotar el tiempo que necesita
+                para interpretar};
+            % --- problema central ---
+            \node[central] (pc) at (0, 5.1)
+            {\textbf{PROBLEMA CENTRAL}\\[2pt] Anotar las vocalizaciones de primates
+                neotropicales en grabaciones de monitoreo acústico pasivo exige más
+                tiempo de especialista del que está disponible};
+            % --- causas ---
+            \node[causa] (c1) at (-4.5, 3.65)
+            {\textbf{C1.} Faltan anotaciones utilizables para estas especies\\[3pt]
+                {\scriptsize\textbullet\ ningún conjunto público con cajas
+                    tiempo--frecuencia\\
+                    \textbullet\ grafías distintas, ruido y cajas inválidas\\
+                    \textbullet\ especie o tipo de llamada mal registrados}};
+            \node[causa] (c2) at (0, 3.65)
+            {\textbf{C2.} Encontrar las vocalizaciones exige recorrer a mano la
+                grabación entera\\[3pt]
+                {\scriptsize\textbullet\ llamadas escasas, breves o tenues\\
+                    \textbullet\ el costo crece con las horas grabadas\\
+                    \textbullet\ las herramientas dan presencia, sin caja ni tipo}};
+            \node[causa] (c3) at (4.5, 3.65)
+            {\textbf{C3.} Faltan datos para validar los detectores, y por eso
+                todo se revisa\\[3pt]
+                {\scriptsize\textbullet\ criterios distintos entre anotadores, sin medir\\
+                    \textbullet\ una propuesta sin anotación: ¿omisión o error?\\
+                    \textbullet\ ningún experimento mide el ahorro en la anotación
+                    completa}};
+            % --- flechas ---
+            \foreach \c in {c1, c2, c3} {\draw[nace] (\c.north) -- (\c.north |- pc.south);}
+            \foreach \e in {e1, e2, e3} {\draw[sube] (\e.south |- pc.north) -- (\e.south);}
+            % --- franjas ---
+            \draw[ambar!80!black, line width=1pt] (-7.5, 6.9) -- (-7.5, 8.9);
+            \node[franja, text=ambar!80!black] at (-7.9, 7.9) {EFECTOS};
+            \draw[azul!80!black, line width=1pt] (-7.5, 4.2) -- (-7.5, 6.0);
+            \node[franja, text=azul!80!black] at (-7.9, 5.1) {PROBLEMA};
+            \draw[azul!70, line width=1pt] (-7.5, -1.1) -- (-7.5, 3.65);
+            \node[franja, text=azul!70] at (-7.9, 1.3) {CAUSAS};
+        \end{tikzpicture}}
+\end{figure}
+
+La figura se lee de abajo hacia arriba. Las tres causas confluyen en el problema
+central y parten del mismo hecho, que la anotación es manual, pero cada una está
+en una etapa distinta del proceso de la Figura~\ref{fig:proceso}: C2 en la
+búsqueda, C1 en lo que sale de la delimitación y el etiquetado, y C3 en la
+revisión. Ninguna se resuelve resolviendo otra. Con anotaciones utilizables pero
+sin una herramienta, la búsqueda seguiría siendo manual; con una herramienta que
+nadie validó, cada propuesta tendría que revisarse; y con la herramienta validada,
+las entregas con errores de registro seguirían volviendo al especialista. Del problema salen tres efectos, también
+independientes entre sí: recaen sobre los estudios que el equipo construye con
+estas grabaciones, en cuándo llegan, qué cubren y cuánto se interpretan.
+
+\subsection{Descripción}
+\label{sec:descripcion}
+
+Esta subsección describe los elementos del árbol con la evidencia que los
+sostiene. Parte del material en que se presenta el problema y de su magnitud, y
+sigue con el problema central, sus causas y sus efectos.
+
+\subsubsection{El material y su anotación}
 \label{sec:dominio}
 
-El material de partida se produce en dos pasos. Primero, grabadoras AudioMoth,
-dispositivos de bajo costo y de código abierto \citep{hill_audiomoth_2018},
-registran el sonido del bosque en archivos WAV a 44,1\,kHz. Después, un
-especialista abre cada grabación en Raven Pro, el programa de análisis de sonido
+El material de partida sale de la grabación y de la anotación de la
+Figura~\ref{fig:proceso}. Las grabadoras son AudioMoth, dispositivos de bajo
+costo y de código abierto \citep{hill_audiomoth_2018}, y registran el sonido del
+bosque en archivos WAV a 44,1\,kHz. En la anotación, el especialista abre cada
+grabación en Raven Pro, el programa de análisis de sonido
 del Laboratorio de Ornitología de Cornell con que trabaja el equipo
 \citep{raven_pro}, e inspecciona su espectrograma: la imagen
 que muestra la energía del sonido según el tiempo, en el eje horizontal, y la
@@ -116,7 +298,7 @@ fracción del tiempo grabado representan.
         \textbf{Especie (código)} & \thead{N.\textsuperscript{o}}        & \thead{Horas} & \thead{N.\textsuperscript{o}}
                                   & \thead{Evento\\(min)}               & \thead{Fracción\\(\char37)}                               \\
         \midrule
-        \input{capitulos/01_generalidades/figures/tabla_material} \\
+        \input{capitulos/01_generalidades/figures/tablas/material} \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -139,7 +321,7 @@ material. Ese desequilibrio, que responde tanto a la duración de las llamadas d
 cada especie como a lo que se llegó a grabar y a anotar, condiciona la
 construcción del conjunto de datos y la manera de evaluar un detector.
 
-\subsection{Magnitud del problema}
+\subsubsection{Magnitud del problema}
 \label{sec:magnitud}
 
 El problema existe porque grabar se volvió barato y analizar no. Del lado de la
@@ -194,142 +376,7 @@ anotación entre varias personas \citep{koga_lead_2024}, lo que alivia el volume
 a costa de introducir criterios distintos en un mismo conjunto de datos, un efecto
 que reaparece entre las causas del problema.
 
-\subsection{Relevancia}
-\label{sec:relevancia}
-
-Reducir el tiempo de anotación importa, en primer lugar, por lo que está en juego
-para las especies. Los primates son un componente esencial de la biodiversidad
-tropical; alrededor del 60\,\% de sus especies está amenazado de extinción y el
-75\,\% tiene poblaciones en declive \citep{estrada_impending_2017}. Entre las ocho
-especies de esta tesis, el mono araña peruano figura como En Peligro en la Lista
-Roja de la Unión Internacional para la Conservación de la Naturaleza: se estima que su población se redujo al menos a la mitad en los
-últimos 45 años por la caza y la pérdida de hábitat, y la ganadería y la
-deforestación están extendidas en el sureste del Perú \citep{alves_ateles_2021}.
-Conservar poblaciones así exige seguirlas en el tiempo, y ese seguimiento es la
-base de las decisiones de conservación, con la dificultad añadida que imponen los
-bosques tropicales \citep{zwerts_methods_2021}.
-
-En segundo lugar, el PAM es una herramienta adecuada para ese seguimiento. Los
-sensores acústicos no son invasivos, suelen ser omnidireccionales y ofrecen un
-área de detección mayor y menos restricciones taxonómicas que las cámaras
-trampa; permiten muestrear durante periodos largos con poco esfuerzo manual, lo
-que aumenta la probabilidad de detectar especies raras o poco vocales
-\citep{gibb_2018}. En primates, la detección automática sobre grabaciones de PAM
-ya se ha usado para estimar la ocupación de varias especies en un bosque de Costa
-de Marfil \citep{kalan_towards_2015} y para describir los patrones de
-vocalización de monos aulladores en Brasil
-\citep{perez-granados_passive_2021,do_nascimento_passive_2021}. Aun así, el PAM
-rara vez se ha aplicado al monitoreo de primates
-\citep{perez-granados_passive_2021}, y sus ventajas solo se materializan si el
-análisis acompaña a la recolección: los programas de monitoreo deben ser
-estandarizables, escalables y financieramente sostenibles \citep{gibb_2018},
-condiciones que un análisis enteramente manual no cumple a la escala que el PAM
-hace posible.
-
-En tercer lugar, el problema es relevante para la informática. Convertir una
-grabación en anotaciones con la forma que usa el especialista exige resolver en un
-solo sistema la localización de cada vocalización en tiempo y en frecuencia y su
-clasificación fina por especie y tipo de llamada, es decir, llevar la detección de
-objetos de la visión por computadora a una señal que no es una imagen natural. Y
-lo es para el
-equipo de investigación, que es quien sostiene el monitoreo: cada hora de
-especialista que se ahorra en la anotación queda disponible para la
-interpretación ecológica de los datos.
-
-% ===================================================================
-\section{Árbol de problemas}
-\label{sec:arbol}
-% ===================================================================
-
-El árbol de problemas ordena en relaciones de causa y efecto la evidencia de la
-sección anterior. Se construye con el heurístico de \citet{vesely_problem_2008}:
-el problema central ocupa el centro, sus causas se ubican debajo y sus efectos
-encima, y cada flecha se lee como ``conduce a''. El árbol no cuantifica esas
-relaciones; su función es explicar por qué ocurre el problema y qué provoca, y
-servir de puente hacia los objetivos, que se derivan de él invirtiendo su
-lógica. La
-Figura~\ref{fig:problem-tree} lo resume, y las subsecciones que siguen
-desarrollan cada elemento.
-
-\begin{figure}[htbp]
-    \centering
-    \caption{Árbol de problemas}
-    \label{fig:problem-tree}
-    \resizebox{\textwidth}{!}{%
-        \begin{tikzpicture}[
-                % Las cajas llevan el enunciado abreviado del apartado que las
-                % desarrolla. El font va después de `caja`, que impone \small y
-                % descuadraba las alturas.
-                % Sin partición de palabras: en cajas de 44 mm cortaba "espe-cies".
-                nodo/.style={caja, font=\footnotesize, align=center, text width=44mm,
-                        minimum height=15mm, inner sep=4pt,
-                        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
-                efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8},
-                causa/.style={nodo, draw=azul!70, fill=azul!8, align=flush left,
-                        minimum height=37mm},
-                central/.style={nodo, draw=azul!80!black, fill=azul, text=white,
-                        text width=124mm, minimum height=17mm},
-                sube/.style={-{Stealth[length=2.2mm]}, thick, draw=ambar!80!black},
-                nace/.style={-{Stealth[length=2.2mm]}, thick, draw=azul!70},
-                liga/.style={-{Stealth[length=2.2mm]}, thick, dashed, draw=azul!70},
-                franja/.style={font=\scriptsize\bfseries, rotate=90},
-            ]
-            % --- efectos ---
-            \node[efecto] (e3) at (0, 10.3)
-            {\textbf{E3.} La conservación decide con información tardía o
-                incompleta};
-            \node[efecto] (e1) at (-2.6, 7.7)
-            {\textbf{E1.} El audio recolectado se acumula sin analizar};
-            \node[efecto] (e2) at (2.6, 7.7)
-            {\textbf{E2.} El análisis se limita a pocas especies y a sus
-                llamadas más evidentes};
-            % --- problema central ---
-            \node[central] (pc) at (0, 5.1)
-            {\textbf{PROBLEMA CENTRAL}\\[2pt] Anotar las vocalizaciones de primates
-                neotropicales en grabaciones de monitoreo acústico pasivo exige más
-                tiempo de especialista del que está disponible};
-            % --- causas ---
-            \node[causa, text width=60mm] (c1) at (-3.4, 1.5)
-            {\textbf{C1.} La anotación manual es inconsistente y exige una
-                segunda pasada del especialista\\[3pt]
-                {\scriptsize\textbullet\ varios anotadores, sin vocabulario común\\
-                    \textbullet\ grafías distintas, ruido y cajas inválidas\\
-                    \textbullet\ fronteras borrosas y eventos omitidos}};
-            \node[causa, text width=60mm] (c2) at (3.4, 1.5)
-            {\textbf{C2.} Las vocalizaciones son escasas y breves dentro de horas
-                de audio, y encontrarlas a mano exige recorrer la grabación entera\\[3pt]
-                {\scriptsize\textbullet\ especies poco abundantes y crípticas\\
-                    \textbullet\ llamadas tenues o enmascaradas\\
-                    \textbullet\ el costo crece con las horas grabadas}};
-            % --- flechas ---
-            \draw[nace] (c1.north) -- (c1.north |- pc.south);
-            \draw[nace] (c2.north) -- (c2.north |- pc.south);
-            \draw[sube] (e1.south |- pc.north) -- (e1.south);
-            \draw[sube] (e2.south |- pc.north) -- (e2.south);
-            \draw[sube] (e1.north) -- ([xshift=-12mm]e3.south);
-            \draw[sube] (e2.north) -- ([xshift=12mm]e3.south);
-            \draw[liga] (c1.south) to[out=-28, in=-152]
-            node[below, font=\scriptsize, text=azul!80!black, align=center]
-                {sin anotaciones consistentes no puede entrenarse un detector para estas especies}
-            (c2.south);
-            % --- franjas ---
-            \draw[ambar!80!black, line width=1pt] (-7.5, 6.9) -- (-7.5, 11.1);
-            \node[franja, text=ambar!80!black] at (-7.9, 9.0) {EFECTOS};
-            \draw[azul!80!black, line width=1pt] (-7.5, 4.2) -- (-7.5, 6.0);
-            \node[franja, text=azul!80!black] at (-7.9, 5.1) {PROBLEMA};
-            \draw[azul!70, line width=1pt] (-7.5, -0.4) -- (-7.5, 3.4);
-            \node[franja, text=azul!70] at (-7.9, 1.5) {CAUSAS};
-        \end{tikzpicture}}
-\end{figure}
-
-La figura se lee de abajo hacia arriba. Las dos causas confluyen en el problema
-central y parten del mismo hecho, que la anotación es manual: una está en la
-calidad de lo que se anota y la otra en lo que cuesta encontrar qué anotar. La
-primera alimenta además a la segunda, porque sin anotaciones consistentes no
-puede entrenarse un detector que alivie la búsqueda. Del problema salen los efectos, que
-se encadenan hasta uno final sobre la conservación de las especies.
-
-\subsection{Problema central}
+\subsubsection{Problema central}
 
 El problema central es el enunciado en la sección~\ref{sec:problema}, que la
 figura reproduce al centro. Describe una sola situación negativa, medida en una
@@ -341,11 +388,14 @@ tesis debe demostrar. Las causas que siguen explican por qué persiste la distan
 documentada en la sección~\ref{sec:magnitud}, aunque la automatización ya existe
 en otros dominios.
 
-\subsection{Causas}
+\subsubsection{Causas}
 \label{sec:causas}
 
-\paragraph{C1: La anotación manual es inconsistente y exige una segunda pasada
-    del especialista}
+Cada causa se presenta con la evidencia que la sostiene, el camino por el que
+eleva el tiempo de especialista y la magnitud con que puede medirse, que es
+también la que usa el objetivo que la atiende para medir su aporte.
+
+\paragraph{C1: Faltan anotaciones utilizables para estas especies}
 Para estas especies no hay anotaciones previas de las que partir. La Tabla~\ref{tab:xenocanto} lo muestra
 para Xeno-canto, el repositorio abierto de sonidos de fauna más utilizado: se buscó
 cada una de las ocho especies por su nombre científico y se contaron las
@@ -389,62 +439,39 @@ En total hay 32 grabaciones y poco más de una hora de audio; tres de las especi
 no tienen ninguna, y ninguna de las grabaciones disponibles incluye anotaciones
 tiempo--frecuencia. Toda anotación de estas especies se hace, por tanto, a mano y
 desde cero, y el material del equipo de investigación es el único conjunto
-anotado de que se dispone (Tabla~\ref{tab:resumen-dataset}). La anotación manual
-le deja dos clases de defectos, y las dos devuelven el trabajo al especialista.
+anotado de que se dispone (Tabla~\ref{tab:resumen-dataset}).
 
-\rotulo{Inconsistencias.} El material se anotó a mano, por varias personas y sin
-un vocabulario cerrado, de modo que sus \nRawRows{} cajas llevan
+Ese material, además, no puede usarse tal como llega. Se anotó a mano, por varias
+personas y sin un vocabulario cerrado, de modo que sus \nRawRows{} cajas llevan
 \nRawSpeciesValues{} grafías distintas de especie para solo ocho especies, y
-\nRawCallValues{} grafías distintas de tipo de llamada. Parte de esa
-inconsistencia es de escritura, y se corrige normalizando las etiquetas; otra
-parte es de criterio, y es propia de la tarea. La anotación manual es subjetiva y
-genera errores específicos de cada anotador \citep{nguyen_assessing_2021}. Para
-primates ese desacuerdo no se ha medido, pero sí en tareas equivalentes, que
-también consisten en delimitar eventos sobre el espectrograma y etiquetarlos: al
-anotar llamadas de ballena azul, dos analistas coincidieron en menos del 50\,\%
-de los casos \citep{leroy_reliability_2018}, y con veinte anotadores por clip las
-etiquetas varían tanto en el tipo de evento como en sus tiempos de inicio y fin
-\citep{koga_lead_2024}. A ello se suma que la propia unidad acústica carece de una
-definición estable: las unidades pueden anidarse unas dentro de otras, sus
-definiciones varían entre investigadores y sus rasgos cambian de forma graduada,
-mientras que los métodos analíticos asumen categorías discretas
-\citep{kershenbaum_acoustic_2016}.
+\nRawCallValues{} grafías distintas de tipo de llamada. No todas las cajas son
+ejemplos válidos: hay filas que seleccionan a propósito el ruido de fondo, para
+medir su potencia, y no una vocalización, y cajas sin duración o sin ancho de
+banda
+(sección~\ref{sec:defectos}). El Capítulo~\ref{cap:curacion} cuenta el resto:
+\nSpeciesMismatch{} filas cuya especie escrita contradice la carpeta,
+\nEmptyCall{} cajas sin tipo de llamada y pares que no existen en el repertorio
+de la especie. Son errores de registro y no de criterio: una regla puede
+decidirlos sin volver a escuchar el audio. La parte de la inconsistencia que es
+de criterio es propia de la tarea y ninguna regla la resuelve; es una de las
+razones por las que estas anotaciones no bastan para validar un detector (causa
+C3).
 
-\rotulo{Errores y omisiones.} No todas las cajas son ejemplos válidos: hay filas
-que marcan ruido de fondo en lugar de una vocalización y cajas sin duración o sin
-ancho de banda (sección~\ref{sec:defectos}). La referencia, además, es
-incompleta. Un mismo analista no reproduce sus propias anotaciones
-\citep{leroy_reliability_2018}, de modo que una vocalización real puede quedar sin
-caja, y la borrosidad de las fronteras de los eventos desplaza las cajas aun
-cuando el evento es el mismo \citep{zhu_sound_2025}. Por eso una predicción que no
-coincide con ninguna caja anotada puede ser un error del detector o una omisión de
-la referencia, y distinguir ambos casos exige el juicio de un especialista.
-
-C1 conduce al problema central por dos vías. La directa es la segunda pasada.
-Como la anotación se reparte entre anotadores cuyos criterios difieren
-\citep{koga_lead_2024}, lo anotado no se usa tal como sale de la primera pasada:
-un especialista de mayor experiencia lo revisa y rehace las etiquetas o las cajas
-que encuentra mal, y ese tiempo se suma al de la anotación original.
+C1 eleva el tiempo de especialista por dos lados. Como no hay anotaciones
+previas, todo se anota desde cero. Y lo ya anotado no se usa tal como sale de la
+primera pasada: un especialista de mayor experiencia lo revisa y rehace las
+etiquetas o las cajas que encuentra mal, y ese tiempo se suma al de la anotación
+original.
 % PENDIENTE: citar como comunicación personal del equipo (APA 7: solo en el
 % texto) el flujo de revisión por un especialista de mayor experiencia, una vez
 % confirmado con M. Bowler.
-El propio material conserva las huellas de esas diferencias y errores, y el
-Capítulo~\ref{cap:curacion} las cuenta: además de las grafías distintas, hay
-\nSpeciesMismatch{} filas cuya especie escrita contradice la carpeta, \nEmptyCall{} cajas sin tipo de
-llamada y pares que no existen en el repertorio de la especie. Parte de esa
-revisión es mecánica y la resuelve una regla; el resto solo puede decidirlo quien
-conoce el repertorio, y después de aplicar todas las reglas \nReview{}
-anotaciones siguen en esa situación (sección~\ref{sec:protocolo}). Repartir la
-anotación entre más personas, la respuesta habitual a la falta de tiempo
-(sección~\ref{sec:magnitud}), agrava esta vía: el tiempo que se gana en volumen se
-pierde en revisión.
-La indirecta pasa por C2: sin una referencia consistente no hay contra qué
-aprender ni contra qué medir \citep{koga_lead_2024}, de modo que no puede
-entrenarse ni evaluarse un detector que alivie la búsqueda, como indica la flecha
-punteada de la Figura~\ref{fig:problem-tree}.
+Parte de esa revisión es mecánica: corregir una grafía o descartar una caja vacía
+no exige conocer el repertorio. C1 se mide, por tanto, por los defectos que una
+regla puede resolver en el material recibido y por las anotaciones que quedan
+utilizables después de resolverlos.
 
-\paragraph{C2: Las vocalizaciones son escasas y breves dentro de horas de audio,
-    y encontrarlas a mano exige recorrer la grabación entera}
+\paragraph{C2: Encontrar las vocalizaciones exige recorrer a mano la grabación
+    entera}
 La segunda causa está en el propio material. Las especies de esta tesis son poco
 abundantes y crípticas (sección~\ref{sec:problema}), y sus vocalizaciones ocupan
 una fracción pequeña de lo grabado: en cinco de las ocho especies, las
@@ -463,32 +490,87 @@ anotados \citep{dubus_deepforestsound_2026}, y los pocos detectores construidos
 para primates se limitan a una especie o a unas pocas
 \citep{perez-granados_passive_2021}. Además, las llamadas tenues, transitorias o
 parcialmente enmascaradas son las que los métodos automáticos pierden con más
-frecuencia \citep{gibb_2018}. Esa carencia es, en parte, la vía indirecta de C1
-descrita arriba. Y aun donde existen detectores, los sistemas más difundidos entregan una probabilidad por
+frecuencia \citep{gibb_2018}. Y aun donde existen detectores, los sistemas más difundidos entregan una probabilidad por
 segmento de duración fija, y los que delimitan eventos lo hacen solo sobre el eje
 temporal \citep{kahl_birdnet_2021,ebbers_sound_2024}; ninguno devuelve la banda de
 frecuencia ni el tipo de llamada. Una salida así indica dónde mirar, pero el
-especialista tiene que volver a dibujar cada caja y a etiquetarla.
+especialista tiene que volver a dibujar cada caja y a etiquetarla. C2 se mide por
+la fracción de las vocalizaciones que una herramienta encuentra y por cuántas
+propuestas obliga a revisar por hora de audio, que es la carga que reemplaza a la
+búsqueda.
 
-\subsection{Efectos}
+\paragraph{C3: Faltan datos para validar los detectores, y por eso todo se revisa}
+La tercera causa está en la revisión. Una propuesta automática ahorra trabajo
+solo si se sabe cuánto confiar en ella, y saberlo exige \emph{datos de
+    validación}: una referencia de calidad conocida contra la cual medir el error
+del detector, y experimentos que midan cuánto tiempo ahorra en la tarea real. Para
+estas especies no existe ninguno de los dos. Sin ellos, la única forma segura de
+usar una propuesta es revisarla, y revisarlo todo cuesta lo mismo que hacerlo de
+nuevo.
+
+Las anotaciones del equipo no bastan como referencia, por dos razones. La primera
+es que su error tiene un componente de criterio que ninguna regla resuelve. La
+anotación manual es subjetiva y genera errores específicos de
+cada anotador \citep{nguyen_assessing_2021}. Para primates ese desacuerdo no se ha
+medido, pero sí en tareas equivalentes, que también consisten en delimitar
+eventos sobre el espectrograma y etiquetarlos: al anotar llamadas de ballena
+azul, dos analistas coincidieron en menos del 50\,\% de los casos y un mismo
+analista no reprodujo sus propias anotaciones \citep{leroy_reliability_2018}, y
+con veinte anotadores por clip las etiquetas varían tanto en el tipo de evento
+como en sus tiempos de inicio y fin \citep{koga_lead_2024}. La propia unidad
+acústica carece de una definición estable: las unidades pueden anidarse unas
+dentro de otras, sus definiciones varían entre investigadores y sus rasgos
+cambian de forma graduada, mientras que los métodos analíticos asumen categorías
+discretas \citep{kershenbaum_acoustic_2016}. Y la borrosidad de las fronteras de
+los eventos desplaza las cajas aun cuando el evento es el mismo
+\citep{zhu_sound_2025}. Repartir la anotación entre más personas, la respuesta
+habitual a la falta de tiempo (sección~\ref{sec:magnitud}), multiplica esos
+criterios: el tiempo que se gana en volumen se pierde en revisión. Es la parte de
+la segunda pasada que solo puede decidir quien conoce el repertorio, y en el
+material de esta tesis, después de aplicar todas las reglas, \nReview{}
+anotaciones siguen en esa situación (sección~\ref{sec:protocolo}).
+
+La segunda razón es que la referencia es incompleta. La evaluación de un
+detector suele apoyarse en comparar su salida con una referencia anotada a mano
+\citep{leroy_reliability_2018}, y en ella una vocalización real puede quedar sin
+caja. Una propuesta que no coincide con ninguna anotación puede ser, entonces, un
+error del detector o una omisión de la referencia, y distinguir ambos casos exige
+el juicio de un especialista. Mientras eso no se haga, la precisión que se mide
+contra la referencia no es la del detector, y el especialista no tiene con qué
+decidir qué propuestas aceptar y cuáles revisar: las revisa todas. Por eso
+\citet{leroy_reliability_2018} proponen un enfoque estandarizado para las
+anotaciones humanas y las detecciones automáticas, que incluya una descripción
+cuantitativa de su desempeño.
+
+Falta, además, el experimento. Los ahorros de tiempo de la
+sección~\ref{sec:magnitud} se midieron al detectar una o pocas especies, y aun en
+ellos depurar los falsos positivos sigue siendo trabajo humano. Ninguno de los
+trabajos revisados mide el ahorro en la anotación completa, con caja, especie y
+tipo de llamada: los que entregan cajas tiempo--frecuencia reportan solo métricas
+del modelo \citep{escobar-amado_computer_2024,airale_nbm_2025,zhu_sound_2025}. C3
+se mide, por tanto, con los dos datos que faltan: la parte de las discrepancias
+con la referencia que un especialista atribuye al detector y la que atribuye a la
+referencia, y los minutos de revisión por hora de audio con y sin las propuestas
+del detector.
+
+\subsubsection{Efectos}
 \label{sec:efectos}
 
-Los efectos se organizan por actor afectado, siguiendo el criterio que
-\citet{vesely_problem_2008} ilustra en su tercer ejemplo: E1 recae sobre el
-equipo que monitorea, E2 sobre el conocimiento que se obtiene de los datos y E3,
-efecto final que se deriva de los dos anteriores, sobre la conservación de las
-especies.
+Los efectos recaen sobre los estudios que el equipo de investigación construye
+con estas grabaciones: sus bibliotecas de llamadas, la detección de los monos y
+el monitoreo con pobladores locales \citep{wiredamazon_8primates}. Cada uno sale
+directamente del problema central y afecta una dimensión distinta de esos
+estudios: cuándo llegan (E1), qué cubren (E2) y cuánto se interpretan (E3).
 
-\paragraph{E1: El audio recolectado se acumula sin analizar}
+\paragraph{E1: Los estudios llegan tarde porque el audio se acumula sin analizar}
 El efecto inmediato es que la anotación avanza más lento que la recolección. Cuando el volumen de datos excede con mucho las horas-persona disponibles
 \citep{stowell_computational_2022}, detectar las señales de interés en los
 paisajes sonoros registrados se convierte en un obstáculo logístico que limita la
 escala de los estudios \citep{Campos_Krofel_Rio-Maior_Renna_2025}. El esfuerzo y
-el gasto del despliegue quedan inmovilizados en material sin procesar, y la
-información llega con retraso.
+el gasto del despliegue quedan inmovilizados en material sin procesar, y los
+resultados llegan con retraso.
 
-\paragraph{E2: El análisis se limita a pocas especies y a sus llamadas más
-    evidentes}
+\paragraph{E2: Los estudios cubren pocas especies y sus llamadas más evidentes}
 Con el tiempo de especialista como límite, se analiza primero lo que se encuentra
 rápido: las llamadas largas y potentes, y las especies que más vocalizan. El resto
 del repertorio, con sus llamadas de contacto y de alarma, y las especies menos
@@ -499,28 +581,82 @@ reparto, aunque en él pese también la duración de cada llamada
 los minutos anotados, y del capuchino de cabeza chata hay siete grabaciones
 anotadas (Tabla~\ref{tab:resumen-dataset}).
 
-\paragraph{E3: La conservación decide con información tardía o incompleta}
-Efecto final, derivado de E1 y E2. Cuando el análisis no acompaña a la
-recolección, condición de la que dependen las ventajas del PAM
-(sección~\ref{sec:relevancia}), lo raro se pierde en el audio sin revisar (E1) y
-la imagen de cada especie se reduce a sus llamadas más evidentes (E2). Para especies con poblaciones en declive, esa información tardía o
-incompleta es la base sobre la que se decide su conservación
-\citep{zwerts_methods_2021}.
+\paragraph{E3: El especialista gasta en anotar el tiempo que necesita para
+    interpretar}
+El tiempo que exige la anotación sale de las mismas personas que interpretan los
+datos. Asignar el tipo de llamada requiere conocer el repertorio de cada especie,
+y el tiempo de analistas con esa formación es escaso
+(sección~\ref{sec:magnitud}): cada hora que dedican a dibujar y etiquetar cajas
+es una hora que no dedican a la interpretación ecológica, de donde salen los
+estudios. El efecto no depende de que el audio se analice tarde (E1) ni de qué se
+analice (E2): aun con todo el material anotado a tiempo, el costo se habría
+pagado con horas de interpretación.
 
-% ===================================================================
-\section{Brecha de investigación}
+\subsection{Problema seleccionado}
+\label{sec:seleccionado}
 \label{sec:brecha}
-% ===================================================================
 
-Las dos causas tienen también una lectura en términos de investigación: para
-este dominio faltan datos utilizables y faltan herramientas que alivien la
-búsqueda. Esta sección lo examina con más detalle:
-ordena primero las soluciones existentes según la forma de su salida, ubica
-después el vacío en el cruce de dos ejes, el taxón y la tarea, y termina
-delimitando la parte de ese vacío que aborda esta tesis. La revisión sistemática
-de la literatura del Capítulo~\ref{cap:estado} confirma esta lectura.
+El problema seleccionado es una parte del problema general con que abre la
+sección~\ref{sec:problematica}: el monitoreo de primates con PAM no avanza al
+ritmo de la grabación, y el proceso de la Figura~\ref{fig:proceso} muestra que lo
+que lo limita son sus tres etapas manuales. La tesis no interviene en la
+instalación ni en la grabación, que ya están automatizadas, ni en el uso de los
+datos, que corresponde al equipo de investigación. Selecciona la anotación, tal
+como la enuncia el problema central del árbol: anotar las vocalizaciones de
+primates neotropicales en grabaciones de monitoreo acústico pasivo exige más
+tiempo de especialista del que está disponible. Y la aborda por sus tres causas,
+que tienen también una lectura en términos de investigación: para este dominio
+faltan anotaciones utilizables (C1), faltan herramientas que entreguen la
+anotación completa (C2) y faltan datos para validar esas herramientas, es decir,
+para medir su error y su ahorro (C3). Esta subsección justifica la selección en
+cuatro pasos: por qué el problema importa, qué soluciones existen según la forma
+de su salida, dónde está el vacío, en el cruce de dos ejes, el taxón y la tarea,
+y qué parte de ese vacío aborda esta tesis. La revisión sistemática de la
+literatura del Capítulo~\ref{cap:estado} confirma esta lectura.
 
-\subsection{Soluciones existentes}
+\subsubsection{Relevancia}
+\label{sec:relevancia}
+
+Reducir el tiempo de anotación importa, en primer lugar, por lo que está en juego
+para las especies. Los primates son un componente esencial de la biodiversidad
+tropical; alrededor del 60\,\% de sus especies está amenazado de extinción y el
+75\,\% tiene poblaciones en declive \citep{estrada_impending_2017}. Entre las ocho
+especies de esta tesis, el mono araña peruano figura como En Peligro en la Lista
+Roja de la Unión Internacional para la Conservación de la Naturaleza: se estima que su población se redujo al menos a la mitad en los
+últimos 45 años por la caza y la pérdida de hábitat, y la ganadería y la
+deforestación están extendidas en el sureste del Perú \citep{alves_ateles_2021}.
+Conservar poblaciones así exige seguirlas en el tiempo, y ese seguimiento es la
+base de las decisiones de conservación, con la dificultad añadida que imponen los
+bosques tropicales \citep{zwerts_methods_2021}.
+
+En segundo lugar, el PAM es una herramienta adecuada para ese seguimiento. Los
+sensores acústicos no son invasivos, suelen ser omnidireccionales y ofrecen un
+área de detección mayor y menos restricciones taxonómicas que las cámaras
+trampa; permiten muestrear durante periodos largos con poco esfuerzo manual, lo
+que aumenta la probabilidad de detectar especies raras o poco vocales
+\citep{gibb_2018}. En primates, la detección automática sobre grabaciones de PAM
+ya se ha usado para estimar la ocupación de varias especies en un bosque de Costa
+de Marfil \citep{kalan_towards_2015} y para describir los patrones de
+vocalización de monos aulladores en Brasil
+\citep{perez-granados_passive_2021,do_nascimento_passive_2021}. Aun así, el PAM
+rara vez se ha aplicado al monitoreo de primates
+\citep{perez-granados_passive_2021}, y sus ventajas solo se materializan si el
+análisis acompaña a la recolección: los programas de monitoreo deben ser
+estandarizables, escalables y financieramente sostenibles \citep{gibb_2018},
+condiciones que un análisis enteramente manual no cumple a la escala que el PAM
+hace posible.
+
+En tercer lugar, el problema es relevante para la informática. Convertir una
+grabación en anotaciones con la forma que usa el especialista exige resolver en un
+solo sistema la localización de cada vocalización en tiempo y en frecuencia y su
+clasificación fina por especie y tipo de llamada, es decir, llevar la detección de
+objetos de la visión por computadora a una señal que no es una imagen natural. Y
+lo es para el
+equipo de investigación, que es quien sostiene el monitoreo: cada hora de
+especialista que se ahorra en la anotación queda disponible para la
+interpretación ecológica de los datos.
+
+\subsubsection{Soluciones existentes}
 \label{sec:soluciones}
 
 Como adelantó la causa C2, los trabajos previos se distinguen mejor por la forma
@@ -568,7 +704,7 @@ detección de cajas desarrollado para roedores, sobre vocalizaciones del lémur
 ratón gris grabadas en cautiverio, con una clasificación posterior del tipo de
 llamada \citep{romero-mujalli_utilizing_2021}.
 
-\subsection{Vacío}
+\subsubsection{Vacío}
 \label{sec:vacio}
 
 El vacío tiene dos ejes, y esta tesis se ubica en su cruce
@@ -637,18 +773,16 @@ exploradas: la detección de cajas tiempo--frecuencia, un área en gran medida
 inexplorada pese a su utilidad para el analista \citep{zhu_sound_2025}, y la
 clasificación fina del tipo de llamada, que en bioacústica se reconoce como un
 desafío abierto antes que como una capacidad demostrada
-\citep{nolasco_learning_2023}. A ellas se suma una tercera carencia. El ahorro
-que aporta la asistencia se ha medido para detectar una o pocas especies
-(sección~\ref{sec:magnitud}), pero ninguno de los trabajos revisados lo mide para
-la anotación completa, con caja, especie y tipo de llamada: los que entregan cajas
-tiempo--frecuencia reportan solo métricas del modelo
-\citep{escobar-amado_computer_2024,airale_nbm_2025,zhu_sound_2025}.
+\citep{nolasco_learning_2023}. A ellas se suma la carencia de la causa C3: los
+trabajos que entregan cajas tiempo--frecuencia no publican datos con que validar
+su ahorro en la anotación completa, solo métricas del modelo
+(sección~\ref{sec:causas}).
 
-\subsection{Alcance de la tesis}
+\subsubsection{Alcance de la tesis}
 \label{sec:alcance-tesis}
 
-Esta tesis se ubica en el cruce de ambos ejes: responde a las dos causas del
-árbol y mide su efecto sobre el problema central. La propuesta de solución es un sistema de
+Esta tesis se ubica en el cruce de ambos ejes: responde a las tres causas del
+árbol, una por objetivo específico, y mide su efecto sobre el problema central. La propuesta de solución es un sistema de
 pre-anotación asistida, que el objetivo general define. Su alcance se limita a las ocho especies del
 material entregado, a grabaciones ya recolectadas, sin trabajo de campo, y a la
 pre-anotación: el especialista conserva la decisión final sobre cada caja. Así
@@ -665,9 +799,14 @@ etapas se formula a continuación como un objetivo.
 % (texto congelado). Lo que cambió el 06-10-2026 es el texto que los explica:
 % qué significa cada uno, a qué causa del árbol responde y cómo contribuye.
 
-Los objetivos convierten el árbol de problemas en un plan de trabajo: el objetivo
-general responde al problema central; OE1 y OE2, a una causa cada uno, y OE3
-evalúa si el sistema reduce el problema central.
+Los objetivos convierten el árbol de problemas en un plan de trabajo invirtiendo
+su lógica: el objetivo general responde al problema central, y cada objetivo
+específico a una causa (OE1 a C1, OE2 a C2 y OE3 a C3). Por encima del objetivo
+general queda el fin al que sirve, que es el inverso de los efectos: que los
+estudios del equipo cuenten a tiempo con grabaciones anotadas de todas sus
+especies y llamadas, y que el especialista pueda dedicar su tiempo a
+interpretarlas. La tesis no mide ese fin: es lo que se espera alcanzar si el
+objetivo general se cumple (sección~\ref{sec:trazabilidad}).
 
 \subsection{Objetivo general}
 
@@ -728,21 +867,24 @@ OE2 es el sistema cuyo efecto sobre el trabajo del especialista mide OE3.
           de predicciones.
 \end{description}
 
-El objetivo general tiene dos verbos, desarrollar y evaluar, y los objetivos
-específicos los reparten: OE1 y OE2 desarrollan el sistema, y cada uno responde a
-una causa del árbol; OE3 lo evalúa. Su propósito se entiende desde ese vínculo.
+Cada objetivo específico responde a una causa del árbol, y su aporte se mide con
+la misma magnitud con que se mide esa causa. Por eso OE3 no es un paso de control
+del sistema, sino un producto del proyecto: genera los datos de validación que la
+causa C3 echa en falta.
 
-\rotulo{OE1 frente a C1.} Un detector solo puede aprender y evaluarse contra
-anotaciones que sigan un criterio único, y la anotación manual no lo garantiza
-(causa C1). Un \emph{protocolo de curación y
+\rotulo{OE1 frente a C1.} La causa C1 es que no hay anotaciones utilizables para
+estas especies: no existen conjuntos públicos, y las del equipo llegan con
+errores de registro. Un \emph{protocolo de curación y
     estandarización} es un conjunto documentado de reglas que corrige lo
 corregible sin volver a anotar el audio: unifica la escritura de las etiquetas
 sobre un vocabulario cerrado de pares de especie y tipo de llamada, descarta el
 ruido y las cajas inválidas y deja registro de cada decisión. Lo que no puede
-corregirse, como el desacuerdo de criterio entre anotadores o el desbalance entre
-especies, lo separa y lo deja documentado, de modo que la segunda pasada del
-especialista se limita a lo que ninguna regla puede decidir. Aplicarlo produce el
-conjunto de datos sobre el que trabajan OE2 y OE3.
+corregirse con una regla, como el desacuerdo de criterio entre anotadores
+(causa C3) o el desbalance entre especies, lo separa y lo deja documentado, de
+modo que la segunda pasada del especialista se limita a lo que ninguna regla
+puede decidir. Aplicarlo produce el conjunto de datos sobre el que trabajan OE2 y
+OE3, y su aporte se mide por las anotaciones que conserva, las clases con
+criterio único que resultan y las anotaciones que deja para el especialista.
 
 \rotulo{OE2 frente a C2.} El detector ataca la búsqueda que describe la causa C2:
 en lugar de recorrer la grabación entera, el especialista revisa las propuestas
@@ -753,22 +895,26 @@ especialista: cajas tiempo--frecuencia con especie, tipo de llamada y una
 que permite ordenarlas o filtrarlas. Compararlo con una \emph{línea base
     establecida}, un detector de eficacia ya documentada en la literatura,
 entrenado y medido sobre los mismos datos, es lo que permite saber si la
-arquitectura propuesta aporta algo frente a lo que ya existe.
+arquitectura propuesta aporta algo frente a lo que ya existe. Su aporte se mide
+por la fracción de las vocalizaciones anotadas que encuentra y por la carga de
+propuestas que genera por hora de audio.
 
-\rotulo{OE3 frente al objetivo general.} OE3 no responde a una causa: es el
-\emph{evaluar} del objetivo general, y mide si el sistema reduce la magnitud que
-define el problema, el tiempo de especialista.
-Cronometra la revisión del mismo tipo de material con y sin las propuestas del
-detector, el ahorro que la literatura ha medido para detectar una especie pero no
-para la anotación completa (sección~\ref{sec:vacio}). Y vuelve sobre la causa C1:
-someter una muestra de predicciones al juicio de un especialista, la misma
-segunda pasada que C1 describe, distingue los errores genuinos de las
-vocalizaciones que la referencia omitió, de modo que mide también la calidad de
-las anotaciones. Es el objetivo que responde, con una
-cifra, si el sistema cumple el objetivo general.
+\rotulo{OE3 frente a C3.} La causa C3 es que faltan datos para validar un
+detector en este dominio, y OE3 los produce con sus dos mitades. Caracterizar los
+errores mediante la revisión experta de una muestra de predicciones da la
+referencia que falta: el especialista distingue los errores genuinos del detector
+de las vocalizaciones que la referencia omitió, y con eso se conoce el error real
+del sistema, que es lo que permite decidir qué propuestas aceptar y cuáles revisar
+en lugar de revisarlas todas; de paso, mide también la calidad de las
+anotaciones. Cuantificar la reducción del tiempo de revisión da el experimento
+que falta: cronometra la revisión del mismo tipo de material con y sin las
+propuestas del detector, el ahorro que la literatura ha medido para detectar una
+especie pero no para la anotación completa. Como esa cifra se expresa en la
+magnitud del problema central, es también la que responde si el sistema cumple el
+objetivo general.
 
 % ===================================================================
-\section{Resultados esperados}
+\subsection{Resultados esperados}
 \label{sec:resultados}
 % ===================================================================
 % Las tres tablas de IOV se copian literalmente de objetivos.md (texto
@@ -780,17 +926,15 @@ cifra, si el sistema cumple el objetivo general.
 % REESTRUCTURACION.md.
 
 Cada objetivo específico se compromete con resultados esperados (RE): productos
-tangibles que existirán al terminar el proyecto y que pueden inspeccionarse. Para
-cada uno, la tabla correspondiente fija el \emph{medio de verificación}, es decir,
-dónde puede comprobarse que el producto existe, y el \emph{indicador
-    objetivamente verificable} (IOV), la condición observable que debe cumplir
-para darse por logrado. Los términos técnicos de cada tabla se definen en los
-párrafos que la preceden, y después de cada tabla se explica qué aporta cada
-resultado a su objetivo. Los capítulos~\ref{cap:curacion}, \ref{cap:deteccion}
-y~\ref{cap:utilidad} desarrollan un objetivo cada uno y verifican sus resultados
-contra estas tablas.
+tangibles que existirán al terminar el proyecto y que pueden inspeccionarse.
+Esta subsección los presenta objetivo por objetivo, define los términos técnicos
+con que se formulan y explica qué aporta cada uno. La
+sección~\ref{sec:mapeo} fija, para cada resultado, el \emph{medio de
+    verificación}, es decir, dónde puede comprobarse que el producto existe, y el
+\emph{indicador objetivamente verificable} (IOV), la condición observable que
+debe cumplir para darse por logrado.
 
-\subsection{OE1: Protocolo y conjunto de datos curado}
+\subsubsection{OE1: Protocolo y conjunto de datos curado}
 
 OE1 parte de la causa C1: las anotaciones que entregó el equipo de investigación
 son las únicas que existen para estas especies, pero no pueden usarse tal como
@@ -833,24 +977,6 @@ inglés como \textit{datasheet}, es el documento que describe la composición, e
 origen, el proceso de construcción, los usos recomendados y las limitaciones de
 un conjunto de datos \citep{gebru_2021}.
 
-\begin{table}[htbp]
-    \centering
-    \caption{IOV de OE1}
-    \label{tab:iov-oe1}
-    \small
-    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
-        \toprule
-        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
-        \midrule
-        RE1.1 & Protocolo de curación y estandarización documentado. & Documento del protocolo. & Define la normalización de columnas y etiquetas, el mapa de sinónimos, el descarte de ruido y cajas degeneradas, la corrección de pares imposibles, el recorte al límite de Nyquist y el tratamiento de registros fuera de vocabulario. \\
-        \addlinespace
-        RE1.2 & Conjunto acústico curado y particionado para el experimento. & Directorio \texttt{data/processed/}: etiquetas, metadatos y tres archivos \texttt{.pt}. & Los archivos procesados cargan sin error; \texttt{meta.json} registra la semilla, el criterio de selección, las exclusiones, la etiqueta usada y la normalización; el código divide por archivo de grabación con proporciones 60/22,5/17,5 y no por ventanas aisladas. \\
-        \addlinespace
-        RE1.3 & Ficha del conjunto derivado. & Capítulo de curación, README y metadatos del conjunto. & Describe las ocho especies, el vocabulario, la composición, el desbalance, el diccionario de campos, el ventaneo de 3 s con salto de 1,5 s, la normalización log-mel, las exclusiones y las limitaciones conocidas. \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
 \rotulo{Aporte de RE1.1.} El protocolo hace explícita y repetible la
 estandarización que exige la causa C1: al quedar escrito como un conjunto de
 reglas, puede aplicarse de nuevo cada vez que el equipo entregue más anotaciones,
@@ -868,7 +994,7 @@ límites (el desbalance entre especies, los sesgos de lo que se anotó, las clas
 que quedaron fuera), que son también los límites de lo que OE2 y OE3 pueden
 afirmar.
 
-\subsection{OE2: Detector y evaluación}
+\subsubsection{OE2: Detector y evaluación}
 
 OE2 responde a la causa C2: construye el detector que encuentra las
 vocalizaciones en lugar del especialista, y lo evalúa. Se compromete con cinco
@@ -907,28 +1033,6 @@ cada clase anotada, a qué clase la asignó el detector. Por último, una
 anotaciones, y es el formato en que el modelo final entrega sus predicciones
 (RE2.4).
 
-\begin{table}[htbp]
-    \centering
-    \caption{IOV de OE2}
-    \label{tab:iov-oe2}
-    \small
-    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
-        \toprule
-        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
-        \midrule
-        RE2.1 & Diseño experimental, arquitectura propuesta y línea base. & Documento de diseño y módulo de arquitecturas. & Especifica la arquitectura AST-Deformable-DETR implementada con todos sus hiperparámetros, y define antes de entrenar la comparación con las líneas base declaradas: configuraciones, partición, métricas y regla de selección. \\
-        \addlinespace
-        RE2.2 & Pipeline reproducible de entrenamiento, evaluación e inferencia. & Scripts de datos, entrenamiento, evaluación e inferencia; módulos de \texttt{src/pipelines/}; \texttt{pyproject.toml} y manual técnico. & El pipeline genera los splits procesados, entrena desde un conjunto de configuración, evalúa un checkpoint y ejecuta inferencia sobre un WAV; las dependencias y comandos de ejecución están declarados. \\
-        \addlinespace
-        RE2.3 & Informe comparativo de resultados. & Informe de experimentación y archivos de métricas. & Reporta, como mínimo, recall, precisión, F1, IoU medio, AP a IoU 0,25 y 0,5, recall por clase y matriz de confusión; separa detección, encuadre y clasificación y justifica la selección del modelo. \\
-        \addlinespace
-        RE2.4 & Modelo final cargable y demostración funcional. & Checkpoint \texttt{.pth}, \texttt{labels.json} y ejecución de \texttt{src/infer.py}. & El checkpoint se carga sin claves incompatibles y la inferencia sobre un WAV produce un archivo tabulado con las columnas de Raven, incluidas coordenadas tiempo--frecuencia, especie, tipo de llamada y puntuación. \\
-        \addlinespace
-        RE2.5 & Código y modelo disponibles en un repositorio. & Repositorio de control de versiones. & La URL del repositorio permite localizar el código de curación, entrenamiento, evaluación e inferencia, junto con las instrucciones de ejecución y los artefactos del modelo final que se hayan decidido publicar. \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
 \rotulo{Aporte de RE2.1.} El documento de diseño fija qué se compara y con qué
 regla antes de entrenar, para que la comparación no pueda ajustarse a posteriori
 al resultado. Parte de formular la anotación como detección de objetos sobre el
@@ -946,7 +1050,7 @@ dónde falla, y separa tres ejes porque cada fallo le cuesta al especialista una
 corrección distinta: una vocalización no detectada lo obliga a dibujar la caja
 completa, una caja mal encuadrada solo a ajustarla y una etiqueta errónea solo a
 cambiarla. Exigir un IoU bajo responde a la borrosidad de las fronteras señalada
-en la causa C1, y priorizar el \textit{recall}, al compromiso de cobertura del
+en la causa C3, y priorizar el \textit{recall}, al compromiso de cobertura del
 objetivo general.
 
 \rotulo{Aporte de RE2.4.} El modelo final, capaz de escribir sus predicciones como
@@ -959,10 +1063,11 @@ tipo de llamada y confianza.
 final, que es la condición para que un tercero compruebe RE2.1 a RE2.4 y para que
 el equipo siga usando el sistema cuando la tesis termine.
 
-\subsection{OE3: Tiempo de revisión y análisis de errores}
+\subsubsection{OE3: Tiempo de revisión y análisis de errores}
 
-OE3 mide el efecto del sistema sobre el problema central, el tiempo del
-especialista, y sobre la calidad de la referencia (causa C1). Se compromete con
+OE3 responde a la causa C3 con los datos de validación que faltan, y uno de ellos,
+el tiempo del especialista, mide además el efecto del sistema sobre el problema
+central. Se compromete con
 tres productos: la metodología de la medición, fijada antes de medir (RE3.1); la
 medición del tiempo de revisión (RE3.2), y el análisis de los errores (RE3.3). La
 Tabla~\ref{tab:iov-oe3} los detalla. El \emph{punto de operación} (RE3.1) es la
@@ -983,27 +1088,10 @@ sonido que no es una vocalización de las especies estudiadas, y \emph{error de
     encuadre}, una vocalización correctamente detectada cuya caja no se ajusta a la
 anotada.
 
-\begin{table}[htbp]
-    \centering
-    \caption{IOV de OE3}
-    \label{tab:iov-oe3}
-    \small
-    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
-        \toprule
-        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
-        \midrule
-        RE3.1 & Metodología de validación comparativa. & Documento de metodología y protocolo de revisión experta. & Especifica el subconjunto de prueba, el punto de operación elegido en validación y el umbral de IoU para verdadero positivo, fijados antes de medir, las métricas, el emparejamiento y el procedimiento para revisar discrepancias y eventos potencialmente omitidos. \\
-        \addlinespace
-        RE3.2 & Medición comparativa del tiempo de revisión. & Informe de validación, registros de tiempo y medición de inferencia. & Reporta minutos por hora de audio en condición manual y asistida, describe el material comparable y el orden de revisión, y presenta el tiempo de procesamiento del modelo por hora de audio. No fija un porcentaje de ahorro antes de medirlo. \\
-        \addlinespace
-        RE3.3 & Análisis cualitativo de errores y hallazgos. & Informe de análisis y espectrogramas anotados. & Clasifica una muestra de predicciones de alta confianza en evento no anotado, ruido y error de encuadre, e incluye ejemplos visuales de aciertos, errores comunes y detecciones correctas ausentes de la anotación de referencia. \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-De los tres resultados, RE3.2 es el que responde por el objetivo general; los
-otros dos lo hacen interpretable. RE3.1 impide ajustar la medición al resultado,
-y RE3.3 dice de qué están hechos los errores que el especialista corrige.
+RE3.2 y RE3.3 son los dos datos de validación de la causa C3: RE3.3 dice de qué
+están hechos los errores que el especialista corrige, y RE3.2 cuánto tiempo ahorra
+la asistencia, que es además la cifra que responde por el objetivo general. RE3.1
+impide ajustar cualquiera de las dos mediciones al resultado.
 
 \rotulo{Aporte de RE3.1.} La metodología, redactada y fechada antes de ejecutar la
 evaluación, fija el material de prueba, el punto de operación, el umbral de
@@ -1025,7 +1113,7 @@ dónde sale el ahorro, al modo de la reducción de 22 veces del volumen que un
 operador debía procesar en HOWLish \citep{Campos_Krofel_Rio-Maior_Renna_2025}.
 
 \rotulo{Aporte de RE3.3.} El análisis de errores resuelve la dificultad que señala
-la causa C1: saber cuánto del error aparente es del modelo y cuánto de una
+la causa C3: saber cuánto del error aparente es del modelo y cuánto de una
 referencia incompleta. La clasificación se apoya en la relación geométrica entre
 la caja predicha y las cajas anotadas, que resume la Tabla~\ref{tab:taxonomia-fp}.
 
@@ -1067,42 +1155,116 @@ esa muestra se caracteriza geométricamente y se reporta como una cantidad
 acotada; el tamaño de la muestra y la disponibilidad del equipo de investigación
 son, por tanto, una limitación del alcance de RE3.3, y como tal se declaran.
 
-% ===================================================================
-\section{Trazabilidad}
-% ===================================================================
+\subsection{Mapeo de objetivos, resultados y verificación}
+\label{sec:mapeo}
+\label{sec:trazabilidad}
+% Las tablas de IOV se copian literalmente de objetivos.md (texto congelado);
+% la fila del objetivo repite su enunciado, como en la tabla del formato.
 
-La Tabla~\ref{tab:trazabilidad} reúne la cadena que recorre este capítulo, del
-problema a los productos comprometidos: cada causa del árbol se atiende con un
-objetivo específico, OE3 mide el efecto sobre el problema central, cada objetivo
-se concreta en sus resultados esperados y el objetivo general responde al
-problema central. Los efectos E1 a E3 no se atacan
-de forma directa: son lo que se espera aliviar si el objetivo general se cumple.
-La tabla no reemplaza la justificación de cada vínculo, que está en las
-secciones~\ref{sec:causas}, \ref{sec:objetivos} y~\ref{sec:resultados}; la
-resume para que pueda leerse de un vistazo.
+Las Tablas~\ref{tab:iov-oe1}, \ref{tab:iov-oe2} y~\ref{tab:iov-oe3}
+relacionan cada objetivo específico con sus resultados esperados, el medio de
+verificación de cada uno y su IOV, con los términos que definió la
+sección~\ref{sec:resultados}. Los capítulos~\ref{cap:curacion},
+\ref{cap:deteccion} y~\ref{cap:revision} desarrollan un objetivo cada uno y
+verifican sus resultados contra estas tablas.
 
 \begin{table}[htbp]
     \centering
-    \caption{Trazabilidad del planteamiento}
-    \label{tab:trazabilidad}
+    \caption{Mapeo de OE1: resultados, medios de verificación e IOV}
+    \label{tab:iov-oe1}
     \small
-    \begin{tabular}{@{}L{4.1cm}L{1.8cm}L{2.3cm}L{5.6cm}@{}}
+    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
         \toprule
-        \textbf{Elemento del árbol} & \textbf{Objetivo} & \textbf{Resultados} & \textbf{Aporte} \\
+        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
         \midrule
-        C1: la anotación manual es inconsistente y exige una segunda pasada & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado \\
-        \addlinespace
-        C2: las vocalizaciones son escasas y breves, y encontrarlas a mano exige recorrer la grabación & OE2 & RE2.1 a RE2.5 & Detector que propone cajas con especie, tipo de llamada y confianza, en el formato de Raven \\
-        \addlinespace
-        Problema central (magnitud) y C1 (calidad de la referencia) & OE3 & RE3.1 a RE3.3 & Tiempo de revisión manual frente a asistido, y errores clasificados por un especialista \\
+        \multicolumn{4}{@{}p{\dimexpr 14cm+6\tabcolsep\relax}@{}}{\textbf{Objetivo OE1.} Definir un protocolo de curación y estandarización, y aplicarlo sobre las anotaciones entregadas por el equipo de investigación para construir un conjunto de datos consistente de cajas tiempo--frecuencia etiquetadas por especie y tipo de llamada.} \\
         \midrule
-        Problema central                                     & OG  & Todos         & Sistema de pre-anotación asistida, evaluado por el tiempo de revisión experta \\
+        RE1.1 & Protocolo de curación y estandarización documentado. & Documento del protocolo. & Define la normalización de columnas y etiquetas, el mapa de sinónimos, el descarte de ruido y cajas degeneradas, la corrección de pares imposibles, el recorte al límite de Nyquist y el tratamiento de registros fuera de vocabulario. \\
+        \addlinespace
+        RE1.2 & Conjunto acústico curado y particionado para el experimento. & Directorio \texttt{data/processed/}: etiquetas, metadatos y tres archivos \texttt{.pt}. & Los archivos procesados cargan sin error; \texttt{meta.json} registra la semilla, el criterio de selección, las exclusiones, la etiqueta usada y la normalización; el código divide por archivo de grabación con proporciones 60/22,5/17,5 y no por ventanas aisladas. \\
+        \addlinespace
+        RE1.3 & Ficha del conjunto derivado. & Capítulo de curación, README y metadatos del conjunto. & Describe las ocho especies, el vocabulario, la composición, el desbalance, el diccionario de campos, el ventaneo de 3 s con salto de 1,5 s, la normalización log-mel, las exclusiones y las limitaciones conocidas. \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Ninguna causa queda sin objetivo, y ningún objetivo queda sin un elemento del
-árbol al que responder. Y aunque los once
+\begin{table}[htbp]
+    \centering
+    \caption{Mapeo de OE2: resultados, medios de verificación e IOV}
+    \label{tab:iov-oe2}
+    \small
+    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
+        \toprule
+        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
+        \midrule
+        \multicolumn{4}{@{}p{\dimexpr 14cm+6\tabcolsep\relax}@{}}{\textbf{Objetivo OE2.} Implementar y evaluar un detector que reciba un espectrograma y devuelva cajas tiempo--frecuencia con especie, tipo de llamada y confianza, comparándolo con una línea base establecida.} \\
+        \midrule
+        RE2.1 & Diseño experimental, arquitectura propuesta y línea base. & Documento de diseño y módulo de arquitecturas. & Especifica la arquitectura AST-Deformable-DETR implementada con todos sus hiperparámetros, y define antes de entrenar la comparación con las líneas base declaradas: configuraciones, partición, métricas y regla de selección. \\
+        \addlinespace
+        RE2.2 & Pipeline reproducible de entrenamiento, evaluación e inferencia. & Scripts de datos, entrenamiento, evaluación e inferencia; módulos de \texttt{src/pipelines/}; \texttt{pyproject.toml} y manual técnico. & El pipeline genera los splits procesados, entrena desde un conjunto de configuración, evalúa un checkpoint y ejecuta inferencia sobre un WAV; las dependencias y comandos de ejecución están declarados. \\
+        \addlinespace
+        RE2.3 & Informe comparativo de resultados. & Informe de experimentación y archivos de métricas. & Reporta, como mínimo, recall, precisión, F1, IoU medio, AP a IoU 0,25 y 0,5, recall por clase y matriz de confusión; separa detección, encuadre y clasificación y justifica la selección del modelo. \\
+        \addlinespace
+        RE2.4 & Modelo final cargable y demostración funcional. & Checkpoint \texttt{.pth}, \texttt{labels.json} y ejecución de \texttt{src/infer.py}. & El checkpoint se carga sin claves incompatibles y la inferencia sobre un WAV produce un archivo tabulado con las columnas de Raven, incluidas coordenadas tiempo--frecuencia, especie, tipo de llamada y puntuación. \\
+        \addlinespace
+        RE2.5 & Código y modelo disponibles en un repositorio. & Repositorio de control de versiones. & La URL del repositorio permite localizar el código de curación, entrenamiento, evaluación e inferencia, junto con las instrucciones de ejecución y los artefactos del modelo final que se hayan decidido publicar. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Mapeo de OE3: resultados, medios de verificación e IOV}
+    \label{tab:iov-oe3}
+    \small
+    \begin{tabular}{@{}L{1.0cm}L{3.7cm}L{3.2cm}L{6.1cm}@{}}
+        \toprule
+        \textbf{RE} & \textbf{Resultado} & \textbf{Medio de verificación} & \textbf{Indicador objetivamente verificable (IOV)} \\
+        \midrule
+        \multicolumn{4}{@{}p{\dimexpr 14cm+6\tabcolsep\relax}@{}}{\textbf{Objetivo OE3.} Cuantificar la reducción del tiempo de revisión que aporta el sistema y caracterizar sus errores mediante revisión experta de una muestra de predicciones.} \\
+        \midrule
+        RE3.1 & Metodología de validación comparativa. & Documento de metodología y protocolo de revisión experta. & Especifica el subconjunto de prueba, el punto de operación elegido en validación y el umbral de IoU para verdadero positivo, fijados antes de medir, las métricas, el emparejamiento y el procedimiento para revisar discrepancias y eventos potencialmente omitidos. \\
+        \addlinespace
+        RE3.2 & Medición comparativa del tiempo de revisión. & Informe de validación, registros de tiempo y medición de inferencia. & Reporta minutos por hora de audio en condición manual y asistida, describe el material comparable y el orden de revisión, y presenta el tiempo de procesamiento del modelo por hora de audio. No fija un porcentaje de ahorro antes de medirlo. \\
+        \addlinespace
+        RE3.3 & Análisis cualitativo de errores y hallazgos. & Informe de análisis y espectrogramas anotados. & Clasifica una muestra de predicciones de alta confianza en evento no anotado, ruido y error de encuadre, e incluye ejemplos visuales de aciertos, errores comunes y detecciones correctas ausentes de la anotación de referencia. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La Tabla~\ref{tab:trazabilidad} reúne la cadena que recorre este capítulo, del
+problema a los productos comprometidos: cada causa del árbol se atiende con un
+objetivo específico, cada objetivo se concreta en sus resultados esperados y el
+objetivo general responde al problema central. La última columna dice con qué
+magnitud se mide cada aporte, que es la misma con que se mide el elemento del
+árbol al que responde. Los efectos E1 a E3 no se atacan de forma directa: son lo
+que se espera aliviar si el objetivo general se cumple, y su inverso es el fin de
+la sección~\ref{sec:objetivos}. La tabla no reemplaza la justificación de cada
+vínculo, que está en las secciones~\ref{sec:causas}, \ref{sec:objetivos}
+y~\ref{sec:resultados}; la resume para que pueda leerse de un vistazo.
+
+\begin{table}[!htbp]
+    \centering
+    \caption{Trazabilidad del planteamiento}
+    \label{tab:trazabilidad}
+    \small
+    \begin{tabular}{@{}L{3.5cm}L{1.6cm}L{1.9cm}L{3.4cm}L{3.7cm}@{}}
+        \toprule
+        \textbf{Elemento del árbol} & \textbf{Objetivo} & \textbf{Resultados} & \textbf{Aporte} & \textbf{Se mide con} \\
+        \midrule
+        C1: faltan anotaciones utilizables & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado & Anotaciones conservadas, clases con criterio único, filas en revisión \\
+        \addlinespace
+        C2: encontrar las vocalizaciones exige recorrer la grabación & OE2 & RE2.1 a RE2.5 & Detector que propone cajas en el formato de Raven & Vocalizaciones encontradas y propuestas por hora de audio \\
+        \addlinespace
+        C3: faltan datos para validar los detectores & OE3 & RE3.1 a RE3.3 & Muestra revisada por un especialista y sesión cronometrada & Discrepancias del detector frente a omisiones de la referencia; minutos por hora con y sin el sistema \\
+        \midrule
+        Problema central & OG & RE3.2 & Sistema de pre-anotación asistida & Minutos de revisión por hora de audio, con y sin el sistema \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Ninguna causa queda sin objetivo, y ningún objetivo específico queda sin una
+causa a la que responder. Y aunque los once
 resultados contribuyen al objetivo general, uno solo responde por él: RE3.2, la
 medición del tiempo de revisión con y sin la asistencia del sistema.
 
@@ -1110,6 +1272,39 @@ medición del tiempo de revisión con y sin la asistencia del sistema.
 \section{Métodos y procedimientos}
 \label{sec:metodos}
 % ===================================================================
+
+Cada resultado esperado se obtiene con al menos un método o procedimiento y se
+valida con el medio de verificación y el IOV de la sección~\ref{sec:mapeo}. La
+Tabla~\ref{tab:metodos-resultados} resume esa correspondencia, y las subsecciones
+que siguen describen la metodología que organiza el trabajo (CRISP-DM), las
+herramientas y los procedimientos que garantizan que cada cifra pueda volver a
+obtenerse.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Métodos, herramientas y validación por resultado}
+    \label{tab:metodos-resultados}
+    \small
+    \begin{tabular}{@{}L{1.0cm}L{4.9cm}L{3.3cm}L{5.0cm}@{}}
+        \toprule
+        \textbf{RE} & \textbf{Método o procedimiento} & \textbf{Herramientas} & \textbf{Validación} \\
+        \midrule
+        RE1.1 & Auditoría de las tablas de Raven y reglas de curación (fases 2 y 3) & Python, Pandas & Cada regla del IOV, contrastada con su implementación (sección~\ref{sec:verificacion-re11}) \\
+        RE1.2 & Selección de clases, partición por grabación y ventaneo (fase 3) & Pandas, SoundFile, soxr, torchaudio, PyTorch & Los archivos cargan y ninguna grabación se comparte entre subconjuntos (sección~\ref{sec:verificacion-re12}) \\
+        RE1.3 & Ficha del conjunto según \citet{gebru_2021} & Python, Matplotlib & Cada elemento del IOV, ubicado en el capítulo (sección~\ref{sec:verificacion-re13}) \\
+        \addlinespace
+        RE2.1 & Detección de objetos sobre el espectrograma y protocolo de comparación declarado antes de entrenar (fase 4) & PyTorch, Transformers, torchvision, Ultralytics & Cada elemento del IOV, contrastado con el código (sección~\ref{sec:verificacion-re21}) \\
+        RE2.2 & Procedimientos de reproducibilidad (sección~\ref{sec:procedimientos}) & uv, Git, Python & Cada etapa, ejecutada desde el entorno declarado (sección~\ref{sec:verificacion-re22}) \\
+        RE2.3 & Evaluación por ejes, con IoU \pMatchIou{} e intervalos \textit{bootstrap} (fase 5) & PyTorch, NumPy, Matplotlib & Métricas recalculadas desde los \textit{checkpoints} (sección~\ref{sec:verificacion-re23}) \\
+        RE2.4 & Inferencia por ventanas y exportación a tabla de selección (fase 6) & PyTorch, Raven Pro & Carga estricta del \textit{checkpoint} y apertura de la tabla en Raven (sección~\ref{sec:demo-oe2}) \\
+        RE2.5 & Publicación del código y del modelo & Git, GitHub & URL del repositorio y de su versión (sección~\ref{sec:re25}) \\
+        \addlinespace
+        RE3.1 & Protocolo de evaluación fijado antes de medir & Python, Git & Fecha del \textit{commit}, anterior al envío del material (sección~\ref{sec:re31}) \\
+        RE3.2 & Sesión cronometrada, manual frente a asistida, con el orden declarado & Raven Pro, planilla de tiempos & Minutos por hora de audio en cada condición (sección~\ref{sec:re32}) \\
+        RE3.3 & Revisión experta ciega de una muestra estratificada de predicciones & Raven Pro, Python & Proporción de cada categoría por estrato, con intervalo de Wilson al 95\,\% (sección~\ref{sec:re33}) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \subsection{Metodología CRISP-DM}
 
@@ -1328,7 +1523,7 @@ Los dos primeros casos, un borde desplazado y un encuadre laxo, superan los dos
 umbrales aunque la caja predicha no coincida con la anotada. El tercero, una
 sílaba predicha dentro de una frase anotada, queda muy por debajo de ambos aunque
 la predicción esté íntegramente contenida en la anotación (IoMin 1,00): es el
-anidamiento de unidades descrito en la causa C1, que ningún umbral de IoU resuelve
+anidamiento de unidades descrito en la causa C3, que ningún umbral de IoU resuelve
 y que por eso se trata en la construcción del conjunto de datos.
 
 El punto de operación con que OE3 cronometra la revisión asistida sale de esta
@@ -1399,6 +1594,11 @@ que se abre en Raven.
         Entrenar un transformador de espectrogramas desde cero excede los datos
         disponibles; la biblioteca aporta los pesos y la interpolación del
         \textit{embedding} posicional                                                                                                                              \\
+        \addlinespace
+        torchvision y Ultralytics                                           &
+        Implementaciones de las líneas base: Faster R-CNN, YOLO26s y RT-DETR-L &
+        Son las implementaciones de referencia de esas arquitecturas;
+        reimplementarlas añadiría diferencias ajenas a la comparación                                                                                             \\
         \addlinespace
         Raven Pro / Lite                                                    &
         Origen de las anotaciones y destino de las predicciones exportadas  &

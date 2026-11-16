@@ -38,8 +38,12 @@ Ninguna, y conviene que siga así.
 
 ## Pendientes
 
-- [ ] Todo: el capítulo es un esqueleto. No se puede redactar antes que la
-      discusión del Capítulo 6.
+- [x] ~~Todo: el capítulo es un esqueleto.~~ **Redactado el 15-11-2026**, con la discusión
+      del Capítulo 6: las filas de RE3.1–RE3.3 (cumplidos), el párrafo de OE3 (cumplido: la
+      reducción se cuantificó y no la hubo), el objetivo general («parcialmente cumplido»: se
+      desarrolló y se evaluó, pero la sesión no muestra la reducción que el capítulo 1 fija
+      como criterio de éxito, y sus condiciones tampoco bastan para descartarla), OE3 frente a
+      C3 y un primer trabajo futuro: volver a medir el tiempo.
 - [x] ~~Párrafo de desviaciones desfasado.~~ **Resuelto el 07-10-2026.** Ya no
       declara la diferencia de consultas de RE2.1 (su IOV dejó de fijar esos
       números) ni la ficha de RE1.3 (ya tiene su README); queda solo la de los

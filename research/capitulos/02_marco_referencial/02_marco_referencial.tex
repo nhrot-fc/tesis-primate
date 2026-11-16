@@ -1,5 +1,7 @@
-\chapter{Marco Referencial}
+\chapter{Marco Teórico y Conceptual}
 \label{cap:marco}
+
+\section{Introducción}
 
 El Capítulo~\ref{cap:generalidades} planteó el problema y los objetivos en
 términos del dominio: grabaciones, anotaciones y tiempo de especialista. Este
@@ -9,6 +11,11 @@ significa predecir una caja tiempo--frecuencia. El marco conceptual define los
 términos que los capítulos de resultados usan sin volver a explicarlos: paisaje
 sonoro, evento acústico, representación tiempo--frecuencia, detección de eventos
 sonoros, clasificación jerárquica y anotación inconsistente.
+
+El capítulo no incluye un marco legal. La tesis trabaja sobre grabaciones ya
+recolectadas, sin trabajo de campo (sección~\ref{sec:alcance-tesis}), y las
+grabaciones y las anotaciones primarias siguen perteneciendo al equipo de
+investigación, que las entregó para esta tesis.
 
 \section{Marco Teórico}
 
@@ -611,7 +618,7 @@ evento.
 \emph{inter-anotador} mide cuánto coinciden dos analistas que anotan el mismo
 audio; el \emph{intra-anotador}, cuánto coincide un mismo analista consigo mismo
 al anotar dos veces el mismo segmento. Ambos son bajos en bioacústica, con las
-magnitudes que reunió el análisis de la causa C1 (sección~\ref{sec:causas}).
+magnitudes que reunió el análisis de la causa C3 (sección~\ref{sec:causas}).
 
 \rotulo{Frontera borrosa del evento.} El desacuerdo anterior no se reparte de
 forma uniforme: se concentra en los bordes. Una vocalización no empieza ni
@@ -621,8 +628,8 @@ cajas tiempo--frecuencia se observan desplazamientos relativamente grandes entre
 la caja predicha y la anotada, de lo que se concluye que las fronteras de los
 eventos son borrosas y difíciles de determinar \citep{zhu_sound_2025}.
 
-Estos tres conceptos dan forma conceptual a la causa C1 del árbol de problemas:
-a la heterogeneidad de las anotaciones y a la referencia incompleta que impide
+Estos tres conceptos dan forma conceptual a la causa C3 del árbol de problemas:
+al desacuerdo de criterio entre anotadores y a la referencia incompleta que impide
 medir los errores sin un especialista. También fundamentan
 las dos decisiones de evaluación que fijó la sección~\ref{sec:metricas}: emparejar
 con un IoU bajo evita medir el acuerdo con un borde que el propio anotador no

@@ -11,7 +11,11 @@ import soundfile
 import torch
 import torchaudio
 from cycler import cycler
-from matplotlib.patches import Rectangle
+from matplotlib.image import BboxImage
+from matplotlib.layout_engine import ConstrainedLayoutEngine
+from matplotlib.legend_handler import HandlerBase
+from matplotlib.patches import Patch, Rectangle
+from matplotlib.transforms import Bbox, TransformedBbox
 
 from core.config import PROJECT_DIR, P
 from utils.audio import hz_to_y, mel_spectrogram, mel_to_db
@@ -28,6 +32,7 @@ ESPECIE = {
     "lw": AZUL, "pt": TURQUESA, "sb": CELESTE, "sm": VERDE,
 }
 ANOTACION, MODELO = VERDE, CELESTE
+DISCONTINUA = (0, (3, 2))
 ANCHO = 6.27  # pulgadas
 
 mpl.rcParams.update(
@@ -153,10 +158,53 @@ def espectrograma(ax: plt.Axes, onda: torch.Tensor, inicio: float = 0.0) -> None
 
 
 def caja(ax: plt.Axes, inicio: float, fin: float, baja: float, alta: float,
-         modelo: bool = False, texto: str | None = None) -> None:
+         modelo: bool = False, texto: str | None = None, estilo=None) -> None:
     y0, y1 = np.clip(hz_to_y(np.array([max(baja, P.f_min), alta]), P), 0, 1)
     color = MODELO if modelo else ANOTACION
     ax.add_patch(Rectangle((inicio, y0), fin - inicio, y1 - y0, fill=False, ec=color, lw=1.2,
-                           ls=(0, (3, 2)) if modelo else "-"))
+                           ls=estilo or (DISCONTINUA if modelo else "-")))
     if texto:
         ax.text(inicio, min(y1 + 0.02, 0.95), texto, color=color, fontsize=6.5, va="bottom")
+
+
+def caja_ventana(ax: plt.Axes, cxcywh, inicio: float, modelo: bool = False) -> None:
+    # cxcywh en [0, 1] de la ventana que empieza en inicio; y ya está sobre el eje mel
+    cx, cy, w, h = map(float, cxcywh)
+    ax.add_patch(Rectangle((inicio + (cx - w / 2) * P.clip_len_s, cy - h / 2), w * P.clip_len_s, h,
+                           fill=False, ec=MODELO if modelo else ANOTACION, lw=1.2,
+                           ls=DISCONTINUA if modelo else "-"))
+
+
+def anotada(texto: str = "anotación") -> Patch:
+    return Patch(fill=False, ec=ANOTACION, lw=1.2, label=texto)
+
+
+def predicha(texto: str = "detección del modelo") -> Patch:
+    return Patch(fill=False, ec=MODELO, lw=1.2, ls=DISCONTINUA, label=texto)
+
+
+class Energia:
+    def get_label(self) -> str:
+        return "energía: baja → alta"
+
+
+class _Degradado(HandlerBase):
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+        caja = TransformedBbox(Bbox.from_bounds(xdescent, ydescent, width, height), trans)
+        degradado = BboxImage(caja, cmap=mpl.rcParams["image.cmap"], interpolation="bilinear")
+        degradado.set_data(np.linspace(0, 1, 64)[None, :])
+        return [degradado]
+
+
+def leyenda(destino: plt.Figure | plt.Axes, *entradas, energia: bool = False, **opciones):
+    # En una figura va en una fila al pie; energia: la escala de color de los espectrogramas
+    entradas = (*entradas, Energia()) if energia else entradas
+    base: dict[str, object] = {"handles": entradas, "labels": [e.get_label() for e in entradas],
+                               "handlelength": 2.5, "handler_map": {Energia: _Degradado()}}
+    if isinstance(destino, plt.Figure):
+        abajo = isinstance(destino.get_layout_engine(), ConstrainedLayoutEngine)
+        base["ncols"] = len(entradas)
+        base["loc"] = "outside lower center" if abajo else "upper center"
+        if not abajo:
+            base["bbox_to_anchor"] = (0.5, 0.0)
+    return destino.legend(**(base | opciones))

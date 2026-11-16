@@ -6,6 +6,23 @@ objetivos dan por sentado se declara aquí.
 
 ## Qué va aquí
 
+> **16-11-2026.** Observaciones: transición brusca del problema general al
+> seleccionado, falta una causa sobre los datos de validación, y «validar no es
+> el objetivo del proyecto». La entrada de 1.1 describe ahora el proceso del
+> monitoreo en seis etapas (`fig:proceso`: instalación, grabación, búsqueda,
+> delimitación y etiquetado, revisión, uso), con las tres manuales agrupadas como
+> anotación, y de ahí pasa al enunciado. C3 pasa a «Faltan datos para validar los
+> detectores»: una referencia de calidad conocida y el experimento de tiempo, los
+> dos productos de OE3. OE3 ya no se justifica como «el evaluar del OG». OG, OE e
+> IOV no cambiaron.
+
+> **14-11-2026.** Árbol reestructurado por observación del jurado: cada OE ataca
+> una causa, las causas son independientes y los efectos no se encadenan. La C1
+> anterior se dividió en dos: lo que resuelve una regla quedó en C1 y el
+> desacuerdo de criterio y las omisiones pasaron a C3. Se agregó el fin (el
+> inverso de los efectos) en la sección de objetivos, y una columna «Se mide con»
+> en la trazabilidad. El texto de OG, OE e IOV no cambió (opción A).
+
 > **07-10-2026.** Calificación estricta, Problemática 2,25/3:
 >
 > - **C1 → problema central.** Tiene ahora su párrafo: la vía directa es que lo
@@ -30,15 +47,20 @@ objetivos dan por sentado se declara aquí.
 > relevancia en vez de repetirla; las dos tablas de herramientas se presentan una
 > a una y la primera se interpreta (sólo Raven viene impuesta por el problema).
 
+Desde el 14-11-2026 las secciones siguen el formato del curso
+(`research/Formato(2025).docx`): 1.1 Problemática, 1.2 Objetivos y 1.3 Métodos y
+procedimientos, con las subsecciones de la plantilla.
+
 | Sección | Contenido |
 |---|---|
-| Problemática | Definición del problema: narrativa y sin desglosar el enunciado. Primates difíciles de seguir → PAM → el 8 Primates Project del TRC y sus ocho especies → la anotación como paso más lento → enunciado. Luego «El material y su anotación» (Raven, Tabla 1.1), magnitud y relevancia |
-| Árbol de problemas | Un solo problema central y **dos causas** (06-10-2026, noche): C1, las únicas anotaciones disponibles tienen ruido, sesgo e inconsistencias; C2, las vocalizaciones son escasas y breves dentro de horas de audio. C1 → C2 punteado. Efectos E1–E3 por actor. OE3 no cuelga de una causa: mide el problema central y la calidad de la referencia (C1) |
-| Brecha de investigación | Soluciones existentes por forma de salida, vacío en dos ejes (taxón y tarea) y alcance de la tesis |
-| Objetivos | OG y OE1–OE3, **texto congelado** (`objetivos.md`), más un párrafo «OE*n* frente a C*n*» por objetivo |
-| Resultados esperados | Las tres tablas de IOV, **texto congelado**; términos definidos antes de cada tabla y «Aporte de RE*x.y*» después |
-| Trazabilidad | Causa → objetivo → resultados → aporte, y problema central → OG |
-| Métodos y procedimientos | CRISP-DM, herramientas y reproducibilidad: es el capítulo al que apuntan los «cómo se alcanzó» de los capítulos 4, 5 y 6 |
+| 1.1 Problemática | Entrada narrativa: primates difíciles de seguir → PAM → el 8 Primates Project del TRC y sus ocho especies → problema general (el análisis no sigue a la grabación) → proceso en seis etapas (Figura 1.1) → la anotación como paso más lento → enunciado del problema |
+| 1.1.1 Árbol de problemas | Figura y su lectura. Un problema central y **tres causas independientes**: C1, faltan anotaciones utilizables (→ OE1); C2, encontrar las vocalizaciones exige recorrer la grabación entera (→ OE2); C3, faltan datos para validar los detectores (referencia de calidad conocida y experimento de tiempo), y por eso todo se revisa (→ OE3). Tres efectos sobre los estudios, sin flechas entre ellos |
+| 1.1.2 Descripción | El material y su anotación (Raven, Tabla 1.1), magnitud, problema central, causas (cada una con su medida) y efectos |
+| 1.1.3 Problema seleccionado | Por qué se elige: relevancia (aquí queda la conservación), soluciones existentes por forma de salida, vacío en dos ejes (taxón y tarea) y alcance |
+| 1.2 Objetivos | Fin (inverso de los efectos), 1.2.1 OG y 1.2.2 OE, **texto congelado** (`objetivos.md`), con un párrafo «OE*n* frente a C*n*» |
+| 1.2.3 Resultados esperados | Términos y «Aporte de RE*x.y*» por objetivo |
+| 1.2.4 Mapeo | Las tres tablas de IOV, **texto congelado**, con la fila del objetivo como en el formato, y la trazabilidad causa → objetivo → resultados → medida |
+| 1.3 Métodos y procedimientos | Tabla por resultado (método, herramientas, validación), CRISP-DM, herramientas y reproducibilidad: es la sección a la que apuntan los «cómo se alcanzó» de los capítulos 4, 5 y 6 |
 
 ## Cómo se redacta
 

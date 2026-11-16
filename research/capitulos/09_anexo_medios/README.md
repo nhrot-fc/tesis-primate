@@ -14,11 +14,21 @@ de la revisión de E1:
 - Las cifras salen de las macros y los fragmentos de los cuadernos de los capítulos 4
   y 5, y de `runs/`. Después de volver a ejecutar esos cuadernos, hay que correr
   `make medios`.
-- `06_oe3_utilidad/README.md` y el `README.md` raíz se escriben a mano. Las carpetas de
-  RE3.x se llenan en E3.
+- `06_oe3_revision/README.md` y el `README.md` raíz se escriben a mano.
 
 ## Pendiente
 
+- **La carpeta no existe (15-11-2026).** Ni `research/medios_verificacion/` ni `generar.py`
+  están en el disco ni en el historial de git (se notó el 27-10), así que `make medios` falla y
+  el anexo describe una carpeta que no está. Hay que reconstruir `generar.py` antes de E3. Las
+  carpetas de OE3 que el anexo ya describe (15-11-2026):
+  - `06_oe3_revision/RE3.1`: `protocolo.md`;
+  - `06_oe3_revision/RE3.2`: `tiempos_sesion.csv` (carpeta, inicio, término y pausas de
+    `times.xlsx`, **sin** la columna de notas, que trae nombres) y `test_cpu_times.csv`;
+  - `06_oe3_revision/RE3.3`: `respuestas_revision.csv` (ID, estrato, clase, respuesta y
+    categoría de cada caja) y `revision_ejemplos.png`.
+  La clave de la tarea 3 (`dataset_quality_key.csv`) no se publica mientras esa tarea siga
+  abierta.
 - **Lista de grabaciones de entrenamiento.** `grabaciones_train.txt` de RE1.2 sólo puede
   generarse donde está el caché con que se entrenó: el servidor `fcandia`. El
   `data/processed/` de esta máquina es una copia anterior, del 20-08-2026, con otras

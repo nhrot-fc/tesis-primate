@@ -246,6 +246,8 @@ resoluciones y frente a la ventana.
                 xmajorgrids, grid style={black!12},
                 log ticks with fixed point, clip=false,
                 x tick label style={/pgf/number format/1000 sep={\,}},
+                legend style={font=\scriptsize, draw=black!30, fill=white,
+                        at={(0.98,0.02)}, anchor=south east},
             ]
             \addplot[only marks, mark=*, mark size=1.6pt, azul,
                 error bars/.cd, x dir=both, x explicit, error bar style={azul!70}]
@@ -253,6 +255,11 @@ resoluciones y frente a la ventana.
                     x error minus expr=\thisrow{med}-\thisrow{q1},
                     x error plus expr=\thisrow{q3}-\thisrow{med}]
                 {\figDET/data/duraciones.dat};
+            \addlegendentry{mediana y rango intercuartílico}
+            \addlegendimage{celeste!80!black, dashed}
+            \addlegendentry{duración de una celda de cada nivel}
+            \addlegendimage{rosa!80!black, dashed}
+            \addlegendentry{duración de la ventana}
             \draw[celeste!80!black, dashed] (axis cs:\mCellZeroPlain,-1) -- (axis cs:\mCellZeroPlain,25)
             node[pos=1, above, rotate=90, anchor=west, font=\scriptsize] {$4\times$ (\mCellZero{}\,ms)};
             \draw[celeste!80!black, dashed] (axis cs:\mCellOnePlain,-1) -- (axis cs:\mCellOnePlain,25)

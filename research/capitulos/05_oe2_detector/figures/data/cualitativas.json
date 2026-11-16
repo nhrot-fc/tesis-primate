@@ -1,0 +1,38 @@
+[
+ {
+  "titulo": "escena densa",
+  "ventana": 2742,
+  "grabacion": "large_headed_capuchin__SM/20240618_070201.wav",
+  "inicio": 3.0
+ },
+ {
+  "titulo": "escena densa",
+  "ventana": 2787,
+  "grabacion": "large_headed_capuchin__SM/20240618_064600.wav",
+  "inicio": 15.0
+ },
+ {
+  "titulo": "todo recuperado",
+  "ventana": 152,
+  "grabacion": "bolivian_squirrel_monkey__SB/20240202_165826.wav",
+  "inicio": 19.5
+ },
+ {
+  "titulo": "todo recuperado",
+  "ventana": 241,
+  "grabacion": "weddells_saddleBack_tamarin__LW/20240520_070335.wav",
+  "inicio": 19.5
+ },
+ {
+  "titulo": "evento no recuperado",
+  "ventana": 261,
+  "grabacion": "howler_monkey__AS/20240611_071211.wav",
+  "inicio": 19.5
+ },
+ {
+  "titulo": "falso positivo de alta confianza",
+  "ventana": 7580,
+  "grabacion": "howler_monkey__AS/20240429_053549.wav",
+  "inicio": 4.5
+ }
+]
