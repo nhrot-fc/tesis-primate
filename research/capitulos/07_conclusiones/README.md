@@ -40,10 +40,15 @@ Ninguna, y conviene que siga así.
 
 - [x] ~~Todo: el capítulo es un esqueleto.~~ **Redactado el 15-11-2026**, con la discusión
       del Capítulo 6: las filas de RE3.1–RE3.3 (cumplidos), el párrafo de OE3 (cumplido: la
-      reducción se cuantificó y no la hubo), el objetivo general («parcialmente cumplido»: se
-      desarrolló y se evaluó, pero la sesión no muestra la reducción que el capítulo 1 fija
-      como criterio de éxito, y sus condiciones tampoco bastan para descartarla), OE3 frente a
-      C3 y un primer trabajo futuro: volver a medir el tiempo.
+      reducción se cuantificó y no la hubo), el objetivo general, OE3 frente a C3 y un primer
+      trabajo futuro: volver a medir el tiempo.
+- [x] ~~Veredicto del objetivo general.~~ **17-11-2026: «cumplido».** Era «parcialmente
+      cumplido» porque el capítulo 1 fijaba la reducción del tiempo como «criterio de éxito»,
+      lo que contradecía los textos congelados: OE3 y el IOV de RE3.2 comprometen medir el
+      ahorro, no un valor. El autor decidió que la tesis mide el ahorro y no lo promete; el
+      capítulo 1 lo dice ahora así. El veredicto se da por los dos verbos (desarrollar y
+      evaluar), y el párrafo sigue diciendo que la sesión no muestra la reducción ni basta para
+      descartarla.
 - [x] ~~Párrafo de desviaciones desfasado.~~ **Resuelto el 07-10-2026.** Ya no
       declara la diferencia de consultas de RE2.1 (su IOV dejó de fijar esos
       números) ni la ficha de RE1.3 (ya tiene su README); queda solo la de los

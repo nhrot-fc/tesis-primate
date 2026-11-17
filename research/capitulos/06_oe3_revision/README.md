@@ -119,6 +119,6 @@ Desviaciones que el capítulo debe declarar:
 - [ ] `research/reportes/RE_3-3_taxonomia-discrepancias` describe el corpus entero con el
       k-fold en train. No entró al capítulo: es el material de la tarea 3, que queda fuera de E3 (el equipo la hará en 2027).
 - [x] ~~En `07_conclusiones.tex`, las filas de RE3.1–RE3.3, el párrafo de OE3 y el veredicto
-      del objetivo general.~~ Hecho el 15-11-2026. El veredicto es «parcialmente cumplido»: el
-      capítulo 1 fija como criterio de éxito la reducción del tiempo, y la sesión no la muestra.
+      del objetivo general.~~ Hecho el 15-11-2026. Desde el 17-11-2026 el veredicto es
+      «cumplido»: la tesis mide el ahorro sin prometer un valor (ver `07_conclusiones/README.md`).
 - El capítulo 1 no se tocó, por decisión del autor (14-11-2026).

@@ -15,9 +15,10 @@
 % respondidas en la Discusión de cada capítulo de objetivo, y repetirlas aquí
 % sería redundancia.
 %
-% El veredicto del objetivo general usa el criterio de éxito que fija el
-% capítulo 1: la reducción del tiempo de revisión experta, que mide RE3.2. Las
-% cifras de OE3 son las macros \u... del capítulo 6.
+% El veredicto del objetivo general se da por sus dos verbos. Su fin, la
+% reducción del tiempo de revisión experta, lo mide RE3.2 sin un valor
+% comprometido (capítulo 1, 17-11-2026). Las cifras de OE3 son las macros \u...
+% del capítulo 6.
 % ===================================================================
 
 \section{Conclusiones}
@@ -30,14 +31,14 @@ acústico utilizable: \nKept{} anotaciones curadas bajo un vocabulario cerrado, 
 las que \nExperiment{} forman un experimento de \nClasses{} clases particionado
 por grabación, con su ficha y sus limitaciones declaradas. La segunda es la
 evidencia de que la detección de cajas tiempo--frecuencia sobre espectrograma es
-viable en este dominio, y de que el cuello de botella no está donde se esperaba.
+viable en este dominio, con el cuello de botella en un lugar inesperado.
 
 Esa es la implicación principal del Capítulo~\ref{cap:deteccion}: la
 clasificación de especie y tipo de llamada resulta casi resuelta sobre los pares
-emparejados, en las cuatro configuraciones comparadas. El problema difícil no era distinguir \nClasses{} clases con
-más de un orden de magnitud de desbalance, sino encontrar y encuadrar el evento.
-Para el equipo de investigación la consecuencia es concreta: la revisión asistida
-consistirá sobre todo en ajustar cajas, no en corregir etiquetas.
+emparejados, en las cuatro configuraciones comparadas. Lo difícil resultó ser encontrar y encuadrar el evento, más que distinguir
+\nClasses{} clases con más de un orden de magnitud de desbalance. Para el equipo
+de investigación la consecuencia es concreta: lo que hay que corregir en una
+propuesta es casi siempre la caja, rara vez la etiqueta.
 
 La segunda implicación es metodológica. Al declarar la regla de decisión antes de
 entrenar, el experimento pudo cerrarse con un resultado que no favorece a la
@@ -123,12 +124,12 @@ estas condiciones, no la hubo.
 
 \subsection{Cumplimiento del objetivo general}
 
-\rotulo{Parcialmente cumplido.} El objetivo general tiene dos verbos y un fin. Los
+\rotulo{Cumplido.} El objetivo general compromete dos verbos y declara un fin. Los
 dos verbos se cumplen: el sistema se desarrolló (OE1 y OE2) y se evaluó (OE3).
-El fin, reducir el tiempo de revisión experta, es también el criterio de éxito
-que fijó el Capítulo~\ref{cap:generalidades}, y la evaluación no lo muestra: en
-la sesión cronometrada, la revisión asistida costó \uMinAssisted{} minutos por
-hora de audio y la manual \uMinManual{}.
+El fin, reducir el tiempo de revisión experta, es lo que la evaluación debía
+medir, sin un valor fijado de antemano (Capítulo~\ref{cap:generalidades}), y la
+medición no lo muestra: en la sesión cronometrada, la revisión asistida costó
+\uMinAssisted{} minutos por hora de audio y la manual \uMinManual{}.
 
 Las condiciones de esa medición limitan lo que puede concluirse en los dos
 sentidos (sección~\ref{sec:discusion-oe3}). La hicieron dos personas, y la
@@ -149,13 +150,13 @@ pasivo exige más tiempo de especialista del que está disponible. La alternativ
 de solución ataca sus tres causas, una por objetivo específico, y con el tercero
 mide además su efecto sobre el problema.
 
-Contra la falta de anotaciones utilizables para estas especies (C1) actúa OE1. El vocabulario
+Contra los errores de registro que hoy se corrigen a mano (C1) actúa OE1. El vocabulario
 cerrado, el mapa de
 sinónimos y la regla que hace de la carpeta la fuente de verdad de la especie
 convierten un material escrito a mano, con decenas de grafías para la misma
 clase, en \nClasses{} clases con criterio único. No corrige el juicio del
 anotador, que es irrecuperable sin volver al audio, pero elimina la parte del
-desacuerdo que era de escritura y no de criterio, y reduce la segunda pasada a
+desacuerdo que era de escritura, y reduce la segunda pasada a
 las \nReview{} anotaciones que ninguna regla puede decidir, marcadas y
 conservadas.
 
@@ -165,8 +166,8 @@ que el equipo ya anota, y el analista las acepta, corrige o borra en su propia
 herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura sobre
 la precisión (sección~\ref{sec:objetivos}).
 
-Contra la falta de datos para validar las propuestas (C3) actúa OE3, que los
-produce: la revisión ciega y la sesión cronometrada. La revisión ciega separa lo que es error del detector de lo que es omisión
+Contra el error sin medir de anotaciones y propuestas (C3) actúa OE3, que
+produce los datos para medirlo: la revisión ciega y la sesión cronometrada. La revisión ciega separa lo que es error del detector de lo que es omisión
 de la referencia, y lo cuantifica: unas \uUnannotatedPerHour{} llamadas por hora
 de audio que la referencia no tiene y el modelo sí propone, una precisión que
 pasa de \uPrecisionRef{} contra la referencia a entre \uPrecisionStrict{} y
@@ -188,8 +189,8 @@ primer trabajo futuro.
 
 \section{Trabajos futuros}
 
-Lo que queda fuera no es una lista de deseos: son las limitaciones declaradas en
-las discusiones de los capítulos de objetivo, ordenadas por cuánto comprometen lo
+Los trabajos futuros responden a las limitaciones declaradas en las discusiones
+de los capítulos de objetivo, y van ordenados por cuánto comprometen lo
 que aquí se afirma.
 
 \begin{itemize}
@@ -202,6 +203,11 @@ que aquí se afirma.
           propuestas de alta confianza, en lugar de juzgarlas todas una a una:
           para estimar ocupación, la salida sin depurar ya da un indicador
           fiable en algunas especies \citep{kalan_towards_2015}.
+    \item \textbf{Llevar el sistema a las grabaciones de PAM.} El sistema se
+          entrenó y se evaluó con la biblioteca de llamadas focales del equipo, y su
+          fin es apoyar el PAM con grabadoras AudioMoth (\cpEquipo). Anotar una
+          muestra de esas grabaciones diría cuánto cae el desempeño fuera de las
+          grabaciones focales y permitiría afinar el modelo con ellas.
     \item \textbf{Medir el acuerdo entre anotadores.} Sin él no hay techo de
           evaluación, y OE3 mostró que hace falta: la referencia también se
           equivoca, y las dos personas que revisaron juzgaron el encuadre con

@@ -585,8 +585,8 @@ puesta; en \uApparentOther{}, una llamada real de otra clase, y solo en
 referencia, la precisión por fila, que contra la referencia es \uPrecisionRef{},
 sube a \uPrecisionStrict{} si se exigen la clase y la caja correctas, a
 \uPrecisionLenient{} si basta que la llamada de esa clase esté en la caja y a
-\uPrecisionCall{} si basta cualquier llamada de primate. Esta lectura no es una
-regla del protocolo: combina sus proporciones por estrato con el tamaño de cada
+\uPrecisionCall{} si basta cualquier llamada de primate. Esta lectura queda
+fuera del protocolo: combina sus proporciones por estrato con el tamaño de cada
 estrato, aplica a los \uMatchRows{} aciertos lo que el revisor respondió en los
 controles y deja fuera las \uNotReviewed{} filas que no se revisaron.
 
@@ -711,9 +711,9 @@ ruido es una parte menor y concentrada en pocas fuentes (sección~\ref{sec:re33}
 sistema reduzca el tiempo de revisión. Muestra, en cambio, en qué se fue el tiempo
 asistido: en borrar dos de cada tres propuestas, incluidas \uProposalsHitDeleted{}
 de las \uProposalsHit{} que acertaban, y en agregar cajas nuevas. Con la revisión
-de cajas al lado, ese borrado no se explica por la calidad de las propuestas, que
-en su mayoría encuadran llamadas reales, sino por el criterio con que se juzga una
-caja: incluso entre los aciertos, el revisor marcó \uControlsFraming{} como mal
+de cajas al lado, ese borrado se explica mejor por el criterio con que se juzga una
+caja que por la calidad de las propuestas, que en su mayoría encuadran llamadas
+reales: incluso entre los aciertos, el revisor marcó \uControlsFraming{} como mal
 encuadrados. Si una propuesta que no se ajusta al criterio del especialista se
 borra y se vuelve a dibujar, la asistencia ahorra la búsqueda pero no el dibujo, y
 en un material tan denso como el de la sesión, donde casi toda grabación tiene algo
@@ -724,7 +724,8 @@ Para la causa C3, el resultado es más claro. Medida contra la referencia, la
 precisión del modelo por fila es \uPrecisionRef{}; según el revisor, está entre
 \uPrecisionStrict{} y \uPrecisionLenient{}. La diferencia es la referencia: le
 faltan unas \uUnannotatedPerHour{} llamadas por hora de audio que el modelo sí
-propone, y algunas de las que tiene están mal encuadradas o mal etiquetadas. Eso
+propone, en parte por diseño, porque en cada grabación solo se anotó el primate
+focal (\cpEquipo), y algunas de las que tiene están mal encuadradas o mal etiquetadas. Eso
 tiene dos consecuencias para el equipo. La primera es que las métricas del
 Capítulo~\ref{cap:deteccion}, medidas contra esa misma referencia, subestiman al
 modelo. La segunda es que no hace falta revisarlo todo por igual: las propuestas
@@ -763,7 +764,7 @@ omite llamadas, porque la literatura lo documenta en otros dominios. Las cifras,
 en cambio, no se sostienen sin volver a medir: los minutos por hora de audio
 dependen de quién anota, de su experiencia y de la densidad del material, y aquí
 los midieron dos personas sobre \uSessionMinutes{} minutos de audio elegido entre
-grabaciones con anotaciones; las fuentes de ruido dependen del sitio y de la
+grabaciones focales con anotaciones; las fuentes de ruido dependen del sitio y de la
 temporada, y las confusiones de clase, del repertorio de cada especie.
 
 \rotulo{Limitaciones.} Cada una dice cómo leer un resultado, no lo invalida.
@@ -784,10 +785,10 @@ temporada, y las confusiones de clase, del repertorio de cada especie.
           depende, entonces, de quién revisó, y la cifra robusta es la que las suma:
           llamada real frente a ruido.
     \item \textbf{Una sesión corta y densa.} \uSessionMinutes{} minutos de audio en
-          \uSessionRecordings{} grabaciones, todas con alguna anotación, y una
+          \uSessionRecordings{} grabaciones focales, todas con alguna anotación, y una
           variación entre carpetas mayor que la diferencia entre condiciones. El
-          tiempo por hora de audio no se extrapola a una grabación continua ni a
-          una temporada.
+          tiempo por hora de audio no se extrapola a una grabación continua de PAM ni
+          a una temporada.
     \item \textbf{Filas que no son llamadas distintas.} Una llamada con dos filas
           cuenta dos veces, y el revisor, que veía solo las cajas de la muestra, no
           podía notar un duplicado. Los eventos no anotados por hora son filas, no

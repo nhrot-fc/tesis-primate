@@ -84,8 +84,7 @@ La formulación separa tres preguntas, y el protocolo de la
 sección~\ref{sec:protocolo-oe2} las puntúa por separado: si la llamada se
 \emph{encontró} (detección), si la caja quedó bien \emph{encuadrada}
 (localización) y si la etiqueta es \emph{correcta} (clasificación). Mantenerlas
-separadas no es un refinamiento metodológico: es lo que permite decir, al final
-del capítulo, dónde está el error.
+separadas permite decir, al final del capítulo, dónde está el error.
 
 \subsection{Arquitectura propuesta: AST-Deformable-DETR}
 
@@ -126,13 +125,13 @@ El mel entra por la izquierda, atraviesa el extractor y vuelve, en la fila
 inferior, como \mQueries{} propuestas de caja con sus logits de clase. Tres
 decisiones definen ese recorrido.
 
-\rotulo{Un extractor preentrenado en audio, no en imágenes.} El AST
+\rotulo{Un extractor preentrenado en audio.} El AST
 (\emph{Audio Spectrogram Transformer}; \citealp{gong_ast_2021}) preentrenado en
 AudioSet \citep{gemmeke_audioset_2017} (\mAstCheckpoint{}) sustituye al \textit{backbone} convolucional de imágenes que
 traen los detectores estándar. La brecha de modalidad entre imagen y audio
 justifica esa sustitución \citep{zhu_sound_2025}: las estadísticas de un
 espectrograma (ejes asimétricos, sin invariancia a la traslación en
-frecuencia) no son las de una fotografía.
+frecuencia) difieren de las de una fotografía.
 
 \rotulo{Una pirámide multiescala sobre los tokens.} El AST produce una única
 rejilla de $\mTokensFreq \times \mTokensTime$ tokens, es decir, una sola escala,
@@ -620,7 +619,7 @@ temporal y pegado de llamadas de otras ventanas, además de un \textit{jitter} d
 las cajas objetivo. Los dos modelos de Ultralytics se entrenan con su propia
 herramienta y sus aumentaciones de imagen, restringidas como se dijo.
 \textbf{Las recetas no están igualadas, y se declara}: cada marco usa la suya, de
-modo que la comparación mide sistemas completos y no solo arquitecturas.
+modo que la comparación mide sistemas completos, receta incluida.
 
 \begin{table}[htbp]
     \centering
@@ -638,7 +637,7 @@ modo que la comparación mide sistemas completos y no solo arquitecturas.
     \end{threeparttable}
 \end{table}
 
-La asimetría de la última columna es una diferencia de receta, no de protocolo:
+La asimetría de la última columna es una diferencia de receta:
 las dos corridas de Ultralytics eligen su \textit{checkpoint} con la aptitud de su
 propio validador y no con la mAP@\pMatchIou{} que usan las otras dos, pero el
 protocolo de comparación vuelve a medir a todos con la misma vara.
@@ -910,7 +909,7 @@ solo necesitan los modelos de Ultralytics.
 \subsection{Dependencias declaradas}
 
 El entorno está declarado y bloqueado, que es la condición para que el
-\textit{pipeline} sea reproducible y no solo ejecutable en una máquina.
+\textit{pipeline} sea reproducible en otra máquina.
 \file{pyproject.toml} fija Python $\geq$~\rPython{} y las dependencias base
 (PyTorch, torchvision, torchaudio, pandas y soundfile) y separa en dos
 extras lo que solo necesita una familia de arquitecturas: \code{detr}
@@ -928,7 +927,7 @@ posteriores no dependen de la red. El entrenamiento se hizo sobre una GPU de
 
 El indicador de este resultado exige que los comandos de ejecución queden
 declarados. El Listado~\ref{lst:pipeline} los recoge: es la interfaz del
-\textit{pipeline}, no un instructivo, y cada línea corresponde a una caja de la
+\textit{pipeline}, y cada línea corresponde a una caja de la
 Figura~\ref{fig:pipeline}.
 
 \begin{lstlisting}[language=bash, caption={Interfaz del pipeline, una línea por etapa}, label={lst:pipeline}]
@@ -1302,7 +1301,7 @@ La Tabla~\ref{tab:ejes} separa los tres ejes para mostrar dónde está el error.
     \end{threeparttable}
 \end{table}
 
-\rotulo{La clasificación no es el problema.} Entre \rClassOkMin{} y
+\rotulo{La clasificación casi no falla.} Entre \rClassOkMin{} y
 \rClassOkMax{} de los pares emparejados llevan la clase correcta, y al menos
 \rSpeciesOkMin{} la especie correcta, en las cuatro configuraciones. Distinguir
 \nClasses{} pares de especie y tipo de llamada, con \classImbalance{} veces más
@@ -1498,7 +1497,7 @@ Tres patrones se leen en la tabla.
 \rotulo{Hay un suelo que ninguna configuración cruza.} \rHardClasses{} quedan por
 debajo de 0,5 en las cuatro, y son dos de las \rNScarce{} clases con 60 cajas de
 prueba o menos. Cuando las cuatro arquitecturas fallan por igual sobre una clase,
-la causa razonable es el material y no el diseño: son las clases que el umbral de
+la causa razonable es el material: son las clases que el umbral de
 \minPairCount{} anotaciones dejó entrar por poco y cuyo desempeño la
 sección~\ref{sec:limitaciones} anticipó como no atribuible a la arquitectura.
 
@@ -1522,7 +1521,7 @@ con atención sobre toda la ventana.
 
 La Figura~\ref{fig:cualitativas} muestra seis ventanas de prueba con las
 anotaciones del equipo y las predicciones del modelo seleccionado a su umbral.
-Las seis se eligieron por criterio explícito y no por aspecto: dos escenas
+Las seis se eligieron por un criterio explícito: dos escenas
 densas, dos ventanas con todos sus eventos recuperados, una con un evento que el
 modelo no encontró y una con un falso positivo de alta confianza, todas de
 grabaciones distintas.
@@ -1538,7 +1537,7 @@ Las dos escenas densas ilustran los dos extremos del comportamiento del modelo
 sobre el mismo tipo de material. En la primera recupera la mayoría de una serie
 de llamadas cortas y repetidas, con alguna caja de más; en la segunda, una serie
 equivalente de la misma clase en otra grabación, no emite ni una sola caja por
-encima del umbral. La diferencia entre ambas no está en la densidad sino en la
+encima del umbral. Lo que las distingue es la
 relación señal-ruido: la segunda tiene el coro de fondo encima de la banda de la
 llamada. Es un modo de fallo que conviene caracterizar, porque determina qué
 fracción del material queda sin asistir.
@@ -1565,18 +1564,18 @@ cuatro en las dos métricas: \rRecallDet{} de \textit{recall} frente a
 \rRecallYol{} del modelo seleccionado, y \rMapDet{} de mAP@\pMatchIou{} frente a
 \rMapYol{}. En la primaria la diferencia cae dentro de los intervalos de
 confianza; en la secundaria, la propuesta empata con Faster R-CNN y queda por
-detrás de YOLO26s y de RT-DETR-L. No supera de forma medible a ninguna línea
-base, que es lo que la hipótesis afirmaba.
+detrás de YOLO26s y de RT-DETR-L. La hipótesis afirmaba que superaría a las
+líneas base, y no supera de forma medible a ninguna.
 
 RT-DETR-L, que se incluyó para esto (sección~\ref{sec:baselines}), indica de qué
 componente viene el resultado. Predice un conjunto de cajas igual que la
 propuesta, pero desde un extractor preentrenado en imágenes, y con
 \cParamsRtd{}\,M de parámetros frente a \cParamsDet{}\,M queda a la par en la
 primaria (\rRecallRtd{}) y por encima en la secundaria (\rMapRtd{} frente a
-\rMapDet{}). El contraste apunta a que la cabeza de conjuntos no es lo que falla:
-lo que no aporta una ventaja medible es el preentrenamiento en audio, en esta
+\rMapDet{}). Dado que las dos predicen conjuntos, el contraste apunta al
+preentrenamiento en audio como lo que no aporta una ventaja medible, en esta
 tarea y con este presupuesto de entrenamiento. Como las recetas de
-entrenamiento no están igualadas, es una indicación y no una atribución
+entrenamiento no están igualadas, es solo una indicación
 (sección~\ref{sec:discusion-oe2}).
 
 \subsection{Costo de inferencia}
@@ -1590,8 +1589,8 @@ propuesta, \rGpuMinDet{}; RT-DETR-L, \rGpuMinRtd{}; Faster R-CNN, \rGpuMinFrc{}.
 Son \rCostRatio{} veces entre los extremos. En términos operativos, el modelo
 seleccionado procesa el audio unas \rRealtimeYol{} veces más rápido que en tiempo
 real y el más lento unas \rRealtimeFrc{} veces: las cuatro son viables para
-monitoreo acústico pasivo, de modo que el costo de inferencia es un criterio de
-desempate y no una restricción.
+monitoreo acústico pasivo, de modo que el costo de inferencia solo sirve
+para desempatar.
 
 \subsection{Verificación de RE2.3}
 \label{sec:verificacion-re23}
@@ -1698,8 +1697,8 @@ Raven ignora y permite ordenar o filtrar las detecciones, y que \code{Species} y
 coordenadas de frecuencia se obtienen invirtiendo la escala mel con la que se
 normalizaron las cajas (ecuación~\ref{eq:mel-inv}).
 
-Que la salida tenga esta forma no es un detalle de implementación: es la tercera
-forma de salida de la sección~\ref{sec:soluciones}, la única que coincide con la
+Esta salida es la tercera forma de salida de la
+sección~\ref{sec:soluciones}, la única que coincide con la
 anotación del especialista, y llega en el archivo que el analista ya usa.
 
 \begin{table}[htbp]
@@ -1788,7 +1787,7 @@ una detección encima, \rDemoHits{} de las \rDemoDetections{} detecciones caen
 sobre una anotación y \rDemoSameLabel{} de ellas llevan además la misma etiqueta.
 La Figura~\ref{fig:demo} superpone las dos capas, tal como se ven en Raven,
 sobre el tramo de \rDemoWindow{} segundos que concentra más
-anotaciones. \textbf{Es un ejemplo, no una medición}: una grabación no es una
+anotaciones. \textbf{Es solo un ejemplo}: una grabación no es una
 muestra, y las métricas son las de la sección~\ref{sec:re23}.
 
 \begin{figure}[htbp]
@@ -1930,7 +1929,7 @@ sección~\ref{sec:re22}, desde la lectura de las tablas de Raven hasta la escrit
 de la tabla de salida. No depende de nada que no esté declarado en
 \file{pyproject.toml} y fijado en \file{uv.lock}.
 
-\rotulo{El modelo final, no las corridas.} El artefacto que se publica es el
+\rotulo{El modelo final.} El artefacto que se publica es el
 \textit{checkpoint} de \rWinnerRun{} (autocontenido, con su arquitectura, sus
 hiperparámetros, su vocabulario y el \file{meta.json} del caché con el que se
 entrenó (Tabla~\ref{tab:checkpoint})) junto con su punto de operación. Las
@@ -1976,8 +1975,8 @@ analista abre en su propia herramienta.
 
 \rotulo{Qué significan.} Tres lecturas, en orden de importancia para el problema.
 
-La primera es que \textbf{el error está en encontrar y encuadrar, no en
-    nombrar}. Una vez localizado el evento, la clase casi nunca falla
+La primera es que \textbf{el error está en encontrar y encuadrar; nombrar casi
+    no falla}. Una vez localizado el evento, la clase casi nunca falla
 (sección~\ref{sec:ejes}): la parte del problema que parecía más difícil, con
 \nClasses{} clases desbalanceadas, resultó ser la que el modelo resuelve. Para el uso asistido esto es una buena noticia con
 una consecuencia concreta: el revisor no tendrá que corregir etiquetas, tendrá
@@ -2038,8 +2037,8 @@ valor (saber si un agregado bajo se debe a detección o a clasificación) se
 vuelve mayor cuanto más clases tiene el problema. Se generaliza también
 \textbf{la lectura de cobertura frente a carga}: cualquier sistema de
 pre-anotación asistida compite contra un presupuesto de revisión, y el umbral
-compartido entre arquitecturas es un artefacto de calibración en todas partes,
-no solo aquí.
+compartido entre arquitecturas es un artefacto de calibración en cualquier
+comparación.
 
 Se generaliza con reservas \textbf{el hallazgo de que la clasificación es fácil}.
 Depende de que las clases sean acústicamente separables, y en este corpus lo son
@@ -2055,7 +2054,7 @@ diez veces más datos anotados, o con un programa de entrenamiento más largo pa
 la propuesta, el orden podría ser otro. Tampoco se generalizan los umbrales
 elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectura.
 
-\rotulo{Limitaciones.} Seis, ordenadas por cuánto comprometen las conclusiones.
+\rotulo{Limitaciones.} Siete, ordenadas por cuánto comprometen las conclusiones.
 
 \begin{enumerate}
     \item \textbf{No hay techo de evaluación.} No se midió el acuerdo entre
@@ -2066,6 +2065,14 @@ elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectur
           capítulo: sin ella no se puede decir si \rRecallYol{} está cerca o lejos
           de lo alcanzable. OE3 la aborda parcialmente al hacer que un experto
           revise una muestra de predicciones.
+    \item \textbf{Todo se midió sobre grabaciones focales.} El entrenamiento y la
+          prueba usan la biblioteca de llamadas del equipo, grabada a mano,
+          con micrófono parabólico o con teléfono, apuntando al primate
+          (Capítulo~\ref{cap:curacion}).
+          En el PAM, el uso al que apunta el sistema, las llamadas llegan más
+          lejanas y con más fondo, en grabaciones más largas y con más tramos
+          vacíos; las cifras de este capítulo no se trasladan a ese material sin
+          volver a medir.
     \item \textbf{La comparación no aísla componentes.} Las configuraciones
           usan el optimizador y las aumentaciones de su marco de trabajo, de modo
           que la comparación mide sistemas completos, que es lo que se declaró, y

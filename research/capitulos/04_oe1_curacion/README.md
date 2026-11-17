@@ -182,6 +182,34 @@ uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curaci
       como comunicación personal (macro `\cpGuia`) porque el lector no puede recuperarla:
       difieren solo en ancho de banda, y la guía deja a criterio incluir los armónicos.
       Sigue sin fuente citable lo de las filas de ruido.
+- [x] **17-11-2026, respuestas del equipo (B. Gacheva, macro `\cpEquipo`):**
+      - el material es una **biblioteca de llamadas focales grabada con micrófono parabólico**,
+        no PAM con AudioMoth. Los metadatos lo confirman (contando también los chunks
+        `wamd`/`guan` que van después de los datos): 0 de 3 356 WAV con la marca de AudioMoth;
+        3 238 Song Meter Touch en teléfono o tableta (44,1 kHz); 81 TASCAM; 19 de un teléfono
+        Xiaomi (48 kHz, con GPS); 17 sin metadatos (15 estéreo a 48 kHz). La hipótesis
+        «48 kHz = AudioMoth» no se sostiene. Se corrigieron los caps.
+        1, 2, 4 y 8, y la limitación pasa a «Grabaciones focales, no de PAM» (más «Solo la
+        especie focal»);
+      - las filas `noise` sirven para estimar la relación señal-ruido de cada llamada (manual
+        de etiquetado, `research/papers/RavenPro labelling manual.pptx`, diapositiva 10). Ya
+        tienen fuente;
+      - las dos formas: el manual pide solo la fundamental, la guía pide armónicos en algunas
+        llamadas y el equipo atribuye las desviaciones a los cambios de personal;
+      - los códigos fuera de vocabulario se agregaron tarde, son raros o están mal
+        etiquetados, y el equipo pide usar solo los tipos consistentes;
+      - el manual se creó el 22-02-2024 y se modificó el 12-11-2025 (metadatos). No consta qué
+        versión regía al anotar, y el texto lo dice así;
+      - 72 WAV de las carpetas de especie están a 48 kHz y se remuestrean al leerlos (antes
+        el texto decía que no se remuestreaba).
+      - **17-11-2026, segunda parte:** §Recolección declara las dos maneras de recolectar del
+        equipo: grabadoras remotas (AudioMoth, PAM) y grabaciones en vivo durante los
+        seguimientos (micrófono parabólico, grabadoras de mano, teléfono). También dice que el
+        material viene de la segunda, según los metadatos. Fuentes: `wiredamazon_8primates`
+        (grabadoras remotas, seguimientos, grabaciones en vivo), `rfe_8primates` (visitantes,
+        registros de un minuto con el teléfono), `rfe_trc` (TRC dentro de la Reserva, frente al
+        PN Bahuaja Sonene) y `\cpEquipo` (AudioMoth, parabólico). Ninguna página web nombra
+        AudioMoth ni el micrófono parabólico.
 - [ ] Completar los datos de campo de la ficha: número y ubicación de los
       sensores, configuración de grabación y criterio de selección de lo que se
       anotó. *El sitio ya está (06-10-2026): Tambopata Research Center, Reserva

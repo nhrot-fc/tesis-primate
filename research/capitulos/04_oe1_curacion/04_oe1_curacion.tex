@@ -38,25 +38,40 @@ tal como se recibe: es el diagnóstico que justifica cada regla del protocolo.
 % ===================================================================
 
 \subsection{Origen y formato}
+\label{sec:origen}
 
-El material proviene del 8 Primates Project, el programa de monitoreo acústico
-pasivo que el equipo de investigación mantiene en el Tambopata Research Center,
-en la Reserva Nacional Tambopata (Madre de Dios) (sección~\ref{sec:problema}). Sus
-grabadoras AudioMoth \citep{hill_audiomoth_2018} registraron el sonido del bosque en archivos WAV cortos entre
-el \firstDate{} y el \lastDate{}, sobre todo en el horario de campo que declara el
-proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. Los
-especialistas del equipo seleccionaron grabaciones de cada especie y las anotaron
-a mano en Raven Pro \citep{raven_pro} con el procedimiento de la
-sección~\ref{sec:dominio}: una caja
-tiempo--frecuencia por vocalización, con su especie y su tipo de llamada. El
-equipo entregó para esta tesis esa selección ya anotada, sin el protocolo de
-campo que la acompañó (ubicación de las grabadoras, ganancia, criterio de
-selección). Esta sección describe el material tal como se recibió.
+El material es la biblioteca de llamadas del 8 Primates Project, el proyecto que
+el equipo de investigación mantiene en el Tambopata Research Center, en la
+Reserva Nacional Tambopata (Madre de Dios) (sección~\ref{sec:problema}). Son
+grabaciones focales, hechas durante los seguimientos de los grupos: el grabador
+apunta al primate que vocaliza con un micrófono montado en un plato parabólico,
+que amplifica su llamada y atenúa el fondo (\cpEquipo), o con el teléfono.
+% Conteo de todos los chunks de los WAV de data/raw (17-11-2026), incluidos los
+% que van después de los datos (wamd, guan): 0 con el comentario de AudioMoth;
+% Song Meter Touch 3 238 (Android 2 473, iPhone 749, iPad 16; 44,1 kHz); TASCAM
+% 81 (DR-05X 30, DR-07X 51; 44,1 o 48 kHz); teléfono Xiaomi 19 (48 kHz, con
+% GPS); sin metadatos 17 (15 de ellos estéreo a 48 kHz); ilegible 1.
+Los metadatos de los archivos lo confirman: ninguno de los \nRecordingsRaw{}
+lleva la marca que AudioMoth escribe en sus grabaciones. Casi todos, 3\,238, se
+grabaron con la aplicación Song Meter Touch en un teléfono o una tableta; 81, con
+grabadoras de mano TASCAM; 19, con otro teléfono, y 17 no traen metadatos. Se
+grabaron en archivos WAV cortos entre el
+\firstDate{} y el \lastDate{}, sobre todo en el horario de campo que declara el
+proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. La
+anotación, a mano en Raven Pro \citep{raven_pro} con el procedimiento de la
+sección~\ref{sec:dominio}, la dirigió, instruyó y verificó la coordinación del
+proyecto, y la hicieron voluntarios: una caja tiempo--frecuencia por
+vocalización, con su especie y su tipo de llamada, y solo para las llamadas del
+primate focal de cada grabación (\cpEquipo). El equipo entregó esa biblioteca ya
+anotada, sin datos de campo como la distancia al animal o la ganancia. Después
+compartió el manual de etiquetado del proyecto (\textit{Raven Pro Labelling
+Manual}), cuya versión disponible se creó en febrero de 2024 y se modificó por
+última vez en noviembre de 2025; no consta qué versión regía cuando se anotó cada
+grabación (\cpEquipo). Esta sección describe el material tal como se recibió.
 
 El material llega en una carpeta por especie, nombrada
-\code{<nombre\_común>\_\_<CÓDIGO>}, con las grabaciones WAV a 44,1\,kHz
-capturadas con dispositivos AudioMoth desplegados en el bosque y, junto a cada
-una, la tabla de selección que el analista exportó desde Raven Pro. La
+\code{<nombre\_común>\_\_<CÓDIGO>}, con las grabaciones WAV, casi todas a
+44,1\,kHz, y, junto a cada una, la tabla de selección que el analista exportó desde Raven Pro. La
 Tabla~\ref{tab:especies-corpus} lista las ocho especies y sus códigos. El código
 de la carpeta es un dato estructural, fijado una vez por sesión de campo.
 
@@ -136,8 +151,7 @@ Tabla~\ref{tab:columnas} recoge el destino de cada uno.
 \end{table}
 
 Sobreviven seis columnas: las cuatro coordenadas de la caja y las dos etiquetas.
-Todo lo demás describe la sesión de trabajo en Raven o el archivo de origen, no el
-evento.
+Las demás describen la sesión de trabajo en Raven o el archivo de origen.
 
 \subsection{Inventario}
 
@@ -254,12 +268,12 @@ frecuencia superior mayor que el límite de Nyquist de la señal (22\,050\,Hz a
 en la grabación.
 
 \rotulo{Variabilidad en la unidad de análisis.} La granularidad de las
-anotaciones no es uniforme: en unos casos el analista etiquetó sílabas
-individuales y en otros delimitó la secuencia completa con una sola caja. No es
-un error de anotación sino la manifestación directa del anidamiento jerárquico de
-las unidades acústicas \citep{kershenbaum_acoustic_2016} descrito en el
+anotaciones varía: en unos casos el analista etiquetó sílabas individuales y en
+otros delimitó la secuencia completa con una sola caja. Esa variación refleja el
+anidamiento jerárquico de las unidades acústicas \citep{kershenbaum_acoustic_2016} descrito en el
 Capítulo~\ref{cap:marco}, y obliga a decidir qué nivel de la jerarquía se
-modela.
+modela. La versión actual del manual de etiquetado pide dividir las selecciones
+largas en sílabas (\cpEquipo); no consta si regía cuando se anotó este material.
 
 % ===================================================================
 \section{Protocolo de curación y estandarización documentado (RE1.1)}
@@ -277,8 +291,7 @@ elementos que exige su indicador (Tabla~\ref{tab:iov-oe1}).
 \rotulo{Cómo se alcanzó.} Aplicando a las etiquetas la Fase~3 de CRISP-DM
 (sección~\ref{sec:fase3}), a partir del diagnóstico de la Fase~2 que hace la
 sección~\ref{sec:material}. Como exige la custodia del material primario
-(sección~\ref{sec:procedimientos}), el protocolo es un programa y no una edición
-manual: se vuelve a aplicar sobre los datos primarios cada vez que una regla
+(sección~\ref{sec:procedimientos}), el protocolo es un programa: se vuelve a aplicar sobre los datos primarios cada vez que una regla
 cambia y registra qué descarta y por qué. El guion \file{src/\allowbreak prepare\_annotations.py} recorre
 \file{data/raw/}, aplica las reglas de
 \file{src/\allowbreak data/\allowbreak annotations.py} en el orden de la
@@ -388,7 +401,7 @@ en prosa converjan con las escritas en código. Toca \nSynonyms{} filas.
 \rotulo{Asignación de especie por directorio.}
 \label{sec:regla-especie}
 La columna \code{Species} se reemplaza por el código de la carpeta contenedora.
-El criterio no es arbitrario: el directorio se fija una vez por sesión de campo,
+Cada grabación apunta a una especie y se guarda en su carpeta (\cpEquipo),
 mientras que la columna se teclea en cada fila, y es donde se acumulan los
 errores de la sección~\ref{sec:defectos}. Pero una llamada de otra especie
 anotada dentro de una carpeta, si es real, no debe recibir la especie de la
@@ -398,11 +411,12 @@ equivocada ni se descarta en silencio. La unión de copias resuelve el caso en q
 esa llamada sí está anotada en su propia carpeta.
 
 \rotulo{Descarte de ruido.} Las filas cuyo tipo de llamada normalizado es
-\code{noise} (\nNoise{}) no son eventos: el equipo selecciona a propósito un tramo
-de fondo para medir en Raven su potencia en banda (\code{Inband Power}). Se
-eliminan. El fondo que el detector debe aprender a no proponer entra al conjunto
-por otra vía, como ventanas de audio sin ninguna anotación, y no por estas
-filas. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son cajas que el
+\code{noise} (\nNoise{}) no son eventos: el manual de etiquetado pide, junto a
+cada llamada, una selección de fondo con la misma banda de frecuencia, para
+estimar con la potencia en banda de Raven (\code{Inband Power}) la relación
+señal-ruido de la llamada y separar las llamadas claras de las lejanas
+(\cpEquipo). Se eliminan. El fondo que el detector debe aprender a no proponer entra al conjunto
+por otra vía, como las ventanas de audio sin ninguna anotación. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son cajas que el
 analista dibujó sobre un evento: no se eliminan, se marcan para revisión.
 
 \rotulo{Corrección de pares imposibles.} Un conjunto pequeño de correcciones
@@ -465,7 +479,9 @@ variantes tipográficas que el mapa de sinónimos no previó, y códigos que par
 subdivisiones no documentadas de un tipo de llamada ya conocido: \code{as/cp},
 \code{as/pp} e \code{as/ip} sobre \textit{Alouatta sara} son el caso más
 visible. Decidir cuál es cuál exigiría una referencia del repertorio vocal que no
-acompaña a las anotaciones, de modo que el protocolo no decide: marca y conserva.
+acompaña a las anotaciones, de modo que el protocolo no decide: marca y conserva. El equipo confirma la
+mezcla: esos códigos se agregaron después, son raros o están mal etiquetados, y
+recomienda usar solo los tipos anotados de forma consistente (\cpEquipo).
 \file{cleaned/} los guarda con la bandera y RE1.2 los deja fuera del experimento
 (no entran como clase, y toda ventana que los pisa se descarta para no
 enseñarlos tampoco como fondo), pero la evidencia queda intacta para cuando el
@@ -478,7 +494,7 @@ mejora para una versión futura del detector.
 independencia de la etiqueta. La frecuencia superior se \emph{recorta a Nyquist}
 (22\,050\,Hz): por encima de la mitad de la frecuencia de muestreo no hay energía
 observable en una señal a 44,1\,kHz, de modo que un valor mayor (\nNyquist{}
-filas) es un error de anotación y no una propiedad del evento. Se
+filas) es un error de anotación. Se
 \emph{descartan las cajas degeneradas}, de duración inferior a 10\,ms o de ancho
 de banda nulo o negativo (\nDegenerate{} filas): una caja sin área no define una
 región y no puede emparejarse con ninguna predicción. Y se calculan la
@@ -572,8 +588,7 @@ ver las copias sin unir.
           la geometría dibujada por el analista se respeta tal cual.
     \item No resuelve el anidamiento frase--sílaba; esa decisión se toma al
           seleccionar las clases del experimento (sección~\ref{sec:anidamiento}),
-          porque depende de la forma de salida del detector y no de la calidad de la
-          anotación.
+          porque depende de la forma de salida del detector.
     \item No mide el acuerdo entre anotadores \citep{leroy_reliability_2018}, que
           exigiría anotar dos veces una muestra; la ficha lo declara entre sus limitaciones.
     \item No decide qué hacer con las anotaciones marcadas \code{requires\_review}:
@@ -695,8 +710,7 @@ clases, todas abundantes) a costa de dejar sin cubrir la mayor parte del
 repertorio documentado. Bajarlo hasta \minPairCount{} cubre el \pctExperiment{}
 del material y hace que cinco especies aporten entre dos y cinco clases en lugar
 de una, al precio de admitir clases cuyo desempeño estará limitado por su propia
-escasez y no por la arquitectura. Cualquier resultado por clase debe leerse con
-esa distinción presente. La Tabla~\ref{tab:excluidas} lista los \nLeftOut{} pares
+escasez, algo que hay que tener presente al leer cualquier resultado por clase. La Tabla~\ref{tab:excluidas} lista los \nLeftOut{} pares
 del vocabulario que quedan fuera, con \nLeftOutAnnotations{} anotaciones.
 
 \begin{table}[htbp]
@@ -756,7 +770,7 @@ prueba mediría memoria en lugar de generalización. El prototipo inicial de est
 trabajo cometió ese error: barajaba los clips y los repartía por índice, con lo que dos ventanas
 solapadas de la misma anotación podían quedar una en entrenamiento y otra en
 prueba. Sobre esa partición el clasificador alcanzaba un 99\,\% de exactitud, una
-cifra que no medía generalización sino memoria.
+cifra que medía memorización.
 
 \rotulo{Algoritmo.} La asignación es golosa y estratificada por clase
 (\code{split\_manifest} en \file{src/data/manifest.py}); la
@@ -952,8 +966,8 @@ del conjunto: una caja que ocupa la ventana completa se acierta con casi
 cualquier predicción grande. Por otro, al aportar el \pctLongBoxes{} de las
 cajas, dominan cualquier cifra agregada: un \textit{recall} global que las
 incluya mide, en un tercio de su peso, la capacidad de dibujar un rectángulo del
-tamaño de la ventana. Por eso el promedio por clase debe reportarse junto al
-agregado, y no en su lugar.
+tamaño de la ventana. Por eso el promedio por clase se reporta junto al
+agregado.
 
 \rotulo{Ventanas vacías.}
 \label{sec:vacias}
@@ -995,7 +1009,7 @@ cuántas cajas anotadas lleva cada ventana con contenido.
 \end{figure}
 
 La mediana es \medianPerWindow{}, el máximo \maxPerWindow{} y el \pctLeqFour{} de
-las ventanas lleva cuatro o menos. Es el máximo, y no la mediana, el que acota
+las ventanas lleva cuatro o menos. El máximo acota
 cuántas predicciones simultáneas debe poder emitir un detector por ventana.
 
 \subsection{Representación de entrada}
@@ -1023,7 +1037,7 @@ reproduce.
         \toprule
         \textbf{Parámetro} & \textbf{Valor} & \textbf{Justificación} \\
         \midrule
-        Frecuencia de muestreo & 44\,100\,Hz & Igual a la de las grabaciones, de modo que esta etapa no remuestrea; su mitad, 22\,050\,Hz, es el techo de Nyquist que fija el límite superior del rango de frecuencia \\
+        Frecuencia de muestreo & 44\,100\,Hz & La de casi todas las grabaciones; las pocas que llegan a 48\,kHz se remuestrean al leerlas. Su mitad, 22\,050\,Hz, es el techo de Nyquist que fija el límite superior del rango de frecuencia \\
         \addlinespace
         Ventana / salto & \clipLen{},0\,s / \clipHop{}\,s & Contiene entera a casi todas las clases; el costo es la fragmentación de las dos largas (Tabla~\ref{tab:ventaneo}) \\
         \addlinespace
@@ -1189,9 +1203,8 @@ semilla y los mismos parámetros se obtienen las mismas ventanas en el mismo
 orden, de modo que el conjunto no depende de cuándo se construyó. Volver a aplicar hoy
 las cuatro reglas de selección sobre \file{data/cleaned/} devuelve
 \nClassesToday{} clases, las mismas \nClasses{} de \file{labels.json} y en el
-mismo orden: el conjunto de experimento no depende de cuándo se ejecutó el
-\textit{pipeline} sino de las reglas y de la semilla, que es lo que exige el
-indicador.
+mismo orden: el conjunto de experimento depende solo de las reglas y de la
+semilla, que es lo que exige el indicador.
 
 % ===================================================================
 \section{Ficha del conjunto derivado (RE1.3)}
@@ -1233,7 +1246,7 @@ del Anexo~\ref{anx:medios}.
     \caption{Capas del conjunto}
     \label{fig:capas}
     \begin{tikzpicture}[node distance=4mm and 10mm]
-        \node[dato] (wav) {\nRecordings{} grabaciones WAV\\44,1\,kHz, AudioMoth};
+        \node[dato] (wav) {\nRecordings{} grabaciones WAV\\focales, parabólico o teléfono};
         \node[dato, right=of wav] (txt) {tablas de Raven\\\nAnnotations{} cajas curadas};
         \node[etapa, below=8mm of $(wav)!0.5!(txt)$] (clean) {RE1.1\sep protocolo de curación};
         \node[dato, below=of clean] (cleaned) {data/cleaned/\sep una tabla por grabación};
@@ -1404,20 +1417,36 @@ grupos separados, como se aprecia al aislar esas dos clases
     \end{subfigure}
 \end{figure}
 
-Las dos nubes no son dos llamadas, sino dos criterios de encuadre. Comparten la
+Las dos nubes son dos criterios de encuadre de las mismas llamadas. Comparten la
 duración y se separan solo en el ancho de banda, como cuando unas cajas encierran
-la fundamental y otras también los armónicos. La guía de campo del equipo deja ese
-punto abierto: en la llamada de alimento de SM, los armónicos se incluyen «si son
-lo bastante claros», y en el ladrido de AC se piden, pero no todas las
-anotaciones los incluyen (\cpGuia). Es un hallazgo sobre el esquema
+la fundamental y otras también los armónicos. Las fuentes del equipo no coinciden
+en ese punto: la versión actual del manual de etiquetado pide marcar solo la
+fundamental (\cpEquipo), y la guía de campo incluye los armónicos de la llamada de
+alimento de SM «si son lo bastante claros» y los pide en el ladrido de AC
+(\cpGuia). El equipo atribuye las anotaciones que se apartan del protocolo a los
+cambios de personal y a cuánto lo había entendido cada anotador (\cpEquipo). Es un hallazgo sobre el esquema
 de anotación, no sobre el modelo, y un caso medible del desacuerdo de criterio
 que describe la causa C3 (sección~\ref{sec:causas}).
 
 \subsection{Recolección (capa primaria)}
+\label{sec:recoleccion}
 
-Las grabaciones se capturaron en el Tambopata Research Center, en la Reserva
-Nacional Tambopata (Madre de Dios, Perú), con dispositivos AudioMoth a
-44,1\,kHz, en archivos WAV de duración corta: el
+El equipo recolecta audio de dos maneras \citep{wiredamazon_8primates}: con
+grabadoras remotas instaladas en el área de estudio para detectar a los monos,
+que son AudioMoth (\cpEquipo), y con grabaciones en vivo durante los seguimientos
+de los grupos, hechas con un micrófono parabólico (\cpEquipo), con grabadoras de
+mano o con el teléfono. Los visitantes del centro también graban, como científicos
+ciudadanos, registros de un minuto con su teléfono \citep{rfe_8primates}. El
+material de esta tesis viene de la segunda manera: según sus metadatos, ninguna
+grabación es de AudioMoth; casi todas se hicieron con la aplicación Song Meter
+Touch en un teléfono o una tableta, y el resto con grabadoras de mano TASCAM o
+con otro teléfono (sección~\ref{sec:origen}).
+
+Las grabaciones se capturaron en el Tambopata Research Center, dentro de la
+Reserva Nacional Tambopata y frente al Parque Nacional Bahuaja Sonene (Madre de
+Dios, Perú) \citep{rfe_trc}, casi siempre a 44,1\,kHz; las pocas a 48\,kHz son de
+grabadoras TASCAM, de otro teléfono o estéreo sin metadatos. Están en archivos
+WAV de duración corta: el
 \pctShortRecordings{} dura un minuto o menos, con mediana de
 \medianRecordingS{}\,s. Los nombres de archivo codifican la fecha y la hora de
 inicio: el material va del \firstDate{} al \lastDate{}, con la distribución por
@@ -1632,8 +1661,8 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           en lugar de decidir, pero el conjunto de experimento se construye
           asumiendo que lo que quedó fuera es ruido. Si parte de ello fuera
           repertorio real, el vocabulario está incompleto: es la vía de mejora más
-          directa para una versión futura del detector, y no depende de la
-          arquitectura sino de ampliar la referencia.
+          directa para una versión futura del detector, y lo que requiere es
+          ampliar la referencia.
     \item \textbf{Procedencia de campo incompleta.} Del despliegue solo se conoce
           el sitio. El material no viene acompañado del protocolo (número y
           ubicación de los sensores, ganancia, ciclo de trabajo y criterio con que
@@ -1672,8 +1701,14 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           matinales y se concentran en pocos meses (Figura~\ref{fig:temporal}); no hay
           garantía de que el fondo acústico de otras horas o estaciones esté
           representado.
-    \item \textbf{Un solo sistema de captura.} Todo el material proviene de
-          AudioMoth; la transferencia a otros sensores no está medida.
+    \item \textbf{Solo la especie focal.} En cada grabación se anotaron solo las
+          llamadas del primate al que se apuntaba (\cpEquipo); las de otras
+          especies quedan sin caja.
+    \item \textbf{Grabaciones focales, no de PAM.} Todo el material se grabó a mano, con
+          micrófono parabólico o con teléfono, dirigido al primate que vocaliza. El PAM del equipo,
+          al que el sistema quiere apoyar, usa grabadoras AudioMoth fijas, en las
+          que las llamadas llegan más lejanas y con más fondo; la transferencia a
+          ese material no está medida.
 \end{itemize}
 
 \subsection{Verificación de RE1.3}
@@ -1726,8 +1761,8 @@ conjunto particionado (RE1.2) lleva esas anotaciones a \nWindows{} ventanas y
 grabación compartida entre particiones. La ficha (RE1.3) documenta ambas capas y
 declara doce limitaciones conocidas.
 
-\rotulo{Qué significan.} El resultado central no es el tamaño del conjunto sino
-su \emph{trazabilidad}: cada anotación que entra al experimento puede seguirse
+\rotulo{Qué significan.} El resultado central es la \emph{trazabilidad} del
+conjunto: cada anotación que entra al experimento puede seguirse
 hasta la fila cruda de la que salió y hasta la regla que la tocó, y cada cifra de
 este capítulo se regenera con un comando. Eso es lo que permite atribuir una
 diferencia de desempeño entre detectores a la arquitectura y no al conjunto. Dos propiedades del conjunto condicionan de

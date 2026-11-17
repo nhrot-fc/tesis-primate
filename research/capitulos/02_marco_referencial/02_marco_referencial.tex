@@ -96,16 +96,16 @@ $Y \cup \{\varnothing\}$, en la que $\varnothing$ es la clase ``sin objeto'' que
 absorbe las consultas sobrantes. El número de eventos no se predice: resulta de
 cuántas consultas eligen una clase de $Y$ por encima del umbral de confianza.
 
-Esta es la formulación de \emph{predicción de conjuntos}: la salida no es una
-rejilla puntuada ni una secuencia, sino un conjunto sin orden, y durante el
+Esta es la formulación de \emph{predicción de conjuntos}: la salida es un conjunto
+sin orden, y durante el
 entrenamiento cada anotación de la ventana se asigna a exactamente una consulta
 mediante un emparejamiento biyectivo, mientras que el resto se supervisa hacia
 $\varnothing$. De ahí que dentro de la ventana no haya anclas ni supresión de no
 máximos.
 
 \paragraph{Del marco normalizado al marco físico}
-Lo que emite el modelo no son segundos ni hercios sino fracciones de la ventana,
-y la conversión no es simétrica entre los dos ejes. En tiempo es afín: si la
+El modelo emite fracciones de la ventana, y su conversión a segundos y a hercios
+es distinta en cada eje. En tiempo es afín: si la
 ventana empieza en $t_0$,
 \begin{equation}
     t_{\text{ini}} = t_0 + \bigl(c_x - \tfrac{w}{2}\bigr) T_w,
@@ -146,8 +146,7 @@ $X \in \mathbb{R}^{F\times T}$ cuyos parámetros, como el tamaño de ventana, el
 entre ventanas y el tipo de ventana, fijan el compromiso entre resolución
 temporal y resolución frecuencial.
 
-Interesa aquí una asimetría del espectrograma que conviene explicitar porque condiciona el
-diseño del detector. Tratarlo como una imagen es útil, pero sus dos ejes no son
+Una asimetría del espectrograma condiciona el diseño del detector. Tratarlo como una imagen es útil, pero sus dos ejes no son
 equivalentes: una traslación en tiempo preserva el significado del patrón,
 mientras que una traslación en frecuencia lo cambia: un mismo contorno
 desplazado media octava es otra vocalización, o ninguna. Los patrones
@@ -164,7 +163,7 @@ Una vez que el sonido se representa como una matriz tiempo--frecuencia, la tarea
 de la ecuación~\eqref{eq:tupla} coincide con la de la detección de objetos en
 visión por computadora: afirmar que una clase está presente y localizarla,
 localización que se representa típicamente mediante una caja delimitadora
-\citep{lin_2014}. La analogía no es superficial. Los eventos acústicos se
+\citep{lin_2014}. Los eventos acústicos se
 manifiestan como patrones bidimensionales de tiempo y frecuencia, con texturas y
 estructuras geométricas propias, análogos a los objetos que aparecen en imágenes
 naturales \citep{pham_eventness_2018}.
@@ -202,8 +201,7 @@ máscara exigiría reanotar el corpus completo.
 
 \section{Marco Conceptual}
 
-Los conceptos que siguen no se presentan por área temática sino siguiendo el
-recorrido de la señal, desde que el animal vocaliza hasta que el analista recibe
+Los conceptos que siguen se presentan en el orden del recorrido de la señal, desde que el animal vocaliza hasta que el analista recibe
 una etiqueta revisable. La Figura~\ref{fig:signal-chain} dibuja ese recorrido
 como una cadena de seis eslabones.
 
@@ -225,7 +223,7 @@ como una cadena de seis eslabones.
             \node[eslabon, right=5mm of v] (p) {\textbf{Propagación}\\[1pt]
                 {\scriptsize atenuación con la distancia, enmascaramiento del coro}};
             \node[eslabon, right=5mm of p] (g) {\textbf{Grabadora}\\[1pt]
-                {\scriptsize AudioMoth, 44,1\,kHz, mono}};
+                {\scriptsize parabólico o teléfono, 44,1\,kHz, mono}};
             \node[eslabon, right=5mm of g] (s) {\textbf{STFT}\\[1pt]
                 {\scriptsize ventana 1024 (23\,ms), salto 400 (9\,ms)}};
             \node[eslabon, right=5mm of s] (m) {\textbf{Mel + compresión}\\[1pt]
@@ -253,9 +251,8 @@ problemas.
 \subsection{Paisaje sonoro}
 
 La bioacústica estudia el sonido en los seres vivos, y esta tesis la aplica a
-través del monitoreo acústico pasivo descrito en la sección~\ref{sec:problema}. Lo
-que la grabadora registra no es la vocalización sino la suma de todo lo que llega
-al micrófono, el paisaje sonoro del ecosistema \citep{blumstein_acoustic_2011}, y
+través del monitoreo acústico pasivo descrito en la sección~\ref{sec:problema}. La
+grabadora registra la suma de todo lo que llega al micrófono, el paisaje sonoro del ecosistema \citep{blumstein_acoustic_2011}, y
 en un entorno como la Amazonía esa suma tiene tres componentes:
 
 \begin{description}
@@ -292,18 +289,15 @@ de forma general \citep{taylor_contribution_2010}.
 La consecuencia de esa estructura fuente--filtro es la que interesa aquí. La
 frecuencia fundamental queda determinada por la geometría y la tensión de las
 cuerdas vocales, y las resonancias del tracto vocal concentran la energía en un
-conjunto acotado de bandas. Un evento no es, por tanto, un instante con una
-etiqueta: es una región del plano tiempo--frecuencia con un límite inferior y un
-límite superior de frecuencia que dependen de la anatomía de quien vocaliza. La
-banda que ocupa una especie es una propiedad física de su aparato fonador, no una
-convención de dibujo del anotador. Esa es la razón por la que la caja
-tiempo--frecuencia de la ecuación~\eqref{eq:tupla} es la representación adecuada
-del evento, y no un rectángulo elegido por comodidad: los cuatro números que la
-definen tienen referente físico.
+conjunto acotado de bandas. Un evento es, por tanto, una región del plano
+tiempo--frecuencia con un límite inferior y un límite superior de frecuencia que
+dependen de la anatomía de quien vocaliza. Por eso la caja tiempo--frecuencia de la
+ecuación~\eqref{eq:tupla} es la representación adecuada del evento: los cuatro
+números que la definen tienen referente físico.
 
 La misma estructura explica dos hechos que reaparecen más adelante. El primero es
 que distintas especies tienden a separarse por banda, lo que hace de la
-frecuencia una característica discriminante y no un dato accesorio. El segundo es
+frecuencia una característica discriminante. El segundo es
 que la estructura de las vocalizaciones de los primates no humanos está muy
 conservada dentro de cada especie, pero admite ajustes dentro de esos límites,
 como los rasgos propios de cada grupo \citep{fischer_towards_2020}; esa
@@ -361,8 +355,7 @@ comprimidas en pocas bandas, y una caja de altura fija en el marco normalizado
 cubre en los agudos una banda mucho más ancha que en los graves
 (ecuación~\ref{eq:mel-inv}).
 
-La elección de la representación no es un trámite. La compresión logarítmica no
-es la única opción: la normalización de energía por canal (PCEN)
+La compresión logarítmica tiene una alternativa: la normalización de energía por canal (PCEN)
 \citep{wang_pcen_2017} combina control
 adaptativo de ganancia y compresión de rango dinámico, y en una red de sensores
 bioacústicos redujo el sobreajuste a las variaciones temporales del ruido de
@@ -376,7 +369,7 @@ control de ganancia puede atenuar la propia vocalización junto con el fondo.
 Esta tesis adopta el log-mel. El extractor de la arquitectura propuesta, el
 \textit{Audio Spectrogram Transformer} (AST), se preentrenó sobre espectrogramas
 log-mel \citep{gong_ast_2021}, y conservar esa compresión es lo que permite
-aprovechar el preentrenamiento; el rango de bandas, en cambio, no es el del
+aprovechar el preentrenamiento; el rango de bandas, en cambio, difiere del
 preentrenamiento, y el Capítulo~\ref{cap:deteccion} declara esa desviación. Las
 líneas base, preentrenadas en imágenes, reciben el mismo log-mel escalado como
 imagen. La
@@ -469,7 +462,8 @@ refinamiento del reconocimiento local.
     \end{tabular}
 \end{table}
 
-El criterio de descarte es la forma de la salida, no el desempeño reportado. Una
+El criterio de descarte es la forma de la salida, sea cual sea el desempeño
+reportado. Una
 arquitectura solo es candidata a arquitectura final si su cabeza puede emitir
 $f_{\min}$ y $f_{\max}$. Bajo esa regla, las cuatro primeras familias de la
 Tabla~\ref{tab:familias} quedan descartadas \emph{como sistema
@@ -620,10 +614,9 @@ audio; el \emph{intra-anotador}, cuánto coincide un mismo analista consigo mism
 al anotar dos veces el mismo segmento. Ambos son bajos en bioacústica, con las
 magnitudes que reunió el análisis de la causa C3 (sección~\ref{sec:causas}).
 
-\rotulo{Frontera borrosa del evento.} El desacuerdo anterior no se reparte de
-forma uniforme: se concentra en los bordes. Una vocalización no empieza ni
-termina en un instante definido, sino que emerge del fondo y se desvanece en él,
-y lo mismo ocurre en frecuencia con los armónicos superiores. En detección de
+\rotulo{Frontera borrosa del evento.} El desacuerdo anterior se concentra en los
+bordes. Una vocalización emerge del fondo y se desvanece en él, sin un instante
+definido de inicio ni de fin, y lo mismo ocurre en frecuencia con los armónicos superiores. En detección de
 cajas tiempo--frecuencia se observan desplazamientos relativamente grandes entre
 la caja predicha y la anotada, de lo que se concluye que las fronteras de los
 eventos son borrosas y difíciles de determinar \citep{zhu_sound_2025}.
