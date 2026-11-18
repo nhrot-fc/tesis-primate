@@ -1,0 +1,2 @@
+185e24e848a50002a272d7f0809d435d74f3c53d1a565b37a6935418909bd278  models/yolo26s_v3/best.pt
+3d08537fc95bb7a82e640be4fcbc84256f91bbf114d2065c5d13a98fa9ce3add  models/yolo26s_v3/operating_point.json

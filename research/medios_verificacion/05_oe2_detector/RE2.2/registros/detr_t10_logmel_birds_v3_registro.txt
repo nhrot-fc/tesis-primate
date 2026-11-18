@@ -1,0 +1,47 @@
+[2026-09-17 20:27:24] [INFO] [train] ===== detr_t10_logmel_birds_v3 =====
+[2026-09-17 20:27:26] [INFO] [models.backbone] AST: 12 x 32 tokens | time_stride=10
+[2026-09-17 20:27:26] [INFO] [pretrain_birds] 386 tensores desde runs_extra/detr_birds_v2/best.pt; 12 nuevos: head.detr.class_heads.0.bias, head.detr.class_heads.0.weight, head.detr.class_heads.1.bias, head.detr.class_heads.1.weight, head.detr.class_heads.2.bias, head.detr.class_heads.2.weight, head.detr.class_heads.3.bias, head.detr.class_heads.3.weight, head.detr.class_heads.4.bias, head.detr.class_heads.4.weight, head.detr.class_heads.5.bias, head.detr.class_heads.5.weight
+[2026-09-17 20:27:32] [INFO] [training.trainer] ast_deformable_detr | 88.6M parámetros (88.6M entrenables) | 25 clases | {'n_frames': 331, 'time_stride': 10, 'dim': 128, 'n_queries': 100, 'frontend': 'logmel'}
+[2026-09-17 20:39:43] [INFO] [training.trainer] [1/30] loss=11.328 val_loss=8.407 recall=0.430 precision=0.816 mAP30=0.378
+[2026-09-17 20:39:44] [INFO] [training.trainer] nuevo mejor mAP30=0.378
+[2026-09-17 20:51:55] [INFO] [training.trainer] [2/30] loss=8.353 val_loss=7.343 recall=0.475 precision=0.879 mAP30=0.528
+[2026-09-17 20:51:56] [INFO] [training.trainer] nuevo mejor mAP30=0.528
+[2026-09-17 21:04:05] [INFO] [training.trainer] [3/30] loss=7.809 val_loss=7.349 recall=0.542 precision=0.837 mAP30=0.544
+[2026-09-17 21:04:06] [INFO] [training.trainer] nuevo mejor mAP30=0.544
+[2026-09-17 21:16:27] [INFO] [training.trainer] [4/30] loss=7.508 val_loss=7.101 recall=0.505 precision=0.882 mAP30=0.572
+[2026-09-17 21:16:28] [INFO] [training.trainer] nuevo mejor mAP30=0.572
+[2026-09-17 21:29:33] [INFO] [training.trainer] [5/30] loss=7.308 val_loss=7.077 recall=0.603 precision=0.849 mAP30=0.597
+[2026-09-17 21:29:34] [INFO] [training.trainer] nuevo mejor mAP30=0.597
+[2026-09-17 21:42:21] [INFO] [training.trainer] [6/30] loss=7.108 val_loss=6.959 recall=0.566 precision=0.871 mAP30=0.562
+[2026-09-17 21:55:14] [INFO] [training.trainer] [7/30] loss=6.990 val_loss=6.740 recall=0.496 precision=0.891 mAP30=0.596
+[2026-09-17 22:08:07] [INFO] [training.trainer] [8/30] loss=6.835 val_loss=6.774 recall=0.540 precision=0.900 mAP30=0.607
+[2026-09-17 22:08:08] [INFO] [training.trainer] nuevo mejor mAP30=0.607
+[2026-09-17 22:21:03] [INFO] [training.trainer] [9/30] loss=6.709 val_loss=6.729 recall=0.595 precision=0.869 mAP30=0.612
+[2026-09-17 22:21:03] [INFO] [training.trainer] nuevo mejor mAP30=0.612
+[2026-09-17 22:34:15] [INFO] [training.trainer] [10/30] loss=6.630 val_loss=6.634 recall=0.564 precision=0.877 mAP30=0.626
+[2026-09-17 22:34:16] [INFO] [training.trainer] nuevo mejor mAP30=0.626
+[2026-09-17 22:47:39] [INFO] [training.trainer] [11/30] loss=6.500 val_loss=7.033 recall=0.680 precision=0.831 mAP30=0.631
+[2026-09-17 22:47:40] [INFO] [training.trainer] nuevo mejor mAP30=0.631
+[2026-09-17 23:00:56] [INFO] [training.trainer] [12/30] loss=6.393 val_loss=6.826 recall=0.611 precision=0.873 mAP30=0.626
+[2026-09-17 23:14:24] [INFO] [training.trainer] [13/30] loss=6.274 val_loss=6.793 recall=0.649 precision=0.870 mAP30=0.631
+[2026-09-17 23:14:25] [INFO] [training.trainer] nuevo mejor mAP30=0.631
+[2026-09-17 23:28:27] [INFO] [training.trainer] [14/30] loss=6.176 val_loss=6.887 recall=0.613 precision=0.866 mAP30=0.617
+[2026-09-17 23:41:42] [INFO] [training.trainer] [15/30] loss=6.097 val_loss=6.947 recall=0.638 precision=0.863 mAP30=0.623
+[2026-09-17 23:54:50] [INFO] [training.trainer] [16/30] loss=5.990 val_loss=6.910 recall=0.625 precision=0.865 mAP30=0.632
+[2026-09-17 23:54:51] [INFO] [training.trainer] nuevo mejor mAP30=0.632
+[2026-09-18 00:08:03] [INFO] [training.trainer] [17/30] loss=5.914 val_loss=6.858 recall=0.659 precision=0.862 mAP30=0.622
+[2026-09-18 00:21:15] [INFO] [training.trainer] [18/30] loss=5.818 val_loss=7.038 recall=0.601 precision=0.868 mAP30=0.606
+[2026-09-18 00:34:23] [INFO] [training.trainer] [19/30] loss=5.729 val_loss=7.382 recall=0.676 precision=0.843 mAP30=0.629
+[2026-09-18 00:47:25] [INFO] [training.trainer] [20/30] loss=5.642 val_loss=7.257 recall=0.640 precision=0.869 mAP30=0.615
+[2026-09-18 01:00:26] [INFO] [training.trainer] [21/30] loss=5.603 val_loss=7.356 recall=0.669 precision=0.841 mAP30=0.623
+[2026-09-18 01:13:33] [INFO] [training.trainer] [22/30] loss=5.518 val_loss=7.410 recall=0.676 precision=0.843 mAP30=0.623
+[2026-09-18 01:26:42] [INFO] [training.trainer] [23/30] loss=5.442 val_loss=7.403 recall=0.668 precision=0.850 mAP30=0.626
+[2026-09-18 01:40:05] [INFO] [training.trainer] [24/30] loss=5.417 val_loss=7.582 recall=0.682 precision=0.844 mAP30=0.625
+[2026-09-18 01:56:05] [INFO] [training.trainer] [25/30] loss=5.382 val_loss=7.546 recall=0.673 precision=0.849 mAP30=0.619
+[2026-09-18 02:09:26] [INFO] [training.trainer] [26/30] loss=5.327 val_loss=7.696 recall=0.682 precision=0.847 mAP30=0.621
+[2026-09-18 02:22:38] [INFO] [training.trainer] [27/30] loss=5.306 val_loss=7.729 recall=0.689 precision=0.841 mAP30=0.624
+[2026-09-18 02:36:13] [INFO] [training.trainer] [28/30] loss=5.290 val_loss=7.702 recall=0.684 precision=0.845 mAP30=0.624
+[2026-09-18 02:48:59] [INFO] [training.trainer] [29/30] loss=5.281 val_loss=7.746 recall=0.690 precision=0.843 mAP30=0.625
+[2026-09-18 03:03:21] [INFO] [training.trainer] [30/30] loss=5.256 val_loss=7.739 recall=0.689 precision=0.844 mAP30=0.625
+[2026-09-18 03:03:24] [INFO] [training.trainer] mejor mAP30=0.632 | /home/fcandia/tesis-primate/runs/detr_t10_logmel_birds_v3
+[2026-09-18 03:03:24] [INFO] [train] Guarda predicciones con: python src/dump_predictions.py --run detr_t10_logmel_birds_v3

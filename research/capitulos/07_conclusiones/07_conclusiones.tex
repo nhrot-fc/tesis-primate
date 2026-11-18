@@ -27,7 +27,7 @@
 \subsection{Implicaciones de los resultados}
 
 El trabajo deja dos cosas que no existían al empezar. La primera es un conjunto
-acústico utilizable: \nKept{} anotaciones curadas bajo un vocabulario cerrado, de
+acústico utilizable: \nAnnotations{} anotaciones curadas bajo un vocabulario cerrado, de
 las que \nExperiment{} forman un experimento de \nClasses{} clases particionado
 por grabación, con su ficha y sus limitaciones declaradas. La segunda es la
 evidencia de que la detección de cajas tiempo--frecuencia sobre espectrograma es
@@ -40,12 +40,13 @@ emparejados, en las cuatro configuraciones comparadas. Lo difícil resultó ser 
 de investigación la consecuencia es concreta: lo que hay que corregir en una
 propuesta es casi siempre la caja, rara vez la etiqueta.
 
-La segunda implicación es metodológica. Al declarar la regla de decisión antes de
-entrenar, el experimento pudo cerrarse con un resultado que no favorece a la
-arquitectura propuesta, tal como se implementó (sección~\ref{sec:discusion-oe2}),
-sin que eso lo invalide, y al separar la medición en
-detección, encuadre y clasificación quedó visible qué parte del problema está
-resuelta y cuál no. Una sola cifra agregada habría escondido ambas cosas.
+La segunda implicación es metodológica. La regla de decisión se declaró antes de
+entrenar, y por eso el experimento pudo cerrarse con un resultado que no favorece
+a la arquitectura propuesta, tal como se implementó
+(sección~\ref{sec:discusion-oe2}), sin que eso lo invalide. Y al separar la
+medición en detección, encuadre y clasificación quedó visible qué parte del
+problema está resuelta y cuál no. Una sola cifra agregada habría escondido ambas
+cosas.
 
 La tercera implicación es la del Capítulo~\ref{cap:revision}, y tiene dos caras.
 La primera es que la referencia con que se mide el modelo es incompleta: de lo
@@ -103,21 +104,23 @@ reportarla, no un valor para ella.
 
 \rotulo{OE1.} Cumplido. El Capítulo~\ref{cap:curacion} entrega el protocolo, el
 conjunto particionado por grabación y la ficha, y mide cada uno contra su
-indicador: el protocolo conserva el \pctKept{} de las filas crudas, la partición
+indicador. El protocolo conserva el \pctKept{} de las filas crudas, la partición
 no comparte ninguna grabación entre subconjuntos y la ficha cubre los apartados
 comprometidos, incluidas las limitaciones que el propio material impone.
 
-\rotulo{OE2.} Cumplido. El Capítulo~\ref{cap:deteccion} implementa el detector,
-lo compara con tres líneas base bajo un protocolo único declarado de antemano y
-selecciona \rWinner{} por la métrica secundaria, con \rRecallYol{} de
+\rotulo{OE2.} Cumplido. El Capítulo~\ref{cap:deteccion} implementa el detector y
+lo compara con tres líneas base bajo un protocolo único, declarado antes de las
+corridas comparadas, con las desviaciones de la
+sección~\ref{sec:verificacion-re21}. Selecciona \rWinner{}, que empata con
+RT-DETR-L en las dos métricas y gana el desempate por costo, con \rRecallYol{} de
 \textit{recall} y \rMapYol{} de mAP en la partición de prueba, medida una sola
 vez. El modelo final se carga y produce una tabla que Raven abre sobre la
 grabación, y el repositorio contiene el código y el \textit{checkpoint}.
 
 \rotulo{OE3.} Cumplido. El Capítulo~\ref{cap:revision} fija la metodología un
-mes antes de medir, cuantifica el tiempo de revisión con y sin el sistema
-(\uMinManual{} y \uMinAssisted{} minutos por hora de audio, sin reducción en esta
-sesión) y caracteriza sus errores mediante la revisión ciega de \uItems{}
+mes antes de medir y cuantifica el tiempo de revisión con y sin el sistema:
+\uMinManual{} y \uMinAssisted{} minutos por hora de audio, sin reducción en esta
+sesión. Caracteriza además sus errores mediante la revisión ciega de \uItems{}
 predicciones, que separa los del modelo de los de la referencia. El objetivo
 pedía cuantificar la reducción, y la cuantificación se hizo: su valor es que, en
 estas condiciones, no la hubo.
@@ -139,8 +142,12 @@ condiciones, y el material fue de \uSessionMinutes{} minutos de audio denso. Con
 esas condiciones, la sesión no muestra que el sistema reduzca el tiempo, y
 tampoco basta para afirmar que no pueda reducirlo. Lo que sí muestra es que el
 tiempo asistido se fue en borrar y volver a dibujar propuestas que en su mayoría
-eran llamadas reales, y que con el mismo tiempo las tablas asistidas salieron más
-completas y más precisas que las manuales.
+eran llamadas reales, y que con el mismo tiempo las tablas asistidas cubrieron
+\uRecallAssisted{} de la referencia con precisión \uPrecisionAssisted{}, frente a
+\uRecallManual{} y \uPrecisionManual{} de las manuales. Esa diferencia no tiene
+intervalo y mezcla la condición con quién anotó y con las \uEmptyTables{} tablas
+que volvieron vacías, de modo que es una observación y no una medida del efecto
+de la asistencia.
 
 \subsection{La propuesta frente al problema central}
 
@@ -150,34 +157,36 @@ pasivo exige más tiempo de especialista del que está disponible. La alternativ
 de solución ataca sus tres causas, una por objetivo específico, y con el tercero
 mide además su efecto sobre el problema.
 
-Contra los errores de registro que hoy se corrigen a mano (C1) actúa OE1. El vocabulario
-cerrado, el mapa de
-sinónimos y la regla que hace de la carpeta la fuente de verdad de la especie
-convierten un material escrito a mano, con decenas de grafías para la misma
-clase, en \nClasses{} clases con criterio único. No corrige el juicio del
-anotador, que es irrecuperable sin volver al audio, pero elimina la parte del
-desacuerdo que era de escritura, y reduce la segunda pasada a
-las \nReview{} anotaciones que ninguna regla puede decidir, marcadas y
-conservadas.
+Contra los errores de registro que hoy se corrigen a mano (C1) actúa OE1. El
+vocabulario cerrado, el mapa de sinónimos y la regla que hace de la carpeta la
+fuente de verdad de la especie convierten un material escrito a mano, con decenas
+de grafías para la misma clase, en \nClasses{} clases con un nombre único. Dos de
+ellas, \splitShapes{}, todavía reúnen dos criterios de encuadre
+(sección~\ref{sec:geometria}). OE1 no corrige el juicio del anotador, que es
+irrecuperable sin volver al audio. Sí elimina la parte del desacuerdo que era de
+escritura, y reduce la segunda pasada a las \nReview{} anotaciones que ninguna
+regla puede decidir, marcadas y conservadas.
 
 Contra la búsqueda manual de las vocalizaciones en la grabación entera
 (C2) actúa OE2. El sistema no sustituye al analista: emite cajas con la forma en
 que el equipo ya anota, y el analista las acepta, corrige o borra en su propia
-herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura sobre
-la precisión (sección~\ref{sec:objetivos}).
+herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura: su
+punto de operación es el de mayor \textit{recall} que conserva un piso de
+precisión (sección~\ref{sec:objetivos}).
 
 Contra el error sin medir de anotaciones y propuestas (C3) actúa OE3, que
-produce los datos para medirlo: la revisión ciega y la sesión cronometrada. La revisión ciega separa lo que es error del detector de lo que es omisión
-de la referencia, y lo cuantifica: unas \uUnannotatedPerHour{} llamadas por hora
-de audio que la referencia no tiene y el modelo sí propone, una precisión que
-pasa de \uPrecisionRef{} contra la referencia a entre \uPrecisionStrict{} y
-\uPrecisionLenient{} según el especialista, y un ruido que se concentra en pocas
+produce los datos para medirlo: la revisión ciega y la sesión cronometrada. La
+revisión ciega separa lo que es error del detector de lo que es omisión de la
+referencia, y lo cuantifica. Faltan en la referencia unas \uUnannotatedPerHour{}
+llamadas por hora de audio que el modelo sí propone. La precisión pasa de
+\uPrecisionRef{} contra la referencia a entre \uPrecisionStrict{} y
+\uPrecisionLenient{} según el especialista, y el ruido se concentra en pocas
 fuentes. Con eso el especialista ya no necesita tratar todas las propuestas por
-igual: puede aceptar primero las de alta confianza, filtrar las clases ruidosas y
+igual. Puede aceptar primero las de alta confianza, filtrar las clases ruidosas y
 revisar el resto, que es la decisión que C3 impedía tomar.
 
-La propuesta se enfoca, entonces, en el problema central, que es lo que pide la
-pauta: cada causa del árbol tiene un objetivo que la ataca, y el tercero mide el
+La propuesta se enfoca, entonces, en el problema central: cada causa del árbol 
+tiene un objetivo que la ataca, y el tercero mide el
 efecto sobre la magnitud del problema. Cuánto lo reduce es otra pregunta, y la
 medición de RE3.2 no la responde a favor: en esta sesión, el tiempo de
 especialista por hora de audio fue el mismo con el sistema que sin él. Por eso
@@ -200,16 +209,21 @@ que aquí se afirma.
           registrando cuánto tiempo va a buscar, a dibujar y a borrar, diría si el
           sistema ahorra tiempo y en qué parte del trabajo. La revisión de cajas
           sugiere probar además otra forma de usarlo: aceptar primero las
-          propuestas de alta confianza, en lugar de juzgarlas todas una a una:
-          para estimar ocupación, la salida sin depurar ya da un indicador
+          propuestas de alta confianza, en lugar de juzgarlas todas una a una.
+          Para estimar ocupación, la salida sin depurar ya da un indicador
           fiable en algunas especies \citep{kalan_towards_2015}.
     \item \textbf{Llevar el sistema a las grabaciones de PAM.} El sistema se
           entrenó y se evaluó con la biblioteca de llamadas focales del equipo, y su
           fin es apoyar el PAM con grabadoras AudioMoth (\cpEquipo). Anotar una
           muestra de esas grabaciones diría cuánto cae el desempeño fuera de las
           grabaciones focales y permitiría afinar el modelo con ellas.
+    \item \textbf{Repartir por seguimiento y volver a entrenar.} Casi todas las
+          grabaciones de prueba son del mismo día y especie que alguna de
+          entrenamiento, y en las que no, el \textit{recall} baja
+          (sección~\ref{sec:discusion-oe2}). Una partición por día o por
+          seguimiento diría cuánto de las cifras absolutas se debe a esa cercanía.
     \item \textbf{Medir el acuerdo entre anotadores.} Sin él no hay techo de
-          evaluación, y OE3 mostró que hace falta: la referencia también se
+          evaluación, y OE3 mostró que hace falta. La referencia también se
           equivoca, y las dos personas que revisaron juzgaron el encuadre con
           criterios distintos. Basta con que dos especialistas respondan por
           separado las mismas cajas, como en las campañas con varios anotadores
@@ -217,15 +231,16 @@ que aquí se afirma.
     \item \textbf{Mejorar la calidad de los datos originales.} Las propuestas de
           alta confianza sin anotación son, en su mayoría, llamadas reales, y en
           entrenamiento esas omisiones le enseñan al modelo que una llamada es
-          fondo. Revisarlas en todo el corpus, empezando por los hallazgos de
-          entrenamiento y validación que la tarea opcional de OE3 ya dejó
-          preparados, y convertir en reglas medibles los criterios de selección de
-          la guía del equipo, que hoy dejan a criterio del anotador incluir los
-          armónicos (\cpGuia), daría datos más completos para
-          entrenar y métricas más justas para evaluar.
+          fondo. Conviene revisarlas en todo el corpus, empezando por los
+          hallazgos de entrenamiento y validación que la tarea opcional de OE3 ya
+          dejó preparados. Conviene también convertir en reglas medibles los
+          criterios de selección de la guía del equipo, que hoy dejan a criterio
+          del anotador incluir los armónicos \citep{proyecto8_guia_2025}. Las dos
+          cosas darían datos más completos para entrenar y métricas más justas
+          para evaluar.
     \item \textbf{Un ciclo de mejora continua.} El modelo propone cajas sobre
           grabaciones nuevas, el especialista las corrige en Raven, las tablas
-          corregidas entran al entrenamiento y el modelo se reentrena; cada ronda
+          corregidas entran al entrenamiento y el modelo se reentrena. Cada ronda
           se mide contra una misma referencia revisada, para saber si mejora.
           Elegir qué propuestas revisar primero, con aprendizaje activo, reduce el
           costo de anotar \citep{kath_leveraging_2024} y permite que el modelo
@@ -234,7 +249,7 @@ que aquí se afirma.
     \item \textbf{Separar el extractor de la cabeza.} Dos variantes de la
           propuesta lo harían: con el extractor congelado, y el mismo
           decodificador sobre el ResNet-50 de COCO con la misma receta. El
-          código ya las admite; sin ellas, la comparación entre configuraciones
+          código ya las admite. Sin ellas, la comparación entre configuraciones
           no puede atribuir la diferencia a un componente.
     \item \textbf{Reentrenar la propuesta con la receta de sus trabajos de
               origen.} Una tasa de aprendizaje menor para el extractor y el factor de
@@ -248,6 +263,6 @@ que aquí se afirma.
           vocal.
     \item \textbf{Cerrar el vocabulario con el equipo.} Los pares fuera de
           vocabulario mezclan error tipográfico y subdivisión legítima, no figuran
-          en el vocabulario que el equipo documenta (\cpGuia), y solo el equipo puede decir
+          en el vocabulario que el equipo documenta \citep{proyecto8_guia_2025}, y solo el equipo puede decir
           cuáles son tipos de llamada.
 \end{itemize}

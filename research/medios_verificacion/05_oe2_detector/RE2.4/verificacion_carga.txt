@@ -1,0 +1,9 @@
+$ load_checkpoint('runs/yolo26s_v3/best.pt', 'cpu')
+arquitectura:      yolo
+clases:            25
+tensores (archivo): 708
+tensores (modelo):  708
+claves faltantes:  0
+claves sobrantes:  0
+carga estricta:    sí
+umbral de operación: 0.11

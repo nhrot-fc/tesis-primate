@@ -79,36 +79,30 @@
 \renewcommand{\lstlistingname}{Listado}
 
 % === Citas y enlaces (hyperref se carga al final) ====================
-% APA 7 con biblatex-apa, que necesita biber. El Makefile define \usarbiber
-% cuando encuentra biber; sin él se compila con natbib y apalike, que no es
-% APA 7. Los capítulos sólo usan \citep y \citet, que sirven en los dos casos.
-% En los dos, la lista se titula «Referencias» y entra en el índice.
-\ifdefined\usarbiber
-    \usepackage{csquotes}
-    \usepackage[style=apa, backend=biber, natbib=true]{biblatex}
-    \addbibresource{references.bib}
-    \AtBeginBibliography{\setstretch{1}}
-    % APA 7 escribe los títulos en mayúscula de oración. biblatex sólo la
-    % aplica a los idiomas de \DeclareCaseLangs, y el del documento es el
-    % español: sin esto los títulos en inglés conservan su Title Case. Siglas y
-    % nombres propios van entre llaves en references.bib.
-    \DeclareCaseLangs*{spanish}
-    % APA 7 en español: «Recuperado el … de», no «Consultado el … desde».
-    \DefineBibliographyStrings{spanish}{retrieved = {Recuperado}, from = {de}}
-    % Rangos de páginas con raya corta (758–767), como en APA; la localización
-    % española de biblatex usa guion.
-    \DefineBibliographyExtras{spanish}{%
-        \protected\def\bibrangedash{\textendash\penalty\hyphenpenalty}}
-    % Que los DOI puedan cortarse en cualquier carácter en vez de estirar el
-    % espacio entre letras.
-    \setcounter{biburllcpenalty}{7000}
-    \setcounter{biburlucpenalty}{8000}
-    \setcounter{biburlnumpenalty}{9000}
-\else
-    \usepackage[round,authoryear]{natbib}
-    \addto\captionsspanish{\renewcommand{\bibname}{Referencias}}
-    \usepackage[nottoc,notlof,notlot]{tocbibind}
-\fi
+% APA 7 con biblatex-apa y biber. natbib=true deja usar \citep y \citet.
+\usepackage{csquotes}
+\usepackage[style=apa, backend=biber, natbib=true]{biblatex}
+\addbibresource{references.bib}
+\AtBeginBibliography{\setstretch{1}}
+% APA 7 escribe los títulos en mayúscula de oración. biblatex sólo la
+% aplica a los idiomas de \DeclareCaseLangs, y el del documento es el
+% español: sin esto los títulos en inglés conservan su Title Case. Siglas y
+% nombres propios van entre llaves en references.bib.
+\DeclareCaseLangs*{spanish}
+% APA 7 en español: «Recuperado el … de», no «Consultado el … desde».
+\DefineBibliographyStrings{spanish}{retrieved = {Recuperado}, from = {de}}
+% «\&» entre los dos últimos autores en las citas entre paréntesis y en la lista
+% de referencias, como el formato del curso; «y» en la cita narrativa. Es el
+% comportamiento de biblatex-apa.
+% Rangos de páginas con raya corta (758–767), como en APA; la localización
+% española de biblatex usa guion.
+\DefineBibliographyExtras{spanish}{%
+    \protected\def\bibrangedash{\textendash\penalty\hyphenpenalty}}
+% Que los DOI puedan cortarse en cualquier carácter en vez de estirar el
+% espacio entre letras.
+\setcounter{biburllcpenalty}{7000}
+\setcounter{biburlucpenalty}{8000}
+\setcounter{biburlnumpenalty}{9000}
 \usepackage[hidelinks,hypertexnames=false]{hyperref}
 \hypersetup{
     pdftitle  = {Detección de vocalizaciones de primates neotropicales mediante
@@ -228,16 +222,6 @@
 % NOTA DE MANTENIMIENTO
 % ===================================================================
 %
-% PENDIENTE. Referencias que conviene apartar en unused.bib (no sostienen
-% ningún punto del argumento y diluyen la revisión):
-%   zhou_multimodal_2025, li_anchor-free_2025, gul_survey_2023,
-%   tian_sound_2023, ngatched_nkouatchah_detection_2023, dias_enhancing_2025
-% Pares redundantes (conserva la entrada más reciente):
-%   xiao_fmsg-jless_2024 / xiao_dg-sed_2025
-%   nam_pushing_2024 / nam_self_2024
-%   turpault_sound_2019 / turpault_training_2020
-%   schmid_improving_2024 / schmid_sound_2026
-%
 % Se eliminó \nocite{*}: volcaba TODA la bibliografía, incluidas las
 % entradas que no se citan. Para listar algo no citado, usa \nocite{clave}.
 % ===================================================================
@@ -334,12 +318,7 @@
 % ===================================================================
 % REFERENCIAS (en APA 7 van antes de los anexos)
 % ===================================================================
-\ifdefined\usarbiber
-    \printbibliography[heading=bibintoc, title={Referencias}]
-\else
-    \bibliographystyle{apalike}
-    \bibliography{references}
-\fi
+\printbibliography[heading=bibintoc, title={Referencias}]
 
 % ===================================================================
 % ANEXOS

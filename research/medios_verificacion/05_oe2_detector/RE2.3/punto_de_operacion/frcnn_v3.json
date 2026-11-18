@@ -1,0 +1,26 @@
+{
+  "model": "frcnn_v3",
+  "threshold": 0.69,
+  "val": {
+    "threshold": 0.69,
+    "recall": 0.8064069606486058,
+    "precision": 0.7019536965315432,
+    "n_above": 11619,
+    "n_tp": 8156
+  },
+  "test": {
+    "threshold": 0.69,
+    "recall": 0.7807338292775186,
+    "precision": 0.6799165477105523,
+    "n_above": 9107,
+    "n_tp": 6192
+  },
+  "protocol": {
+    "iou": 0.3,
+    "strict_iou": 0.5,
+    "max_det": 100,
+    "score_floor": 0.001,
+    "min_precision": 0.7,
+    "seed": 42
+  }
+}

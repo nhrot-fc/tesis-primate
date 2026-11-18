@@ -5,8 +5,7 @@
 > conjunto de datos consistente de cajas tiempo–frecuencia etiquetadas por
 > especie y tipo de llamada.
 
-Capítulo redactado por completo, con los tres reportes `RE_1-*` de
-`research/reportes/` ya absorbidos. Es el modelo de cómo se escriben los
+Capítulo redactado por completo. Es el modelo de cómo se escriben los
 capítulos de objetivo.
 
 
@@ -132,7 +131,6 @@ de avance E3; se conservan tal cual):
 |---|---|
 | `tabla_raven_cruda.png` | Una tabla de selección de Raven como se recibe |
 | `raven_anotando.png` | Raven Pro durante la anotación |
-| `etiquetas_especie_crudas.png`, `etiquetas_llamada_crudas.png` | Los valores distintos hallados en cada columna manual |
 | `aviso_audio_danado.png` | Advertencias de audio dañado al cargar |
 | `audio_corrupcion_leve.png`, `audio_corrupcion_severa.png` | Los dos grados de corrupción de la señal |
 
@@ -155,80 +153,15 @@ cd research/capitulos/04_oe1_curacion/notebook
 uv run jupyter nbconvert --to notebook --execute --inplace figuras_04_oe1_curacion.ipynb
 ```
 
-## Extra
-
-- `notas_tipos_llamada.md` — notas de campo por tipo de llamada: qué significa
-  cada una y cómo se dibuja su caja en Raven. Es la fuente del vocabulario junto
-  con `src/data/species.py`.
-
 ## Pendientes
 
-- [x] ~~El caché parecía ir una pasada por detrás.~~ **Resuelto el 30-09.** No lo
-      estaba: `data/cleaned/` arrastraba 633 marcas de revisión de una corrida hecha
-      con un `species.py` al que le faltaban las cuatro entradas `unofficial_*`
-      (`pt/sqc`, `lw/tj`, `pt/pp`, `pt/bp`), y el commit `7b88820` había quitado
-      `lw/tj → lw/trino` de `JOINED_LABELS`. Se restauró la fusión y se regeneró
-      `cleaned/` con `--force`: las reglas vuelven a dar **las 25 clases exactas de
-      `labels.json`**, así que el caché es válido y no hay que reentrenar nada.
-- [ ] Resolver con el equipo los pares marcados para revisión, en especial si
-      `as/cp`, `as/pp` e `as/ip` son tipos legítimos de *Alouatta sara*.
-      Preguntado el 16-11-2026 (`06_oe3_revision/team/questions.md`, punto 4): ninguno
-      figura en el vocabulario documentado del equipo (una presentación y
-      `notas_tipos_llamada.md`).
-- [x] **16-11-2026, respuestas del autor:** las filas `noise` son selecciones de fondo
-      hechas a propósito para medir la potencia en banda; las dos formas de `ac/bc` y
-      `sm/fs` se deben a que no hay un estándar de encuadre. Las dos formas ya se citan
-      con la guía de campo del equipo (`research/papers/Acoustic_Field_Guide_upd.pptx`), citada
-      como comunicación personal (macro `\cpGuia`) porque el lector no puede recuperarla:
-      difieren solo en ancho de banda, y la guía deja a criterio incluir los armónicos.
-      Sigue sin fuente citable lo de las filas de ruido.
-- [x] **17-11-2026, respuestas del equipo (B. Gacheva, macro `\cpEquipo`):**
-      - el material es una **biblioteca de llamadas focales grabada con micrófono parabólico**,
-        no PAM con AudioMoth. Los metadatos lo confirman (contando también los chunks
-        `wamd`/`guan` que van después de los datos): 0 de 3 356 WAV con la marca de AudioMoth;
-        3 238 Song Meter Touch en teléfono o tableta (44,1 kHz); 81 TASCAM; 19 de un teléfono
-        Xiaomi (48 kHz, con GPS); 17 sin metadatos (15 estéreo a 48 kHz). La hipótesis
-        «48 kHz = AudioMoth» no se sostiene. Se corrigieron los caps.
-        1, 2, 4 y 8, y la limitación pasa a «Grabaciones focales, no de PAM» (más «Solo la
-        especie focal»);
-      - las filas `noise` sirven para estimar la relación señal-ruido de cada llamada (manual
-        de etiquetado, `research/papers/RavenPro labelling manual.pptx`, diapositiva 10). Ya
-        tienen fuente;
-      - las dos formas: el manual pide solo la fundamental, la guía pide armónicos en algunas
-        llamadas y el equipo atribuye las desviaciones a los cambios de personal;
-      - los códigos fuera de vocabulario se agregaron tarde, son raros o están mal
-        etiquetados, y el equipo pide usar solo los tipos consistentes;
-      - el manual se creó el 22-02-2024 y se modificó el 12-11-2025 (metadatos). No consta qué
-        versión regía al anotar, y el texto lo dice así;
-      - 72 WAV de las carpetas de especie están a 48 kHz y se remuestrean al leerlos (antes
-        el texto decía que no se remuestreaba).
-      - **17-11-2026, segunda parte:** §Recolección declara las dos maneras de recolectar del
-        equipo: grabadoras remotas (AudioMoth, PAM) y grabaciones en vivo durante los
-        seguimientos (micrófono parabólico, grabadoras de mano, teléfono). También dice que el
-        material viene de la segunda, según los metadatos. Fuentes: `wiredamazon_8primates`
-        (grabadoras remotas, seguimientos, grabaciones en vivo), `rfe_8primates` (visitantes,
-        registros de un minuto con el teléfono), `rfe_trc` (TRC dentro de la Reserva, frente al
-        PN Bahuaja Sonene) y `\cpEquipo` (AudioMoth, parabólico). Ninguna página web nombra
-        AudioMoth ni el micrófono parabólico.
-- [ ] Completar los datos de campo de la ficha: número y ubicación de los
-      sensores, configuración de grabación y criterio de selección de lo que se
-      anotó. *El sitio ya está (06-10-2026): Tambopata Research Center, Reserva
-      Nacional Tambopata. La limitación pasó a llamarse «Procedencia de campo
-      incompleta».*
-- [x] ~~Decidir si el conjunto derivado se libera y en qué términos.~~ **16-11-2026:** el equipo no lo autoriza; la ficha lo dice.
-- [ ] El medio de verificación congelado de RE1.3 (Capítulo 1) dice «Capítulo de
-      curación, README y metadatos del conjunto», pero **no existe un README
-      del conjunto** en `data/`. O se escribe (puede resumir la ficha y remitir
-      a ella), o se declara en la verificación que la ficha del capítulo cumple
-      esa función.
-- [x] ~~Faltan diez citas~~ **Resuelto el 16-11-2026.** Citadas: Nyquist
-      (Shannon 1949), fuga por duplicados (Barz y Denzler 2020), AudioMoth, Raven
-      Pro 1.6.5, acuerdo entre anotadores (`leroy_reliability_2018`), HTK como
-      convención de torchaudio; la escala mel, en el cap. 2. Sin cita, por decisión
-      del autor: el protocolo como programa (es curación de datos, no un aporte que
-      se compare con otro), la fuga por ventanas solapadas (es aritmética, y el 99 %
-      del prototipo es la evidencia; se quitó `koga_lead_2024`, que no trata de
-      fugas), las ventanas vacías (decisión de diseño explicada por su mecanismo) y
-      la limitación de un solo sistema de captura (es un hecho de este trabajo).
-- [x] ~~Comentarios del jurado sobre E1 (material, grafías, partición, referencias adelantadas)~~ **Resuelto el 07-10-2026.** §4.2.1 «Origen y formato» abre con el contexto (proyecto, sitio, fechas, horario, quién anotó, qué se entregó). Las grafías van en la Tabla «Grafías de una misma clase». La figura del reparto tenía flechas que no seguían el algoritmo (con 7, 5, 4, 2 y 1 cajas, la segunda va a train): corregidas y recorridas en el texto. Se quitaron cinco referencias adelantadas (regla de especie, anidamiento, ventanas vacías ×2, ventaneo).
-- [ ] Para E3: las Figuras de valores crudos son capturas del cuaderno; convendría pasarlas a tabla. Quedan referencias adelantadas de hoja de ruta y de verificación (aceptables) y algunas de contenido (geometría, anidamiento, limitaciones).
+En la lista única de `research/capitulos/README.md`.
+
+> **17-11-2026. Revisión externa de cifras.** Cuaderno: el destino de un par sin elegibles es
+> «marcada para revisión» antes que «frase» (`sb/pcs`), `nBelowThreshold` cuenta solo los `<100`,
+> nuevas `nLeftOutReview`/`nLeftOutVocab`; el desbalance es en cajas (`as/hc` 6 933 / `sb/sc` 126 =
+> 55×); `largestPairN` cuenta las elegibles (2 453). No se corrió el cuaderno (en local
+> `data/cleaned` es copia de `raw`): las salidas se corrigieron a mano con los valores que daría.
+> Texto: 3 238+81+19+17+1 ilegible; 2 823 emparejadas (4 ilegibles dentro) + 12; 643 = 336+180+128−1;
+> nota de la Tabla 4.8 (19 213 → 19 211); 41 pares → 37 tras la fusión; 49 % de `sb/spc` sobre 16 kHz;
+> catorce limitaciones (nueva: partición por grabación, no por seguimiento).

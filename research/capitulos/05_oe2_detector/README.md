@@ -124,46 +124,29 @@ Cuatro configuraciones, mismo caché, misma partición, mismo protocolo:
   hipótesis se enuncia como «supera», igual que en la discusión; antes decía
   «iguala o supera» en un lugar y «superara» en otro.
 
-## Extra
-
-- `protocolo_comparacion.md` — notas previas sobre cómo se ponen los modelos en
-  la misma tabla; el código es `src/evaluation/protocol.py` y la sección 5.2.6
-  del capítulo lo documenta.
-- `experimento_detr_coco.md` — el experimento que iguala la política de
-  inicialización. Alimenta la discusión sobre arquitectura frente a
-  inicialización.
-
 ## Pendientes
 
-- [x] ~~RT-DETR-L no tiene preset en `src/train.py`.~~ **Resuelto el 02-10-2026.**
-      La receta se recuperó del `config.json` de `runs/rtdetr_l_v3` y entró como
-      `--arch rtdetr`: AdamW con `lr0=1e-4`, `weight_decay=1e-4` y lote 16.
-      `training/yolo.fit` elige la clase de Ultralytics por el prefijo `rtdetr` y
-      sólo escribe optimizador y tasa en `config.json` cuando se fijan a mano, que
-      es como están en la corrida publicada y como **no** están en la de YOLO.
-      Probado de punta a punta con una corrida de humo de una época.
-- [ ] **Las dos ablaciones que separarían extractor de cabeza** están
-      implementadas y sin correr (el capítulo las deja como trabajo futuro; si se
-      corren antes de E3, `detr_resnet` es la que responde la hipótesis con la
-      misma receta): AST congelado (`--hp frozen_backbone=true`) y el
-      Deformable DETR de COCO sobre el mismo mel (`--arch detr_resnet`). PCEN
-      (`--hp frontend=pcen`) ya no cuenta como ablación: el autor lo descartó por
-      bajo rendimiento (07-10-2026), y el capítulo describe solo el log-mel. El interruptor del extractor congelado **no existía**
-      hasta el 02-10-2026, aunque el capítulo decía que sí: se añadió a
-      `ASTBackbone` (congela los parámetros y lo deja en modo `eval`, para que no
-      aporte dropout ni estadísticas de lote nuevas).
-- [x] ~~**Publicar las métricas de RE2.3.**~~ **Resuelto el 07-10-2026.** Están
-      en `research/medios_verificacion/05_oe2_detector/RE2.3/`, junto al punto de
-      operación de cada corrida y la matriz de confusión. Los cinco «Medio de
-      verificación» del capítulo remiten a su carpeta del Anexo B, y la de RE2.4
-      añade la comprobación de carga estricta del checkpoint (708 de 708
-      tensores) y su SHA-256. Falta hacer push para que la URL del anexo exista.
-- [ ] **No hay techo de evaluación**: falta medir el acuerdo entre anotadores
-      sobre una muestra. Es la limitación más seria del capítulo.
-- [x] ~~Faltan once citas~~ **Resuelto el 16-11-2026.** Citadas con DOI
-      verificado en Crossref: AST y AudioSet, ViTDet, DETR (en el cap. 2), focal,
-      GIoU, húngaro, Powdermill/Amazon Basin/PteroSet (caché de aves), Faster R-CNN,
-      ResNet y FPN, YOLO26 (cita preferida del `CITATION.cff` de Ultralytics),
-      RT-DETR, AdamW, OneCycle (Smith y Topin 2019) y *bootstrap* (Efron y
-      Tibshirani 1993). El software se cita en las tablas de herramientas del cap. 1.
-- [x] ~~Repeticiones entre resultados y discusión~~ **Resuelto el 07-10-2026.** «Selección del modelo» queda en resultado (regla, veredicto, contraste con RT-DETR-L); la lista de «tres cosas útiles», el párrafo de alcance y el de Zhu salieron de allí porque la discusión y las limitaciones ya los cubren. La discusión remite a las cifras de la sección de ejes en vez de repetirlas, y la limitación de las clases de ventana ya no copia la regla de la sección de métricas.
+En la lista única de `research/capitulos/README.md`.
+
+> **17-11-2026. Revisión externa (errores, contradicciones y observaciones críticas).**
+>
+> - Nuevas celdas del cuaderno, que corren con los volcados de `runs/` (no necesitan el servidor):
+>   **diferencias pareadas** (`tab:pares`, bootstrap pareado por grabación de Δrecall y ΔmAP@0,3,
+>   en prueba y en validación, y el piso alternativo de 0,50) y **fuga por sesión** (`rLeak*`).
+>   Las cifras se calcularon en local y se copiaron a `valores.tex`/`tablas/pares.tex`.
+> - **Cambia la lectura**: con la diferencia pareada, Faster R-CNN queda por debajo de las otras
+>   tres; la propuesta lo supera (+0,017 [0,004; 0,029]) y empata con YOLO26s y RT-DETR-L.
+>   YOLO26s empata con RT-DETR-L también en mAP y gana por el desempate de costo. El criterio
+>   «intervalos que se solapan» se reemplazó por el pareado *después* de ver los resultados: está
+>   declarado en el texto. En validación la regla elige el mismo modelo.
+> - **Fuga por sesión**: 575 de 601 grabaciones de prueba comparten especie y día con alguna de
+>   entrenamiento; en las 26 restantes el recall baja a 0,48–0,59. Declarado como limitación
+>   (cap. 4, 5, 6) y trabajo futuro (cap. 7). Corregirlo exige repartir por día y reentrenar.
+> - IoU medio (lo pide el IOV de RE2.3) añadido junto al mediano; tasa de la propuesta 2×10⁻⁴
+>   (el cuaderno redondeaba el exponente); sesgo inicial −log((1−π)/π); Faster R-CNN congela tallo
+>   y primera etapa; versiones v0.2.0 / 2.0.0 / 0.2.5 explicadas; cifras por ventana declaradas
+>   como no extrapolables (las del producto están en el cap. 6).
+> - El capítulo ya no cita un *commit* para los resultados (decisión del autor, 17-11-2026):
+>   cita el repositorio y dice que las cifras salen de ejecutar los *scripts* de RE2.2. Se
+>   quitaron `rCommit`, `rNCommits` y `rVersion` del cuaderno y de `valores.tex`. El *commit*
+>   del cap. 6 (`63f84a8`) se queda: es la prueba de que el protocolo se fijó antes de medir.

@@ -1,0 +1,5 @@
+carpeta,condicion,grabaciones,audio_s,inicio,termino,pausa_min,trabajo_min,min_por_hora_de_audio
+1_manual,manual,14,351.2,08:00,11:32,50.0,162.0,1660.6
+2_assisted,assisted,14,352.1,13:00,15:46,55.0,111.0,1134.9
+3_assisted,assisted,14,360.0,08:00,10:29,43.0,106.0,1060.0
+4_manual,manual,14,363.1,09:00,10:09,21.0,48.0,475.9

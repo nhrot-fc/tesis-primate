@@ -57,7 +57,5 @@ copias idénticas en las dos carpetas.
 
 ## Pendientes
 
-- [x] ~~`image3.png` es una captura antigua y desentona con el resto de
-      figuras.~~ Retirada el 06-10-2026: mostraba la misma caja que la Figura 1.1
-      (anotación en Raven), a la que ahora remite el texto. Borrar el archivo si
-      no vuelve.
+En la lista única de `research/capitulos/README.md`.
+

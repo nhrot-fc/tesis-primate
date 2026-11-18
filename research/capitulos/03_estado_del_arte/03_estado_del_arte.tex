@@ -48,11 +48,8 @@ La revisión se organiza en torno a cinco preguntas:
 
 \subsection{Motores de búsqueda}
 
-La búsqueda se ejecutó sobre dos bases indexadas. Scopus cubre publicaciones
-seriadas de más de cinco mil editores en 140 países e incorpora una herramienta
-de búsqueda asistida que agrupa los artículos relacionados con una consulta. Web
-of Science aporta herramientas de visualización sobre la relevancia y las
-tendencias de las revistas dentro de sus categorías temáticas.
+La búsqueda se ejecutó sobre dos bases indexadas multidisciplinarias, Scopus y
+Web of Science, que cubren las revistas y actas de congresos del área.
 
 \subsection{Cadenas de búsqueda}
 
@@ -75,40 +72,86 @@ recuperado en cada motor.
             \textit{transformer*} OR \textit{machine learning}) AND
             \texttt{TITLE-ABS-KEY} (\textit{sound event detection} OR
             \textit{acoustic event detection} OR \textit{audio event
-                localization} OR \textit{bioacoustic detection}) AND
-            \texttt{TITLE-ABS-KEY} (\textit{biodiversity} OR \textit{wildlife} OR
-            \textit{animal vocalizations} OR \textit{primates} OR
-            \textit{anthropogenic noise} OR \textit{forest monitoring} OR
-            \textit{ecological monitoring}) & 33                                          \\
+                localization} OR \textit{bioacoustic detection})\textsuperscript{a} & 19 \\
             \addlinespace
             Web of Science                  &
-            \texttt{TS} = (mismos tres bloques de términos, unidos por
-            \texttt{AND})                   & 6                                           \\
+            \texttt{TS} = (\textit{deep learning} OR \textit{neural network*} OR
+            \textit{artificial intelligence} OR \textit{transformer*} OR
+            \textit{machine learning}) AND \texttt{TS} = (\textit{sound event
+                detection} OR \textit{acoustic event detection} OR \textit{audio
+                event localization} OR \textit{bioacoustic detection}) AND
+            \texttt{TS} = (\textit{biodiversity} OR \textit{wildlife} OR
+            \textit{animal vocalizations} OR \textit{primates} OR
+            \textit{anthropogenic noise} OR \textit{forest monitoring} OR
+            \textit{ecological monitoring})   & 156                                         \\
             \midrule
-            \textbf{Total}                  &                             & \textbf{39}   \\
+            \textbf{Total}                  &                             & \textbf{175}  \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
             \item \textit{Nota.} Bloques: técnica, tarea y dominio. El asterisco
-            trunca el término.
+            trunca el término. Búsqueda ejecutada el 17/11/2026.
+            \textsuperscript{a}~Sin el bloque de dominio: con los tres bloques,
+            Scopus no devuelve ningún documento.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-Scopus aporta la mayor parte de los documentos. El total es reducido porque la
-cadena exige a la vez los tres bloques de términos, y los criterios de cribado lo
-acotan todavía más.
+Web of Science aporta la mayor parte de los documentos. En Scopus, la cadena con
+los tres bloques no devuelve ninguno. Por eso se ejecutó sin el bloque de
+dominio.
+
+\rotulo{Limitaciones de la búsqueda.} Las cadenas escriben sin comillas los
+términos de varias palabras. Scopus une con AND las palabras sueltas y evalúa OR
+antes que AND. Así, \textit{deep learning OR neural network*} se lee como
+\textit{deep} AND (\textit{learning} OR \textit{neural}) AND
+\textit{network*}, y lo que se recuperó no es exactamente lo que los bloques
+describen. Las cadenas tampoco incluyen términos de detección de objetos
+(\textit{object detection}, \textit{bounding box}, YOLO, DETR,
+\textit{time-frequency}). Por eso no recuperan los trabajos que aplican esos
+detectores en bioacústica y que el Capítulo~\ref{cap:generalidades} cita
+\citep{romero-mujalli_utilizing_2021,escobar-amado_computer_2024,airale_nbm_2025,hong_deep_2026}.
+La búsqueda se ejecutó primero en agosto de 2026, sin registrar la fecha exacta ni
+los descartes de cada etapa. Se repitió el 17/11/2026, y de esa repetición salen
+los conteos de la Tabla~\ref{tab:cadenas} y de la Figura~\ref{fig:prisma}.
 
 \subsection{Documentos encontrados}
 
-% PENDIENTE (autor): el flujo de selección (duplicados eliminados, trabajos
-% cribados por título y resumen, evaluados a texto completo e incluidos) no está
-% registrado en ninguna parte: el diagrama PRISMA que se borró del repositorio
-% (research/figures/prisma_flow.png, commit 9d6c92d) tiene «??» en todas las
-% etapas. Con esos cuatro números, añadir una frase o la figura aquí.
-De los documentos recuperados, la revisión se apoya en los trabajos de la
-Tabla~\ref{tab:estudios}, que indica a qué pregunta de revisión responde cada uno.
+La Figura~\ref{fig:prisma} resume el cribado con el diagrama de flujo de PRISMA
+2020 \citep{page_prisma_2021}. De los 175 registros, 3 están en las dos bases y
+se cuentan una vez. De los 172 restantes, 165 se descartaron por título y resumen.
+De los otros 7 se leyó el texto completo. Dos de ellos quedaron fuera por su menor
+relevancia para las preguntas de revisión. Los cinco restantes entran en la
+revisión, junto con cuatro trabajos de otras fuentes. El cribado se reconstruyó
+con los textos completos que se conservaron. Un registro cuyo texto completo no se
+descargó cuenta como descartado por título y resumen.
+
+\begin{figure}[htbp]
+    \centering
+    \caption{Flujo de la revisión}
+    \label{fig:prisma}
+    \hyphenpenalty=10000 \thickmuskip=5mu\relax
+    \begin{tikzpicture}[node distance=5mm and 6mm]
+        \node[etapa, text width=6.0cm] (id) {Registros identificados\\Scopus ($n = 19$), Web of Science ($n = 156$)};
+        \node[descarte, text width=4.6cm, right=of id] (dup) {Duplicados eliminados ($n = 3$)};
+        \node[etapa, text width=6.0cm, below=of id] (crib) {Registros cribados por título y resumen ($n = 172$)};
+        \node[descarte, text width=4.6cm, right=of crib] (fuera) {Descartados ($n = 165$)};
+        \node[etapa, text width=6.0cm, below=of crib] (texto) {Textos completos evaluados ($n = 7$)};
+        \node[descarte, text width=4.6cm, right=of texto] (excl) {Excluidos por menor relevancia ($n = 2$)};
+        \node[etapa, text width=6.0cm, below=of texto] (bus) {Trabajos de la búsqueda incluidos ($n = 5$)};
+        \node[caja, text width=4.6cm, right=of bus] (otras) {Trabajos de otras fuentes, evaluados e incluidos ($n = 4$)};
+        \node[decision, text width=11.2cm, anchor=north west] (total) at ([yshift=-7mm]bus.south west)
+            {Trabajos incluidos en la revisión ($n = 9$)};
+        \foreach \a/\b in {id/crib, crib/texto, texto/bus} \draw[flecha] (\a) -- (\b);
+        \foreach \a/\b in {id/dup, crib/fuera, texto/excl} \draw[flecha] (\a) -- (\b);
+        \draw[flecha] (bus) -- (bus |- total.north);
+        \draw[flecha] (otras) -- (otras |- total.north);
+    \end{tikzpicture}
+\end{figure}
+
+La Tabla~\ref{tab:estudios} indica a qué pregunta de revisión responde cada
+trabajo incluido.
 
 \begin{table}[htbp]
     \centering
@@ -121,28 +164,37 @@ Tabla~\ref{tab:estudios}, que indica a qué pregunta de revisión responde cada 
             \textbf{Trabajo} & \textbf{Publicación} & \textbf{Preguntas} \\
             \midrule
             \citet{he_deep_2016}\textsuperscript{a} & Conferencia (CVPR) & P1 \\
-            \citet{lostanlen_robust_2019}\textsuperscript{a} & Revista (\textit{PLOS ONE}) & P1, P2, P3, P4 \\
-            \citet{politis_dataset_2020} & Taller (DCASE) & P1, P2, P4 \\
-            \citet{bonet-sola_comparative_2021} & Revista (\textit{Sensors}) & P1 \\
-            \citet{kahl_birdnet_2021} & Revista (\textit{Ecological Informatics}) & P1, P2, P4 \\
+            \citet{lostanlen_robust_2019}\textsuperscript{b} & Revista (\textit{PLOS ONE}) & P1, P2, P3, P4 \\
+            \citet{politis_dataset_2020}\textsuperscript{a} & Taller (DCASE) & P1, P2, P4 \\
+            \citet{bonet-sola_comparative_2021}\textsuperscript{c} & Revista (\textit{Sensors}) & P1 \\
+            \citet{kahl_birdnet_2021}\textsuperscript{a} & Revista (\textit{Ecological Informatics}) & P1, P2, P4 \\
             \citet{nolasco_learning_2023} & Revista (\textit{Ecological Informatics}) & P1, P2, P4, P5 \\
             \citet{kath_leveraging_2024} & Revista (\textit{Ecological Informatics}) & P2, P5 \\
-            \citet{zhu_sound_2025} & Taller (DCASE) & P1 \\
+            \citet{zhu_sound_2025}\textsuperscript{a} & Taller (DCASE) & P1 \\
+            \citet{Campos_Krofel_Rio-Maior_Renna_2025} & Revista (\textit{Remote Sensing in Ecology and Conservation}) & P1 \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item \textit{Nota.} \textsuperscript{a}~Anterior a 2020: antecedente,
-            fuera de la búsqueda.
+            \item \textit{Nota.} \textsuperscript{a}~De otras fuentes, fuera de la
+            búsqueda. \textsuperscript{b}~Sale de la búsqueda pero es anterior a
+            2020, el límite del criterio de temporalidad. Se conserva como
+            antecedente de la discusión de PCEN. \textsuperscript{c}~Sale de la
+            búsqueda pero no cumple el criterio de enfoque, porque compara
+            clasificadores clásicos y una red no profunda. Se conserva como
+            antecedente de la representación de entrada.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-Seis de los ocho trabajos son de 2020 en adelante, como exige el criterio de
-temporalidad de la Tabla~\ref{tab:criterios}. Los dos anteriores se incorporan
-fuera de la búsqueda, como antecedentes sin los cuales no se leen los demás: la
-arquitectura residual, base de BirdNET, y el estudio de redes de sensores en que
-se apoya la discusión de PCEN como alternativa al log-mel.
+Siete de los nueve trabajos son de 2020 en adelante, como exige el criterio de
+temporalidad de la Tabla~\ref{tab:criterios}. De los cinco que salen de la
+búsqueda, uno es anterior a 2020 y otro no cumple el criterio de enfoque. Los dos
+se conservan por la razón que da la nota de la tabla. Los cuatro de otras fuentes
+son antecedentes sin los cuales no se leen los demás. Son la arquitectura
+residual, el propio BirdNET, la línea base del desafío de localización y detección
+de eventos sonoros y el detector de cajas tiempo--frecuencia sobre un extractor de
+audio.
 
 \subsection{Criterios de inclusión y exclusión}
 
@@ -150,6 +202,7 @@ Los resultados se cribaron con los criterios de la Tabla~\ref{tab:criterios}.
 
 \begin{table}[htbp]
     \centering
+    \begin{threeparttable}
     \caption{Criterios de inclusión y exclusión}
     \label{tab:criterios}
     \small
@@ -159,7 +212,7 @@ Los resultados se cribaron con los criterios de la Tabla~\ref{tab:criterios}.
         \midrule
         Temporalidad      & Publicaciones de 2020 en adelante                          & Anteriores a 2020                                         \\
         \addlinespace
-        Calidad           & Revistas Q1 o conferencias de alto impacto                 & Revistas no indexadas o de cuartiles inferiores           \\
+        Calidad           & Revistas Q1, conferencias de alto impacto o el taller DCASE, la referencia del área en eventos sonoros & Revistas no indexadas o de cuartiles inferiores           \\
         \addlinespace
         Enfoque           & Técnicas de aprendizaje profundo                           & Aprendizaje automático clásico sin componente profundo    \\
         \addlinespace
@@ -167,19 +220,26 @@ Los resultados se cribaron con los criterios de la Tabla~\ref{tab:criterios}.
         \addlinespace
         Dominio           & Bioacústica, con preferencia por mamíferos y primates      & Reconocimiento de voz humana sin transferencia al dominio \\
         \addlinespace
-        Entorno           & Entornos naturales ruidosos, preferentemente tropicales    & Entornos exclusivamente de laboratorio                    \\
+        Entorno\textsuperscript{a} & Entornos naturales ruidosos, preferentemente tropicales    & Entornos exclusivamente de laboratorio                    \\
         \addlinespace
-        Detección         & Métodos que localizan el evento en tiempo y frecuencia     & Métodos que clasifican la grabación completa              \\
+        Detección\textsuperscript{a} & Métodos que localizan el evento en tiempo y frecuencia     & Métodos que clasifican la grabación completa              \\
         \addlinespace
-        Clasificación     & Clasificación multinivel de especie y tipo de vocalización & Clasificadores binarios o de un solo nivel                \\
+        Clasificación\textsuperscript{a} & Clasificación multinivel de especie y tipo de vocalización & Clasificadores binarios o de un solo nivel                \\
         \addlinespace
-        Desbalance        & Técnicas para desbalance de clases y escasez de datos      & Métodos que exigen grandes volúmenes etiquetados          \\
+        Desbalance\textsuperscript{a} & Técnicas para desbalance de clases y escasez de datos      & Métodos que exigen grandes volúmenes etiquetados          \\
         \addlinespace
         Evaluación        & Métricas completas de precisión, \textit{recall} y F1      & Trabajos sin evaluación cuantitativa                      \\
         \addlinespace
         Idioma            & Inglés o español                                           & Otros idiomas                                             \\
         \bottomrule
     \end{tabular}
+    \begin{tablenotes}[flushleft]
+        \footnotesize
+        \item \textit{Nota.} \textsuperscript{a}~Eje de relevancia: ordena la
+        lectura y no excluye. Ningún trabajo de la Tabla~\ref{tab:estudios} cumple
+        los cuatro, y esa ausencia es el vacío de la sección~\ref{sec:vacio}.
+    \end{tablenotes}
+    \end{threeparttable}
 \end{table}
 
 Dos de ellos hacen el trabajo principal de filtrado: el criterio de detección
@@ -221,6 +281,8 @@ responde cada pregunta.
         \citet{kath_leveraging_2024} & Clasificación de anuros & Transferencia desde los \textit{embeddings} de BirdNET con clasificadores lineales & La proximidad del dominio de origen importa más que el tamaño del modelo & P2, P5 \\
         \addlinespace
         \citet{zhu_sound_2025} & Detección de eventos con cajas tiempo--frecuencia (DCASE) & AST autosupervisado con pirámide multiescala & Sustituir el extractor de imágenes por uno de audio y añadir una pirámide, porque el AST produce una sola escala & P1 \\
+        \addlinespace
+        \citet{Campos_Krofel_Rio-Maior_Renna_2025} & Detección de aullidos de lobo en monitoreo acústico pasivo & Red convolucional sobre ejemplos de 0,96\,s, promediados con una ventana móvil & Sobre 50\,137\,h de paisaje sonoro reduce 15 veces el tiempo del operador; resulta útil aun con una precisión de 0,006 & P1 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -247,7 +309,10 @@ redes convolucionales recurrentes añaden capas recurrentes para modelar
 dependencias temporales más largas y son la línea base del desafío de
 localización y detección de eventos sonoros \citep{politis_dataset_2020}. Las variantes residuales facilitan el
 entrenamiento de redes más profundas sin degradación \citep{he_deep_2016}, y son
-la base de BirdNET \citep{kahl_birdnet_2021}.
+la base de BirdNET \citep{kahl_birdnet_2021}. En monitoreo acústico pasivo a gran
+escala, HOWLish puntúa ejemplos de 0,96\,s con una red convolucional y promedia
+sus predicciones con una ventana móvil. Sobre 50\,137 horas de paisaje sonoro,
+reduce 15 veces el tiempo del operador \citep{Campos_Krofel_Rio-Maior_Renna_2025}.
 
 En el desafío de detección bioacústica con pocos ejemplos, la mayoría de los
 sistemas usó espectrogramas mel con PCEN y redes convolucionales estándar; lo que
@@ -272,14 +337,14 @@ coeficientes GTCC superaron en la mayoría a los MFCC, la referencia habitual
 La revisión no identificó estrategias diseñadas y evaluadas explícitamente para
 la clasificación jerárquica fina que asigna de forma simultánea la especie y el
 tipo de vocalización. La literatura recuperada se concentra en tres tareas
-vecinas pero distintas: la detección de eventos, que localiza sin etiquetar en
-detalle \citep{lostanlen_robust_2019,politis_dataset_2020}; la clasificación de
-especie, multiclase o multietiqueta, que identifica qué especies están
-presentes, como BirdNET, que reconoce 984 especies de aves
-\citep{kahl_birdnet_2021}, o los clasificadores lineales que
-\citet{kath_leveraging_2024} entrenan sobre \textit{embeddings} para anuros; y la
-clasificación de eventos ya detectados
-en un conjunto plano de clases predefinidas \citep{politis_dataset_2020}.
+vecinas pero distintas. La detección de eventos localiza sin etiquetar en detalle
+\citep{lostanlen_robust_2019,politis_dataset_2020}. La clasificación de especie,
+multiclase o multietiqueta, identifica qué especies están presentes: BirdNET
+reconoce 984 especies de aves \citep{kahl_birdnet_2021}, y
+\citet{kath_leveraging_2024} entrenan clasificadores lineales sobre
+\textit{embeddings} para anuros. La tercera es la clasificación de eventos ya
+detectados en un conjunto plano de clases predefinidas
+\citep{politis_dataset_2020}.
 
 Distinguir tipos de llamada o sílabas es el nivel más fino con que trabaja la
 bioacústica, y una de sus muchas tareas de pequeña escala sin datos con etiquetas
@@ -295,17 +360,17 @@ sensores en despliegues de monitoreo acústico pasivo. Dos resultados son
 directamente aplicables.
 
 El primero es la normalización de energía por canal como preprocesamiento del
-espectrograma: al combinar compresión de rango dinámico y control adaptativo de
-ganancia, suprime el ruido estacionario y realza los eventos transitorios, y con
-sus parámetros ajustados a entornos exteriores ruidosos produce distribuciones
-de magnitud consistentes y cuasi-gaussianas entre sensores distintos
-\citep{lostanlen_robust_2019}. El segundo son las redes adaptativas al contexto,
-que procesan en una rama auxiliar estadísticas espectrales resumidas a largo
-plazo, mediante percentiles del espectrograma, y adaptan el modelo a las condiciones
-de cada punto de monitoreo, mejorando la robustez frente a la variabilidad
-espacial del ruido \citep{lostanlen_robust_2019}. Ambas técnicas resultaron
-complementarias: su combinación fue lo que produjo detección robusta a escala de
-red de sensores.
+espectrograma. Combina compresión de rango dinámico y control adaptativo de
+ganancia, con lo que suprime el ruido estacionario y realza los eventos
+transitorios. Con sus parámetros ajustados a entornos exteriores ruidosos, produce
+distribuciones de magnitud consistentes y cuasi-gaussianas entre sensores
+distintos \citep{lostanlen_robust_2019}. El segundo son las redes adaptativas al
+contexto. Procesan en una rama auxiliar estadísticas espectrales resumidas a largo
+plazo, mediante percentiles del espectrograma, y adaptan el modelo a las
+condiciones de cada punto de monitoreo, lo que mejora la robustez frente a la
+variabilidad espacial del ruido \citep{lostanlen_robust_2019}. Ambas técnicas
+resultaron complementarias, y su combinación fue lo que produjo detección robusta
+a escala de red de sensores.
 
 \subsection{Respuesta a P4: conjuntos de datos y aumento de datos}
 
@@ -318,13 +383,13 @@ marinos \citep{sayigh_watkins_2016} y los conjuntos de los desafíos DCASE
 (\textit{Detection and Classification of Acoustic Scenes and Events}) para
 sonidos generales \citep{politis_dataset_2020,nolasco_learning_2023}. No se encontró ningún conjunto
 público a gran escala etiquetado específicamente para vocalizaciones de
-primates, lo que confirma por una segunda vía el eje de dominio de la
+primates, lo que es coherente con el eje de dominio de la
 sección~\ref{sec:vacio}.
 
 En cuanto a formatos, los eventos localizados en tiempo se distribuyen
 típicamente como archivos delimitados con tiempo de inicio, tiempo de fin y
-etiqueta de clase \citep{nolasco_learning_2023}; en tareas de localización se
-añade la dirección de llegada \citep{politis_dataset_2020}; y en repositorios
+etiqueta de clase \citep{nolasco_learning_2023}. En tareas de localización se
+añade la dirección de llegada \citep{politis_dataset_2020}. En repositorios
 grandes como Xeno-canto lo habitual son etiquetas débiles de presencia o
 ausencia a nivel de grabación completa \citep{kahl_birdnet_2021}. Ninguno de
 esos formatos registra la banda de frecuencia del evento.
@@ -366,13 +431,13 @@ Leídas en conjunto, las respuestas a las cinco preguntas son las siguientes.
 \rotulo{Detección y robustez (P1, P3).} No se identificó ningún estudio que
 aplique y evalúe modelos de aprendizaje profundo a la detección
 tiempo--frecuencia de primates amazónicos. La literatura de dominios vecinos sí
-ofrece estrategias trasladables: las arquitecturas convolucionales y
-convolucionales recurrentes como base
-\citep{lostanlen_robust_2019,politis_dataset_2020}, las variantes residuales
-\citep{he_deep_2016}, y, frente a la variabilidad del
-ruido, la normalización de energía por canal junto con las redes adaptativas
-al contexto, cuya combinación resultó la más efectiva a escala de red de
-sensores \citep{lostanlen_robust_2019}.
+ofrece estrategias trasladables. Como base están las arquitecturas
+convolucionales y convolucionales recurrentes
+\citep{lostanlen_robust_2019,politis_dataset_2020} y las variantes residuales
+\citep{he_deep_2016}. Frente a la variabilidad del ruido están la normalización
+de energía por canal y las redes adaptativas al contexto, cuya combinación
+resultó la más efectiva a escala de red de sensores
+\citep{lostanlen_robust_2019}.
 
 \rotulo{Clasificación jerárquica (P2).} No se hallaron estrategias explícitamente
 diseñadas y evaluadas para asignar de forma conjunta especie y tipo de
@@ -380,7 +445,7 @@ vocalización. Existen enfoques de clasificación multietiqueta sobre
 \textit{embeddings} preentrenados \citep{kath_leveraging_2024}, pero la tarea
 jerárquica específica sigue requiriendo desarrollo propio.
 
-\rotulo{Datos y anotaciones (P4).} Se confirma la ausencia de conjuntos públicos
+\rotulo{Datos y anotaciones (P4).} La revisión no encontró conjuntos públicos
 a gran escala etiquetados para primates y adecuados para aprendizaje profundo:
 el esfuerzo de la comunidad se concentra en aves. Los formatos de anotación de
 uso común registran tiempo de inicio, tiempo de fin y clase
@@ -396,12 +461,13 @@ cuando la salida deseada es una caja tiempo--frecuencia, el problema que aborda
 el
 Capítulo~\ref{cap:deteccion}.
 
-Los dos ejes del vacío descrito en la sección~\ref{sec:vacio} quedan
-confirmados de forma independiente por esta
-revisión: no hay trabajo publicado sobre primates neotropicales en este
-contexto (eje de dominio) y no hay estrategias establecidas para la salida
-bidimensional con etiquetado jerárquico (eje de tarea). El cruce de ambos ejes
-es la posición que ocupa esta tesis.
+La revisión no encontró trabajos que contradigan los dos ejes del vacío descrito
+en la sección~\ref{sec:vacio}: ninguno trata primates neotropicales en este
+contexto (eje de dominio) ni ofrece una estrategia establecida para la salida
+bidimensional con etiquetado jerárquico (eje de tarea). Con las limitaciones de
+su búsqueda, es un respaldo y no una prueba; el vacío se apoya también en los
+antecedentes del Capítulo~\ref{cap:generalidades}, reunidos fuera de ella. El
+cruce de ambos ejes es la posición que ocupa esta tesis.
 
 % ===================================================================
 % CAPÍTULO 4

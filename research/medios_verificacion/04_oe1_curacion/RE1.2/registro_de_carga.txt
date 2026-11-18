@@ -1,0 +1,16 @@
+Carga del caché de data/processed/ en sus dos usos.
+
+1. Exportación de train.pt y val.pt a las imágenes de Ultralytics (registro de la corrida yolo26s_v3):
+   train: Scanning data/yolo/labels/train... 21751 images, 4608 backgrounds, 0 corrupt: 100%
+   val: Scanning data/yolo/labels/val... 9364 images, 2713 backgrounds, 0 corrupt: 100%
+
+2. Ventanas leídas de cada partición al volcar predicciones (validación y prueba, en la evaluación;
+   entrenamiento, en la validación cruzada que buscó llamadas sin anotar):
+   entrenamiento   21751 ventanas leídas,  1248 grabaciones (runs/yolo26s_v3_kfold5/yolo26s_v3_kfold5_train_predictions.pt)
+   validacion       9364 ventanas leídas,   690 grabaciones (runs/yolo26s_v3/yolo26s_v3_val_predictions.pt)
+   prueba           7598 ventanas leídas,   601 grabaciones (runs/yolo26s_v3/yolo26s_v3_test_predictions.pt)
+
+3. Grabaciones compartidas entre particiones:
+   entrenamiento ∩ validacion: 0
+   entrenamiento ∩ prueba: 0
+   validacion ∩ prueba: 0

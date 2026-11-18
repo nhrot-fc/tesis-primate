@@ -42,9 +42,10 @@ cronometrada de anotación manual y asistida (RE3.2) y la revisión ciega de
 % ===================================================================
 
 \rotulo{Resultado.} Un protocolo escrito que fija, antes de medir, qué se evalúa,
-sobre qué datos, cuándo una predicción acierta, cómo se clasifica la que no
-acierta y cómo se ejecutan las dos tareas de revisión experta: la sesión
-cronometrada de RE3.2 y la revisión ciega de una muestra de cajas de RE3.3.
+sobre qué datos, cuándo una predicción acierta y cómo se clasifica la que no
+acierta. Fija también cómo se ejecutan las dos tareas de revisión experta: la
+sesión cronometrada de RE3.2 y la revisión ciega de una muestra de cajas de
+RE3.3.
 
 \rotulo{Cómo se alcanzó.} Con el procedimiento que la
 Tabla~\ref{tab:metodos-resultados} asigna a este resultado: el protocolo se
@@ -54,10 +55,10 @@ Capítulo~\ref{cap:deteccion}; lo nuevo es la unidad de análisis, la clasificac
 de lo que no acierta y el diseño de las dos tareas.
 
 \rotulo{Cómo reproducirlo.} El protocolo es \file{protocolo.md}, en la carpeta del
-capítulo. El cuaderno \file{paquete\_06\_oe3\_revision.ipynb} arma, con la
-semilla 42, las carpetas de la sesión y la muestra de cajas a partir de las tablas
-que la herramienta produce sobre la partición de prueba, y
-\file{src/analysis/review.py} contiene el emparejamiento y las categorías.
+capítulo. Un programa del repositorio arma, con la semilla 42, las carpetas de la
+sesión y la muestra de cajas a partir de las tablas que la herramienta produce
+sobre la partición de prueba. El emparejamiento y las categorías están en el
+código de análisis del repositorio.
 
 \rotulo{Medio de verificación.} El documento de metodología es el protocolo, y su
 fecha, la del \textit{commit} que lo fijó en el repositorio. Esta sección lo
@@ -97,14 +98,14 @@ aplicada a filas en lugar de ventanas.
 Una fila sin acierto cae en la primera de cuatro reglas que cumpla, que
 corresponden a la taxonomía de la Tabla~\ref{tab:taxonomia-fp}. Es \emph{caja
     distinta} si tiene un IoU de al menos 0,3 con una anotación de su clase que
-otra fila ya tomó (tipo~B); \emph{otra llamada}, si lo tiene con una anotación de
-otra clase (tipo~C); otra vez \emph{caja distinta}, si solapa con una anotación de
-su clase con un IoU menor (tipo~A), y \emph{nada anotado}, si no cumple ninguna
-(tipo~D). De las \uRows{} filas de prueba, \uMatchRows{} aciertan, \uBoxRows{} son
-caja distinta, \uLabelRows{} otra llamada y \uNoneRows{} nada anotado. Otras
-\uNotReviewed{} no tocan ninguna anotación de la referencia pero sí una que quedó
-fuera de ella, en revisión o de una clase que el modelo no tiene; ahí ya hay algo
-anotado, y no se revisan.
+otra fila ya tomó (tipo~B). Es \emph{otra llamada} si lo tiene con una anotación
+de otra clase (tipo~C). Vuelve a ser \emph{caja distinta} si solapa con una
+anotación de su clase con un IoU menor (tipo~A). Es \emph{nada anotado} si no
+cumple ninguna (tipo~D). De las \uRows{} filas de prueba, \uMatchRows{} aciertan,
+\uBoxRows{} son caja distinta, \uLabelRows{} otra llamada y \uNoneRows{} nada
+anotado. Otras \uNotReviewed{} no tocan ninguna anotación de la referencia, pero
+sí una que quedó fuera de ella, en revisión o de una clase que el modelo no
+tiene. Ahí ya hay algo anotado, y no se revisan.
 
 \subsection{Tarea 1: la sesión cronometrada}
 \label{sec:diseno-sesion}
@@ -130,18 +131,19 @@ condiciones. La sesión va antes que la revisión de cajas, cuando el especialis
 todavía no conoce las propuestas del modelo, y usa grabaciones distintas.
 
 \rotulo{Medidas.} El tiempo de trabajo de una carpeta es la hora de término menos
-la de inicio, menos las pausas anotadas. Por condición se suman los tiempos y se
-dividen por las horas de audio: minutos de trabajo por hora de audio, y el
-cociente entre la condición asistida y la manual. No se fija ningún ahorro
-esperado. Para que un tiempo menor no oculte un trabajo peor, cada tabla entregada
-se compara con la referencia con la regla de acierto anterior: la
+la de inicio, menos las pausas anotadas. Por condición, los tiempos se suman y se
+dividen por las horas de audio, lo que da los minutos de trabajo por hora de
+audio. De ahí sale el cociente entre la condición asistida y la manual. No se fija
+ningún ahorro esperado. Para que un tiempo menor no oculte un trabajo peor, cada
+tabla entregada se compara con la referencia con la regla de acierto anterior. La
 \emph{cobertura} es la parte de las anotaciones de referencia que alguna caja
-entregada acierta, y la \emph{precisión}, la parte de las cajas entregadas que
+entregada acierta, y la \emph{precisión} es la parte de las cajas entregadas que
 aciertan alguna. En la condición asistida se registra además qué pasó con cada
-propuesta, que se dejó igual (la caja entregada más parecida tiene un IoU de al
-menos 0,9 y su misma clase), se corrigió (IoU de al menos 0,3) o se borró, y
-cuántas cajas se agregaron (IoU menor que 0,3 con todas las propuestas). El costo
-de la máquina se mide en minutos de cómputo por hora de audio, en GPU y en CPU.
+propuesta. Se dejó igual si la caja entregada más parecida tiene un IoU de al
+menos 0,9 y su misma clase, se corrigió si el IoU es de al menos 0,3, y si no, se
+borró. Las cajas con IoU menor que 0,3 con todas las propuestas cuentan como
+agregadas. El costo de la máquina se mide en minutos de cómputo por hora de
+audio, en GPU y en CPU.
 
 \subsection{Tarea 2: la revisión ciega de cajas}
 \label{sec:diseno-revision}
@@ -149,14 +151,14 @@ de la máquina se mide en minutos de cómputo por hora de audio, en GPU y en CPU
 \rotulo{Muestra.} \uItems{} filas de prueba en \uItemsRecordings{} grabaciones,
 sorteadas al azar dentro de seis estratos con la semilla 42. Las \uNoneRows{}
 filas nada anotado se dividen en tres tramos de confianza (mayor que 0,5; de 0,3 a
-0,5, y de 0,11 a 0,3), de los que se sortean 300, 200 y 133: el primero son las
+0,5, y de 0,11 a 0,3), de los que se sortean 300, 200 y 133. El primero son las
 predicciones de alta confianza que nombra el indicador, y los otros dos cubren el
 resto del rango de operación. Las \uBoxRows{} filas de caja distinta y las
-\uLabelRows{} de otra llamada entran completas, y \uControls{} de los
-\uMatchRows{} aciertos entran como controles, para medir qué tan exigente es el
-revisor con lo que la referencia ya da por bueno. Con 300 cajas, una proporción
-tiene un intervalo de confianza del 95\,\% de $\pm$6 puntos en el peor caso, y
-con las \uNoneSample{} de nada anotado juntas, de $\pm$4.
+\uLabelRows{} de otra llamada entran completas. \uControls{} de los \uMatchRows{}
+aciertos entran como controles, para medir qué tan exigente es el revisor con lo
+que la referencia ya da por bueno. Con 300 cajas, una proporción tiene un
+intervalo de confianza del 95\,\% de $\pm$6 puntos en el peor caso, y con las
+\uNoneSample{} de nada anotado juntas, de $\pm$4.
 
 \rotulo{Ciego.} El revisor ve cada caja y su clase propuesta sobre el audio, en
 una tabla de Raven que contiene solo las cajas de la muestra. No ve la confianza,
@@ -218,9 +220,9 @@ El protocolo y el código que lo aplica quedaron en el repositorio con el
 \textit{commit} \code{63f84a8}, del 10 de octubre de 2026. Esa versión ya contiene
 todas las reglas anteriores: el modelo y su umbral, la regla de acierto, las
 categorías, los estratos y sus tamaños, el ciego, el formulario, la lectura, la
-estimación y el diseño de la sesión, y su código ya aplica los umbrales de 0,9 y
-0,3 con que se clasifica el destino de cada propuesta. El 27 de octubre, al armar
-el material que se envió al equipo, el texto se reordenó y se fijó que la sesión
+estimación y el diseño de la sesión. Su código ya aplica los umbrales de 0,9 y 0,3
+con que se clasifica el destino de cada propuesta. El 27 de octubre, al armar el
+material que se envió al equipo, el texto se reordenó y se fijó que la sesión
 fuera la primera tarea. La sesión se hizo entre el 11 y el 13 de noviembre, y la
 revisión de cajas terminó el 15. Ninguna regla de medición cambió después de ver
 las respuestas.
@@ -228,8 +230,8 @@ las respuestas.
 \subsection{Desviaciones en la ejecución}
 \label{sec:desviaciones-oe3}
 
-La ejecución se apartó del protocolo en cuatro puntos. Ninguno cambia una regla,
-pero los dos primeros cambian cómo se leen algunas cifras, y la
+La ejecución se apartó del protocolo en cuatro puntos. El último rompe una regla
+de la revisión ciega; los dos primeros cambian cómo se leen algunas cifras, y la
 sección~\ref{sec:discusion-oe3} los discute.
 
 \begin{enumerate}
@@ -237,32 +239,34 @@ sección~\ref{sec:discusion-oe3} los discute.
           revisor, y las dos tareas las hicieron dos personas del equipo, que aquí se
           llaman A y B. Según la nota que acompañó a los tiempos, B había clasificado
           antes vocalizaciones de las ocho especies, y A solo había trabajado con las
-          del mono aullador; ninguna de las dos había anotado antes las grabaciones
-          de la sesión. En la sesión se repartieron las carpetas de forma desigual
+          del mono aullador. Ninguna de las dos había anotado antes las
+          grabaciones de la sesión. En la sesión se repartieron las carpetas de forma desigual
           (sección~\ref{sec:sesion}). En la revisión de cajas, cada caja tiene una
           sola respuesta, y las grabaciones volvieron separadas por persona en
           \uPersonRecordings{} de los \uItemsRecordings{} casos (\uPersonRecA{} de A
-          y \uPersonRecB{} de B); en el resto no consta quién las revisó.
+          y \uPersonRecB{} de B). En el resto no consta quién las revisó.
     \item \textbf{Revisión dentro de los intervalos.} Los tiempos de las carpetas
           1, 2 y 3 incluyen, cada uno, 15 minutos en que B revisó lo hecho por A.
     \item \textbf{Erratas en la planilla.} Las respuestas volvieron en una hoja de
-          cálculo, no en el archivo de texto del paquete, y tres traían una errata:
-          \code{corect} se leyó como \code{correct}; \code{other} con un espacio
-          final, como \code{other}, y \code{too short}, escrita en la columna de la
-          respuesta, como \code{box}, que es la respuesta a la que ese comentario
-          acompaña en el resto de la planilla.
-    \item \textbf{Un comentario fuera del formulario.} En todas las filas de
-          \uRefrainRecordings{} de las \uItemsRecordings{} grabaciones, el
-          comentario incluye «missing selection of vocalizations». Responde a una
-          indicación que el autor dio por mensaje durante la tarea, fuera del
-          protocolo: anotar también lo que el modelo omitiera. Los revisores no
-          agregaron cajas, porque las tablas volvieron sin cambios, y dejaron esa
-          nota. La tabla que veía
+          cálculo, no en el archivo de texto del paquete, y tres traían una errata.
+          \code{corect} se leyó como \code{correct}, y \code{other} con un espacio
+          final, como \code{other}. \code{too short}, escrita en la columna de la
+          respuesta, se leyó como \code{box}, que es la respuesta a la que ese
+          comentario acompaña en el resto de la planilla.
+    \item \textbf{Una indicación del autor durante la tarea ciega.} Mientras
+          la tarea estaba en curso, el autor pidió por mensaje anotar también lo
+          que el modelo omitiera. Es una violación del protocolo, que prevé que el
+          revisor trabaje solo con el formulario. El mensaje no decía de qué
+          estrato venía cada caja ni qué tenía la referencia, y los revisores no
+          agregaron cajas, porque las tablas volvieron sin cambios. Su efecto sobre
+          las respuestas no puede medirse. Lo que sí dejó es un comentario: en
+          todas las filas de \uRefrainRecordings{} de las \uItemsRecordings{}
+          grabaciones aparece «missing selection of vocalizations». La tabla que veía
           el revisor tenía solo las cajas de la muestra, \uShownPerRecording{} por
           grabación en promedio, de las \uRowsPerSampledRecording{} filas que la
           herramienta produjo en esas grabaciones. El comentario describe esa tabla,
-          en la que siempre quedaban llamadas sin caja, y no lo que el modelo omite;
-          por eso no se usa.
+          en la que siempre quedaban llamadas sin caja, y no lo que el modelo
+          omite. Por eso no se usa.
 \end{enumerate}
 
 \subsection{Verificación de RE3.1}
@@ -312,16 +316,16 @@ abriera la primera carpeta de la sesión.
 material, con la calidad de lo que se entregó en cada condición y el costo de
 cómputo del modelo. En esta sesión, la revisión manual costó \uMinManual{}
 minutos por hora de audio y la asistida \uMinAssisted{}, un cociente de
-\uTimeRatio{}: la asistencia no redujo el tiempo. Las tablas asistidas, en
-cambio, salieron más completas y más precisas.
+\uTimeRatio{}: la asistencia no redujo el tiempo. Las tablas asistidas
+salieron con más cobertura y más precisión, una diferencia sin intervalo y
+mezclada con quién anotó y con las tablas vacías.
 
 \rotulo{Cómo se alcanzó.} Con la tarea~1 del protocolo
 (sección~\ref{sec:diseno-sesion}), entre el 11 y el 13 de noviembre de 2026. El
 equipo anotó en una planilla la hora de inicio, la de término y las pausas de cada
 carpeta, y guardó en Raven una tabla por grabación.
 
-\rotulo{Cómo reproducirlo.} El cuaderno \file{figuras\_06\_oe3\_revision.ipynb}
-lee la planilla de tiempos y las tablas devueltas, las compara con la referencia y
+\rotulo{Cómo reproducirlo.} El código de análisis lee la planilla de tiempos y las tablas devueltas, las compara con la referencia y
 genera las Tablas~\ref{tab:sesion} y~\ref{tab:calidad-sesion} y todas las cifras
 de esta sección. Las tablas del modelo que recibió el equipo son las del paquete
 de RE3.1.
@@ -366,8 +370,10 @@ La Tabla~\ref{tab:sesion} da el tiempo de trabajo por carpeta y condición.
         \begin{tablenotes}[flushleft]
             \footnotesize
             \item \textit{Nota.} Carpetas en el orden en que se hicieron.
-            Anotaciones: las de referencia. Trabajo: fin menos inicio, sin las
-            pausas.
+            Anotaciones: todas las de la referencia, también las de pares que no
+            son clase del modelo; la Tabla~\ref{tab:calidad-sesion} usa solo las
+            \uSessionRef{} de las clases del modelo. Trabajo: fin menos inicio,
+            sin las pausas.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -375,13 +381,13 @@ La Tabla~\ref{tab:sesion} da el tiempo de trabajo por carpeta y condición.
 Las dos condiciones costaron casi lo mismo: \uWorkManual{} y \uWorkAssisted{}
 minutos de trabajo sobre la misma cantidad de audio. Pero la diferencia entre
 condiciones es pequeña al lado de la que hay entre las carpetas de una misma
-condición: las dos manuales costaron \uFolderMinHigh{} y \uFolderMinLow{} minutos
+condición. Las dos manuales costaron \uFolderMinHigh{} y \uFolderMinLow{} minutos
 por hora de audio, más de tres veces de diferencia, y el tiempo por hora bajó de
-una carpeta a la siguiente, en el orden en que se hicieron. El orden manual,
-asistida, asistida, manual reparte ese descenso entre las dos condiciones cuando
-es parejo; con un descenso tan marcado, y con las personas repartidas de forma
-distinta en cada carpeta, el cociente de \uTimeRatio{} no separa el efecto de la
-asistencia del de quién anotó y en qué momento de la sesión.
+una carpeta a la siguiente, en el orden en que se hicieron. Cuando ese descenso es
+parejo, el orden manual, asistida, asistida, manual lo reparte entre las dos
+condiciones. Aquí el descenso es muy marcado y las personas se repartieron de
+forma distinta en cada carpeta. Por eso el cociente de \uTimeRatio{} no separa el
+efecto de la asistencia del de quién anotó y en qué momento de la sesión.
 
 \subsection{Calidad de lo entregado}
 
@@ -422,7 +428,9 @@ modelo solo, que encuentran más anotaciones de referencia que cualquier tabla
 humana a costa de una precisión menor. Las tablas humanas se miden contra una
 referencia que otras personas hicieron en otro momento, lo que puede sesgar la
 comparación \citep{koga_lead_2024}, y las \uEmptyTables{}
-tablas vacías cuentan en contra de las dos condiciones.
+tablas vacías cuentan en contra de las dos condiciones. La diferencia no lleva
+intervalo: con dos personas repartidas de forma desigual entre las condiciones,
+no puede separarse de la diferencia entre personas.
 
 Lo que se hizo con las propuestas explica parte de esa diferencia. De las
 \uProposals{} propuestas que recibió la condición asistida, se dejaron igual
@@ -501,10 +509,9 @@ cada categoría.
 grabaciones, respondieron la planilla de arriba abajo y la devolvieron completa el
 15 de noviembre de 2026.
 
-\rotulo{Cómo reproducirlo.} \file{paquete\_06\_oe3\_revision.ipynb} vuelve a
-sortear la misma muestra con la semilla 42, y
-\file{figuras\_06\_oe3\_revision.ipynb} lee la planilla devuelta, aplica la
-lectura y la estimación del protocolo y genera la Tabla~\ref{tab:estratos}, la
+\rotulo{Cómo reproducirlo.} El programa que armó el paquete vuelve a sortear la
+misma muestra con la semilla 42. El código de análisis lee la planilla devuelta,
+aplica la lectura y la estimación del protocolo y genera la Tabla~\ref{tab:estratos}, la
 Figura~\ref{fig:ejemplos} y todas las cifras de la sección.
 
 \rotulo{Medio de verificación.} El informe de análisis es esta sección, y los
@@ -578,17 +585,17 @@ propia referencia tiene errores.
 
 La precisión que se mide contra la referencia trata como error toda fila que no
 acierta. Si cada estrato se lleva a su población, las \uApparent{} filas
-revisables que no aciertan se reparten así según el revisor: en \uApparentCorrect{}
-el modelo tenía razón; en \uApparentBox{} había una llamada real con la caja mal
-puesta; en \uApparentOther{}, una llamada real de otra clase, y solo en
-\uApparentNoise{} no había ninguna llamada de primate. Con el revisor como
-referencia, la precisión por fila, que contra la referencia es \uPrecisionRef{},
-sube a \uPrecisionStrict{} si se exigen la clase y la caja correctas, a
+revisables que no aciertan se reparten así según el revisor. En \uApparentCorrect{}
+el modelo tenía razón, en \uApparentBox{} había una llamada real con la caja mal
+puesta y en \uApparentOther{} una llamada real de otra clase. Solo en
+\uApparentNoise{} no había ninguna llamada de primate. Contra la referencia, la
+precisión por fila es \uPrecisionRef{}. Con el revisor como referencia, sube a
+\uPrecisionStrict{} si se exigen la clase y la caja correctas, a
 \uPrecisionLenient{} si basta que la llamada de esa clase esté en la caja y a
-\uPrecisionCall{} si basta cualquier llamada de primate. Esta lectura queda
-fuera del protocolo: combina sus proporciones por estrato con el tamaño de cada
-estrato, aplica a los \uMatchRows{} aciertos lo que el revisor respondió en los
-controles y deja fuera las \uNotReviewed{} filas que no se revisaron.
+\uPrecisionCall{} si basta cualquier llamada de primate. Esta lectura queda fuera
+del protocolo. Combina sus proporciones por estrato con el tamaño de cada estrato,
+aplica a los \uMatchRows{} aciertos lo que el revisor respondió en los controles y
+deja fuera las \uNotReviewed{} filas que no se revisaron.
 
 \subsection{Errores comunes}
 
@@ -603,9 +610,10 @@ las cajas nada anotado es \uNoiseBySpecies{}.
 nombran sobre todo otro tipo de llamada de la misma especie: los tipos de SB entre
 sí, los de LW con su \code{trino} y, en AS, \code{bc} con \code{hc}. La clase que
 más se confunde es \uOtherTopClass{}: \uOtherTopK{} de sus \uOtherTopN{} cajas
-nada anotado son, según el revisor, otra llamada. Es lo que anticipaba el
-Capítulo~\ref{cap:deteccion}: la clase de especie se distingue bien, y el error
-está en el tipo de llamada y en la caja.
+nada anotado son, según el revisor, otra llamada. Coincide con el
+Capítulo~\ref{cap:deteccion}: la etiqueta falla pocas veces, y cuando falla la
+mayoría de las confusiones son entre tipos de llamada de una misma especie, aunque
+una parte cruza especies.
 
 \subsection{Ejemplos}
 
@@ -636,11 +644,11 @@ referencia lo cuenta como falso positivo.
 
 Dos lecturas adicionales, que no cambian ninguna regla, acotan la cifra principal.
 La primera se refiere a las cajas nada anotado que caen dentro de una anotación de
-otra clase, por lo general más larga, como un coro: \uNoneInside{} de las
-revisadas tienen al menos la mitad de su área dentro de una sola anotación, y
+otra clase, por lo general más larga, como un coro. \uNoneInside{} de las revisadas
+tienen al menos la mitad de su área dentro de una sola anotación, y
 \uNoneInsideOther{} de ellas el revisor las respondió \code{other}, casi siempre
 nombrando la clase de esa anotación. La lectura del protocolo las cuenta como
-eventos no anotados; sin ellas, la parte de llamadas reales baja de \uNoneReal{} a
+eventos no anotados. Sin ellas, la parte de llamadas reales baja de \uNoneReal{} a
 \uNoneRealKept{}, y los eventos no anotados por hora de audio, de
 \uUnannotatedPerHour{} a \uUnannotatedKeptPerHour{}.
 
@@ -701,8 +709,10 @@ categoría. El indicador se cumple.
 
 \rotulo{Resumen.} Las reglas de la evaluación quedaron fijadas un mes antes de
 medir (sección~\ref{sec:re31}). En la sesión cronometrada, revisar con las
-propuestas del modelo tomó lo mismo que anotar desde cero, pero dio tablas más
-completas y más precisas (sección~\ref{sec:re32}). Y la revisión de cajas mostró
+propuestas del modelo tomó lo mismo que anotar desde cero, y las tablas
+asistidas salieron con más cobertura y más precisión, aunque sin intervalo y con
+la persona y las tablas vacías mezcladas en la diferencia
+(sección~\ref{sec:re32}). Y la revisión de cajas mostró
 que la mayor parte de lo que la referencia cuenta como error del modelo no lo es:
 las predicciones sin anotación son, en su mayoría, llamadas que nadie anotó, y el
 ruido es una parte menor y concentrada en pocas fuentes (sección~\ref{sec:re33}).
@@ -713,38 +723,40 @@ asistido: en borrar dos de cada tres propuestas, incluidas \uProposalsHitDeleted
 de las \uProposalsHit{} que acertaban, y en agregar cajas nuevas. Con la revisión
 de cajas al lado, ese borrado se explica mejor por el criterio con que se juzga una
 caja que por la calidad de las propuestas, que en su mayoría encuadran llamadas
-reales: incluso entre los aciertos, el revisor marcó \uControlsFraming{} como mal
+reales. Incluso entre los aciertos, el revisor marcó \uControlsFraming{} como mal
 encuadrados. Si una propuesta que no se ajusta al criterio del especialista se
-borra y se vuelve a dibujar, la asistencia ahorra la búsqueda pero no el dibujo, y
-en un material tan denso como el de la sesión, donde casi toda grabación tiene algo
-que anotar, la búsqueda pesa poco. Es una explicación compatible con las cifras, no
-una medición: la sesión no registró cuánto tiempo fue a cada acción.
+borra y se vuelve a dibujar, la asistencia ahorra la búsqueda pero no el dibujo. Y
+en un material tan denso como el de la sesión, donde casi toda grabación tiene
+algo que anotar, la búsqueda pesa poco. Es una explicación compatible con las
+cifras, no una medición: la sesión no registró cuánto tiempo fue a cada acción.
 
 Para la causa C3, el resultado es más claro. Medida contra la referencia, la
-precisión del modelo por fila es \uPrecisionRef{}; según el revisor, está entre
-\uPrecisionStrict{} y \uPrecisionLenient{}. La diferencia es la referencia: le
+precisión del modelo por fila es \uPrecisionRef{}, y según el revisor está entre
+\uPrecisionStrict{} y \uPrecisionLenient{}. La diferencia es la referencia. Le
 faltan unas \uUnannotatedPerHour{} llamadas por hora de audio que el modelo sí
 propone, en parte por diseño, porque en cada grabación solo se anotó el primate
-focal (\cpEquipo), y algunas de las que tiene están mal encuadradas o mal etiquetadas. Eso
-tiene dos consecuencias para el equipo. La primera es que las métricas del
-Capítulo~\ref{cap:deteccion}, medidas contra esa misma referencia, subestiman al
-modelo. La segunda es que no hace falta revisarlo todo por igual: las propuestas
-de alta confianza sin anotación son llamadas reales en \uNoneRealTop{} de los
-casos, y el ruido viene sobre todo de aves y de unas pocas clases, de modo que el
-especialista puede decidir qué aceptar, qué revisar primero y qué filtrar, que es
-lo que la causa C3 echaba en falta (sección~\ref{sec:causas}).
+focal (\cpEquipo). Y algunas de las que tiene están mal encuadradas o mal
+etiquetadas. Eso tiene dos consecuencias para el equipo. La primera es que las
+métricas del Capítulo~\ref{cap:deteccion}, medidas contra esa misma referencia,
+subestiman al modelo. La segunda es que no hace falta revisarlo todo por igual.
+Las propuestas de alta confianza sin anotación son llamadas reales en
+\uNoneRealTop{} de los casos, y el ruido viene sobre todo de aves y de unas pocas
+clases. El especialista puede así decidir qué aceptar, qué revisar primero y qué
+filtrar, que es lo que la causa C3 echaba en falta (sección~\ref{sec:causas}).
 
 \rotulo{Frente a la literatura.} Los ahorros revisados en la
-sección~\ref{sec:magnitud} corresponden a detectar una o pocas especies: depurar
+sección~\ref{sec:magnitud} corresponden a detectar una o pocas especies. Depurar
 los falsos positivos de un sistema semiautomático para primates costó entre el 3 y
-el 5\,\% del tiempo del procesamiento humano \citep{heinicke_2015}, HOWLish redujo
-15 veces el tiempo del operador \citep{Campos_Krofel_Rio-Maior_Renna_2025} y un
+el 5\,\% del tiempo del procesamiento humano \citep{heinicke_2015}. HOWLish redujo
+15 veces el tiempo del operador \citep{Campos_Krofel_Rio-Maior_Renna_2025}, y un
 detector de llamadas de langur redujo en un 87\,\% la carga de revisión
 \citep{hong_deep_2026}. Ninguno de esos trabajos medía la anotación completa, con
 caja, especie y tipo de llamada, que es la que esta sesión cronometró
 (sección~\ref{sec:vacio}). Que aquí no aparezca un ahorro es coherente con que
-delimitar cada evento sea muy costoso en tiempo \citep{koga_lead_2024}: el detector resuelve la búsqueda, pero no el encuadre, y es
-en el encuadre donde el especialista y el modelo discrepan. Esa discrepancia
+delimitar cada evento sea muy costoso en tiempo \citep{koga_lead_2024}. Una
+explicación posible es que el detector alivia la búsqueda pero no el encuadre, y
+que es en el encuadre donde el especialista y el modelo discrepan. La sesión no
+permite comprobarlo, porque no registró el tiempo de cada acción. Esa discrepancia
 también es la que anticipa la literatura. La anotación manual tiene errores
 propios de cada anotador \citep{nguyen_assessing_2021}, dos analistas pueden
 coincidir en menos de la mitad de los casos \citep{leroy_reliability_2018}, y la
@@ -755,17 +767,17 @@ encuadrados, y la distinta frecuencia con que las dos personas respondieron
 detector sea útil con una precisión baja frente a la referencia tiene precedente:
 HOWLish lo es con una precisión de 0,006 \citep{Campos_Krofel_Rio-Maior_Renna_2025}.
 
-\rotulo{Generalización.} Lo que se sostiene fuera de este corpus es el método: una
+\rotulo{Generalización.} Lo que se sostiene fuera de este corpus es el método. Una
 muestra estratificada, revisada a ciegas y con controles, separa el error del
 detector del de la referencia con cualquier detector y cualquier referencia, y el
 estimador estratificado lleva la muestra a la población. Es probable que se
 sostenga también la conclusión cualitativa de que una referencia hecha a mano
 omite llamadas, porque la literatura lo documenta en otros dominios. Las cifras,
-en cambio, no se sostienen sin volver a medir: los minutos por hora de audio
+en cambio, no se sostienen sin volver a medir. Los minutos por hora de audio
 dependen de quién anota, de su experiencia y de la densidad del material, y aquí
 los midieron dos personas sobre \uSessionMinutes{} minutos de audio elegido entre
-grabaciones focales con anotaciones; las fuentes de ruido dependen del sitio y de la
-temporada, y las confusiones de clase, del repertorio de cada especie.
+grabaciones focales con anotaciones. Las fuentes de ruido dependen del sitio y de
+la temporada, y las confusiones de clase, del repertorio de cada especie.
 
 \rotulo{Limitaciones.} Cada una dice cómo leer un resultado, no lo invalida.
 
@@ -797,9 +809,16 @@ temporada, y las confusiones de clase, del repertorio de cada especie.
           referencia también se equivoca; las cifras de calidad de la sesión, que
           se miden contra ella, heredan esos errores.
     \item \textbf{Lo que quedó fuera.} Las \uNotReviewed{} filas que tocan
-          anotaciones fuera de la referencia no se revisaron, y la tarea opcional
-          sobre la calidad del corpus entero, que no forma parte del indicador,
-          queda para después de esta entrega.
+          anotaciones fuera de la referencia no se revisaron. Tampoco se revisó
+          la calidad del corpus entero: el paquete incluía una tarea opcional, fuera
+          del indicador, con las propuestas de alta confianza sin anotación en
+          entrenamiento y validación, y queda para después de esta entrega.
+    \item \textbf{Grabaciones de prueba del mismo seguimiento que las de
+              entrenamiento.} Casi todas comparten especie y día con alguna que el
+          modelo vio al entrenar, y en las pocas que no, el \textit{recall} del
+          Capítulo~\ref{cap:deteccion} es menor (sección~\ref{sec:discusion-oe2}).
+          Las cifras del modelo de este capítulo pueden ser, por eso, mejores que
+          las que daría sobre un seguimiento nuevo.
     \item \textbf{Un punto de operación fijo.} El umbral de \rThresholdYol{} no se
           movió, por diseño. Uno más alto reduciría el ruido, que baja con la
           confianza, pero también las llamadas reales que el sistema propone.

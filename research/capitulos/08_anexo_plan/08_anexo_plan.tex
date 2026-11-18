@@ -14,8 +14,8 @@ de al procesamiento.
 
 En el plano práctico, el proyecto reduce la infrautilización del material acústico
 acumulado y, con ella, la latencia entre la recolección y la generación de
-conocimiento. En el plano teórico, aborda dos vacíos confirmados de forma
-independiente por la revisión del Capítulo~\ref{cap:estado}: la ausencia de
+conocimiento. En el plano teórico, aborda dos vacíos que la revisión del
+Capítulo~\ref{cap:estado} respalda: la ausencia de
 modelos y de conjuntos de datos con anotación tiempo--frecuencia para primates
 neotropicales, y la falta de estrategias establecidas para el etiquetado
 jerárquico de especie y tipo de llamada sobre eventos detectados.
@@ -28,7 +28,9 @@ jerárquico de especie y tipo de llamada sobre eventos detectados.
     \item Poner en uso el audio ya grabado que hoy permanece sin anotar.
     \item Acortar la latencia entre la recolección y la obtención de resultados
           ecológicos.
-    \item Disminuir el costo y el error humano asociados al análisis manual.
+    \item Disminuir el costo y el error humano asociados al análisis manual. Es
+          un beneficio esperado: la tesis mide el tiempo de revisión, pero no lo
+          muestra reducido (Capítulo~\ref{cap:conclusiones}).
     \item Entregar una herramienta reutilizable, con código y pesos públicos,
           integrable al flujo de trabajo existente en Raven.
 \end{itemize}
@@ -39,13 +41,13 @@ jerárquico de especie y tipo de llamada sobre eventos detectados.
 
 El proyecto no depende de ningún desarrollo previo inexistente. Las
 arquitecturas necesarias están disponibles y documentadas
-\citep{ren_faster_2017,carion_detr_2020,zhu_deformable_2021,gong_ast_2021}; las herramientas
-son software libre de uso extendido (Tabla~\ref{tab:herramientas}); los
-recursos de cómputo se cubren con acceso a GPU en la nube; los datos iniciales,
-aproximadamente 10\,GB de grabaciones WAV focales, hechas con micrófono
-parabólico o teléfono, con sus
-anotaciones de Raven, ya están entregados; y la metodología de trabajo
-(CRISP-DM) está establecida y es la que estructura el documento.
+\citep{ren_faster_2017,carion_detr_2020,zhu_deformable_2021,gong_ast_2021}, y las
+herramientas son software libre de uso extendido (Tabla~\ref{tab:herramientas}).
+Los recursos de cómputo los cubre un servidor con GPU de la universidad. Los datos
+iniciales ya están entregados: aproximadamente 10\,GB de grabaciones WAV focales,
+hechas con micrófono parabólico o teléfono, con sus anotaciones de Raven. La
+metodología de trabajo (CRISP-DM) está establecida y es la que estructura el
+documento.
 
 \subsection{Viabilidad temporal}
 
@@ -58,10 +60,12 @@ el material de partida ya existe.
 
 \subsection{Viabilidad económica}
 
-El grueso del software es de código abierto y sin costo. Los sensores ya están
-desplegados y su costo no recae sobre este proyecto. El desembolso real se
-concentra en cómputo en la nube y en servicios de almacenamiento; el resto del
-presupuesto es una valorización del tiempo dedicado, no un pago efectivo.
+El grueso del software es de código abierto y sin costo. Las grabaciones ya
+existen, las hizo el equipo de investigación, y su costo no recae sobre este
+proyecto. El servidor con GPU lo pone la universidad. El desembolso real se
+reduce al almacenamiento en la nube y a los costos indirectos. El resto del
+presupuesto es una valorización del tiempo dedicado y de los equipos del tesista,
+no un pago efectivo.
 
 \section{Alcance}
 
@@ -129,8 +133,8 @@ investigación, y por eso son los expuestos al riesgo R3.
 \begin{itemize}[nosep]
     \item No se desarrolla un sistema de monitoreo en tiempo real desplegable en
           campo; el alcance es el procesamiento de grabaciones existentes.
-    \item El análisis detallado de sonidos antropogénicos queda fuera del foco
-          primario, más allá de su detección y categorización general.
+    \item Los sonidos antropogénicos quedan fuera: el sistema no los detecta ni
+          los categoriza.
     \item El estudio se limita a las ocho especies declaradas.
     \item No se desarrolla hardware de adquisición.
     \item No se realiza nueva recolección de datos en campo.
@@ -145,20 +149,20 @@ investigación, y por eso son los expuestos al riesgo R3.
 
 \section{Limitaciones}
 
-\rotulo{Limitaciones.} La ausencia de conjuntos etiquetados a gran escala para
+La ausencia de conjuntos etiquetados a gran escala para
 primates neotropicales obliga a invertir un esfuerzo considerable en OE1, y la
 calidad de las anotaciones manuales recibidas es subjetiva y variable. El
 entorno acústico amazónico es denso y presenta con frecuencia baja relación
 señal-ruido. La variabilidad intraespecífica de las vocalizaciones y su
 naturaleza graduada dificultan definir categorías discretas, y las llamadas
 superpuestas o de baja intensidad son especialmente difíciles de modelar. Los
-sensores de bajo costo añaden variabilidad entre dispositivos. Por último, sin
+equipos de grabación distintos (teléfonos y grabadoras de mano) añaden variabilidad entre dispositivos. Por último, sin
 revisión experta las predicciones de alta confianza situadas en regiones sin
 anotación (tipo D de la Tabla~\ref{tab:taxonomia-fp}) no pueden clasificarse de
 forma concluyente entre eventos omitidos por la referencia y falsos positivos
-genuinos: esta tesis las caracteriza geométricamente y las reporta como una
-cantidad acotada, y deja su resolución como trabajo futuro condicionado a la
-disponibilidad del equipo de investigación.
+genuinos. Resolverlas exige una revisión del equipo de investigación, que
+depende de su disponibilidad; la revisión se hizo, y el
+Capítulo~\ref{cap:revision} resuelve una muestra de \uNoneSample{} de ellas.
 
 \rotulo{Restricciones.} El desarrollo está sujeto al calendario académico. El
 proyecto depende del conjunto de datos entregado y de la verificación de su
@@ -279,9 +283,10 @@ jerarquía: solo se abren los tres paquetes que producen resultados esperados.
     \end{tabular}
 \end{table}
 
-Los paquetes se numeran por fase de CRISP-DM, y solo las fases de preparación de
-datos (4), modelado (5) y evaluación (6) se dividen en subpaquetes, que son los que
-la Figura~\ref{fig:wbs-tree} abre.
+Después del paquete de gestión, los paquetes siguen las fases de CRISP-DM en orden:
+el paquete 2 es la fase 1, y así hasta el 7, que es el despliegue. Solo los de
+preparación de datos (4), modelado (5) y evaluación (6), que son las fases 3 a 5,
+se dividen en subpaquetes, que son los que la Figura~\ref{fig:wbs-tree} abre.
 
 \begin{figure}[htbp]
     \centering
@@ -330,18 +335,18 @@ la Figura~\ref{fig:wbs-tree} abre.
 
 Doce paquetes producen resultados esperados: cada uno de los once resultados
 tiene el suyo, y la revisión experta (6.6) alimenta además a RE3.2 y RE3.3. Los
-paquetes sin entregable propio son de soporte: la gestión y la documentación
-acompañan todo el proyecto, la comprensión de la investigación y de los datos y
-la ingeniería de características preparan el trabajo de los paquetes que sí
+paquetes sin entregable propio son de soporte. La gestión y la documentación
+acompañan todo el proyecto. La comprensión de la investigación y de los datos y la
+ingeniería de características preparan el trabajo de los paquetes que sí
 entregan, y el despliegue aplica el modelo final a grabaciones nuevas.
 
 \section{Cronograma del proyecto}
 \label{sec:cronograma}
 
-El cronograma se ajusta al calendario del curso, que fija tres entregas: E1, el
-documento del curso anterior con su avance (24/08/26, semana 2); E2, el
-entregable parcial (07/10/26, semana 8); y E3, el entregable final (23/11/26,
-semana 15), al que sigue la exposición final en las semanas 16 y 17. La
+El cronograma se ajusta al calendario del curso, que fija tres entregas. E1 es el
+documento del curso anterior con su avance (24/08/26, semana 2), E2 el entregable
+parcial (07/10/26, semana 8) y E3 el entregable final (23/11/26, semana 15), al
+que sigue la exposición final en las semanas 16 y 17. La
 Tabla~\ref{tab:cronograma} agrupa las tareas según la entrega para la que deben
 estar terminadas, con el resultado esperado al que contribuyen, sus fechas
 previstas y su estado a la fecha de E3.
@@ -366,9 +371,9 @@ previstas y su estado a la fecha de E3.
         \midrule
         \multicolumn{6}{@{}l}{\textbf{E2, 07/10/26 (semana 8): entregable parcial}} \\
         \addlinespace
-        1.1 & Manejo de eventos largos: ventana dual y solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & Completado \\
+        1.1 & Manejo de eventos largos: ventana dual y solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & En parte \\
         1.2 & Aumento de datos: desplazamiento temporal, ganancia, perturbación de cajas y mezcla & RE1.2 & 26/08 & 02/09 & Completado \\
-        1.3 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & Completado \\
+        1.3 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & En parte \\
         1.4 & Reentrenamiento del modelo 1 con 1.1 a 1.3 & RE2.3 & 05/09 & 12/09 & Completado \\
         2.1 & Selección y justificación de las arquitecturas & RE2.1 & 12/09 & 16/09 & Completado \\
         2.2 & Modelo 2: YOLO26 sobre espectrogramas, detector de una etapa & RE2.3 & 16/09 & 28/09 & Completado \\
@@ -396,20 +401,24 @@ previstas y su estado a la fecha de E3.
 Para E1 debían estar completos los tres resultados de OE1, el \textit{pipeline}
 (RE2.2) y un primer modelo evaluado: es el trabajo del curso anterior. E2 añade el
 cierre del preprocesamiento, la justificación de las arquitecturas (RE2.1) y el
-segundo modelo; E3, el resto de OE2 y todo OE3. Las cuatro tareas de OE2
+segundo modelo, y E3, el resto de OE2 y todo OE3. Las cuatro tareas de OE2
 previstas para E3 se terminaron antes de E2 (Capítulo~\ref{cap:deteccion}), y la
-comparación incorporó una línea base que el plan no preveía, RT-DETR-L. Las de
-OE3 se apartaron de sus fechas en los dos sentidos: la metodología (3.1) quedó
-fijada en el repositorio el 10/10, antes de lo previsto, mientras que la sesión
-cronometrada (3.2) se hizo entre el 11 y el 13/11 y la revisión de cajas (3.3)
-terminó el 15/11, después de lo previsto, porque dependían de la disponibilidad
-del equipo de investigación: es el riesgo R3 de la Tabla~\ref{tab:riesgos}, que
-se materializó en parte. A la fecha de E3 están completas 19 de las 23 tareas y
-los 11 resultados esperados; la redacción del informe final (4.1) está en curso, y
-quedan las tareas de la exposición final.
+comparación incorporó una línea base que el plan no preveía, RT-DETR-L. Dos tareas
+de E2 se cumplieron en parte. De 1.1 se implementó el solapamiento mínimo
+relajado, pero no la ventana dual (sección~\ref{sec:ventaneo}). El IoMin de 1.3 se
+usa para fusionar cajas anidadas en la inferencia, no como métrica de la
+evaluación, que reporta el IoU. Las de OE3 se apartaron de sus fechas en los dos
+sentidos. La metodología (3.1) quedó fijada en el repositorio el 10/10, antes de
+lo previsto. La sesión cronometrada (3.2) se hizo entre el 11 y el 13/11 y la
+revisión de cajas (3.3) terminó el 15/11, después de lo previsto, porque
+dependían de la disponibilidad del equipo de investigación. Es el riesgo R3 de la
+Tabla~\ref{tab:riesgos}, que se materializó en parte. A la fecha de E3 están
+completas 17 de las 23 tareas, y 2 más en parte, junto con los 11 resultados
+esperados. La redacción del informe final (4.1) está en curso, y quedan las
+tareas de la exposición final.
 
-Las tareas respetan las dependencias entre paquetes: la preparación de datos
-precede al modelado, el modelado precede a la evaluación, y la fijación del punto
+Las tareas respetan las dependencias entre paquetes. La preparación de datos
+precede al modelado, y el modelado precede a la evaluación. La fijación del punto
 de operación precede a la medición del tiempo y al análisis de errores, porque
 ambos se realizan sobre las predicciones del modelo ya seleccionado en ese punto.
 La sesión de revisión con el equipo de investigación se agenda con holgura, porque
@@ -421,9 +430,9 @@ alimenta a la vez la condición asistida de RE3.2 y la muestra resuelta de RE3.3
 
 \subsection{Personas involucradas y necesidades de capacitación}
 
-El tesista, responsable del desarrollo, la implementación y el análisis; el
-asesor, que aporta guía, supervisión y validación experta; y el equipo de
-investigación del 8 Primates Project, que entrega el material y hace la revisión
+Intervienen tres partes. El tesista es responsable del desarrollo, la implementación y el
+análisis. El asesor aporta guía, supervisión y validación experta. El equipo de
+investigación del 8 Primates Project entrega el material y hace la revisión
 experta de OE3. No se prevén necesidades de capacitación formales: el equipo ya
 trabaja con Raven Pro, la herramienta en que revisa la salida del sistema.
 
@@ -434,11 +443,12 @@ campo.
 
 \subsection{Estándares utilizados}
 
-CRISP-DM como proceso de trabajo \citep{chapman_crisp-dm_2000}; la ficha de
-conjuntos de datos de \citet{gebru_2021} para documentar el conjunto derivado
-(RE1.3); la precisión media de PASCAL VOC \citep{everingham_retrospective_2015} para la
-evaluación; el formato de tabla de selección de Raven Pro para la salida del
-sistema (RE2.4), y la norma APA 7 para las citas y las referencias.
+Se usan cinco estándares. CRISP-DM es el proceso de trabajo
+\citep{chapman_crisp-dm_2000}, y la ficha de conjuntos de datos de
+\citet{gebru_2021} documenta el conjunto derivado (RE1.3). La precisión media de
+PASCAL VOC \citep{everingham_retrospective_2015} se usa en la evaluación, y el
+formato de tabla de selección de Raven Pro, en la salida del sistema (RE2.4). La
+norma APA 7 rige las citas y las referencias.
 
 \subsection{Equipamiento requerido}
 
@@ -468,25 +478,26 @@ Tabla~\ref{tab:costos-hw} recoge los equipos.
             \toprule
             \textbf{Categoría}     & \textbf{Descripción}                                               & \thead{USD}        \\
             \midrule
-            Almacenamiento externo & SSD de 512\,GB para el conjunto de datos y sus derivados           & 150,00             \\
+            Almacenamiento externo & SSD de 512\,GB para el conjunto de datos y sus derivados\tnote{a}  & 150,00             \\
             \addlinespace
             Equipo de desarrollo   & Laptop con GPU dedicada\tnote{a}                                   & 1\,500,00          \\
             \addlinespace
-            Cómputo en la nube     & Instancia con GPU de 48\,GiB de memoria, estimada por horas de uso & 600,00             \\
+            Servidor con GPU       & Servidor de la universidad, con GPU NVIDIA RTX A5500 de 24\,GB\tnote{b} & --          \\
             \midrule
-            \textbf{Subtotal}      &                                                                    & \textbf{2\,250,00} \\
+            \textbf{Subtotal}      &                                                                    & \textbf{1\,650,00} \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
             \item[a] Equipo propio del tesista: se valoriza, no es desembolso.
+            \item[b] Lo pone la universidad: no es desembolso y no se valoriza.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
-De los tres equipos, solo el almacenamiento externo y el cómputo en la nube son
-desembolso; el equipo de desarrollo, que es la partida mayor, ya existía. La
-Tabla~\ref{tab:costos-rrhh} valoriza el tiempo de las personas.
+Ningún equipo es desembolso. La laptop y el SSD son del tesista y se valorizan, y
+el servidor con GPU lo pone la universidad. La Tabla~\ref{tab:costos-rrhh}
+valoriza el tiempo de las personas.
 
 \begin{table}[H]
     \centering
@@ -529,17 +540,16 @@ Tabla~\ref{tab:costos-sw}, es casi todo de código abierto o gratuito.
         PyTorch, torchaudio, Transformers & Código abierto         & 12            & 0,00            & 0,00              \\
         Visual Studio Code                & Código abierto         & 12            & 0,00            & 0,00              \\
         Zotero                            & Gratuito               & 12            & 0,00            & 0,00              \\
-        Raven Lite                        & Licencia de estudiante & 12            & 0,00            & 0,00              \\
-        Entorno de cómputo con GPU        & Suscripción            & 12            & 9,99            & 119,88            \\
+        Raven Lite                        & Gratuito               & 12            & 0,00            & 0,00              \\
         Almacenamiento en la nube         & Suscripción            & 12            & 1,67            & 20,00             \\
         \midrule
-        \textbf{Subtotal}                 &                        &               &                 & \textbf{139,88}   \\
+        \textbf{Subtotal}                 &                        &               &                 & \textbf{20,00}    \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Solo dos servicios se pagan, ambos por suscripción mensual: el entorno de cómputo
-con GPU y el almacenamiento en la nube. La Tabla~\ref{tab:costos-ind} estima los
+Solo se paga el almacenamiento en la nube, por suscripción mensual. La
+Tabla~\ref{tab:costos-ind} estima los
 costos indirectos de los doce meses del proyecto.
 
 \begin{table}[H]
@@ -572,20 +582,19 @@ cuatro categorías.
         \toprule
         \textbf{Categoría}              & \thead{Total USD}  \\
         \midrule
-        Equipamiento (hardware)         & 2\,250,00          \\
+        Equipamiento (hardware)         & 1\,650,00          \\
         Recursos humanos (valorización) & 4\,000,00          \\
-        Software y servicios            & 139,88             \\
+        Software y servicios            & 20,00              \\
         Costos indirectos               & 960,00             \\
         \midrule
-        \textbf{Total}                  & \textbf{7\,349,88} \\
+        \textbf{Total}                  & \textbf{6\,630,00} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Cerca de tres cuartas partes del total son valorización: el tiempo de las
-personas y el equipo preexistente. El desembolso efectivo se concentra en el
-cómputo, el almacenamiento y los costos indirectos, como anticipaba la viabilidad
-económica.
+El 85\,\% del total es valorización: el tiempo de las personas y los equipos del
+tesista. El desembolso efectivo se reduce al almacenamiento en la nube y a los
+costos indirectos, como anticipaba la viabilidad económica.
 
 
 % ===================================================================

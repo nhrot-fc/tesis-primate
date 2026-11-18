@@ -1,0 +1,26 @@
+{
+  "model": "detr_t10_logmel_birds_v3",
+  "threshold": 0.21,
+  "val": {
+    "threshold": 0.21,
+    "recall": 0.8270713861973502,
+    "precision": 0.7008210455764075,
+    "n_above": 11936,
+    "n_tp": 8365
+  },
+  "test": {
+    "threshold": 0.21,
+    "recall": 0.7972512923969235,
+    "precision": 0.6693130094209802,
+    "n_above": 9447,
+    "n_tp": 6323
+  },
+  "protocol": {
+    "iou": 0.3,
+    "strict_iou": 0.5,
+    "max_det": 100,
+    "score_floor": 0.001,
+    "min_precision": 0.7,
+    "seed": 42
+  }
+}

@@ -53,21 +53,22 @@ que amplifica su llamada y atenúa el fondo (\cpEquipo), o con el teléfono.
 % GPS); sin metadatos 17 (15 de ellos estéreo a 48 kHz); ilegible 1.
 Los metadatos de los archivos lo confirman: ninguno de los \nRecordingsRaw{}
 lleva la marca que AudioMoth escribe en sus grabaciones. Casi todos, 3\,238, se
-grabaron con la aplicación Song Meter Touch en un teléfono o una tableta; 81, con
-grabadoras de mano TASCAM; 19, con otro teléfono, y 17 no traen metadatos. Se
-grabaron en archivos WAV cortos entre el
+grabaron con la aplicación Song Meter Touch en un teléfono o una tableta. Otros 81
+se grabaron con grabadoras de mano TASCAM y 19 con otro teléfono, 17 no traen
+metadatos y uno no puede leerse. Se grabaron en archivos WAV cortos entre el
 \firstDate{} y el \lastDate{}, sobre todo en el horario de campo que declara el
 proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. La
-anotación, a mano en Raven Pro \citep{raven_pro} con el procedimiento de la
-sección~\ref{sec:dominio}, la dirigió, instruyó y verificó la coordinación del
-proyecto, y la hicieron voluntarios: una caja tiempo--frecuencia por
-vocalización, con su especie y su tipo de llamada, y solo para las llamadas del
-primate focal de cada grabación (\cpEquipo). El equipo entregó esa biblioteca ya
-anotada, sin datos de campo como la distancia al animal o la ganancia. Después
-compartió el manual de etiquetado del proyecto (\textit{Raven Pro Labelling
-Manual}), cuya versión disponible se creó en febrero de 2024 y se modificó por
-última vez en noviembre de 2025; no consta qué versión regía cuando se anotó cada
-grabación (\cpEquipo). Esta sección describe el material tal como se recibió.
+anotación se hizo a mano en Raven Pro \citep{raven_pro}, con el procedimiento de
+la sección~\ref{sec:dominio}. La dirigió, instruyó y verificó la coordinación del
+proyecto, y la hicieron voluntarios. Cada vocalización tiene una caja
+tiempo--frecuencia con su especie y su tipo de llamada, y solo se anotaron las
+llamadas del primate focal de cada grabación (\cpEquipo). El equipo entregó esa
+biblioteca ya anotada, sin datos de campo como la distancia al animal o la
+ganancia. Después compartió el manual de etiquetado del proyecto
+\citep{proyecto8_manual_2025}. La versión disponible se creó en febrero de 2024 y
+se modificó por última vez en noviembre de 2025, y no consta qué versión regía
+cuando se anotó cada grabación. Esta sección describe el material tal como se
+recibió.
 
 El material llega en una carpeta por especie, nombrada
 \code{<nombre\_común>\_\_<CÓDIGO>}, con las grabaciones WAV, casi todas a
@@ -156,9 +157,9 @@ Las demás describen la sesión de trabajo en Raven o el archivo de origen.
 \subsection{Inventario}
 
 El corpus de primates tiene \nRecordingsRaw{} grabaciones y \nTables{} tablas de
-anotación. De ellas, \nPaired{} tienen una grabación homónima junto a ellas,
-\nOrphans{} no la tienen y \nFailed{} no pueden leerse por estar vacías o
-truncadas. Las tablas emparejadas suman \nRawRows{} filas crudas, que son el
+anotación. De ellas, \nPaired{} tienen una grabación homónima junto a ellas y
+\nOrphans{} no la tienen; \nFailed{} de las emparejadas no pueden leerse por estar
+vacías o truncadas. Las tablas emparejadas suman \nRawRows{} filas crudas, que son el
 punto de partida de todo lo que sigue.
 
 \subsection{Defectos detectados}
@@ -184,7 +185,7 @@ designan solo tres clases.
             \toprule
             \textbf{Clase} & \textbf{Grafías en el material} \\
             \midrule
-            Sílaba de contacto & \code{CS}, \code{CS\char32}, \code{CS\char32\char32 A}, \code{contact syllable} \\
+            Sílaba de contacto & \code{CS}, \code{CS\char32}, \code{CS\char32\char32\char32\char32\char32\char32 A}, \code{contact syllable} \\
             Ruido (descarte) & \code{noise|}, \code{noises} \\
             \code{BC} & \code{\char32 BC}, \code{bC} \\
             \bottomrule
@@ -273,7 +274,7 @@ otros delimitó la secuencia completa con una sola caja. Esa variación refleja 
 anidamiento jerárquico de las unidades acústicas \citep{kershenbaum_acoustic_2016} descrito en el
 Capítulo~\ref{cap:marco}, y obliga a decidir qué nivel de la jerarquía se
 modela. La versión actual del manual de etiquetado pide dividir las selecciones
-largas en sílabas (\cpEquipo); no consta si regía cuando se anotó este material.
+largas en sílabas \citep{proyecto8_manual_2025}; no consta si regía cuando se anotó este material.
 
 % ===================================================================
 \section{Protocolo de curación y estandarización documentado (RE1.1)}
@@ -282,31 +283,30 @@ largas en sílabas (\cpEquipo); no consta si regía cuando se anotó este materi
 % ===================================================================
 
 \rotulo{Resultado.} Un protocolo documentado que convierte las anotaciones
-entregadas en el conjunto consistente que persigue OE1. Define la
-normalización de columnas y etiquetas, el mapa de sinónimos, el descarte de ruido
-y de cajas degeneradas, la corrección de pares imposibles, el recorte al límite de
-Nyquist y el tratamiento de los registros fuera de vocabulario, que son los siete
-elementos que exige su indicador (Tabla~\ref{tab:iov-oe1}).
+entregadas en el conjunto consistente que persigue OE1. Define siete elementos,
+los que exige su indicador (Tabla~\ref{tab:iov-oe1}): la normalización de columnas
+y etiquetas, el mapa de sinónimos, el descarte de ruido y de cajas degeneradas, la
+corrección de pares imposibles, el recorte al límite de Nyquist y el tratamiento
+de los registros fuera de vocabulario.
 
 \rotulo{Cómo se alcanzó.} Aplicando a las etiquetas la Fase~3 de CRISP-DM
 (sección~\ref{sec:fase3}), a partir del diagnóstico de la Fase~2 que hace la
 sección~\ref{sec:material}. Como exige la custodia del material primario
-(sección~\ref{sec:procedimientos}), el protocolo es un programa: se vuelve a aplicar sobre los datos primarios cada vez que una regla
-cambia y registra qué descarta y por qué. El guion \file{src/\allowbreak prepare\_annotations.py} recorre
-\file{data/raw/}, aplica las reglas de
-\file{src/\allowbreak data/\allowbreak annotations.py} en el orden de la
+(sección~\ref{sec:procedimientos}), el protocolo es un programa. Se vuelve a
+aplicar sobre los datos primarios cada vez que una regla cambia, y registra qué
+descarta y por qué. Recorre \file{data/raw/}, aplica las reglas en el orden de la
 Figura~\ref{fig:protocolo} y escribe \file{data/cleaned/}.
 
-\rotulo{Cómo reproducirlo.} Con las tablas crudas en \file{data/raw/} y el código
-del repositorio, \file{src/\allowbreak prepare\_annotations.py} regenera
+\rotulo{Cómo reproducirlo.} Con las tablas crudas en \file{data/raw/}, el
+programa de curación del repositorio (Tabla~\ref{tab:donde}) regenera
 \file{data/cleaned/} completo. Las reglas están fijadas en el código y el
-\textit{script} no tiene parámetros que alteren el resultado, de modo que dos
-ejecuciones sobre el mismo material producen las mismas tablas.
+programa no tiene parámetros que alteren el resultado. Dos ejecuciones sobre el
+mismo material producen las mismas tablas.
 
-\rotulo{Medio de verificación.} Esta sección, que es el documento del protocolo;
-su implementación en los dos archivos citados, publicados en el repositorio del
-proyecto (\url{https://github.com/nhrot-fc/tesis-primate}); y el conteo de lo que
-toca cada regla sobre las \nRawRows{} filas crudas, en la
+\rotulo{Medio de verificación.} Esta sección, que es el documento del protocolo.
+Lo acompañan su implementación en el programa de curación, publicado en el
+repositorio del proyecto (\url{https://github.com/nhrot-fc/tesis-primate}), y el
+conteo de lo que toca cada regla sobre las \nRawRows{} filas crudas, en la
 sección~\ref{sec:verificacion-re11}. Las tablas del protocolo, tal como las aplica
 el código, están además en la carpeta RE1.1 de los medios de verificación
 (Anexo~\ref{anx:medios}).
@@ -346,8 +346,8 @@ reglas se aplican en el orden mostrado y cada una tiene su apartado más abajo.
         \draw[flecha, dashed] (pair) -- (orphan);
         \draw[flecha, dashed] (noise) -- (noisedrop);
         \draw[flecha, dashed] (geom) -- (geomdrop);
-        \node[nota, left=2mm of cols.west, anchor=east] {\file{prepare\_annotations.py}};
-        \node[nota, left=2mm of unify.west, anchor=east] {\file{load\_annotations()}};
+        \node[nota, left=2mm of cols.west, anchor=east] {al escribir};
+        \node[nota, left=2mm of unify.west, anchor=east] {al cargar};
     \end{tikzpicture}}
 \end{figure}
 
@@ -375,14 +375,14 @@ no el evento.
 
 \rotulo{Normalización del tipo de llamada.} Sobre la columna manual se aplican,
 en este orden, dos reglas. La \emph{normalización tipográfica} reduce toda
-etiqueta a minúsculas y a caracteres alfanuméricos separados por guion bajo; el
+etiqueta a minúsculas y a caracteres alfanuméricos separados por guion bajo. El
 paso absorbe mayúsculas, espacios y signos sin necesidad de enumerarlos, y en
 \nTypography{} filas el valor cambia más allá de la mayúscula. El \emph{mapa de
     sinónimos} (Tabla~\ref{tab:sinonimos}, \nSynonymsMap{} entradas) unifica lo que
 la tipografía no captura por ser un error de escritura o una abreviatura
-alternativa; a él se suma, por especie, la traducción del nombre legible al
-código (\code{contact syllable} $\to$ \code{cs}), de modo que las tablas escritas
-en prosa converjan con las escritas en código. Toca \nSynonyms{} filas.
+alternativa. A él se suma, por especie, la traducción del nombre legible al
+código (\code{contact syllable} $\to$ \code{cs}), para que las tablas escritas en
+prosa converjan con las escritas en código. Toca \nSynonyms{} filas.
 
 \begin{table}[htbp]
     \centering
@@ -401,30 +401,32 @@ en prosa converjan con las escritas en código. Toca \nSynonyms{} filas.
 \rotulo{Asignación de especie por directorio.}
 \label{sec:regla-especie}
 La columna \code{Species} se reemplaza por el código de la carpeta contenedora.
-Cada grabación apunta a una especie y se guarda en su carpeta (\cpEquipo),
-mientras que la columna se teclea en cada fila, y es donde se acumulan los
-errores de la sección~\ref{sec:defectos}. Pero una llamada de otra especie
-anotada dentro de una carpeta, si es real, no debe recibir la especie de la
-carpeta: la fila conserva lo escrito en \code{written\_species} y se marca
-\code{requires\_review}, de modo que ni entra al experimento con la especie
-equivocada ni se descarta en silencio. La unión de copias resuelve el caso en que
-esa llamada sí está anotada en su propia carpeta.
+Cada grabación apunta a una especie y se guarda en su carpeta (\cpEquipo). La
+columna, en cambio, se teclea en cada fila, y es donde se acumulan los errores de
+la sección~\ref{sec:defectos}. Pero una llamada de otra especie anotada dentro de
+una carpeta, si es real, no debe recibir la especie de la carpeta. La fila
+conserva lo escrito en \code{written\_species} y se marca \code{requires\_review}:
+así no entra al experimento con la especie equivocada ni se descarta en silencio.
+La unión de copias resuelve el caso en que esa llamada sí está anotada en su
+propia carpeta.
 
 \rotulo{Descarte de ruido.} Las filas cuyo tipo de llamada normalizado es
-\code{noise} (\nNoise{}) no son eventos: el manual de etiquetado pide, junto a
-cada llamada, una selección de fondo con la misma banda de frecuencia, para
-estimar con la potencia en banda de Raven (\code{Inband Power}) la relación
-señal-ruido de la llamada y separar las llamadas claras de las lejanas
-(\cpEquipo). Se eliminan. El fondo que el detector debe aprender a no proponer entra al conjunto
-por otra vía, como las ventanas de audio sin ninguna anotación. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son cajas que el
-analista dibujó sobre un evento: no se eliminan, se marcan para revisión.
+\code{noise} (\nNoise{}) no son eventos. El manual de etiquetado pide, junto a
+cada llamada, una selección de fondo con la misma banda de frecuencia. Con la
+potencia en banda de Raven (\code{Inband Power}), esa selección estima la relación
+señal-ruido de la llamada y separa las llamadas claras de las lejanas
+\citep{proyecto8_manual_2025}. Se eliminan. El fondo que el detector debe aprender
+a no proponer entra al conjunto por otra vía, como las ventanas de audio sin
+ninguna anotación. Las \nEmptyCall{} filas sin tipo de llamada, en cambio, son
+cajas que el analista dibujó sobre un evento. No se eliminan: se marcan para
+revisión.
 
 \rotulo{Corrección de pares imposibles.} Un conjunto pequeño de correcciones
 explícitas resuelve pares que no existen en el repertorio de la especie y cuya
 intención es inequívoca: \code{aa/hc} pasa a \code{aa/hm}, porque
 \textit{Aotus azarae} no tiene llamada de aullido pero sí de ululato
-(\nFixed{} filas). Toda corrección de este tipo se declara en código
-(\code{MANUAL\_FIXES}); ninguna se aplica a mano sobre los datos.
+(\nFixed{} filas). Toda corrección de este tipo se declara en el
+código, y ninguna se aplica a mano sobre los datos.
 
 \rotulo{Vocabulario cerrado y marca de revisión.} El vocabulario admisible se
 declara como el conjunto de pares (especie, tipo de llamada) válidos del dominio
@@ -452,7 +454,9 @@ Toda fila que no pueda asignarse con certeza a un par del vocabulario se marca
 con la bandera \code{requires\_review} en lugar de eliminarse. Son tres los
 motivos: el par (especie de la carpeta, tipo) no está en el vocabulario
 (\nReviewVocab{} filas), el tipo de llamada viene vacío (\nEmptyCall{}) o la
-especie escrita difiere de la carpeta (\nSpeciesMismatch{}). En
+especie escrita difiere de la carpeta (\nSpeciesMismatch{}). Los motivos se
+solapan en una fila, que tiene otra especie escrita y el tipo vacío, y otra de las
+\nSpeciesMismatch{} se descarta en una regla posterior. En
 \file{data/cleaned/} quedan así \nReview{} anotaciones marcadas, el
 \pctReview{} del total, repartidas en \nReviewPairs{} pares distintos; los
 \nPairsOutVocab{} pares que el vocabulario no reconoce, con
@@ -474,32 +478,33 @@ especie escrita difiere de la carpeta (\nSpeciesMismatch{}). En
 
 La diferencia con descartarlas es deliberada, y la razón es que \textbf{no hay
 forma de distinguir un error de escritura de una subdivisión legítima del
-repertorio}. Entre los pares fuera de vocabulario conviven las dos cosas:
+repertorio}. Entre los pares fuera de vocabulario conviven las dos cosas. Hay
 variantes tipográficas que el mapa de sinónimos no previó, y códigos que parecen
-subdivisiones no documentadas de un tipo de llamada ya conocido: \code{as/cp},
-\code{as/pp} e \code{as/ip} sobre \textit{Alouatta sara} son el caso más
-visible. Decidir cuál es cuál exigiría una referencia del repertorio vocal que no
-acompaña a las anotaciones, de modo que el protocolo no decide: marca y conserva. El equipo confirma la
-mezcla: esos códigos se agregaron después, son raros o están mal etiquetados, y
-recomienda usar solo los tipos anotados de forma consistente (\cpEquipo).
-\file{cleaned/} los guarda con la bandera y RE1.2 los deja fuera del experimento
-(no entran como clase, y toda ventana que los pisa se descarta para no
-enseñarlos tampoco como fondo), pero la evidencia queda intacta para cuando el
-vocabulario se amplíe. El capítulo asume, y así lo declara la
-sección~\ref{sec:limitaciones}, que el material llega sucio en la columna de tipo
-de llamada: es una limitación del conjunto y, a la vez, el margen más claro de
-mejora para una versión futura del detector.
+subdivisiones no documentadas de un tipo de llamada ya conocido. \code{as/cp},
+\code{as/pp} y \code{as/ip} sobre \textit{Alouatta sara} son el caso más visible.
+Decidir cuál es cuál exigiría una referencia del repertorio vocal que no acompaña
+a las anotaciones, así que el protocolo no decide: marca y conserva. El equipo
+confirma la mezcla. Esos códigos se agregaron después, son raros o están mal
+etiquetados, y el equipo recomienda usar solo los tipos anotados de forma
+consistente (\cpEquipo). \file{cleaned/} los guarda con la bandera, y RE1.2 los
+deja fuera del experimento: no entran como clase, y toda ventana que los pisa se
+descarta para no enseñarlos tampoco como fondo. La evidencia queda intacta para
+cuando el vocabulario se amplíe. El capítulo asume que el material llega sucio en
+la columna de tipo de llamada, y así lo declara la
+sección~\ref{sec:limitaciones}. Es una limitación del conjunto y, a la vez, el
+margen más claro de mejora para una versión futura del detector.
 
 \rotulo{Saneamiento geométrico.} Las coordenadas de la caja se validan con
 independencia de la etiqueta. La frecuencia superior se \emph{recorta a Nyquist}
-(22\,050\,Hz): por encima de la mitad de la frecuencia de muestreo no hay energía
-observable en una señal a 44,1\,kHz, de modo que un valor mayor (\nNyquist{}
-filas) es un error de anotación. Se
-\emph{descartan las cajas degeneradas}, de duración inferior a 10\,ms o de ancho
-de banda nulo o negativo (\nDegenerate{} filas): una caja sin área no define una
-región y no puede emparejarse con ninguna predicción. Y se calculan la
-\emph{duración} y el \emph{ancho de banda} de cada caja, sobre los que se
-construye el análisis de geometría de la sección~\ref{sec:geometria}.
+(22\,050\,Hz). Por encima de la mitad de la frecuencia de muestreo no hay energía
+observable en una señal a 44,1\,kHz, así que un valor mayor (\nNyquist{} filas) es
+un error de anotación. Se \emph{descartan las cajas degeneradas}, de duración
+inferior a 10\,ms o de ancho de banda nulo o negativo (\nDegenerate{} filas). Una
+caja sin área no define una región y no puede emparejarse con ninguna predicción.
+Y 10\,ms es poco más que una trama del espectrograma (400 muestras a 44,1\,kHz,
+9\,ms), de modo que una caja más corta no ocupa ni una columna. Por último, se
+calculan la \emph{duración} y el \emph{ancho de banda} de cada caja, sobre los que
+se construye el análisis de geometría de la sección~\ref{sec:geometria}.
 
 \rotulo{Unión de copias de una misma grabación.}
 \label{sec:copias}
@@ -523,16 +528,25 @@ cada regla del indicador, cuántas filas toca sobre las \nRawRows{} crudas.
 
 \begin{table}[htbp]
     \centering
-    \caption{Filas que toca cada regla}
-    \label{tab:reglas}
-    \small
-    \begin{tabular}{@{}L{7.0cm}rL{4.6cm}@{}}
-        \toprule
-        \textbf{Regla} & \thead{Filas} & \textbf{Tratamiento} \\
-        \midrule
-        \input{\figOE/tablas/reglas} \\
-        \bottomrule
-    \end{tabular}
+    \begin{threeparttable}
+        \caption{Filas que toca cada regla}
+        \label{tab:reglas}
+        \small
+        \begin{tabular}{@{}L{7.0cm}rL{4.6cm}@{}}
+            \toprule
+            \textbf{Regla} & \thead{Filas} & \textbf{Tratamiento} \\
+            \midrule
+            \input{\figOE/tablas/reglas} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Nota.} Cuenta sobre la tabla completa de Raven. En
+            \file{data/cleaned/}, que guarda ocho columnas, dos pares de
+            anotaciones de una misma grabación quedan idénticos y la carga funde
+            cada par en una, de modo que quedan \nAnnotationsCleaned{}.
+        \end{tablenotes}
+    \end{threeparttable}
 \end{table}
 
 El protocolo conserva \nKept{} anotaciones, el \pctKept{}, y casi todo lo que
@@ -564,22 +578,21 @@ ocho valores porque la fija la carpeta.
 La auditoría de la Tabla~\ref{tab:reglas} vuelve a aplicar el protocolo sobre
 \file{data/raw/} y llega a \nKept{} anotaciones, \nCleanedDelta{} más que las
 \nAnnotationsCleaned{} que quedan en \file{data/cleaned/}. La diferencia está
-localizada y es instructiva: la auditoría trabaja sobre la tabla completa en
-memoria, que conserva las columnas de medición de Raven, mientras que
-\file{cleaned/} guarda solo las ocho columnas del protocolo (la especie de la
-carpeta y la escrita, el tipo de llamada, los cuatro bordes de la caja y la marca de
-revisión); dos pares de anotaciones de una misma grabación son
-idénticas en esas ocho columnas y solo se distinguen por \code{Inband Power}, de
-modo que la unión de copias las funde en una. Que ambas cifras se puedan comparar
-y que su diferencia se pueda explicar fila por fila es, en sí mismo, la propiedad
-que persigue un protocolo ejecutable.
+localizada y es instructiva. La auditoría trabaja sobre la tabla completa en
+memoria, que conserva las columnas de medición de Raven. \file{cleaned/}, en
+cambio, guarda solo las ocho columnas del protocolo: la especie de la carpeta y la
+escrita, el tipo de llamada, los cuatro bordes de la caja y la marca de revisión.
+Dos pares de anotaciones de una misma grabación son idénticas en esas ocho
+columnas y solo se distinguen por \code{Inband Power}, y la unión de copias las
+funde en una. Que ambas cifras se puedan comparar y que su diferencia se pueda
+explicar fila por fila es, en sí mismo, la propiedad que persigue un protocolo
+ejecutable.
 
 Cada pasada deja un registro de lo que hizo: cuántas grabaciones y anotaciones
 salieron, cuántas quedaron marcadas para revisión, cuántas tablas resultaron
 ilegibles y cuáles no tenían grabación al lado. La unión de copias ocurre en
-\code{data.annotations.load\_annotations()}, que es la única puerta por la que el
-resto del trabajo lee las anotaciones, de modo que ninguna etapa posterior puede
-ver las copias sin unir.
+la función de carga, la única puerta por la que el resto del trabajo lee las
+anotaciones. Así, ninguna etapa posterior puede ver las copias sin unir.
 
 \subsection{Fuera de alcance}
 
@@ -607,16 +620,16 @@ más los metadatos que permiten reconstruirlo.
 
 \rotulo{Cómo se alcanzó.} Con el resto de la Fase~3 de CRISP-DM
 (sección~\ref{sec:fase3}): selección de clases, partición, ventaneo y
-representación. \file{src/\allowbreak prepare\_data.py} parte de las
-\nAnnotationsCleaned{} anotaciones de \file{data/cleaned/}, aplica las cuatro
-reglas de selección de clases de la sección~\ref{sec:seleccion}, reparte las
-grabaciones enteras con el algoritmo de la sección~\ref{sec:particion}, segmenta
-cada grabación en ventanas (sección~\ref{sec:ventaneo}) y materializa el
+representación. El programa de preparación parte de las
+\nAnnotationsCleaned{} anotaciones de \file{data/cleaned/} y aplica las cuatro
+reglas de selección de clases de la sección~\ref{sec:seleccion}. Después reparte
+las grabaciones enteras con el algoritmo de la sección~\ref{sec:particion},
+segmenta cada grabación en ventanas (sección~\ref{sec:ventaneo}) y materializa el
 espectrograma mel de cada una (sección~\ref{sec:representacion}). La
 Figura~\ref{fig:flujo} resume el recorrido.
 
-\rotulo{Cómo reproducirlo.} \file{src/\allowbreak prepare\_data.py} reconstruye
-\file{data/processed/} a partir de \file{data/cleaned/} con la semilla y los
+\rotulo{Cómo reproducirlo.} El programa de preparación (Tabla~\ref{tab:donde})
+reconstruye \file{data/processed/} a partir de \file{data/cleaned/} con la semilla y los
 parámetros que registra \file{meta.json}. La construcción es determinista: la
 misma entrada, la misma semilla y los mismos parámetros dan las mismas ventanas,
 en el mismo orden.
@@ -667,10 +680,11 @@ desarrollan cada paso.
 \subsection{Selección de clases}
 \label{sec:seleccion}
 
-Las anotaciones curadas cubren \nVocabPairs{} pares (especie, tipo de llamada)
-del vocabulario. No todos pueden ser clase de un detector, y el paso de uno a
-otro sigue cuatro reglas declaradas en \file{src/prepare\_data.py} y registradas
-en \file{meta.json}.
+Las anotaciones curadas cubren los \nVocab{} pares (especie, tipo de llamada)
+del vocabulario, que la fusión de variantes de la regla 3 reduce a
+\nVocabPairs{}. No todos pueden ser clase de un detector, y el paso de uno a
+otro sigue cuatro reglas declaradas en el código y registradas en
+\file{meta.json}.
 
 \begin{enumerate}
     \item \textbf{Anotaciones en revisión.} Las \nReview{} filas marcadas
@@ -702,6 +716,10 @@ sitúa el umbral sobre la distribución completa de pares.
     \caption{Anotaciones por par}
     \label{fig:anotaciones-par}
     \includegraphics[width=\textwidth]{\figOE/anotaciones_por_par.png}
+    \par\smallskip
+    {\footnotesize\raggedright\textit{Nota.} Cuenta todas las anotaciones curadas
+    de cada par, también las marcadas para revisión. El umbral se aplica a las no
+    marcadas, que son las de la Tabla~\ref{tab:clases}.\par}
 \end{figure}
 
 La elección del umbral en \minPairCount{} y no más arriba responde a una tensión
@@ -711,7 +729,9 @@ repertorio documentado. Bajarlo hasta \minPairCount{} cubre el \pctExperiment{}
 del material y hace que cinco especies aporten entre dos y cinco clases en lugar
 de una, al precio de admitir clases cuyo desempeño estará limitado por su propia
 escasez, algo que hay que tener presente al leer cualquier resultado por clase. La Tabla~\ref{tab:excluidas} lista los \nLeftOut{} pares
-del vocabulario que quedan fuera, con \nLeftOutAnnotations{} anotaciones.
+que quedan fuera, con \nLeftOutAnnotations{} anotaciones: \nLeftOutVocab{} son
+del vocabulario (\nExcludedPhrase{} frases y \nBelowThreshold{} bajo el umbral) y
+\nLeftOutReview{} solo tienen anotaciones marcadas para revisión.
 
 \begin{table}[htbp]
     \centering
@@ -772,8 +792,7 @@ solapadas de la misma anotación podían quedar una en entrenamiento y otra en
 prueba. Sobre esa partición el clasificador alcanzaba un 99\,\% de exactitud, una
 cifra que medía memorización.
 
-\rotulo{Algoritmo.} La asignación es golosa y estratificada por clase
-(\code{split\_manifest} en \file{src/data/manifest.py}); la
+\rotulo{Algoritmo.} La asignación es golosa y estratificada por clase. La
 Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
 
 \begin{figure}[htbp]
@@ -803,8 +822,8 @@ Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
     \item Las clases se recorren \textbf{de la más rara a la más común}. Para cada
           clase, las grabaciones que la contienen y aún no están asignadas se ordenan
           de más a menos cajas de esa clase, y cada una va a la partición con mayor
-          déficit en esa clase; en caso de empate, a la que tenga menos ventanas
-          respecto de su objetivo.
+          déficit en esa clase. En caso de empate, va a la que tenga menos
+          ventanas respecto de su objetivo.
     \item Las grabaciones sin cajas de ninguna clase van donde falten ventanas.
 \end{enumerate}
 
@@ -818,9 +837,9 @@ final, 12, 4 y 3 cajas, se acerca a la proporción buscada sin partir ninguna
 grabación.
 
 Recorrer las clases de la más rara a la más común hace que el reparto de las
-escasas se decida primero y no quede como residuo del de las abundantes: una
-clase con un centenar de anotaciones concentradas en pocas grabaciones podría, de
-otro modo, caer entera en una sola partición. La semilla (\seed{}) fija el orden
+escasas se decida primero y no quede como residuo del de las abundantes. De otro
+modo, una clase con un centenar de anotaciones concentradas en pocas grabaciones
+podría caer entera en una sola partición. La semilla (\seed{}) fija el orden
 inicial de las grabaciones y hace la partición reproducible.
 
 \rotulo{Composición.} La Tabla~\ref{tab:particiones} recoge la composición de las
@@ -893,16 +912,15 @@ anotaciones (los puntos), porque cada llamada se reparte entre muchas ventanas.
 \label{sec:ventaneo}
 
 \rotulo{Regla de asignación.} Las grabaciones tienen duración variable y el
-detector consume entradas de tamaño fijo, de modo que cada grabación se segmenta
-en ventanas de \clipLen{}\,s que avanzan \clipHop{}\,s. Una anotación entra en
-una ventana si el solapamiento entre ambas cubre al menos la mitad de la
-\emph{parte visible} del evento, definida como el mínimo entre su duración y la
-longitud de la ventana (Figura~\ref{fig:ventaneo}). Comparar contra la duración
-completa dejaría inalcanzable a todo evento de más de 6\,s, porque no hay
-posición de la ventana en la que quepa la mitad de un aullido de 30\,s; con la
-parte visible, ese aullido entra en toda ventana que caiga dentro de él y ninguna
-anotación del experimento queda sin ventana. Al entrar, la caja se recorta a los
-límites de la ventana.
+detector consume entradas de tamaño fijo. Por eso cada grabación se segmenta en
+ventanas de \clipLen{}\,s que avanzan \clipHop{}\,s. Una anotación entra en una
+ventana si el solapamiento entre ambas cubre al menos la mitad de la \emph{parte
+visible} del evento, que es el mínimo entre su duración y la longitud de la
+ventana (Figura~\ref{fig:ventaneo}). Comparar contra la duración completa dejaría
+inalcanzable a todo evento de más de 6\,s, porque no hay posición de la ventana en
+la que quepa la mitad de un aullido de 30\,s. Con la parte visible, ese aullido
+entra en toda ventana que caiga dentro de él, y ninguna anotación del experimento
+queda sin ventana. Al entrar, la caja se recorta a los límites de la ventana.
 
 \begin{figure}[htbp]
     \centering
@@ -977,7 +995,10 @@ sin ningún evento a medias: una ventana que ve menos de la mitad de una llamada
 no cuenta como vacía. Sin ellas el modelo nunca ve fondo puro (selva, lluvia,
 insectos) y aprende que en toda entrada hay algo que reportar, el sesgo que
 encarece la revisión. Son \nEmpty{} ventanas, el \pctEmpty{}
-del total.
+del total. La proporción es una decisión de diseño que no se ajustó ni se comparó
+con otras; su efecto es que el fondo sin llamadas queda submuestreado respecto de
+una grabación completa, y por eso las cifras por ventana del
+Capítulo~\ref{cap:deteccion} no se trasladan a una grabación entera.
 
 \rotulo{Densidad de eventos por ventana.} La Figura~\ref{fig:densidad} cuenta
 cuántas cajas anotadas lleva cada ventana con contenido.
@@ -1024,9 +1045,8 @@ primera capa: la compresión logarítmica y una normalización por lote. Los det
 imagen lo convierten a decibelios y lo escalan a $[0, 1]$ con el rango en dB de la
 Tabla~\ref{tab:preproc}, dentro del modelo (Faster R-CNN) o al exportar las
 imágenes (YOLO y RT-DETR). Los
-once parámetros fijan el espectrograma de principio a fin:
-\code{torchaudio.transforms.MelSpectrogram} instanciada con estos valores lo
-reproduce.
+once parámetros fijan el espectrograma de principio a fin: la transformada mel
+de torchaudio, con estos valores, lo reproduce.
 
 \begin{table}[htbp]
     \centering
@@ -1045,27 +1065,27 @@ reproduce.
         \addlinespace
         Longitud de ventana STFT & 1\,024 (23\,ms) & Más corta que los eventos más breves: \durMinMs{}\,ms el mínimo, \shortestClassMs{}\,ms la mediana de \shortestClass{} \\
         \addlinespace
-        Función de ventana & Hann & Valor por defecto de \code{torchaudio}; ninguna clase mostró fuga espectral atribuible a la ventana \\
+        Función de ventana & Hann & Valor por defecto de \code{torchaudio}; no se comparó con otras \\
         \addlinespace
         Puntos de la transformada rápida de Fourier & 4\,096 & Relleno con ceros: densifica la rejilla de frecuencia sin tocar la resolución temporal \\
         \addlinespace
         Salto STFT & 400 (9\,ms) & Produce \nFrames{} tramas por ventana \\
         \addlinespace
-        Bandas mel & \nMels{} & Lo que espera el extractor preentrenado del modelo propuesto; 256 no dio ganancia medible \\
+        Bandas mel & \nMels{} & Lo que espera el extractor preentrenado del modelo propuesto \\
         \addlinespace
         Escala mel & HTK ($q=2\,595$,\newline $f_\text{quiebre}=700$\,Hz) & Convención por defecto de \code{torchaudio} \citep{yang_torchaudio_2022}; es la misma fórmula con la que se mapean las cajas \\
         \addlinespace
-        Rango de frecuencia & 25\,Hz -- 22\,050\,Hz & Un techo de 16\,kHz truncaba la mitad de las cajas de \code{sb/spc}, cuya frecuencia superior media supera los 16\,kHz \\
+        Rango de frecuencia & 25\,Hz -- 22\,050\,Hz & Un techo de 16\,kHz cortaba por arriba el 49\,\% de las cajas de \code{sb/spc} \\
         \addlinespace
         Rango en dB & $\dbLow{}$ a $\dbHigh{}$\,dB & Percentiles 1 y 99,9 de $10\log_{10}(\text{mel}+10^{-6})$ sobre 2\,000 ventanas de entrenamiento; los modelos que pintan el mel como imagen normalizan con él \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Tres de los once parámetros responden directamente a la geometría de los eventos:
-la ventana de \clipLen{}\,s, que contiene entera a casi todas las clases; la trama
-de 1\,024 muestras, más corta que los eventos más breves, y el rango de frecuencia
-hasta Nyquist, que no trunca las llamadas más agudas.
+Tres de los once parámetros responden directamente a la geometría de los eventos.
+La ventana de \clipLen{}\,s contiene entera a casi todas las clases, la trama de
+1\,024 muestras es más corta que los eventos más breves, y el rango de frecuencia
+hasta Nyquist no trunca las llamadas más agudas.
 
 \rotulo{Normalización de las cajas.} Las cajas se guardan en formato centro,
 ancho y alto normalizados al intervalo $[0, 1]$ de la ventana
@@ -1147,9 +1167,9 @@ se superponen, eventos más largos que la entrada y fondo sin ningún evento.
 
 \file{data/processed/} contiene los archivos de la Tabla~\ref{tab:archivos}, en
 total \gbTotal{}\,GB. Los tres \file{.pt} son diccionarios con las mismas tres
-claves: \code{images}, un tensor $(N, 1, \nMels{}, \nFrames{})$ en
-\code{float32} con el mel de cada ventana; \code{boxes}, una lista de $N$
-tensores $(n_i, 4)$ con las cajas normalizadas; y \code{labels}, una lista de $N$
+claves. \code{images} es un tensor $(N, 1, \nMels{}, \nFrames{})$ en
+\code{float32} con el mel de cada ventana. \code{boxes} es una lista de $N$
+tensores $(n_i, 4)$ con las cajas normalizadas. \code{labels} es una lista de $N$
 tensores $(n_i,)$ con el índice de clase de cada caja según \file{labels.json}.
 
 \begin{table}[htbp]
@@ -1174,8 +1194,8 @@ caché que está en disco:
 
 \begin{enumerate}
     \item \textbf{Los archivos procesados cargan sin error.} Los tres \file{.pt}
-          se abren con \code{torch.load(path, mmap=True, weights\_only=True)}, que lee
-          cajas y etiquetas sin traer los espectrogramas a memoria, y se comprueban
+          se abren en modo de solo lectura y sin traer los espectrogramas a
+          memoria, y se comprueban
           las claves y las formas: \nWindowsTrain{}, \nWindowsVal{} y
           \nWindowsTest{} ventanas de $(1, \nMels{}, \nFrames{})$. Lo confirman
           los dos usos que tuvo el caché: la exportación de \file{train.pt} y
@@ -1274,14 +1294,15 @@ ficha la documenta paso a paso.
 \subsection{Propósito y autoría}
 
 \rotulo{Finalidad.} El conjunto derivado se construyó como material de
-entrenamiento y evaluación del detector de OE2, sobre vocalizaciones de primates
-neotropicales grabadas con sensores pasivos de bajo costo. Las anotaciones
-primarias existían antes de esta tesis, producidas para el estudio del repertorio
-vocal de cada especie; la capa derivada las convierte en un conjunto consistente,
+entrenamiento y evaluación del detector de OE2, sobre las grabaciones focales de
+la biblioteca de llamadas del equipo (sección~\ref{sec:origen}). Las anotaciones
+primarias existían antes de esta tesis, producidas por el equipo para su
+biblioteca de llamadas y para servir algún día como datos de entrenamiento de un
+detector (\cpEquipo); la capa derivada las convierte en un conjunto consistente,
 particionado y documentado.
 
 \rotulo{Autoría.} Capa primaria: el equipo del 8 Primates Project
-\citep{wiredamazon_8primates}, que opera los sensores y anota en Raven. Capa derivada: el autor, con la supervisión del
+\citep{wiredamazon_8primates}, que graba y anota en Raven. Capa derivada: el autor, con la supervisión del
 asesor.
 
 \subsection{Composición}
@@ -1420,27 +1441,28 @@ grupos separados, como se aprecia al aislar esas dos clases
 Las dos nubes son dos criterios de encuadre de las mismas llamadas. Comparten la
 duración y se separan solo en el ancho de banda, como cuando unas cajas encierran
 la fundamental y otras también los armónicos. Las fuentes del equipo no coinciden
-en ese punto: la versión actual del manual de etiquetado pide marcar solo la
-fundamental (\cpEquipo), y la guía de campo incluye los armónicos de la llamada de
-alimento de SM «si son lo bastante claros» y los pide en el ladrido de AC
-(\cpGuia). El equipo atribuye las anotaciones que se apartan del protocolo a los
-cambios de personal y a cuánto lo había entendido cada anotador (\cpEquipo). Es un hallazgo sobre el esquema
-de anotación, no sobre el modelo, y un caso medible del desacuerdo de criterio
-que describe la causa C3 (sección~\ref{sec:causas}).
+en ese punto. La versión actual del manual de etiquetado pide marcar solo la
+fundamental \citep{proyecto8_manual_2025}. La guía de campo incluye los armónicos
+de la llamada de alimento de SM «si son lo bastante claros» y los pide en el
+ladrido de AC \citep{proyecto8_guia_2025}. El equipo atribuye las anotaciones que
+se apartan del protocolo a los cambios de personal y a cuánto lo había entendido
+cada anotador (\cpEquipo). Es un hallazgo sobre el esquema de anotación, no sobre
+el modelo, y un caso medible del desacuerdo de criterio que describe la causa C3
+(sección~\ref{sec:causas}).
 
 \subsection{Recolección (capa primaria)}
 \label{sec:recoleccion}
 
-El equipo recolecta audio de dos maneras \citep{wiredamazon_8primates}: con
-grabadoras remotas instaladas en el área de estudio para detectar a los monos,
-que son AudioMoth (\cpEquipo), y con grabaciones en vivo durante los seguimientos
-de los grupos, hechas con un micrófono parabólico (\cpEquipo), con grabadoras de
-mano o con el teléfono. Los visitantes del centro también graban, como científicos
-ciudadanos, registros de un minuto con su teléfono \citep{rfe_8primates}. El
-material de esta tesis viene de la segunda manera: según sus metadatos, ninguna
-grabación es de AudioMoth; casi todas se hicieron con la aplicación Song Meter
-Touch en un teléfono o una tableta, y el resto con grabadoras de mano TASCAM o
-con otro teléfono (sección~\ref{sec:origen}).
+El equipo recolecta audio de dos maneras \citep{wiredamazon_8primates}. Una son
+las grabadoras remotas instaladas en el área de estudio para detectar a los monos,
+que son AudioMoth (\cpEquipo). La otra son las grabaciones en vivo durante los
+seguimientos de los grupos, hechas con un micrófono parabólico (\cpEquipo), con
+grabadoras de mano o con el teléfono. Los visitantes del centro también graban,
+como científicos ciudadanos, registros de un minuto con su teléfono
+\citep{rfe_8primates}. El material de esta tesis viene de la segunda manera:
+según sus metadatos, ninguna grabación es de AudioMoth. Casi todas se hicieron con
+la aplicación Song Meter Touch en un teléfono o una tableta, y el resto con
+grabadoras de mano TASCAM o con otro teléfono (sección~\ref{sec:origen}).
 
 Las grabaciones se capturaron en el Tambopata Research Center, dentro de la
 Reserva Nacional Tambopata y frente al Parque Nacional Bahuaja Sonene (Madre de
@@ -1507,8 +1529,9 @@ La mayoría de las grabaciones se hicieron entre las cinco y las doce de la mañ
 con un segundo bloque a media tarde, y el mes con más grabaciones es
 \peakMonth{}. El horario coincide con el de la toma de datos en campo que declara
 el proyecto, de 5 a 11 y de 16 a 18 horas \citep{wiredamazon_8primates}. Salvo el
-sitio y ese horario, el protocolo de campo no acompaña al material entregado, de modo que la ficha describe lo que puede reconstruirse del propio corpus, a partir de los
-nombres de archivo y de las cabeceras de los WAV, y declara el resto como
+sitio y ese horario, el protocolo de campo no acompaña al material entregado. Por
+eso la ficha describe lo que puede reconstruirse del propio corpus, a partir de
+los nombres de archivo y de las cabeceras de los WAV. El resto lo declara como
 información de procedencia no disponible (sección~\ref{sec:limitaciones}).
 
 \subsection{Transformaciones (capa derivada)}
@@ -1586,7 +1609,7 @@ data/
     \end{tabular}
 \end{table}
 
-Al cargar con \code{data.annotations.load\_annotations()} se añaden
+Al cargar se añaden
 \code{audio\_path}, \code{duration\_s} y \code{bandwidth\_hz}, y se unen las
 copias de una misma grabación (sección~\ref{sec:copias}).
 
@@ -1648,26 +1671,26 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
 \label{sec:limitaciones}
 
 \begin{itemize}
-    \item \textbf{Anotación de una sola fuente.} No hay medición de acuerdo entre
-          anotadores \citep{nguyen_assessing_2021}, de modo que el error de etiquetado residual no puede separarse
-          del error del modelo.
+    \item \textbf{Una sola anotación por llamada.} Anotaron varias personas a lo
+          largo del tiempo, pero cada llamada la anotó una sola, y no hay medición
+          de acuerdo entre anotadores \citep{nguyen_assessing_2021}. El error de
+          etiquetado residual no puede separarse del error del modelo.
     \item \textbf{La columna de tipo de llamada llega sucia y no se puede sanear
           sin el equipo.} \nPairsOutVocab{} pares quedan fuera del vocabulario
           cerrado y no figuran en el vocabulario que el equipo documenta
-          (\cpGuia), de modo
-          que no hay forma de separar el error tipográfico de la subdivisión
-          legítima aún no documentada
+          \citep{proyecto8_guia_2025}. No hay forma de separar el error
+          tipográfico de la subdivisión legítima aún no documentada
           (sección~\ref{sec:regla-especie}). El protocolo los marca y los conserva
           en lugar de decidir, pero el conjunto de experimento se construye
           asumiendo que lo que quedó fuera es ruido. Si parte de ello fuera
-          repertorio real, el vocabulario está incompleto: es la vía de mejora más
+          repertorio real, el vocabulario está incompleto. Es la vía de mejora más
           directa para una versión futura del detector, y lo que requiere es
           ampliar la referencia.
-    \item \textbf{Procedencia de campo incompleta.} Del despliegue solo se conoce
-          el sitio. El material no viene acompañado del protocolo (número y
-          ubicación de los sensores, ganancia, ciclo de trabajo y criterio con que
-          se eligieron los archivos que se anotaron), de modo que la ficha reconstruye lo que se puede leer del
-          propio corpus y nada más. El horario de campo del proyecto explica el sesgo
+    \item \textbf{Procedencia de campo incompleta.} De cada grabación se conoce
+          el sitio y, por sus metadatos, el equipo. El material no viene acompañado
+          del protocolo de campo (ganancia, distancia al animal y criterio con que
+          se eligieron los archivos que se anotaron). La ficha reconstruye lo que
+          se puede leer del propio corpus y nada más. El horario de campo del proyecto explica el sesgo
           horario que se describe arriba, pero no permite saber cuánto de él se
           debe también al ritmo de actividad de las especies.
     \item \textbf{Cajas dibujadas con criterio variable en frecuencia.} El eje de
@@ -1678,8 +1701,8 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           ningún mecanismo que las reagrupe en el evento original
           (Tabla~\ref{tab:ventaneo}). Corregirlo exigiría una segunda longitud de
           ventana para esas clases, o una agregación que reconstruya el evento
-          completo a partir de sus fragmentos antes de puntuarlo; ninguna de las dos
-          se implementó.
+          completo a partir de sus fragmentos antes de puntuarlo. Ninguna de las
+          dos se implementó.
     \item \textbf{Frases excluidas.} Las clases de frase quedan fuera por
           anidamiento y dejan sin cubrir el nivel superior de la jerarquía vocal.
     \item \textbf{Cobertura parcial del repertorio.} Los tipos de llamada bajo el
@@ -1693,6 +1716,11 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
     \item \textbf{Etiquetas que esconden dos formas.} \splitShapes{} agrupan cada
           una dos formas de caja distintas (Figura~\ref{fig:formas}), porque la
           guía del equipo deja a criterio del anotador incluir los armónicos.
+    \item \textbf{Partición por grabación, no por seguimiento.} Ninguna grabación
+          está en dos particiones, pero casi todas las de prueba comparten especie
+          y día con alguna de entrenamiento. Son del mismo seguimiento, con el
+          mismo individuo, fondo y equipo. El Capítulo~\ref{cap:deteccion} mide
+          cuánto puede inflar eso las cifras (sección~\ref{sec:discusion-oe2}).
     \item \textbf{Copias de grabaciones en la capa primaria.} El mismo audio
           aparece en varias carpetas de especie, anotado solo para la especie de cada
           carpeta; la capa derivada las une, pero la llamada de una tercera especie no
@@ -1707,7 +1735,7 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
     \item \textbf{Grabaciones focales, no de PAM.} Todo el material se grabó a mano, con
           micrófono parabólico o con teléfono, dirigido al primate que vocaliza. El PAM del equipo,
           al que el sistema quiere apoyar, usa grabadoras AudioMoth fijas, en las
-          que las llamadas llegan más lejanas y con más fondo; la transferencia a
+          que las llamadas llegan más lejanas y con más fondo. La transferencia a
           ese material no está medida.
 \end{itemize}
 
@@ -1758,35 +1786,37 @@ anotaciones sobre un vocabulario cerrado de \nVocabCallValues{} códigos, y deja
 marcadas (no borradas) las \nReview{} que no puede resolver por sí solo. El
 conjunto particionado (RE1.2) lleva esas anotaciones a \nWindows{} ventanas y
 \nBoxes{} cajas repartidas por grabación en \splitRatios{}, sin una sola
-grabación compartida entre particiones. La ficha (RE1.3) documenta ambas capas y
-declara doce limitaciones conocidas.
+grabación compartida entre particiones, aunque sí días de un mismo seguimiento.
+La ficha (RE1.3) documenta ambas capas y declara catorce limitaciones conocidas.
 
 \rotulo{Qué significan.} El resultado central es la \emph{trazabilidad} del
-conjunto: cada anotación que entra al experimento puede seguirse
-hasta la fila cruda de la que salió y hasta la regla que la tocó, y cada cifra de
-este capítulo se regenera con un comando. Eso es lo que permite atribuir una
-diferencia de desempeño entre detectores a la arquitectura y no al conjunto. Dos propiedades del conjunto condicionan de
-antemano la lectura de esos resultados. La primera es que la geometría separa
-especies pero no tipos de llamada dentro de una especie
-(sección~\ref{sec:geometria}), de donde se sigue que localizar y clasificar son
-problemas de dificultad distinta y que puntuarlos con una sola cifra ocultaría
-cuál de los dos falla. La segunda es que el ventaneo de \clipLen{}\,s multiplica
-las dos clases largas hasta el \pctLongBoxes{} de las cajas, de modo que
-cualquier promedio agregado está dominado por las clases más fáciles del
-conjunto; de ahí la insistencia en el promedio por clase.
+conjunto. Cada anotación que entra al experimento puede seguirse hasta la fila
+cruda de la que salió y hasta la regla que la tocó, y cada cifra de este capítulo
+se regenera con un comando. Eso es lo que permite atribuir una diferencia de
+desempeño entre detectores a la arquitectura y no al conjunto. Dos propiedades
+del conjunto condicionan de antemano la lectura de esos resultados. La primera es
+que la geometría separa las especies en buena medida, y los tipos de llamada de
+una misma especie no (sección~\ref{sec:geometria}). Localizar y clasificar son,
+por tanto, problemas de dificultad distinta, y puntuarlos con una sola cifra
+ocultaría cuál de los dos falla. La segunda es que el ventaneo de \clipLen{}\,s
+multiplica las dos clases largas hasta el \pctLongBoxes{} de las cajas. Cualquier
+promedio agregado está así dominado por las clases más fáciles del conjunto, y de
+ahí la insistencia en el promedio por clase.
 
 \rotulo{Consistencia con la literatura.} Las tres decisiones de mayor
 consecuencia tienen precedente. Cerrar el vocabulario responde a la variabilidad
 entre investigadores de las definiciones de unidad que documentan
-\citet{kershenbaum_acoustic_2016}; excluir las clases de frase es
-la consecuencia operativa del anidamiento jerárquico que ese mismo trabajo
-describe, y que un detector de lista plana no puede representar; y particionar
-por archivo de grabación evita que la variación de las etiquetas fuertes se sume
-a una fuga de datos que inflaría la evaluación \citep{koga_lead_2024}. La forma
-de la ficha sigue las \textit{datasheets} de \citet{gebru_2021}, cuya motivación
-(que no existe un proceso estandarizado para documentar conjuntos de datos) se
-verifica en este caso: nada del material recibido venía acompañado de una
-descripción de su composición o de sus sesgos.
+\citet{kershenbaum_acoustic_2016}. Excluir las clases de frase es la consecuencia
+operativa del anidamiento jerárquico que ese mismo trabajo describe, y que un
+detector de lista plana no puede representar. Particionar por archivo de
+grabación evita que, a la variación de las etiquetas fuertes
+\citep{koga_lead_2024}, se sume una fuga de datos que inflaría la evaluación
+\citep{barz_duplicates_2020}. No evita, en cambio, la fuga dentro de un mismo
+seguimiento (sección~\ref{sec:limitaciones}). La forma de la ficha sigue las
+\textit{datasheets} de \citet{gebru_2021}. Su motivación, que no existe un proceso
+estandarizado para documentar conjuntos de datos, se verifica en este caso: nada
+del material recibido venía acompañado de una descripción de su composición o de
+sus sesgos.
 
 \rotulo{Generalización.} El protocolo es transferible en dos niveles distintos.
 Su \emph{estructura} (normalizar, sanear, cerrar el vocabulario, marcar lo dudoso

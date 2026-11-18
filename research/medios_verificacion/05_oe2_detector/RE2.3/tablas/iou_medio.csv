@@ -1,0 +1,5 @@
+corrida,iou_medio
+detr_t10_logmel_birds_v3,0.740
+frcnn_v3,0.737
+yolo26s_v3,0.760
+rtdetr_l_v3,0.759

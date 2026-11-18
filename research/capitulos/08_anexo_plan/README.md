@@ -43,46 +43,11 @@ resultado depende de un revisor externo.
 
 ## Pendientes
 
-- [x] ~~**El jurado lo pidió (06-10-2026):** «El cronograma debe permitir
-      identificar de manera inmediata qué RE, productos e hitos debían estar
-      completados para E1 y cuáles corresponden a etapas posteriores».~~
-      Resuelto el 06-10-2026. La Tabla A.3 (`tab:cronograma`) agrupa las
-      tareas del cronograma del autor por la entrega del calendario del curso:
-      - E1: 24/08/26, semana 2, documento del curso anterior (Bloque 0).
-      - E2: 07/10/26, semana 8, entregable parcial.
-      - E3: 23/11/26, semana 15, entregable final.
-      - Exposición final: semanas 16 y 17.
+En la lista única de `research/capitulos/README.md`.
 
-      Regla: cada tarea va en la primera entrega posterior a su fecha de fin.
-      Cambios respecto del original:
-      - estados actualizados (2.1 y 2.4–2.6 ya están completos);
-      - cifras quitadas de los nombres de tarea (19 029 anotaciones, 70/10/20),
-        porque no coinciden con las macros de los capítulos;
-      - Bloque 3 reetiquetado con los RE3.x congelados, con las fechas del
-        original. El acuerdo entre anotadores ya no es un RE: pasó a trabajo
-        futuro en las conclusiones.
+> **17-11-2026. Costos según el autor.** Las corridas se hicieron en un servidor de la universidad
+> (`phantom`, NVIDIA RTX A5500 de 24 GB): no es desembolso y no se valoriza. La suscripción de
+> cómputo con GPU (9,99 USD/mes) fue un experimento propio y sale. El SSD y la laptop son del tesista
+> (valorizados). Las horas (600 y 40) siguen. Raven Lite es gratuito. Total: 6 630,00 USD, 85 %
+> valorización.
 
-        | Original | En el anexo |
-        |---|---|
-        | 3.1 RE3.1 «Metodología de validación frente a anotaciones de expertos» | 3.1 RE3.1 «Metodología de validación» |
-        | (no había 3.2: hueco del 25/10 al 02/11) | — |
-        | 3.3 RE3.2 «Acuerdo inter-anotador sobre subconjunto de prueba» | 3.2 RE3.2 «Medición del tiempo de revisión manual y asistida» |
-        | 3.4 RE3.2 «Informe de análisis comparativo modelo vs experto» | 3.3 RE3.3 «Análisis de errores y revisión experta de la muestra» |
-
-      - **4.1 «Redacción del informe final» termina el 20/11, no el 26/11,**
-        para que llegue a E3 (el 20/11 se envía al asesor). Confirmar con el
-        autor.
-- [x] ~~**Error aritmético en «Capital intelectual»:** 600 h × 5,00 USD/h son
-      3 000,00, no 2 500,00.~~ Resuelto el 06-10-2026: se conservaron las horas
-      y la tarifa (los supuestos) y se corrigió lo derivado. Tesista 3 000,00,
-      subtotal 4 000,00, total general 7 349,88.
-- [x] ~~El criterio de aceptación de RE3.1 repite el IOV congelado (confianza 0,5).~~
-      **Resuelto el 07-10-2026:** el IOV de RE3.1 se reescribió («punto de operación
-      elegido en validación») y la Tabla de criterios de aceptación lo sigue.
-- [ ] Revisar que los costos sigan reflejando el hardware usado (las corridas
-      pasaron por varias GPU).
-- [x] ~~Estados del cronograma a la fecha de E2.~~ **Actualizado el 15-11-2026** a la fecha
-      de E3: 3.1 a 3.3 completados y 4.1 en curso (19 de 23 tareas, 11 de 11 resultados). Las
-      fechas de la tabla son las previstas; el párrafo siguiente da las reales de OE3 (3.1 el
-      10/10, antes de lo previsto; 3.2 del 11 al 13/11 y 3.3 hasta el 15/11, después, por el
-      riesgo R3).

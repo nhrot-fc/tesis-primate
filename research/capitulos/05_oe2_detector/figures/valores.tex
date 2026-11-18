@@ -78,6 +78,10 @@
 \newcommand{\rAboveFrc}{9\,107}
 \newcommand{\rAboveRtd}{9\,523}
 \newcommand{\rAboveYol}{9\,662}
+\newcommand{\rAltPrecisionMax}{0,493}
+\newcommand{\rAltPrecisionMin}{0,483}
+\newcommand{\rAltRecallMax}{0,886}
+\newcommand{\rAltRecallMin}{0,862}
 \newcommand{\rBestAtBudget}{YOLO26s}
 \newcommand{\rBestMacro}{YOLO26s}
 \newcommand{\rBestPrimary}{YOLO26s}
@@ -99,7 +103,6 @@
 \newcommand{\rClassOkMin}{0,981}
 \newcommand{\rClassOkRtd}{0,985}
 \newcommand{\rClassOkYol}{0,981}
-\newcommand{\rCommit}{\code{b895fe2}}
 \newcommand{\rConfusionOff}{0,019}
 \newcommand{\rConfusionPairs}{6\,531}
 \newcommand{\rCostRatio}{7,3}
@@ -120,11 +123,63 @@
 \newcommand{\rDemoWindowAnnotations}{7}
 \newcommand{\rDemoWindowDetections}{29}
 \newcommand{\rDemoWindowStart}{4,7}
+\newcommand{\rDmapTestDetFrc}{0,003}
+\newcommand{\rDmapTestDetFrcCi}{[$-$0,024; 0,030]}
+\newcommand{\rDmapTestRtdDet}{0,025}
+\newcommand{\rDmapTestRtdDetCi}{[$-$0,002; 0,057]}
+\newcommand{\rDmapTestRtdFrc}{0,028}
+\newcommand{\rDmapTestRtdFrcCi}{[0,001; 0,059]}
+\newcommand{\rDmapTestYolDet}{0,043}
+\newcommand{\rDmapTestYolDetCi}{[0,019; 0,071]}
+\newcommand{\rDmapTestYolFrc}{0,047}
+\newcommand{\rDmapTestYolFrcCi}{[0,020; 0,078]}
+\newcommand{\rDmapTestYolRtd}{0,019}
+\newcommand{\rDmapTestYolRtdCi}{[$-$0,010; 0,046]}
+\newcommand{\rDmapValDetFrc}{0,036}
+\newcommand{\rDmapValDetFrcCi}{[0,007; 0,060]}
+\newcommand{\rDmapValRtdDet}{0,006}
+\newcommand{\rDmapValRtdDetCi}{[$-$0,019; 0,033]}
+\newcommand{\rDmapValRtdFrc}{0,042}
+\newcommand{\rDmapValRtdFrcCi}{[0,019; 0,066]}
+\newcommand{\rDmapValYolDet}{0,010}
+\newcommand{\rDmapValYolDetCi}{[$-$0,018; 0,037]}
+\newcommand{\rDmapValYolFrc}{0,046}
+\newcommand{\rDmapValYolFrcCi}{[0,019; 0,070]}
+\newcommand{\rDmapValYolRtd}{0,004}
+\newcommand{\rDmapValYolRtdCi}{[$-$0,019; 0,025]}
+\newcommand{\rDrecTestDetFrc}{0,017}
+\newcommand{\rDrecTestDetFrcCi}{[0,004; 0,029]}
+\newcommand{\rDrecTestRtdDet}{0,011}
+\newcommand{\rDrecTestRtdDetCi}{[$-$0,005; 0,024]}
+\newcommand{\rDrecTestRtdFrc}{0,027}
+\newcommand{\rDrecTestRtdFrcCi}{[0,012; 0,041]}
+\newcommand{\rDrecTestYolDet}{0,013}
+\newcommand{\rDrecTestYolDetCi}{[$-$0,001; 0,027]}
+\newcommand{\rDrecTestYolFrc}{0,030}
+\newcommand{\rDrecTestYolFrcCi}{[0,013; 0,047]}
+\newcommand{\rDrecTestYolRtd}{0,003}
+\newcommand{\rDrecTestYolRtdCi}{[$-$0,010; 0,017]}
+\newcommand{\rDrecValDetFrc}{0,021}
+\newcommand{\rDrecValDetFrcCi}{[0,008; 0,034]}
+\newcommand{\rDrecValRtdDet}{0,009}
+\newcommand{\rDrecValRtdDetCi}{[$-$0,002; 0,020]}
+\newcommand{\rDrecValRtdFrc}{0,030}
+\newcommand{\rDrecValRtdFrcCi}{[0,018; 0,041]}
+\newcommand{\rDrecValYolDet}{0,010}
+\newcommand{\rDrecValYolDetCi}{[$-$0,003; 0,021]}
+\newcommand{\rDrecValYolFrc}{0,030}
+\newcommand{\rDrecValYolFrcCi}{[0,017; 0,042]}
+\newcommand{\rDrecValYolRtd}{0,000}
+\newcommand{\rDrecValYolRtdCi}{[$-$0,010; 0,010]}
 \newcommand{\rFinalClasses}{25}
 \newcommand{\rFinalEpoch}{17}
 \newcommand{\rFinalMb}{40}
 \newcommand{\rFinalTensors}{708}
 \newcommand{\rFinalThreshold}{0,11}
+\newcommand{\rFixedRecallDet}{0,592}
+\newcommand{\rFixedRecallFrc}{0,823}
+\newcommand{\rFixedRecallRtd}{0,763}
+\newcommand{\rFixedRecallYol}{0,624}
 \newcommand{\rFoneDet}{0,728}
 \newcommand{\rFoneFrc}{0,727}
 \newcommand{\rFoneRtd}{0,734}
@@ -142,12 +197,28 @@
 \newcommand{\rHoursTest}{3,17}
 \newcommand{\rIouDet}{0,766}
 \newcommand{\rIouFrc}{0,768}
+\newcommand{\rIouMeanDet}{0,740}
+\newcommand{\rIouMeanFrc}{0,737}
+\newcommand{\rIouMeanRtd}{0,759}
+\newcommand{\rIouMeanYol}{0,760}
 \newcommand{\rIouRtd}{0,797}
 \newcommand{\rIouStrictShareDet}{90,7\,\%}
 \newcommand{\rIouStrictShareFrc}{90,9\,\%}
 \newcommand{\rIouStrictShareRtd}{92,0\,\%}
 \newcommand{\rIouStrictShareYol}{92,2\,\%}
 \newcommand{\rIouYol}{0,792}
+\newcommand{\rLeakNew}{26}
+\newcommand{\rLeakNewBoxes}{350}
+\newcommand{\rLeakNewMax}{0,586}
+\newcommand{\rLeakNewMin}{0,477}
+\newcommand{\rLeakNewYol}{0,534}
+\newcommand{\rLeakNewYolCi}{[0,394; 0,742]}
+\newcommand{\rLeakShare}{96\,\%}
+\newcommand{\rLeakShared}{575}
+\newcommand{\rLeakSharedMax}{0,824}
+\newcommand{\rLeakSharedMin}{0,791}
+\newcommand{\rLeakSharedYol}{0,824}
+\newcommand{\rLeakTest}{601}
 \newcommand{\rLoadDet}{2\,984}
 \newcommand{\rLoadFrc}{2\,877}
 \newcommand{\rLoadRtd}{3\,008}
@@ -168,9 +239,12 @@
 \newcommand{\rMapStrictFrc}{0,457}
 \newcommand{\rMapStrictRtd}{0,499}
 \newcommand{\rMapStrictYol}{0,521}
+\newcommand{\rMapValDet}{0,632}
+\newcommand{\rMapValFrc}{0,596}
+\newcommand{\rMapValRtd}{0,638}
+\newcommand{\rMapValYol}{0,642}
 \newcommand{\rMapYol}{0,620}
 \newcommand{\rMeanLoad}{2\,980}
-\newcommand{\rNCommits}{123}
 \newcommand{\rNDetectionClasses}{23}
 \newcommand{\rNHardClasses}{2}
 \newcommand{\rNScarce}{8}
@@ -219,7 +293,6 @@
 \newcommand{\rTpFrc}{6\,192}
 \newcommand{\rTpRtd}{6\,407}
 \newcommand{\rTpYol}{6\,430}
-\newcommand{\rVersion}{\code{0.2.5}}
 \newcommand{\rWindowClasses}{\code{as/hc}, \code{pt/dc}}
 \newcommand{\rWinner}{YOLO26s}
 \newcommand{\rWinnerKey}{Yol}

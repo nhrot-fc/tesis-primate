@@ -1,0 +1,140 @@
+[2026-09-15 02:14:23] [INFO] [train] ===== yolo26s_v3 =====
+[2026-09-15 03:16:52] [INFO] [training.yolo] checkpoint -> /home/fcandia/tesis-primate/runs/yolo26s_v3/best.pt
+[2026-09-15 03:16:52] [INFO] [train] volcá predicciones con: python src/dump_predictions.py --run yolo26s_v3
+[2026-09-15 02:14:23] [INFO] [train] ===== yolo26s_v3 =====
+New https://pypi.org/project/ultralytics/8.4.152 available 😃 Update with 'pip install -U ultralytics'
+Ultralytics 8.4.148 🚀 Python-3.12.13 torch-2.14.0+cu130 CUDA:0 (NVIDIA RTX A5500, 24112MiB)
+Overriding model.yaml nc=80 with nc=25
+                   from  n    params  module                                       arguments
+  0                  -1  1       928  ultralytics.nn.modules.conv.Conv             [3, 32, 3, 2]
+  1                  -1  1     18560  ultralytics.nn.modules.conv.Conv             [32, 64, 3, 2]
+  2                  -1  1     26080  ultralytics.nn.modules.block.C3k2            [64, 128, 1, False, 0.25]
+  3                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]
+  4                  -1  1    103360  ultralytics.nn.modules.block.C3k2            [128, 256, 1, False, 0.25]
+  5                  -1  1    590336  ultralytics.nn.modules.conv.Conv             [256, 256, 3, 2]
+  6                  -1  1    346112  ultralytics.nn.modules.block.C3k2            [256, 256, 1, True]
+  7                  -1  1   1180672  ultralytics.nn.modules.conv.Conv             [256, 512, 3, 2]
+  8                  -1  1   1380352  ultralytics.nn.modules.block.C3k2            [512, 512, 1, True]
+  9                  -1  1    656896  ultralytics.nn.modules.block.SPPF            [512, 512, 5, 3, True]
+ 10                  -1  1    990976  ultralytics.nn.modules.block.C2PSA           [512, 512, 1]
+ 11                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
+ 12             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 13                  -1  1    477184  ultralytics.nn.modules.block.C3k2            [768, 256, 1, True]
+ 14                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
+ 15             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 16                  -1  1    136192  ultralytics.nn.modules.block.C3k2            [512, 128, 1, True]
+ 17                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]
+ 18            [-1, 13]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 19                  -1  1    378880  ultralytics.nn.modules.block.C3k2            [384, 256, 1, True]
+ 20                  -1  1    590336  ultralytics.nn.modules.conv.Conv             [256, 256, 3, 2]
+ 21            [-1, 10]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 22                  -1  1   1843712  ultralytics.nn.modules.block.C3k2            [768, 512, 1, True, 0.5, True]
+ 23        [16, 19, 22]  1    951214  ultralytics.nn.modules.head.Detect           [25, 1, True, [128, 256, 512]]
+YOLO26s summary: 260 layers, 9,967,214 parameters, 9,967,214 gradients, 22.8 GFLOPs
+Transferred 696/708 items from pretrained weights
+AMP: running Automatic Mixed Precision (AMP) checks...
+AMP: checks passed ✅
+train: Fast image access ✅ (ping: 0.0±0.0 ms, read: 3052.8±821.8 MB/s, size: 120.2 KB)
+train: New cache created: /home/fcandia/tesis-primate/data/yolo/labels/train.cache
+val: Fast image access ✅ (ping: 0.0±0.0 ms, read: 2159.4±892.0 MB/s, size: 120.6 KB)
+val: New cache created: /home/fcandia/tesis-primate/data/yolo/labels/val.cache
+optimizer: 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically...
+optimizer: MuSGD(lr=0.01, momentum=0.9) with parameter groups 114 weight(decay=0.0), 126 weight(decay=0.0005), 126 bias(decay=0.0)
+Plotting labels to /home/fcandia/tesis-primate/runs/yolo26s_v3/labels.jpg...
+Using 21751 train, 9364 val images for fraction=1.0 at imgsz=512
+Using 8 dataloader workers
+Logging results to /home/fcandia/tesis-primate/runs/yolo26s_v3
+Starting training for 30 epochs...
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.405      0.285      0.265      0.116
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114       0.43       0.39      0.331      0.151
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.353      0.359       0.29       0.12
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.534      0.401      0.409       0.18
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.432      0.408      0.356      0.159
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.503      0.405      0.369      0.168
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.573        0.5       0.51       0.24
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.577      0.451      0.456      0.219
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.588       0.55      0.553      0.263
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.603       0.56      0.565      0.274
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.587      0.514       0.52      0.254
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.589      0.572      0.563      0.279
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.597      0.593      0.578      0.297
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.628      0.554      0.573      0.289
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.636      0.595       0.59      0.299
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.619      0.587      0.587      0.298
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.654        0.6      0.596      0.305
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.651      0.573      0.586      0.301
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.651      0.582       0.59      0.304
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.641      0.606      0.589      0.302
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.652      0.593      0.577      0.297
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.638      0.595      0.579        0.3
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114       0.66      0.587      0.577      0.299
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.669      0.588      0.574      0.296
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.681      0.563      0.571      0.292
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.668      0.573       0.57      0.293
+      Epoch    GPU_mem   box_loss   cls_loss    l1_loss  Instances       Size
+                   all       9364      10114      0.653      0.576       0.57      0.294
+EarlyStopping: Training stopped early as no improvement observed in last 10 epochs. Best results observed at epoch 17, best model saved as best.pt.
+To update EarlyStopping(patience=10) pass a new patience value, i.e. `patience=300` or use `patience=0` to disable EarlyStopping.
+27 epochs completed in 1.022 hours.
+Optimizer stripped from /home/fcandia/tesis-primate/runs/yolo26s_v3/weights/last.pt, 20.3MB
+Optimizer stripped from /home/fcandia/tesis-primate/runs/yolo26s_v3/weights/best.pt, 20.3MB
+Validating /home/fcandia/tesis-primate/runs/yolo26s_v3/weights/best.pt...
+Ultralytics 8.4.148 🚀 Python-3.12.13 torch-2.14.0+cu130 CUDA:0 (NVIDIA RTX A5500, 24112MiB)
+YOLO26s summary (fused): 120 layers, 9,474,855 parameters, 0 gradients, 20.8 GFLOPs
+                   all       9364      10114      0.655        0.6      0.596      0.305
+                 aa-gc        179        345      0.812      0.843      0.833      0.476
+                 aa-hm         36         54      0.792      0.705      0.712      0.359
+                 aa-sc         61         68      0.693      0.574       0.64      0.368
+                 ac-bc        485       1065       0.82      0.863      0.888      0.428
+                ac-chc        102        105      0.726       0.58      0.681      0.328
+                 ac-gc         68         71      0.564      0.225      0.316      0.111
+                 ac-sc         64         71      0.712      0.254      0.329      0.168
+                 as-bc        342        831      0.778       0.48        0.6      0.278
+                 as-hc       2592       2599      0.839       0.91      0.909      0.592
+                 lw-cs        357       1000      0.788      0.817      0.848       0.49
+                lw-sqc         63         69      0.632      0.548      0.444      0.131
+                 lw-ta        101        116      0.553      0.543      0.462      0.189
+              lw-trino        209        278      0.572      0.536      0.568      0.311
+                 lw-vc         50         52       0.73      0.673       0.72      0.443
+                 pt-dc        729        729      0.817       0.82      0.843      0.543
+                pt-sqc         55        161       0.64      0.863      0.701       0.21
+                sb-pcc        108        128      0.549       0.43      0.424      0.237
+                sb-ppc        314        529      0.578      0.425      0.498      0.222
+                 sb-sc         37         46       0.28      0.609      0.392      0.196
+                sb-spc        231        323      0.492      0.533      0.508      0.218
+                 sm-cc        602        883      0.653      0.708      0.672      0.267
+                 sm-fs         84        301      0.554      0.608      0.529      0.321
+                sm-hic        102        111      0.772      0.622      0.695       0.34
+                 sm-pc         94        106      0.466      0.453      0.329      0.169
+                 sm-sc         44         73      0.552      0.384      0.359      0.221
+Speed: 0.1ms preprocess, 0.9ms inference, 0.0ms loss, 0.7ms postprocess per image
+Results saved to /home/fcandia/tesis-primate/runs/yolo26s_v3
+Overriding model.yaml nc=80 with nc=25
+[2026-09-15 03:16:52] [INFO] [training.yolo] checkpoint -> /home/fcandia/tesis-primate/runs/yolo26s_v3/best.pt
+[2026-09-15 03:16:52] [INFO] [train] volcá predicciones con: python src/dump_predictions.py --run yolo26s_v3

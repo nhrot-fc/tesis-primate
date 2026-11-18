@@ -105,20 +105,10 @@ Desviaciones que el capítulo debe declarar:
 
 ## Pendientes
 
-- [x] ~~Cuaderno de figuras con las respuestas reales.~~ Hecho el 15-11-2026.
-- [x] ~~Redactar RE3.1, RE3.2, RE3.3 y la discusión.~~ Hecho el 15-11-2026, sin reajustar OE3
-      ni sus RE: cada resultado se reporta frente a su IOV y lo que no salió como se planeó va a
-      las limitaciones.
-- [x] ~~Decidir qué hacer con `protocolo.md`~~ **16-11-2026:** ya tiene commit (c39dda6, d7f8adb). El capítulo cita el commit
-      63f84a8 (10-10-2026) como la fecha de las reglas. Si se hace commit ahora, el mensaje
-      debe decir que es la versión reordenada del 27-10, sin cambios de reglas; su encabezado
-      («La fecha es la del commit de esta versión») y «Cambios después del commit (ninguno)»
-      ya no son exactos.
-- [ ] Llenar las carpetas de OE3 de `research/medios_verificacion/`, que el Anexo B ya describe
-      (ver `09_anexo_medios/README.md`). Los tiempos van sin la columna de notas.
-- [ ] `research/reportes/RE_3-3_taxonomia-discrepancias` describe el corpus entero con el
-      k-fold en train. No entró al capítulo: es el material de la tarea 3, que queda fuera de E3 (el equipo la hará en 2027).
-- [x] ~~En `07_conclusiones.tex`, las filas de RE3.1–RE3.3, el párrafo de OE3 y el veredicto
-      del objetivo general.~~ Hecho el 15-11-2026. Desde el 17-11-2026 el veredicto es
-      «cumplido»: la tesis mide el ahorro sin prometer un valor (ver `07_conclusiones/README.md`).
-- El capítulo 1 no se tocó, por decisión del autor (14-11-2026).
+En la lista única de `research/capitulos/README.md`.
+
+> **17-11-2026. Revisión externa.** Un `no` en un control es «desacuerdo con la referencia»
+> (Tabla 6.1), no ruido: ruido 133, desacuerdos 18 (antes 138 y 13). La indicación enviada durante
+> la tarea ciega se declara como violación del protocolo. Las diferencias de calidad de la sesión
+> (0,60/0,62 frente a 0,42/0,45) se presentan como observación sin intervalo. Nueva limitación: las
+> grabaciones de prueba son de los mismos seguimientos que las de entrenamiento.

@@ -1,0 +1,161 @@
+[2026-09-18 02:35:04] [INFO] [train] ===== rtdetr_l_v3 =====
+[2026-09-18 06:47:09] [INFO] [training.yolo] checkpoint -> /home/fcandia/tesis-primate/runs/rtdetr_l_v3/best.pt
+[2026-09-18 06:47:09] [INFO] [train] volcá predicciones con: python src/dump_predictions.py --run rtdetr_l_v3
+[2026-09-18 02:35:04] [INFO] [train] ===== rtdetr_l_v3 =====
+New https://pypi.org/project/ultralytics/8.4.155 available 😃 Update with 'pip install -U ultralytics'
+Ultralytics 8.4.148 🚀 Python-3.12.13 torch-2.14.0+cu130 CUDA:1 (NVIDIA RTX A5500, 24112MiB)
+Overriding model.yaml nc=80 with nc=25
+WARNING ⚠️ no model scale passed. Assuming scale='l'.
+                   from  n    params  module                                       arguments
+  0                  -1  1     25248  ultralytics.nn.modules.block.HGStem          [3, 32, 48]
+  1                  -1  6    155072  ultralytics.nn.modules.block.HGBlock         [48, 48, 128, 3, 6]
+  2                  -1  1      1408  ultralytics.nn.modules.conv.DWConv           [128, 128, 3, 2, 1, False]
+  3                  -1  6    839296  ultralytics.nn.modules.block.HGBlock         [128, 96, 512, 3, 6]
+  4                  -1  1      5632  ultralytics.nn.modules.conv.DWConv           [512, 512, 3, 2, 1, False]
+  5                  -1  6   1695360  ultralytics.nn.modules.block.HGBlock         [512, 192, 1024, 5, 6, True, False]
+  6                  -1  6   2055808  ultralytics.nn.modules.block.HGBlock         [1024, 192, 1024, 5, 6, True, True]
+  7                  -1  6   2055808  ultralytics.nn.modules.block.HGBlock         [1024, 192, 1024, 5, 6, True, True]
+  8                  -1  1     11264  ultralytics.nn.modules.conv.DWConv           [1024, 1024, 3, 2, 1, False]
+  9                  -1  6   6708480  ultralytics.nn.modules.block.HGBlock         [1024, 384, 2048, 5, 6, True, False]
+ 10                  -1  1    524800  ultralytics.nn.modules.conv.Conv             [2048, 256, 1, 1, None, 1, 1, False]
+ 11                  -1  1    789760  ultralytics.nn.modules.transformer.AIFI      [256, 1024, 8]
+ 12                  -1  1     66048  ultralytics.nn.modules.conv.Conv             [256, 256, 1, 1]
+ 13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
+ 14                   7  1    262656  ultralytics.nn.modules.conv.Conv             [1024, 256, 1, 1, None, 1, 1, False]
+ 15            [-2, -1]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 16                  -1  3   2232320  ultralytics.nn.modules.block.RepC3           [512, 256, 3]
+ 17                  -1  1     66048  ultralytics.nn.modules.conv.Conv             [256, 256, 1, 1]
+ 18                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
+ 19                   3  1    131584  ultralytics.nn.modules.conv.Conv             [512, 256, 1, 1, None, 1, 1, False]
+ 20            [-2, -1]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 21                  -1  3   2232320  ultralytics.nn.modules.block.RepC3           [512, 256, 3]
+ 22                  -1  1    590336  ultralytics.nn.modules.conv.Conv             [256, 256, 3, 2]
+ 23            [-1, 17]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 24                  -1  3   2232320  ultralytics.nn.modules.block.RepC3           [512, 256, 3]
+ 25                  -1  1    590336  ultralytics.nn.modules.conv.Conv             [256, 256, 3, 2]
+ 26            [-1, 12]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 27                  -1  3   2232320  ultralytics.nn.modules.block.RepC3           [512, 256, 3]
+ 28        [21, 24, 27]  1   7353227  ultralytics.nn.modules.head.RTDETRDecoder    [25, [256, 256, 256]]
+rt-detr-l summary: 470 layers, 32,857,451 parameters, 32,857,451 gradients, 110.0 GFLOPs
+Transferred 926/941 items from pretrained weights
+AMP: running Automatic Mixed Precision (AMP) checks...
+AMP: checks passed ✅
+train: Fast image access ✅ (ping: 0.0±0.0 ms, read: 637.6±60.8 MB/s, size: 120.2 KB)
+train: New cache created: /home/fcandia/tesis-primate/data/yolo/labels/train.cache
+val: Fast image access ✅ (ping: 0.0±0.0 ms, read: 2844.9±1606.5 MB/s, size: 120.6 KB)
+optimizer: AdamW(lr=0.0001, momentum=0.937) with parameter groups 143 weight(decay=0.0), 206 weight(decay=0.0001), 226 bias(decay=0.0)
+Plotting labels to /home/fcandia/tesis-primate/runs/rtdetr_l_v3/labels.jpg...
+Using 21751 train, 9364 val images for fraction=1.0 at imgsz=512
+Using 8 dataloader workers
+Logging results to /home/fcandia/tesis-primate/runs/rtdetr_l_v3
+Starting training for 30 epochs...
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.524      0.116    0.00927    0.00428
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114       0.43      0.281     0.0248      0.011
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.137      0.337     0.0659      0.036
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.341      0.517      0.311      0.156
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.422      0.549      0.412      0.214
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.519      0.499      0.465      0.242
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.545      0.575      0.513      0.268
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.577      0.563      0.532      0.276
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.563      0.567      0.537      0.281
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114       0.59      0.584      0.553      0.285
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.578      0.572      0.542      0.282
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.602      0.572      0.552       0.29
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.636      0.579      0.576      0.296
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.624      0.579      0.571      0.293
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.614      0.579      0.557       0.29
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.607      0.592      0.566      0.294
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.615       0.59      0.561       0.29
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.613      0.575      0.557      0.288
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.618       0.57      0.548      0.283
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.627      0.563      0.552      0.287
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.622      0.571       0.55      0.286
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.648      0.542      0.547       0.28
+      Epoch    GPU_mem  giou_loss   cls_loss    l1_loss  Instances       Size
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+                   all       9364      10114      0.625      0.564      0.544       0.28
+EarlyStopping: Training stopped early as no improvement observed in last 10 epochs. Best results observed at epoch 13, best model saved as best.pt.
+To update EarlyStopping(patience=10) pass a new patience value, i.e. `patience=300` or use `patience=0` to disable EarlyStopping.
+23 epochs completed in 4.176 hours.
+Optimizer stripped from /home/fcandia/tesis-primate/runs/rtdetr_l_v3/weights/last.pt, 66.3MB
+Optimizer stripped from /home/fcandia/tesis-primate/runs/rtdetr_l_v3/weights/best.pt, 66.3MB
+Validating /home/fcandia/tesis-primate/runs/rtdetr_l_v3/weights/best.pt...
+Ultralytics 8.4.148 🚀 Python-3.12.13 torch-2.14.0+cu130 CUDA:1 (NVIDIA RTX A5500, 24112MiB)
+rt-detr-l summary (fused): 315 layers, 32,035,115 parameters, 0 gradients, 105.4 GFLOPs
+                   all       9364      10114      0.647      0.572      0.577      0.296
+                 aa-gc        179        345      0.767      0.801      0.807      0.447
+                 aa-hm         36         54      0.863      0.468      0.616      0.258
+                 aa-sc         61         68      0.666      0.645      0.696      0.399
+                 ac-bc        485       1065      0.776      0.835      0.837      0.396
+                ac-chc        102        105       0.61      0.522       0.58      0.306
+                 ac-gc         68         71      0.494      0.211      0.226     0.0921
+                 ac-sc         64         71      0.413      0.282      0.235     0.0989
+                 as-bc        342        831      0.715      0.478      0.556      0.226
+                 as-hc       2592       2599      0.827      0.912      0.892      0.593
+                 lw-cs        357       1000        0.8      0.839      0.865      0.504
+                lw-sqc         63         69      0.623      0.348      0.423      0.156
+                 lw-ta        101        116       0.59      0.638      0.532      0.228
+              lw-trino        209        278      0.602      0.529      0.573      0.338
+                 lw-vc         50         52      0.647      0.615      0.634      0.374
+                 pt-dc        729        729      0.795      0.814      0.816      0.537
+                pt-sqc         55        161      0.626      0.857      0.704      0.185
+                sb-pcc        108        128      0.554      0.336       0.37      0.239
+                sb-ppc        314        529      0.596      0.467      0.468      0.203
+                 sb-sc         37         46      0.455      0.348      0.411      0.194
+                sb-spc        231        323      0.489      0.417      0.395      0.171
+                 sm-cc        602        883      0.706      0.635      0.659       0.28
+                 sm-fs         84        301      0.574      0.678      0.548      0.327
+                sm-hic        102        111      0.822      0.624       0.68      0.319
+                 sm-pc         94        106      0.469      0.519      0.368      0.178
+                 sm-sc         44         73      0.685      0.493      0.521      0.352
+Speed: 0.1ms preprocess, 3.3ms inference, 0.0ms loss, 0.2ms postprocess per image
+Results saved to /home/fcandia/tesis-primate/runs/rtdetr_l_v3
+Overriding model.yaml nc=80 with nc=25
+WARNING ⚠️ no model scale passed. Assuming scale='l'.
+WARNING ⚠️ no model scale passed. Assuming scale='l'.
+[2026-09-18 06:47:09] [INFO] [training.yolo] checkpoint -> /home/fcandia/tesis-primate/runs/rtdetr_l_v3/best.pt
+[2026-09-18 06:47:09] [INFO] [train] volcá predicciones con: python src/dump_predictions.py --run rtdetr_l_v3

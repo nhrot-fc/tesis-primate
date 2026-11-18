@@ -1,0 +1,26 @@
+{
+  "model": "yolo26s_v3",
+  "threshold": 0.11,
+  "val": {
+    "threshold": 0.11,
+    "recall": 0.836662052600356,
+    "precision": 0.7000330906684316,
+    "n_above": 12088,
+    "n_tp": 8462
+  },
+  "test": {
+    "threshold": 0.11,
+    "recall": 0.8107426554028496,
+    "precision": 0.6654936866073277,
+    "n_above": 9662,
+    "n_tp": 6430
+  },
+  "protocol": {
+    "iou": 0.3,
+    "strict_iou": 0.5,
+    "max_det": 100,
+    "score_floor": 0.001,
+    "min_precision": 0.7,
+    "seed": 42
+  }
+}

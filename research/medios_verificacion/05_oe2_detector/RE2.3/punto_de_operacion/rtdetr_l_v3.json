@@ -1,0 +1,26 @@
+{
+  "model": "rtdetr_l_v3",
+  "threshold": 0.39,
+  "val": {
+    "threshold": 0.39,
+    "recall": 0.8361676883527783,
+    "precision": 0.7027004570004155,
+    "n_above": 12035,
+    "n_tp": 8457
+  },
+  "test": {
+    "threshold": 0.39,
+    "recall": 0.8078426427940991,
+    "precision": 0.6727921873359236,
+    "n_above": 9523,
+    "n_tp": 6407
+  },
+  "protocol": {
+    "iou": 0.3,
+    "strict_iou": 0.5,
+    "max_det": 100,
+    "score_floor": 0.001,
+    "min_precision": 0.7,
+    "seed": 42
+  }
+}

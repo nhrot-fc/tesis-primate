@@ -5,7 +5,7 @@ redacta al final, cuando los capítulos 5 y 6 tengan sus cifras.
 
 > **06-10-2026.** «La propuesta frente al problema central» se reescribió para
 > el árbol nuevo del Capítulo 1 (C1 → OE1, C2 → OE2; el párrafo de OE3 frente a
-> C3 queda como comentario `PENDIENTE`). Se corrigió la magnitud del desbalance
+> C3 quedó como comentario, redactado después). Se corrigió la magnitud del desbalance
 > (más de un orden, no dos) y se reformuló la frase que repetía literalmente la
 > discusión del Capítulo 5.
 
@@ -38,20 +38,5 @@ Ninguna, y conviene que siga así.
 
 ## Pendientes
 
-- [x] ~~Todo: el capítulo es un esqueleto.~~ **Redactado el 15-11-2026**, con la discusión
-      del Capítulo 6: las filas de RE3.1–RE3.3 (cumplidos), el párrafo de OE3 (cumplido: la
-      reducción se cuantificó y no la hubo), el objetivo general, OE3 frente a C3 y un primer
-      trabajo futuro: volver a medir el tiempo.
-- [x] ~~Veredicto del objetivo general.~~ **17-11-2026: «cumplido».** Era «parcialmente
-      cumplido» porque el capítulo 1 fijaba la reducción del tiempo como «criterio de éxito»,
-      lo que contradecía los textos congelados: OE3 y el IOV de RE3.2 comprometen medir el
-      ahorro, no un valor. El autor decidió que la tesis mide el ahorro y no lo promete; el
-      capítulo 1 lo dice ahora así. El veredicto se da por los dos verbos (desarrollar y
-      evaluar), y el párrafo sigue diciendo que la sesión no muestra la reducción ni basta para
-      descartarla.
-- [x] ~~Párrafo de desviaciones desfasado.~~ **Resuelto el 07-10-2026.** Ya no
-      declara la diferencia de consultas de RE2.1 (su IOV dejó de fijar esos
-      números) ni la ficha de RE1.3 (ya tiene su README); queda solo la de los
-      nombres de archivo de RE2.2 y RE2.4. El trabajo futuro habla de dos
-      ablaciones, no tres, porque PCEN se descartó.
-- [x] ~~Secciones vacías en el PDF~~ **Resuelto el 07-10-2026.** OE3 y el objetivo general tienen una línea visible que remite a E3, en lugar de un título sin texto. La implicación principal de 7.1 es el hallazgo (encontrar y encuadrar), no el empate.
+En la lista única de `research/capitulos/README.md`.
+

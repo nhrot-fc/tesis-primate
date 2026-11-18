@@ -16,24 +16,7 @@ de la revisión de E1:
   `make medios`.
 - `06_oe3_revision/README.md` y el `README.md` raíz se escriben a mano.
 
-## Pendiente
+## Pendientes
 
-- **La carpeta no existe (15-11-2026).** Ni `research/medios_verificacion/` ni `generar.py`
-  están en el disco ni en el historial de git (se notó el 27-10), así que `make medios` falla y
-  el anexo describe una carpeta que no está. Hay que reconstruir `generar.py` antes de E3. Las
-  carpetas de OE3 que el anexo ya describe (15-11-2026):
-  - `06_oe3_revision/RE3.1`: `protocolo.md`;
-  - `06_oe3_revision/RE3.2`: `tiempos_sesion.csv` (carpeta, inicio, término y pausas de
-    `times.xlsx`, **sin** la columna de notas, que trae nombres) y `test_cpu_times.csv`;
-  - `06_oe3_revision/RE3.3`: `respuestas_revision.csv` (ID, estrato, clase, respuesta y
-    categoría de cada caja) y `revision_ejemplos.png`.
-  La clave de la tarea 3 (`dataset_quality_key.csv`) no se publica mientras esa tarea siga
-  abierta.
-- **Lista de grabaciones de entrenamiento.** `grabaciones_train.txt` de RE1.2 sólo puede
-  generarse donde está el caché con que se entrenó: el servidor `fcandia`. El
-  `data/processed/` de esta máquina es una copia anterior, del 20-08-2026, con otras
-  particiones: 21 966/9 446/8 007 ventanas frente a las 21 751/9 364/7 598 del
-  documento. Hay que correr `make medios` en el servidor, o copiar de ahí
-  `data/processed/train_sources.json`.
-- **URL de la carpeta.** El anexo cita `.../tree/main/research/medios_verificacion`, que
-  existe sólo después de hacer push de la carpeta.
+En la lista única de `research/capitulos/README.md`.
+

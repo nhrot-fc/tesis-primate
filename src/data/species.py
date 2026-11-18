@@ -23,7 +23,7 @@ CALL_TYPES: dict[Species, dict[str, str]] = {
         "chc": "chitter_call",
         "gc": "growl_call",
         "cc": "contact_call",
-        "whc": "whinnie_call",
+        "whc": "whinny_call",
         "sc": "squeak_call",
         "bc": "bark_call",
     },

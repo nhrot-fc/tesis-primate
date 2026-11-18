@@ -1,0 +1,1003 @@
+id,grabacion,inicio_s,fin_s,frec_min_hz,frec_max_hz,clase_propuesta,confianza,estrato,respuesta,comentario,categoria,persona
+C001,weddells_saddleBack_tamarin__LW/20240417_072715.wav,1.425,1.837,6114.2,9499.6,lw/vc,0.8,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C002,weddells_saddleBack_tamarin__LW/20240417_072715.wav,16.658,16.999,8268.4,10071.3,lw/cs,0.715,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C003,weddells_saddleBack_tamarin__LW/20240417_072715.wav,17.192,17.444,8296.5,10131.9,lw/cs,0.688,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C004,weddells_saddleBack_tamarin__LW/20240417_072715.wav,20.691,20.903,484.6,971.1,ac/bc,0.151,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C005,weddells_saddleBack_tamarin__LW/20240417_072715.wav,23.381,23.865,8020.7,9827.9,lw/cs,0.646,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C006,weddells_saddleBack_tamarin__LW/20240417_072715.wav,23.914,24.406,7848.6,10070.6,lw/cs,0.66,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C007,weddells_saddleBack_tamarin__LW/20240417_072715.wav,25.3,25.824,8592.2,10012.6,lw/cs,0.662,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C008,large_headed_capuchin__SM/20240615_124304.wav,7.378,7.573,179.5,16649.3,sb/spc,0.319,none_media,correct,,evento no anotado,
+C009,large_headed_capuchin__SM/20240615_124304.wav,7.5,7.59,734.4,17249.5,sb/spc,0.326,none_media,box,too short,evento no anotado,
+C010,large_headed_capuchin__SM/20240615_124304.wav,9.889,10.024,332.7,14215.1,sb/spc,0.532,none_alta,correct,,evento no anotado,
+C011,large_headed_capuchin__SM/20240615_124304.wav,27.294,27.735,7967.1,9564.2,lw/cs,0.364,none_media,?,,incierto,
+C012,large_headed_capuchin__SM/20240206_170410.wav,5.599,5.735,473.7,4706.1,sm/cc,0.567,match,box,missing selection of vocalizations,desacuerdo con la referencia,
+C013,large_headed_capuchin__SM/20240528_161652.wav,4.4,6.0,139.1,5116.6,ac/chc,0.22,none_baja,no,backgroung noise - missing selection of vocalizations SB SM,ruido,
+C014,bolivian_squirrel_monkey__SB/20240202_163158.wav,0.0,0.086,9459.8,14766.7,sb/ppc,0.21,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C015,bolivian_squirrel_monkey__SB/20240202_163158.wav,5.82,5.992,4792.2,8760.7,sb/ppc,0.53,none_alta,box,missing selection of vocalizations,evento no anotado,
+C016,bolivian_squirrel_monkey__SB/20240202_163158.wav,7.129,7.293,4723.2,11236.6,sb/ppc,0.339,none_media,box,missing selection of vocalizations,evento no anotado,
+C017,bolivian_squirrel_monkey__SB/20240202_163158.wav,7.5,8.06,9324.3,13939.2,sb/pcc,0.45,label,box,missing selection of vocalizations,error de encuadre,
+C018,bolivian_squirrel_monkey__SB/20240202_163158.wav,13.06,13.223,7568.2,9250.0,sb/ppc,0.394,box,box,missing selection of vocalizations,error de encuadre,
+C019,bolivian_squirrel_monkey__SB/20240202_163158.wav,13.503,13.679,285.7,15389.4,sb/spc,0.507,label,box,missing selection of vocalizations,error de encuadre,
+C020,bolivian_squirrel_monkey__SB/20240202_163158.wav,14.07,15.0,8380.0,13930.7,sb/pcc,0.418,box,box,missing selection of vocalizations,error de encuadre,
+C021,bolivian_squirrel_monkey__SB/20240202_163158.wav,16.513,16.801,6813.6,12224.4,sb/ppc,0.696,none_alta,other,"missing selection of vocalizations, PCC",evento no anotado,
+C022,bolivian_squirrel_monkey__SB/20240202_163158.wav,23.081,23.412,9326.5,10482.6,sb/ppc,0.293,none_baja,box,missing selection of vocalizations,evento no anotado,
+C023,howler_monkey__AS/20240629_053124.wav,5.827,6.214,112.3,693.7,as/bc,0.261,box,correct,missing selection of vocalizations,anotación por corregir,
+C024,howler_monkey__AS/20240629_053124.wav,21.027,21.435,105.2,759.9,as/bc,0.703,box,box,too short - missing selection of vocalizations,error de encuadre,
+C025,howler_monkey__AS/20240629_053124.wav,24.0,24.166,49.2,715.3,as/bc,0.237,box,box,too short - missing selection of vocalizations,error de encuadre,
+C026,peruvian_spider_monkey__AC/20240830_113218.wav,9.255,9.522,458.5,2080.7,ac/bc,0.374,none_media,correct,missing selection of vocalizations,evento no anotado,
+C027,peruvian_spider_monkey__AC/20240830_113218.wav,13.314,13.572,621.7,2140.7,ac/bc,0.739,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C028,peruvian_spider_monkey__AC/20240830_113218.wav,18.45,18.693,511.0,2113.2,ac/bc,0.735,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C029,peruvian_spider_monkey__AC/20240830_113218.wav,20.488,20.73,412.6,1996.0,ac/bc,0.702,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C030,peruvian_spider_monkey__AC/20240830_113218.wav,28.389,28.562,1745.5,2112.2,sm/fs,0.562,none_alta,no,bird,ruido,
+C031,peruvian_spider_monkey__AC/20240830_113218.wav,29.016,29.234,782.0,2053.4,sm/fs,0.588,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C032,peruvian_spider_monkey__AC/20240830_113218.wav,29.026,29.273,585.0,2103.4,ac/bc,0.713,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C033,peruvian_spider_monkey__AC/20240830_113218.wav,31.781,32.018,464.6,2042.2,ac/bc,0.687,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C034,peruvian_spider_monkey__AC/20240830_113218.wav,35.171,35.429,696.3,2052.4,ac/bc,0.639,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C035,large_headed_capuchin__SM/20240430_170110.wav,2.213,2.56,2105.5,15209.7,sb/sc,0.752,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C036,bolivian_squirrel_monkey__SB/20240430_165957.wav,4.788,4.859,666.1,1898.4,sm/cc,0.544,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C037,bolivian_squirrel_monkey__SB/20240430_165957.wav,5.052,5.114,752.3,3380.9,sm/cc,0.541,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C038,bolivian_squirrel_monkey__SB/20240430_165957.wav,10.187,10.48,4526.7,9871.5,sb/pcc,0.276,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C039,bolivian_squirrel_monkey__SB/20240430_165957.wav,14.253,14.508,277.7,15387.9,sb/spc,0.346,none_media,correct,missing selection in vocalizations,evento no anotado,B
+C040,bolivian_squirrel_monkey__SB/20240430_165957.wav,14.351,14.399,288.4,2347.7,sm/cc,0.124,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C041,bolivian_squirrel_monkey__SB/20240430_165957.wav,14.65,14.758,586.4,3433.5,sm/cc,0.611,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C042,bolivian_squirrel_monkey__SB/20240430_165957.wav,23.182,23.264,674.4,3451.1,sm/cc,0.5,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C043,bolivian_squirrel_monkey__SB/20240430_165957.wav,31.7,31.872,130.5,19597.3,sb/spc,0.125,none_baja,no,missing selection in vocalizations,ruido,B
+C044,bolivian_squirrel_monkey__SB/20240430_165957.wav,35.966,36.088,448.5,3116.9,sm/cc,0.145,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C045,bolivian_squirrel_monkey__SB/20240430_165957.wav,36.0,36.314,8383.0,13075.3,sb/pcc,0.293,label,other,PPC - missing selection in vocalizations,error de clase,B
+C046,bolivian_squirrel_monkey__SB/20240430_165957.wav,45.603,45.677,609.3,1833.1,sm/cc,0.504,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C047,weddells_saddleBack_tamarin__LW/20240313_163548.wav,4.549,5.005,1483.9,7142.6,lw/ta,0.8,match,correct,missing selection of vocalizations,acierto confirmado,
+C048,weddells_saddleBack_tamarin__LW/20240313_163548.wav,7.13,7.497,6709.7,10720.7,lw/sqc,0.157,none_baja,other,TRINO?-missing selection of vocalizations,evento no anotado,
+C049,weddells_saddleBack_tamarin__LW/20240313_163548.wav,26.482,27.304,5117.2,11270.8,lw/trino,0.821,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C050,weddells_saddleBack_tamarin__LW/20240313_163548.wav,30.0,31.164,5408.1,11575.8,lw/ta,0.314,none_media,other,TRINO-missing selection of vocalizations,evento no anotado,
+C051,weddells_saddleBack_tamarin__LW/20240313_163548.wav,31.768,32.644,6360.1,11370.7,lw/trino,0.512,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C052,weddells_saddleBack_tamarin__LW/20240313_163548.wav,33.049,34.959,5337.6,10991.6,lw/ta,0.306,box,box,missing selection of vocalizations,error de encuadre,
+C053,weddells_saddleBack_tamarin__LW/20240313_163548.wav,37.289,37.759,5061.4,10477.7,lw/trino,0.826,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C054,weddells_saddleBack_tamarin__LW/20240313_163548.wav,45.0,45.71,5869.0,10373.2,lw/trino,0.582,none_alta,box,missing selection of vocalizations,evento no anotado,
+C055,weddells_saddleBack_tamarin__LW/20240313_163548.wav,69.135,70.124,6307.0,11515.9,lw/ta,0.259,none_baja,other,TRINO-missing selection of vocalizations,evento no anotado,
+C056,weddells_saddleBack_tamarin__LW/20240520_070831.wav,4.27,4.703,5727.8,8759.8,lw/vc,0.522,label,correct,missing selection of vocalizations,anotación por corregir,A
+C057,weddells_saddleBack_tamarin__LW/20240520_070831.wav,7.226,7.5,5620.5,8830.1,lw/vc,0.334,label,box,missing selection of vocalizations,error de encuadre,A
+C058,weddells_saddleBack_tamarin__LW/20240520_070831.wav,7.502,7.719,5928.6,8522.6,lw/vc,0.686,label,box,missing selection of vocalizations,error de encuadre,A
+C059,weddells_saddleBack_tamarin__LW/20240520_070831.wav,14.661,15.013,6234.1,9379.8,lw/vc,0.78,label,correct,missing selection of vocalizations,anotación por corregir,A
+C060,weddells_saddleBack_tamarin__LW/20240520_070831.wav,21.371,21.813,6630.1,8877.0,lw/vc,0.252,label,correct,missing selection of vocalizations,anotación por corregir,A
+C061,weddells_saddleBack_tamarin__LW/20240129_122308.wav,12.781,13.075,1711.8,7935.0,lw/ta,0.349,none_media,box,missing selection of vocalizations,evento no anotado,
+C062,weddells_saddleBack_tamarin__LW/20240129_122308.wav,22.823,23.876,7225.8,9244.1,sb/pcc,0.192,none_baja,other,missing selection of vocalizations,evento no anotado,
+C063,bolivian_squirrel_monkey__SB/20240522_072605.wav,2.42,2.566,7757.0,12890.4,sb/ppc,0.506,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C064,bolivian_squirrel_monkey__SB/20240522_072605.wav,2.578,2.867,7197.8,12435.5,sb/ppc,0.754,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C065,bolivian_squirrel_monkey__SB/20240522_072605.wav,3.497,4.053,3225.0,13687.0,sb/sc,0.753,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C066,bolivian_squirrel_monkey__SB/20240522_072605.wav,9.352,9.948,7383.1,12862.3,sb/ppc,0.814,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C067,bolivian_squirrel_monkey__SB/20240522_072605.wav,15.916,16.155,8079.3,10276.9,sb/ppc,0.192,match,correct,missing selection of vocalizations,acierto confirmado,
+C068,bolivian_squirrel_monkey__SB/20240522_072605.wav,30.0,30.106,9487.9,14319.2,sb/ppc,0.219,box,box,missing selection of vocalizations,error de encuadre,
+C069,night_monkey__AA/20240915_191305.wav,0.134,0.221,204.4,3039.4,aa/gc,0.38,box,correct,missing selection of vocalizations,anotación por corregir,
+C070,night_monkey__AA/20240915_191305.wav,4.5,4.547,265.9,3113.5,aa/gc,0.447,box,box,too short missing selection of vocalizations,error de encuadre,
+C071,night_monkey__AA/20240915_191305.wav,4.66,4.884,410.6,9669.3,aa/sc,0.733,match,correct,missing selection of vocalizations,acierto confirmado,
+C072,night_monkey__AA/20240915_191305.wav,6.577,6.685,149.6,3005.5,aa/gc,0.344,box,correct,missing selection of vocalizations,anotación por corregir,
+C073,night_monkey__AA/20240915_191305.wav,8.185,8.618,122.6,671.8,as/bc,0.32,none_media,correct,missing selection of vocalizations,evento no anotado,
+C074,night_monkey__AA/20240915_191305.wav,19.103,19.205,94.7,3194.5,aa/gc,0.582,box,correct,missing selection of vocalizations,anotación por corregir,
+C075,night_monkey__AA/20240915_191305.wav,19.36,19.57,560.8,9646.3,aa/sc,0.769,match,box,too big - missing selection of vocalizations,desacuerdo con la referencia,
+C076,night_monkey__AA/20240915_191305.wav,19.5,19.589,531.6,16387.2,aa/sc,0.162,box,correct,missing selection of vocalizations,anotación por corregir,
+C077,night_monkey__AA/20240915_191305.wav,19.5,19.582,136.2,3647.5,aa/gc,0.555,none_alta,box,too short -missing selection of vocalizations,evento no anotado,
+C078,night_monkey__AA/20240915_191305.wav,22.355,22.481,134.7,3169.7,aa/gc,0.552,box,correct,missing selection of vocalizations,anotación por corregir,
+C079,night_monkey__AA/20240915_191305.wav,26.176,26.251,214.8,2947.7,aa/gc,0.341,box,correct,missing selection of vocalizations,anotación por corregir,
+C080,night_monkey__AA/20240915_191305.wav,35.712,35.821,104.9,2941.3,aa/gc,0.12,box,correct,missing selection of vocalizations,anotación por corregir,
+C081,night_monkey__AA/20240915_191305.wav,39.021,39.254,149.9,663.7,aa/hm,0.53,none_alta,no,human,ruido,
+C082,weddells_saddleBack_tamarin__LW/20240527_093534.wav,1.358,1.962,1933.0,16211.9,lw/sqc,0.227,box,box,too big - missing selection of vocalizations,error de encuadre,
+C083,weddells_saddleBack_tamarin__LW/20240527_093534.wav,7.825,8.307,6609.1,9627.1,lw/trino,0.759,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C084,weddells_saddleBack_tamarin__LW/20240527_093534.wav,18.277,18.677,6888.9,9517.6,lw/trino,0.732,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C085,weddells_saddleBack_tamarin__LW/20240527_093534.wav,24.416,25.469,1300.3,17762.7,lw/sqc,0.709,none_alta,box,too big - missing selection of vocalizations,evento no anotado,
+C086,weddells_saddleBack_tamarin__LW/20240527_093534.wav,27.424,28.083,1135.1,20383.0,lw/sqc,0.837,none_alta,box,too big - missing selection of vocalizations,evento no anotado,
+C087,weddells_saddleBack_tamarin__LW/20240501_141147.wav,8.727,8.964,5190.8,9568.9,lw/trino,0.618,match,correct,missing selection of vocalizations,acierto confirmado,B
+C088,large_headed_capuchin__SM/20250117_112902.wav,9.67,9.769,472.1,3916.2,sm/cc,0.525,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C089,large_headed_capuchin__SM/20240206_172225.wav,31.913,32.264,2276.2,4425.1,sm/pc,0.614,match,no,,desacuerdo con la referencia,
+C090,large_headed_capuchin__SM/20240508_114044.wav,30.0,30.103,165.4,14889.9,sm/hic,0.397,none_media,box,missing selection of vocalizations,evento no anotado,A
+C091,large_headed_capuchin__SM/20240508_114044.wav,31.256,31.363,768.4,5462.3,sm/cc,0.561,match,correct,missing selection of vocalizations,acierto confirmado,A
+C092,large_headed_capuchin__SM/20240508_114044.wav,41.046,41.132,603.1,3669.2,sm/cc,0.563,match,correct,missing selection of vocalizations,acierto confirmado,A
+C093,large_headed_capuchin__SM/20240508_114044.wav,47.473,47.558,479.6,3528.9,sm/cc,0.527,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C094,large_headed_capuchin__SM/20240508_114044.wav,60.175,60.272,471.3,3911.1,sm/cc,0.58,match,box,missing selection of vocalizations,desacuerdo con la referencia,A
+C095,night_monkey__AA/20241027_201825.wav,12.679,12.899,702.4,11123.2,aa/sc,0.678,label,no,bird?,ruido,
+C096,night_monkey__AA/20250108_195412.wav,7.113,7.2,118.9,2519.3,aa/gc,0.496,none_media,no,bird?,ruido,
+C097,night_monkey__AA/20250108_195412.wav,7.504,7.647,956.4,12472.3,aa/sc,0.529,none_alta,no,bird?,ruido,
+C098,night_monkey__AA/20250108_195412.wav,15.029,15.121,95.1,2626.1,aa/gc,0.608,none_alta,no,bird?,ruido,
+C099,night_monkey__AA/20250108_195412.wav,21.975,22.055,195.4,2631.1,aa/gc,0.491,match,no,bird?,desacuerdo con la referencia,
+C100,peruvian_spider_monkey__AC/20240423_155910.wav,6.0,6.105,111.7,2546.2,sm/hic,0.135,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C101,peruvian_spider_monkey__AC/20240423_155910.wav,15.413,15.578,640.9,3039.2,sm/cc,0.118,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C102,peruvian_spider_monkey__AC/20240423_155910.wav,16.145,16.332,660.9,3093.9,sm/cc,0.4,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C103,peruvian_spider_monkey__AC/20240423_155910.wav,19.821,19.982,512.0,3032.1,sm/cc,0.118,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C104,peruvian_spider_monkey__AC/20240423_155910.wav,21.918,22.056,646.1,3060.9,sm/cc,0.357,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C105,peruvian_spider_monkey__AC/20240423_155910.wav,22.812,22.916,675.7,3061.8,sm/cc,0.357,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C106,peruvian_spider_monkey__AC/20240423_155910.wav,23.499,23.618,681.4,3111.7,sm/cc,0.283,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C107,peruvian_spider_monkey__AC/20240423_155910.wav,25.527,25.63,642.1,2960.2,sm/cc,0.612,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C108,peruvian_spider_monkey__AC/20240423_155910.wav,26.779,26.901,630.9,3052.8,sm/cc,0.286,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C109,peruvian_spider_monkey__AC/20240423_155910.wav,27.544,27.672,575.4,2990.9,sm/cc,0.464,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C110,peruvian_spider_monkey__AC/20240423_155910.wav,29.087,29.222,704.0,2957.5,sm/cc,0.188,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C111,howler_monkey__AS/20240526_115628.wav,30.0,30.048,272.0,595.3,as/bc,0.11,box,box,too short - missing selection of vocalizations,error de encuadre,
+C112,peruvian_spider_monkey__AC/20240205_112147.wav,3.001,3.097,195.7,3577.2,sm/hic,0.118,none_baja,other,CHC de spider monkey,evento no anotado,
+C113,weddells_saddleBack_tamarin__LW/20240429_104638.wav,4.5,4.698,6514.2,8728.6,lw/cs,0.485,box,box,too short - missing selection of vocalizations,error de encuadre,B
+C114,weddells_saddleBack_tamarin__LW/20240429_104638.wav,6.575,6.698,331.7,18276.5,sb/spc,0.421,none_media,?,,incierto,B
+C115,weddells_saddleBack_tamarin__LW/20240429_104638.wav,15.247,15.734,6907.2,9176.1,lw/cs,0.7,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C116,weddells_saddleBack_tamarin__LW/20240429_104638.wav,16.031,16.438,8896.4,10796.3,lw/cs,0.628,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C117,weddells_saddleBack_tamarin__LW/20240429_104638.wav,16.519,16.919,8791.4,10554.5,lw/cs,0.505,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C118,weddells_saddleBack_tamarin__LW/20240429_104638.wav,20.698,21.174,8687.2,10200.0,lw/cs,0.131,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C119,large_headed_capuchin__SM/20231224_0901.wav,6.35,6.44,707.4,4026.0,sm/cc,0.375,none_media,correct,missing selection of vocalizations,evento no anotado,
+C120,peruvian_spider_monkey__AC/20240227_090548.wav,0.01,1.211,3622.0,9565.7,ac/sc,0.123,box,box,missing selection of vocalizations,error de encuadre,
+C121,peruvian_spider_monkey__AC/20240227_090548.wav,1.51,2.144,3684.8,9079.6,ac/sc,0.221,box,box,missing selection of vocalizations,error de encuadre,
+C122,peruvian_spider_monkey__AC/20240227_090548.wav,2.692,3.264,3473.0,8798.3,ac/sc,0.551,box,box,missing selection of vocalizations,error de encuadre,
+C123,peruvian_spider_monkey__AC/20240227_090548.wav,3.839,5.601,3482.5,8551.0,ac/sc,0.144,box,box,missing selection of vocalizations,error de encuadre,
+C124,peruvian_spider_monkey__AC/20240227_090548.wav,17.863,19.014,219.6,1838.0,ac/gc,0.371,box,other,CHC-missing selection of vocalizations,error de clase,
+C125,peruvian_spider_monkey__AC/20240227_090548.wav,25.148,26.172,235.0,2953.6,ac/chc,0.46,none_media,box,missing selection of vocalizations,evento no anotado,
+C126,peruvian_spider_monkey__AC/20240227_090548.wav,39.511,39.598,447.9,3615.6,sm/cc,0.314,none_media,no,missing selection of vocalizations,ruido,
+C127,peruvian_spider_monkey__AC/20240227_090548.wav,54.782,54.871,454.0,2740.4,sm/cc,0.125,none_baja,no,missing selection of vocalizations,ruido,
+C128,peruvian_spider_monkey__AC/20240227_090548.wav,75.873,77.058,197.8,7477.7,ac/chc,0.536,none_alta,box,missing selection of vocalizations,evento no anotado,
+C129,large_headed_capuchin__SM/20240410_060901.wav,7.51,7.604,455.3,5078.0,sm/cc,0.267,none_baja,other,HIC-missing selection of vocalizations,evento no anotado,
+C130,large_headed_capuchin__SM/20240410_060901.wav,15.285,15.582,114.3,4065.6,sm/hic,0.133,none_baja,other,WHC-missing selection of vocalizations,evento no anotado,
+C131,large_headed_capuchin__SM/20241025_154752.wav,4.443,4.622,1385.2,3471.5,sm/fs,0.414,box,no,bird,ruido,
+C132,large_headed_capuchin__SM/20241025_154752.wav,5.466,5.719,1273.4,3491.1,sm/fs,0.518,none_alta,no,bird,ruido,
+C133,large_headed_capuchin__SM/20241025_154752.wav,5.797,5.998,1065.6,3665.0,sm/fs,0.635,none_alta,no,bird,ruido,
+C134,howler_monkey__AS/20240611_071211.wav,9.957,10.43,7573.3,9175.2,lw/cs,0.173,label,correct,missing selection of vocalizations AS,anotación por corregir,
+C135,howler_monkey__AS/20240611_071211.wav,20.856,21.0,6498.1,8498.9,lw/cs,0.204,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C136,howler_monkey__AS/20240611_071211.wav,22.523,22.838,7496.6,8409.4,lw/cs,0.43,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C137,howler_monkey__AS/20240611_071211.wav,22.933,23.476,6659.8,8638.9,lw/cs,0.696,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C138,howler_monkey__AS/20240611_071211.wav,23.493,23.987,6543.2,8378.6,lw/cs,0.443,none_media,correct,missing selection of vocalizations AS,evento no anotado,
+C139,howler_monkey__AS/20240611_071211.wav,37.224,37.495,10373.2,11613.4,lw/cs,0.478,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C140,howler_monkey__AS/20240611_071211.wav,38.251,38.734,8567.4,11576.4,lw/cs,0.431,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C141,howler_monkey__AS/20240611_071211.wav,38.768,38.996,8081.8,11068.2,lw/cs,0.467,box,correct,missing selection of vocalizations AS,anotación por corregir,
+C142,toppins_titi_monkey__PT/20240508_095705.wav,1.903,2.11,4913.1,5431.1,pt/sqc,0.588,none_alta,other,missing selection in vocalizations,evento no anotado,B
+C143,toppins_titi_monkey__PT/20240508_095705.wav,17.288,17.63,4512.0,5017.9,pt/sqc,0.232,box,other,missing selection in vocalizations,error de clase,B
+C144,toppins_titi_monkey__PT/20240508_095705.wav,18.0,18.104,4429.8,5220.9,pt/sqc,0.27,box,other,missing selection in vocalizations,error de clase,B
+C145,toppins_titi_monkey__PT/20240508_095705.wav,18.696,19.108,4590.8,5110.4,pt/sqc,0.146,box,other,missing selection in vocalizations,error de clase,B
+C146,toppins_titi_monkey__PT/20240508_095705.wav,27.617,27.876,4117.3,4505.2,pt/sqc,0.368,none_media,other,missing selection in vocalizations,evento no anotado,B
+C147,weddells_saddleBack_tamarin__LW/20240313_164337.wav,1.88,2.132,5979.8,7261.3,lw/cs,0.171,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C148,peruvian_spider_monkey__AC/20240205_120929.wav,83.157,83.984,233.0,3988.5,ac/chc,0.57,none_alta,no,missing selection of vocalizations,ruido,
+C149,peruvian_spider_monkey__AC/20240205_120929.wav,92.466,93.42,5524.5,6982.2,sm/pc,0.347,none_media,no,missing selection of vocalizations,ruido,
+C150,large_headed_capuchin__SM/20240516_081815.wav,7.443,7.5,556.7,1740.5,sm/cc,0.47,box,box,bird-missing selection of vocalizations,error de encuadre,A
+C151,large_headed_capuchin__SM/20240516_081815.wav,17.491,17.668,663.6,3164.5,sm/cc,0.733,match,correct,bird-missing selection of vocalizations,acierto confirmado,A
+C152,howler_monkey__AS/20240817_055835.wav,27.842,27.943,675.6,4668.0,sm/cc,0.351,none_media,other,AS BC - HC,evento no anotado,
+C153,howler_monkey__AS/20240513_095429.wav,22.382,22.963,4291.9,7485.6,lw/trino,0.163,none_baja,no,bird-missing selection of vocalizations,ruido,A
+C154,large_headed_capuchin__SM/20240410_061147.wav,2.785,3.137,231.9,4066.6,sm/hic,0.592,none_alta,box,missing selection of vocalizations,evento no anotado,
+C155,bolivian_squirrel_monkey__SB/20240202_161704.wav,2.502,2.61,343.7,14537.7,sb/spc,0.251,none_baja,box,"missing selection of vocalizations,
+miss the first part of the vocalization",evento no anotado,
+C156,bolivian_squirrel_monkey__SB/20240202_161704.wav,23.849,23.998,8990.9,14574.4,sb/ppc,0.145,box,correct,missing selection of vocalizations,anotación por corregir,
+C157,bolivian_squirrel_monkey__SB/20240202_161704.wav,47.921,47.997,10110.4,15987.5,sb/ppc,0.391,box,box,missing selection of vocalizations,error de encuadre,
+C158,bolivian_squirrel_monkey__SB/20240202_161704.wav,52.978,53.2,6612.1,10287.4,sb/ppc,0.42,none_media,no,insect,ruido,
+C159,weddells_saddleBack_tamarin__LW/20240219_081002.wav,4.76,5.123,2711.1,7865.4,lw/ta,0.53,none_alta,box,missing selection of vocalizations,evento no anotado,
+C160,weddells_saddleBack_tamarin__LW/20240219_081002.wav,9.737,10.057,2910.8,6562.3,lw/ta,0.567,none_alta,box,missing selection of vocalizations,evento no anotado,
+C161,weddells_saddleBack_tamarin__LW/20240219_081002.wav,10.503,10.632,7405.5,9274.5,lw/cs,0.384,none_media,other,maybe trino-missing selection of vocalizations,evento no anotado,
+C162,weddells_saddleBack_tamarin__LW/20240219_081002.wav,23.541,23.995,9048.1,11773.4,lw/cs,0.523,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C163,large_headed_capuchin__SM/20240602_171027.wav,7.103,7.41,3742.9,4501.7,pt/sqc,0.2,none_baja,no,insect - missing selection of vocalizations SM,ruido,
+C164,howler_monkey__AS/20240602_080552.wav,2.041,2.312,170.1,1247.8,ac/bc,0.508,label,other,other type of AC call,error de clase,
+C165,howler_monkey__AS/20240602_080552.wav,5.365,5.561,76.7,537.1,as/bc,0.357,box,no,bird,ruido,
+C166,howler_monkey__AS/20240602_080552.wav,12.466,12.8,717.0,1736.2,ac/bc,0.551,none_alta,no,bird,ruido,
+C167,howler_monkey__AS/20240621_074612.wav,6.002,6.469,30.2,941.5,as/bc,0.193,box,box,too short - missing selections vocalizations,error de encuadre,
+C168,howler_monkey__AS/20240621_074612.wav,19.555,20.419,30.2,931.9,as/bc,0.331,box,box,too short - missing selections vocalizations,error de encuadre,
+C169,howler_monkey__AS/20240621_074612.wav,21.003,21.251,75.4,917.7,as/bc,0.239,box,box,too short - missing selections vocalizations,error de encuadre,
+C170,howler_monkey__AS/20240621_074612.wav,21.459,21.749,59.3,737.6,as/bc,0.262,match,box,too short - missing selections vocalizations,desacuerdo con la referencia,
+C171,night_monkey__AA/20240410_052853.wav,18.088,18.283,57.4,557.1,aa/hm,0.375,none_media,correct,missing selection of vocalizations,evento no anotado,
+C172,howler_monkey__AS/20240518_100327.wav,21.001,21.155,31.3,671.0,as/bc,0.309,none_media,no,missing selection of vocalizations,ruido,A
+C173,howler_monkey__AS/20240521_064849.wav,16.947,17.444,100.8,721.2,as/bc,0.12,box,other,HC-missing selection of vocalizations,error de clase,A
+C174,large_headed_capuchin__SM/20240902_102612.wav,6.656,6.818,617.3,3604.5,sm/cc,0.548,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C175,large_headed_capuchin__SM/20240902_102612.wav,7.181,7.33,743.5,3860.2,sm/cc,0.513,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C176,large_headed_capuchin__SM/20240902_102612.wav,7.5,7.64,670.9,4062.2,sm/cc,0.666,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C177,large_headed_capuchin__SM/20240902_102612.wav,7.78,7.987,598.1,4206.2,sm/cc,0.678,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C178,large_headed_capuchin__SM/20240902_102612.wav,8.244,8.472,710.8,3710.2,sm/cc,0.52,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C179,large_headed_capuchin__SM/20240902_102612.wav,8.538,8.723,671.8,3785.4,sm/cc,0.395,none_media,correct,missing selection of vocalizations,evento no anotado,
+C180,large_headed_capuchin__SM/20240902_102612.wav,8.835,8.998,679.7,3928.7,sm/cc,0.446,none_media,correct,missing selection of vocalizations,evento no anotado,
+C181,large_headed_capuchin__SM/20240208_072140.wav,5.664,5.996,341.6,16487.6,sb/spc,0.402,label,other,"missing selection of vocalizations, SM, SC",error de clase,
+C182,large_headed_capuchin__SM/20240208_072140.wav,6.58,6.882,440.4,17296.8,sb/spc,0.363,label,other,"missing selection of vocalizations, SM, SC",error de clase,
+C183,weddells_saddleBack_tamarin__LW/20240125_162433.wav,8.561,9.104,1241.5,5772.2,lw/ta,0.693,none_alta,correct,,evento no anotado,
+C184,weddells_saddleBack_tamarin__LW/20240125_162433.wav,11.863,12.285,942.2,6030.4,lw/ta,0.734,none_alta,correct,,evento no anotado,
+C185,weddells_saddleBack_tamarin__LW/20240125_162433.wav,13.509,13.683,5578.3,10151.6,sb/pcc,0.154,none_baja,no,bird,ruido,
+C186,weddells_saddleBack_tamarin__LW/20240125_162433.wav,17.722,18.107,1247.2,6048.0,lw/ta,0.67,none_alta,correct,,evento no anotado,
+C187,weddells_saddleBack_tamarin__LW/20240125_162433.wav,18.792,19.27,1105.1,5496.3,lw/ta,0.799,none_alta,correct,,evento no anotado,
+C188,weddells_saddleBack_tamarin__LW/20240125_162433.wav,24.003,24.36,1081.7,6004.6,lw/ta,0.764,none_alta,box,la seleccion empieza después que la vocalizacion empiece,evento no anotado,
+C189,weddells_saddleBack_tamarin__LW/20240125_162433.wav,26.098,26.469,814.5,5826.3,lw/ta,0.36,none_media,box,la seleccion termina antes de la vocalizacion,evento no anotado,
+C190,peruvian_spider_monkey__AC/20240513_164856.wav,1.509,2.635,143.2,3267.3,ac/chc,0.242,none_baja,box,missing selection of vocalizations,evento no anotado,A
+C191,large_headed_capuchin__SM/20241031_082712.wav,1.843,1.972,1170.3,2817.7,sm/fs,0.524,none_alta,no,bird - Fasciated Antshrike,ruido,
+C192,weddells_saddleBack_tamarin__LW/20240504_122133.wav,11.455,11.895,5837.2,10248.5,lw/trino,0.79,none_alta,correct,missing selection in vocalizations,evento no anotado,B
+C193,weddells_saddleBack_tamarin__LW/20240504_122133.wav,19.29,19.985,5594.9,9910.4,lw/sqc,0.468,none_media,correct,missing selection in vocalizations,evento no anotado,B
+C194,weddells_saddleBack_tamarin__LW/20240504_122133.wav,21.886,22.035,5397.3,8817.0,lw/trino,0.61,none_alta,box,too short - missing selection in vocalizations,evento no anotado,B
+C195,bolivian_squirrel_monkey__SB/20240522_071154.wav,5.297,5.421,2951.7,4977.7,sb/ppc,0.376,none_media,no,bird-misssing selection of vocalizations,ruido,A
+C196,bolivian_squirrel_monkey__SB/20240522_071154.wav,20.7,20.971,7244.3,11375.8,sb/ppc,0.261,box,box,misssing selection of vocalizations,error de encuadre,A
+C197,howler_monkey__AS/20240817_065036.wav,2.046,2.401,96.7,650.9,as/bc,0.545,none_alta,correct,misssing selection of vocalizations,evento no anotado,
+C198,weddells_saddleBack_tamarin__LW/20240214_102444.wav,2.858,2.999,8435.1,11335.0,lw/cs,0.38,box,box,missing selection of vocalizations,error de encuadre,
+C199,large_headed_capuchin__SM/20240504_080135.wav,23.942,24.0,288.0,2406.7,sm/cc,0.164,box,correct,missing selection of vocalizations,anotación por corregir,B
+C200,peruvian_spider_monkey__AC/20241029_162003.wav,2.136,3.0,109.3,2313.3,ac/chc,0.13,label,correct,missing selection of vocalizations AS,anotación por corregir,
+C201,large_headed_capuchin__SM/20240609_071701.wav,5.33,5.592,6970.8,11446.0,sb/ppc,0.805,none_alta,correct,,evento no anotado,
+C202,large_headed_capuchin__SM/20240609_071701.wav,5.917,6.296,6078.5,7306.9,sb/ppc,0.414,none_media,correct,,evento no anotado,
+C203,howler_monkey__AS/20240518_064416.wav,13.502,13.727,119.1,642.2,as/bc,0.122,box,correct,missing selection of vocalizations AS,anotación por corregir,A
+C204,bolivian_squirrel_monkey__SB/20240529_090441.wav,4.236,4.406,455.1,2549.1,sm/cc,0.611,none_alta,other,SPC SB - missing selection of vocalizations,evento no anotado,
+C205,bolivian_squirrel_monkey__SB/20240529_090441.wav,6.822,6.981,98.6,17139.1,sb/spc,0.66,none_alta,other,PCC - missing selection of vocalizations,evento no anotado,
+C206,bolivian_squirrel_monkey__SB/20240529_090441.wav,7.529,8.076,758.5,14601.0,lw/sqc,0.52,none_alta,no,background noise,ruido,
+C207,bolivian_squirrel_monkey__SB/20240529_090441.wav,8.373,8.547,6372.4,9671.5,sb/ppc,0.572,match,correct,missing selection of vocalizations,acierto confirmado,
+C208,bolivian_squirrel_monkey__SB/20240529_090441.wav,20.292,20.405,1017.1,1658.6,sm/fs,0.32,none_media,no,bird,ruido,
+C209,bolivian_squirrel_monkey__SB/20240529_090441.wav,23.067,23.21,931.0,1751.0,sm/fs,0.136,none_baja,no,bird,ruido,
+C210,bolivian_squirrel_monkey__SB/20240529_090441.wav,27.053,27.132,5524.7,8022.4,sb/ppc,0.393,none_media,correct,missing selection of vocalizations,evento no anotado,
+C211,bolivian_squirrel_monkey__SB/20240529_090441.wav,32.783,33.199,2669.0,16584.7,sb/sc,0.748,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C212,bolivian_squirrel_monkey__SB/20240529_090441.wav,35.472,35.847,3633.3,15438.5,sb/sc,0.697,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C213,bolivian_squirrel_monkey__SB/20240529_090441.wav,45.059,45.167,1219.2,1691.7,sm/fs,0.519,none_alta,no,bird,ruido,
+C214,bolivian_squirrel_monkey__SB/20240529_090441.wav,46.252,46.379,1250.5,1730.0,sm/fs,0.422,none_media,no,bird,ruido,
+C215,bolivian_squirrel_monkey__SB/20240529_090441.wav,47.603,48.001,2062.0,22050.0,sb/sc,0.676,match,correct,missing selection of vocalizations,acierto confirmado,
+C216,bolivian_squirrel_monkey__SB/20240529_090441.wav,49.269,49.498,6355.9,13127.2,sb/pcc,0.484,label,correct,missing selection of vocalizations,anotación por corregir,
+C217,weddells_saddleBack_tamarin__LW/20240429_104301.wav,3.565,3.981,7723.6,10216.0,lw/cs,0.656,match,correct,missing selection of vocalizations,acierto confirmado,B
+C218,howler_monkey__AS/20240526_115916.wav,12.0,12.147,117.2,650.9,as/bc,0.148,box,correct,missing selection of vocalizations,anotación por corregir,
+C219,howler_monkey__AS/20240526_115916.wav,13.264,13.494,149.3,637.4,as/bc,0.411,match,correct,missing selection of vocalizations,acierto confirmado,
+C220,howler_monkey__AS/20240526_115916.wav,14.94,14.999,191.8,644.4,as/bc,0.123,box,box,too short - missing selection of vocalizations,error de encuadre,
+C221,howler_monkey__AS/20240526_115916.wav,16.297,16.489,196.8,631.0,as/bc,0.226,box,correct,missing selection of vocalizations,anotación por corregir,
+C222,howler_monkey__AS/20240526_115916.wav,16.798,16.989,148.6,664.2,as/bc,0.146,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C223,bolivian_squirrel_monkey__SB/20240516_083301.wav,1.509,1.682,411.5,14304.7,sb/spc,0.21,none_baja,correct,missing selection of vocalizations,evento no anotado,A
+C224,bolivian_squirrel_monkey__SB/20240516_083301.wav,3.383,3.493,5580.0,10134.5,sb/ppc,0.127,none_baja,other,PCC-missing selection of vocalizations,evento no anotado,A
+C225,bolivian_squirrel_monkey__SB/20240516_083301.wav,3.89,4.496,12480.7,19657.5,sb/pcc,0.323,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C226,bolivian_squirrel_monkey__SB/20240516_083301.wav,9.12,9.33,4721.9,13863.2,sb/ppc,0.454,none_media,box,missing selection of vocalizations,evento no anotado,A
+C227,bolivian_squirrel_monkey__SB/20240516_083301.wav,9.406,9.647,12164.4,18651.6,sb/ppc,0.351,none_media,box,missing selection of vocalizations,evento no anotado,A
+C228,bolivian_squirrel_monkey__SB/20240516_083301.wav,13.838,14.076,5870.5,6934.0,sb/ppc,0.152,box,box,missing selection of vocalizations,error de encuadre,A
+C229,bolivian_squirrel_monkey__SB/20240516_083301.wav,14.576,14.702,5137.1,9673.4,sb/ppc,0.243,label,other,PCC-missing selection of vocalizations,error de clase,A
+C230,bolivian_squirrel_monkey__SB/20240516_083301.wav,15.648,15.813,193.1,14505.3,sb/spc,0.561,none_alta,other,PPC-missing selection of vocalizations,evento no anotado,A
+C231,bolivian_squirrel_monkey__SB/20240516_083301.wav,16.352,16.59,4637.4,5525.9,sb/ppc,0.385,none_media,other,maybe LPC-missing selection of vocalizations,evento no anotado,A
+C232,bolivian_squirrel_monkey__SB/20240516_083301.wav,18.099,18.23,185.8,14327.8,sb/spc,0.624,none_alta,other,PPC-missing selection of vocalizations,evento no anotado,A
+C233,bolivian_squirrel_monkey__SB/20240516_083301.wav,19.692,19.789,4957.2,7901.0,sb/ppc,0.614,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C234,bolivian_squirrel_monkey__SB/20240516_083301.wav,21.291,21.39,5167.0,8956.7,sb/ppc,0.607,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C235,howler_monkey__AS/20240426_083203.wav,1.915,2.262,166.7,712.2,as/bc,0.645,box,correct,missing selection of vocalizations,anotación por corregir,B
+C236,howler_monkey__AS/20240426_083203.wav,7.107,7.493,172.0,747.6,as/bc,0.258,box,correct,missing selection of vocalizations,anotación por corregir,B
+C237,howler_monkey__AS/20240426_083203.wav,8.917,9.3,149.3,679.4,as/bc,0.645,box,correct,missing selection of vocalizations,anotación por corregir,B
+C238,howler_monkey__AS/20240603_053932.wav,37.569,37.932,112.7,658.8,as/bc,0.649,match,correct,missing selection of vocalizations,acierto confirmado,
+C239,weddells_saddleBack_tamarin__LW/20241116_054110.wav,3.733,4.014,7811.4,8915.4,lw/cs,0.119,none_baja,no,,ruido,
+C240,weddells_saddleBack_tamarin__LW/20241116_054110.wav,39.989,41.636,119.5,3575.3,ac/chc,0.764,none_alta,no,,ruido,
+C241,weddells_saddleBack_tamarin__LW/20241116_054110.wav,48.014,48.182,8139.4,10069.6,lw/cs,0.552,none_alta,no,,ruido,
+C242,peruvian_spider_monkey__AC/20241028_154721.wav,8.865,9.036,232.7,7705.8,sm/hic,0.136,label,other,AC,error de clase,
+C243,peruvian_spider_monkey__AC/20241028_154721.wav,9.0,9.071,245.6,4015.6,ac/bc,0.121,label,no,nothing,ruido,
+C244,weddells_saddleBack_tamarin__LW/20240417_072755.wav,0.091,0.345,5654.7,9094.9,lw/vc,0.562,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C245,weddells_saddleBack_tamarin__LW/20240417_072755.wav,3.561,3.839,8334.1,9728.6,lw/cs,0.175,match,correct,missing selection of vocalizations,acierto confirmado,B
+C246,weddells_saddleBack_tamarin__LW/20240417_072755.wav,4.129,4.57,5150.3,7704.6,lw/ta,0.631,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C247,bolivian_squirrel_monkey__SB/20240202_161835.wav,18.797,18.957,8882.5,12969.5,sb/ppc,0.617,none_alta,box,missing selection of vocalizations,evento no anotado,
+C248,bolivian_squirrel_monkey__SB/20240202_161835.wav,23.832,23.961,6570.5,13443.4,sb/ppc,0.564,none_alta,box,missing selection of vocalizations,evento no anotado,
+C249,bolivian_squirrel_monkey__SB/20240202_161835.wav,29.318,29.46,603.7,13609.8,sb/spc,0.498,none_media,box,missing selection of vocalizations,evento no anotado,
+C250,bolivian_squirrel_monkey__SB/20240202_161835.wav,34.892,35.08,645.3,13378.1,sb/spc,0.364,none_media,box,missing selection of vocalizations,evento no anotado,
+C251,bolivian_squirrel_monkey__SB/20240202_161835.wav,36.758,36.995,521.6,16452.5,sb/spc,0.415,none_media,box,missing selection of vocalizations,evento no anotado,
+C252,bolivian_squirrel_monkey__SB/20240202_161835.wav,40.215,40.391,10079.5,12873.0,sb/ppc,0.534,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C253,bolivian_squirrel_monkey__SB/20240202_161835.wav,46.326,46.424,453.5,3628.0,sm/cc,0.519,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C254,weddells_saddleBack_tamarin__LW/20240505_061901.wav,29.077,29.483,7109.6,11334.5,lw/sqc,0.111,none_baja,other,PC - missing selection in vocalizations,evento no anotado,B
+C255,large_headed_capuchin__SM/20240206_171840.wav,2.045,2.4,2711.3,4379.3,sm/cc,0.144,label,no,,ruido,
+C256,large_headed_capuchin__SM/20240830_120007.wav,18.108,18.207,424.0,3496.3,sm/cc,0.21,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C257,peruvian_spider_monkey__AC/20241226_101050.wav,13.548,14.396,2343.9,11084.8,ac/sc,0.421,box,?,maybe another call of the AC,incierto,
+C258,large_headed_capuchin__SM/20240529_091321.wav,5.431,5.597,1065.5,4421.5,sm/cc,0.506,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C259,large_headed_capuchin__SM/20240529_091321.wav,10.43,10.5,1008.6,1671.4,sm/fs,0.317,none_media,box,too short - missing selection of vocalizations,evento no anotado,
+C260,large_headed_capuchin__SM/20240529_091321.wav,16.589,16.783,242.1,3695.7,sm/cc,0.378,none_media,correct,missing selection of vocalizations,evento no anotado,
+C261,bolivian_squirrel_monkey__SB/20240521_074519.wav,0.666,0.862,149.2,13064.4,sb/spc,0.361,none_media,box,missing selection of vocalizations,evento no anotado,A
+C262,bolivian_squirrel_monkey__SB/20240521_074519.wav,21.894,22.384,6619.6,12769.5,sb/pcc,0.147,label,box,missing selection of vocalizations,error de encuadre,A
+C263,bolivian_squirrel_monkey__SB/20240521_074519.wav,22.571,22.694,434.1,14016.9,sb/spc,0.434,box,box,missing selection of vocalizations,error de encuadre,A
+C264,bolivian_squirrel_monkey__SB/20240521_074519.wav,23.996,24.128,536.9,13293.1,sb/spc,0.399,box,box,missing selection of vocalizations,error de encuadre,A
+C265,bolivian_squirrel_monkey__SB/20240521_074519.wav,25.466,25.588,389.8,15484.1,sb/spc,0.451,box,box,missing selection of vocalizations,error de encuadre,A
+C266,bolivian_squirrel_monkey__SB/20240521_075505.wav,3.0,3.091,483.5,14833.9,sb/spc,0.289,box,box,missing selection of vocalizations,error de encuadre,A
+C267,bolivian_squirrel_monkey__SB/20240521_075505.wav,3.094,3.245,289.1,14537.5,sb/spc,0.202,box,box,missing selection of vocalizations,error de encuadre,A
+C268,bolivian_squirrel_monkey__SB/20240521_075505.wav,6.719,6.901,422.8,14472.3,sb/spc,0.253,box,box,missing selection of vocalizations,error de encuadre,A
+C269,bolivian_squirrel_monkey__SB/20240521_075505.wav,6.951,7.045,7398.4,9721.9,sb/ppc,0.401,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C270,bolivian_squirrel_monkey__SB/20240521_075505.wav,9.156,9.267,643.6,14995.1,sb/spc,0.272,box,box,missing selection of vocalizations,error de encuadre,A
+C271,bolivian_squirrel_monkey__SB/20240521_075505.wav,15.947,16.303,8205.2,16980.3,sb/ppc,0.412,none_media,box,missing selection of vocalizations,evento no anotado,A
+C272,howler_monkey__AS/20240526_115557.wav,9.052,9.278,151.4,615.4,as/bc,0.539,box,correct,missing selection of vocalizations,anotación por corregir,
+C273,weddells_saddleBack_tamarin__LW/20240117_162825.wav,29.69,29.87,8743.1,12693.2,sb/ppc,0.548,none_alta,correct,,evento no anotado,
+C274,weddells_saddleBack_tamarin__LW/20240117_162825.wav,31.597,31.766,8032.9,10963.5,sb/ppc,0.292,none_baja,correct,,evento no anotado,
+C275,large_headed_capuchin__SM/20240916_102536.wav,10.633,10.857,1381.3,3797.4,sm/fs,0.784,none_alta,box,missing selection of vocalizations,evento no anotado,
+C276,large_headed_capuchin__SM/20240916_102536.wav,16.99,17.128,1487.2,3789.7,sm/fs,0.772,none_alta,box,missing selection of vocalizations,evento no anotado,
+C277,peruvian_spider_monkey__AC/20240909_090044.wav,3.0,3.168,499.9,2101.3,ac/bc,0.211,box,box,too short - missing selection of vocalizations,error de encuadre,
+C278,peruvian_spider_monkey__AC/20241028_154735.wav,8.663,8.821,262.8,5746.5,sm/hic,0.372,label,other,AC BC - missing selection of vocalizations,error de clase,
+C279,weddells_saddleBack_tamarin__LW/20240621_151211.wav,2.828,3.0,9032.7,12644.1,lw/cs,0.242,box,box,too short -missing selections vocalizations,error de encuadre,
+C280,weddells_saddleBack_tamarin__LW/20240621_151211.wav,3.494,4.202,8564.2,12272.3,lw/cs,0.732,match,correct,missing selections vocalizations,acierto confirmado,
+C281,weddells_saddleBack_tamarin__LW/20240621_151211.wav,4.236,4.932,8349.1,11784.8,lw/cs,0.713,match,correct,missing selections vocalizations,acierto confirmado,
+C282,weddells_saddleBack_tamarin__LW/20240621_151211.wav,12.601,12.833,691.3,1305.1,ac/bc,0.179,none_baja,no,bird-missing selections vocalizations,ruido,
+C283,weddells_saddleBack_tamarin__LW/20240621_151211.wav,14.91,15.354,9277.8,10347.6,lw/cs,0.402,none_media,no,insect-missing selections vocalizations,ruido,
+C284,weddells_saddleBack_tamarin__LW/20240621_151211.wav,15.912,16.289,9182.2,10715.1,lw/cs,0.356,none_media,no,insect-missing selections vocalizations,ruido,
+C285,large_headed_capuchin__SM/20240615_092312.wav,4.022,4.132,709.8,2101.3,sm/cc,0.173,box,correct,missing selection of vocalizations,anotación por corregir,
+C286,large_headed_capuchin__SM/20240427_094854.wav,5.408,5.572,362.7,3561.8,sm/cc,0.673,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C287,bolivian_squirrel_monkey__SB/20240601_063824.wav,15.696,15.844,418.5,14932.8,sb/spc,0.447,none_media,other,PPC - missing selection of vocalizations SM,evento no anotado,
+C288,bolivian_squirrel_monkey__SB/20240601_063824.wav,32.884,33.077,8074.0,9307.7,sb/ppc,0.341,none_media,other,PPC - missing selection of vocalizations SM,evento no anotado,
+C289,large_headed_capuchin__SM/20240826_100341.wav,6.196,6.387,1018.4,3038.8,sm/fs,0.425,box,correct,missing selection of vocalizations,anotación por corregir,
+C290,large_headed_capuchin__SM/20240826_100341.wav,6.518,6.692,1341.0,3367.8,sm/fs,0.725,box,correct,missing selection of vocalizations,anotación por corregir,
+C291,large_headed_capuchin__SM/20240826_100341.wav,6.848,6.981,1528.3,3657.4,sm/fs,0.485,box,correct,missing selection of vocalizations,anotación por corregir,
+C292,large_headed_capuchin__SM/20240826_100341.wav,14.666,14.801,264.4,13346.0,sb/spc,0.217,none_baja,no,something moving,ruido,
+C293,large_headed_capuchin__SM/20240826_100341.wav,36.991,37.093,138.8,8552.7,sb/spc,0.3,none_baja,no,something moving,ruido,
+C294,bolivian_squirrel_monkey__SB/20240516_083217.wav,3.468,3.626,507.2,16219.9,sb/spc,0.507,box,box,missing selection of vocalizations,error de encuadre,A
+C295,bolivian_squirrel_monkey__SB/20240516_083217.wav,7.543,7.711,268.8,17397.5,sb/spc,0.55,box,box,missing selection of vocalizations,error de encuadre,A
+C296,bolivian_squirrel_monkey__SB/20240516_083217.wav,9.579,9.681,5471.4,9300.6,sb/ppc,0.302,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C297,bolivian_squirrel_monkey__SB/20240516_083217.wav,10.079,10.274,233.1,16032.2,sb/spc,0.56,box,box,missing selection of vocalizations,error de encuadre,A
+C298,bolivian_squirrel_monkey__SB/20240516_083217.wav,11.348,11.481,452.5,3088.8,sm/cc,0.627,none_alta,other,SB-SPCmissing selection of vocalizations,evento no anotado,A
+C299,bolivian_squirrel_monkey__SB/20240516_083217.wav,12.772,12.916,6210.9,11110.6,sb/ppc,0.628,match,correct,missing selection of vocalizations,acierto confirmado,A
+C300,bolivian_squirrel_monkey__SB/20240516_083217.wav,18.367,18.525,7490.1,12450.1,sb/ppc,0.678,label,other,PCC-missing selection of vocalizations,error de clase,A
+C301,bolivian_squirrel_monkey__SB/20240516_083217.wav,18.589,18.748,7157.1,11942.8,sb/ppc,0.414,label,other,PCC-missing selection of vocalizations,error de clase,A
+C302,bolivian_squirrel_monkey__SB/20240516_083217.wav,19.639,19.817,6923.3,11164.9,sb/ppc,0.583,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C303,bolivian_squirrel_monkey__SB/20240516_083217.wav,25.182,25.258,7314.6,10145.4,sb/ppc,0.37,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C304,bolivian_squirrel_monkey__SB/20240516_083217.wav,26.197,26.448,7842.3,9806.5,sb/ppc,0.679,none_alta,other,LPC-missing selection of vocalizations,evento no anotado,A
+C305,bolivian_squirrel_monkey__SB/20240516_083217.wav,27.488,27.646,5416.9,9386.0,sb/ppc,0.144,none_baja,correct,missing selection of vocalizations,evento no anotado,A
+C306,bolivian_squirrel_monkey__SB/20240516_083217.wav,29.669,29.864,6816.2,12593.0,sb/ppc,0.596,none_alta,other,PCC-missing selection of vocalizations,evento no anotado,A
+C307,bolivian_squirrel_monkey__SB/20240516_083217.wav,29.692,29.773,579.6,2222.4,sm/cc,0.319,none_media,no,PCC-missing selection of vocalizations,ruido,A
+C308,bolivian_squirrel_monkey__SB/20240516_083217.wav,29.892,30.175,6908.8,11691.1,sb/ppc,0.538,label,other,PCC-missing selection of vocalizations,error de clase,A
+C309,bolivian_squirrel_monkey__SB/20240516_083217.wav,30.45,30.538,500.0,3554.9,sm/cc,0.537,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C310,bolivian_squirrel_monkey__SB/20240516_083217.wav,31.413,31.6,427.0,14782.7,sb/spc,0.592,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C311,bolivian_squirrel_monkey__SB/20240516_083217.wav,35.795,35.888,531.5,3185.9,sm/cc,0.482,none_media,other,SB-SPCmissing selection of vocalizations,evento no anotado,A
+C312,bolivian_squirrel_monkey__SB/20240516_083217.wav,40.538,40.671,470.8,16355.1,sb/spc,0.373,none_media,box,missing selection of vocalizations,evento no anotado,A
+C313,bolivian_squirrel_monkey__SB/20240516_083055.wav,0.344,1.152,3157.1,4511.2,sm/pc,0.322,none_media,no,missing selection of vocalizations,ruido,A
+C314,bolivian_squirrel_monkey__SB/20240516_083055.wav,2.294,2.451,5912.1,9219.9,sb/ppc,0.175,none_baja,correct,missing selection of vocalizations,evento no anotado,A
+C315,bolivian_squirrel_monkey__SB/20240516_083055.wav,2.574,3.0,6218.2,9921.1,sb/ppc,0.512,none_alta,other,SM-SC-missing selection of vocalizations,evento no anotado,A
+C316,bolivian_squirrel_monkey__SB/20240516_083055.wav,5.766,5.994,7262.0,10887.5,sb/ppc,0.193,none_baja,box,missing selection of vocalizations,evento no anotado,A
+C317,bolivian_squirrel_monkey__SB/20240516_083055.wav,5.78,5.975,326.0,16898.6,sb/spc,0.481,none_media,other,PPC-missing selection of vocalizations,evento no anotado,A
+C318,bolivian_squirrel_monkey__SB/20240516_083055.wav,8.353,8.621,3538.5,6674.5,sb/ppc,0.374,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C319,bolivian_squirrel_monkey__SB/20240516_083055.wav,11.737,12.0,7844.7,12901.3,sb/ppc,0.454,none_media,box,missing selection of vocalizations,evento no anotado,A
+C320,bolivian_squirrel_monkey__SB/20240516_083055.wav,12.192,12.52,6851.3,11821.4,sb/ppc,0.403,label,other,PCC-missing selection of vocalizations,error de clase,A
+C321,bolivian_squirrel_monkey__SB/20240516_083055.wav,14.141,14.53,6104.4,7441.8,sb/ppc,0.441,none_media,other,LPC-missing selection of vocalizations,evento no anotado,A
+C322,bolivian_squirrel_monkey__SB/20240516_083055.wav,21.948,22.035,472.7,3497.1,sm/cc,0.125,none_baja,correct,missing selection of vocalizations,evento no anotado,A
+C323,bolivian_squirrel_monkey__SB/20240516_083055.wav,22.189,22.489,6893.6,11549.3,sb/ppc,0.655,label,other,PCC-missing selection of vocalizations,error de clase,A
+C324,bolivian_squirrel_monkey__SB/20240516_083055.wav,22.442,22.67,7460.2,12083.3,sb/ppc,0.643,none_alta,other,PCC-missing selection of vocalizations,evento no anotado,A
+C325,bolivian_squirrel_monkey__SB/20240516_083055.wav,24.411,24.479,783.2,2937.7,sm/cc,0.343,none_media,other,SC maybe-missing selection of vocalizations,evento no anotado,A
+C326,bolivian_squirrel_monkey__SB/20240516_083055.wav,25.616,25.833,417.4,15316.2,sb/spc,0.459,none_media,box,missing selection of vocalizations,evento no anotado,A
+C327,bolivian_squirrel_monkey__SB/20240516_083055.wav,26.903,26.975,612.4,3134.8,sm/cc,0.444,none_media,box,missing selection of vocalizations,evento no anotado,A
+C328,bolivian_squirrel_monkey__SB/20240516_083055.wav,27.971,28.167,658.9,15067.5,sb/spc,0.538,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C329,bolivian_squirrel_monkey__SB/20240516_083055.wav,31.261,31.534,5826.0,10579.4,sb/ppc,0.437,none_media,other,PCC-missing selection of vocalizations,evento no anotado,A
+C330,bolivian_squirrel_monkey__SB/20240516_083055.wav,34.286,34.676,6175.7,7207.2,sb/ppc,0.305,none_media,other,LPC-missing selection of vocalizations,evento no anotado,A
+C331,peruvian_spider_monkey__AC/20240227_085004.wav,44.278,45.0,4704.6,13985.4,sm/sc,0.17,label,box,missing selection of vocalizations,error de encuadre,
+C332,peruvian_spider_monkey__AC/20240227_085004.wav,50.28,51.0,3714.1,12240.1,sm/sc,0.165,label,box,missing selection of vocalizations,error de encuadre,
+C333,peruvian_spider_monkey__AC/20240227_085004.wav,51.6,53.006,4825.6,12407.7,sm/sc,0.839,label,box,missing selection of vocalizations,error de encuadre,
+C334,peruvian_spider_monkey__AC/20240227_085004.wav,62.054,63.236,5172.9,14528.3,sm/sc,0.698,label,correct,missing selection of vocalizations,anotación por corregir,
+C335,peruvian_spider_monkey__AC/20240227_085004.wav,63.751,64.981,4211.5,12358.7,sm/sc,0.578,label,correct,missing selection of vocalizations,anotación por corregir,
+C336,large_headed_capuchin__SM/20241204_0804 (2).wav,5.752,5.938,145.4,19244.1,sb/spc,0.687,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C337,large_headed_capuchin__SM/20241204_0804 (2).wav,8.292,8.415,91.0,18112.4,sb/spc,0.138,label,other,CC SM - missing selection of vocalizations,error de clase,
+C338,large_headed_capuchin__SM/20241204_0804 (2).wav,10.349,10.489,4924.1,8819.4,sb/ppc,0.382,none_media,correct,missing selection of vocalizations,evento no anotado,
+C339,large_headed_capuchin__SM/20241204_0804 (2).wav,14.436,14.49,6344.1,9389.9,sb/ppc,0.318,none_media,correct,missing selection of vocalizations,evento no anotado,
+C340,weddells_saddleBack_tamarin__LW/20240415_142027.wav,33.843,34.479,5953.3,8884.0,lw/trino,0.383,none_media,box,missing selection of vocalizations,evento no anotado,
+C341,peruvian_spider_monkey__AC/20240429_104915.wav,4.027,4.444,450.2,1922.2,ac/bc,0.594,box,correct,missing selection of vocalizations,anotación por corregir,B
+C342,peruvian_spider_monkey__AC/20240429_104915.wav,17.923,18.142,464.2,1199.4,ac/bc,0.382,none_media,box,too short - missing selection of vocalizations,evento no anotado,B
+C343,peruvian_spider_monkey__AC/20240429_104915.wav,18.001,18.189,491.6,2398.4,ac/bc,0.524,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C344,peruvian_spider_monkey__AC/20240429_104915.wav,21.001,21.133,521.4,1875.9,ac/bc,0.239,box,correct,missing selection of vocalizations,anotación por corregir,B
+C345,peruvian_spider_monkey__AC/20240429_104915.wav,24.773,24.918,522.4,971.8,ac/bc,0.649,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C346,peruvian_spider_monkey__AC/20240429_104915.wav,25.156,25.309,481.3,1111.9,ac/bc,0.246,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C347,peruvian_spider_monkey__AC/20240429_104915.wav,26.801,27.005,453.8,992.7,ac/bc,0.683,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C348,peruvian_spider_monkey__AC/20240429_104915.wav,29.561,29.768,363.8,1012.0,ac/bc,0.637,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C349,large_headed_capuchin__SM/20240508_113935.wav,16.506,16.605,332.4,4037.0,sm/cc,0.439,box,correct,missing selection of vocalizations,anotación por corregir,A
+C350,weddells_saddleBack_tamarin__LW/20240514_155246.wav,10.955,11.323,4941.4,8098.2,lw/trino,0.755,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C351,weddells_saddleBack_tamarin__LW/20240514_155246.wav,17.873,17.996,5695.9,10689.7,lw/trino,0.147,none_baja,box,missing selection of vocalizations,evento no anotado,A
+C352,bolivian_squirrel_monkey__SB/20240521_074550.wav,13.511,13.754,3167.6,13468.4,sb/ppc,0.17,label,box,missing selection of vocalizations,error de encuadre,A
+C353,howler_monkey__AS/20241012_045749.wav,28.517,29.2,30.4,759.0,as/bc,0.475,box,other,HC,error de clase,
+C354,peruvian_spider_monkey__AC/20241028_155548.wav,22.501,22.578,252.1,6725.9,ac/bc,0.529,box,box,too short - missing selectionof vocalizations,error de encuadre,
+C355,howler_monkey__AS/20240609_052316.wav,9.237,10.023,10873.3,12384.6,sb/ppc,0.128,none_baja,no,insect - missing selection of vocalizations AS,ruido,
+C356,peruvian_spider_monkey__AC/20240227_092232.wav,2.531,2.787,371.1,2655.4,ac/bc,0.694,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C357,peruvian_spider_monkey__AC/20240227_092232.wav,12.001,12.218,287.0,2655.6,ac/bc,0.501,box,box,missing selection of vocalizations,error de encuadre,
+C358,peruvian_spider_monkey__AC/20240227_092232.wav,24.076,24.424,649.1,2008.1,ac/bc,0.58,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C359,peruvian_spider_monkey__AC/20240227_092232.wav,24.62,25.023,587.0,2565.6,ac/bc,0.564,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C360,peruvian_spider_monkey__AC/20240227_092232.wav,45.0,45.12,291.6,2801.0,ac/bc,0.169,box,box,missing selection of vocalizations,error de encuadre,
+C361,peruvian_spider_monkey__AC/20240227_092232.wav,50.869,51.157,459.2,2561.8,ac/bc,0.512,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C362,peruvian_spider_monkey__AC/20240227_092232.wav,54.006,55.24,120.4,709.6,ac/chc,0.512,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C363,peruvian_spider_monkey__AC/20240227_092232.wav,55.417,55.5,490.5,2682.2,ac/bc,0.229,box,box,missing selection of vocalizations,error de encuadre,
+C364,peruvian_spider_monkey__AC/20240227_092232.wav,66.958,67.294,471.7,2616.7,ac/bc,0.542,box,correct,missing selection of vocalizations,anotación por corregir,
+C365,peruvian_spider_monkey__AC/20240227_092232.wav,71.032,71.289,432.9,2587.3,ac/bc,0.682,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C366,peruvian_spider_monkey__AC/20240227_092232.wav,84.0,84.434,293.7,2695.7,ac/bc,0.513,none_alta,box,missing selection of vocalizations,evento no anotado,
+C367,weddells_saddleBack_tamarin__LW/20240504_121521.wav,5.661,6.0,7356.4,10524.0,lw/trino,0.205,none_baja,other,VC - missing selection in vocalizations,evento no anotado,B
+C368,weddells_saddleBack_tamarin__LW/20240504_121521.wav,12.936,13.415,6072.2,9452.9,lw/trino,0.571,none_alta,other,VC - missing selection in vocalizations,evento no anotado,B
+C369,weddells_saddleBack_tamarin__LW/20240504_121521.wav,13.719,14.243,4404.6,11478.1,lw/trino,0.509,none_alta,other,VC - missing selection in vocalizations,evento no anotado,B
+C370,weddells_saddleBack_tamarin__LW/20240504_121521.wav,22.083,22.89,6676.0,12028.1,lw/trino,0.537,none_alta,other,VC - missing selection in vocalizations,evento no anotado,B
+C371,weddells_saddleBack_tamarin__LW/20240423_161808.wav,13.5,13.595,575.0,9999.4,lw/ta,0.126,box,box,too short in time - missing selection of vocalizations,error de encuadre,B
+C372,large_headed_capuchin__SM/20241204_0759.wav,12.181,12.538,4198.9,11310.0,sb/ppc,0.125,label,correct,missing selection of vocalizations,anotación por corregir,
+C373,large_headed_capuchin__SM/20241204_0759.wav,13.715,13.843,4724.3,7286.8,sb/ppc,0.259,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C374,large_headed_capuchin__SM/20241204_0759.wav,14.143,15.0,3826.9,12497.4,lw/sqc,0.117,none_baja,other,SM,evento no anotado,
+C375,large_headed_capuchin__SM/20241204_0759.wav,20.59,20.733,6850.9,11177.2,sb/ppc,0.51,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C376,peruvian_spider_monkey__AC/20241028_155643.wav,9.002,9.103,244.9,4693.4,ac/bc,0.411,box,box,too short in time - missing selection of vocalizatios,error de encuadre,
+C377,bolivian_squirrel_monkey__SB/20240430_165630.wav,12.65,13.37,6079.6,9753.3,sb/pcc,0.544,none_alta,other,PPC - missing selection in vocalizations,evento no anotado,B
+C378,bolivian_squirrel_monkey__SB/20240430_165630.wav,13.901,15.0,6411.7,14028.6,sb/pcc,0.148,box,other,PPC - missing selection in vocalizations,error de clase,B
+C379,bolivian_squirrel_monkey__SB/20240430_165630.wav,14.115,14.658,6082.2,9476.5,sb/ppc,0.157,label,correct,missing selection of vocalizations,anotación por corregir,B
+C380,bolivian_squirrel_monkey__SB/20240430_165630.wav,15.64,16.495,10483.0,15024.3,sb/pcc,0.528,none_alta,other,PPC - missing selection in vocalizations,evento no anotado,B
+C381,bolivian_squirrel_monkey__SB/20240430_165630.wav,20.819,21.037,4678.0,13486.8,sb/ppc,0.14,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C382,bolivian_squirrel_monkey__SB/20240430_165630.wav,20.827,20.984,4332.2,13520.6,sb/spc,0.142,box,correct,missing selection of vocalizations,anotación por corregir,B
+C383,night_monkey__AA/20240608_192355.wav,15.002,15.085,25.0,3911.7,aa/gc,0.213,box,correct,,anotación por corregir,
+C384,night_monkey__AA/20240608_192355.wav,22.509,22.652,92.0,3798.5,aa/gc,0.249,none_baja,correct,,evento no anotado,
+C385,night_monkey__AA/20240608_192355.wav,25.699,25.798,54.6,3481.0,aa/gc,0.608,match,correct,,acierto confirmado,
+C386,weddells_saddleBack_tamarin__LW/20240217_085325.wav,9.339,9.639,6547.9,14475.2,lw/trino,0.583,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C387,weddells_saddleBack_tamarin__LW/20240217_085325.wav,15.726,16.598,5731.9,10870.3,lw/trino,0.624,box,box,missing selection of vocalizations,error de encuadre,
+C388,weddells_saddleBack_tamarin__LW/20240217_085325.wav,18.916,19.612,6549.1,11233.5,lw/trino,0.53,none_alta,box,missing selection of vocalizations,evento no anotado,
+C389,large_headed_capuchin__SM/20250117_112921.wav,3.2,3.267,533.5,3975.8,sm/cc,0.269,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C390,large_headed_capuchin__SM/20240411_104650.wav,1.079,1.14,628.3,3494.9,sm/cc,0.411,none_media,box,missing selection of vocalizations,evento no anotado,
+C391,large_headed_capuchin__SM/20240411_104650.wav,8.205,8.275,561.4,3522.0,sm/cc,0.494,box,correct,missing selection of vocalizations,anotación por corregir,
+C392,large_headed_capuchin__SM/20240411_104650.wav,20.698,20.845,1318.4,3457.3,sm/fs,0.34,none_media,box,missing selection of vocalizations,evento no anotado,
+C393,large_headed_capuchin__SM/20240411_104650.wav,23.367,23.438,600.8,3917.7,sm/cc,0.439,none_media,correct,missing selection of vocalizations,evento no anotado,
+C394,large_headed_capuchin__SM/20240411_104650.wav,23.791,24.694,4296.1,5455.9,sm/sc,0.298,box,correct,missing selection of vocalizations,anotación por corregir,
+C395,large_headed_capuchin__SM/20240411_104650.wav,40.328,40.431,602.4,3728.0,sm/cc,0.534,box,correct,missing selection of vocalizations,anotación por corregir,
+C396,large_headed_capuchin__SM/20240411_104650.wav,45.948,46.044,518.0,3674.4,sm/cc,0.5,box,correct,missing selection of vocalizations,anotación por corregir,
+C397,peruvian_spider_monkey__AC/20241031_091002.wav,2.062,2.345,235.8,1801.6,ac/bc,0.507,none_alta,correct,,evento no anotado,
+C398,peruvian_spider_monkey__AC/20241031_091002.wav,8.5,9.0,25.0,2650.2,ac/chc,0.206,box,box,too short,error de encuadre,
+C399,peruvian_spider_monkey__AC/20241031_091002.wav,10.558,11.295,162.2,2810.4,ac/chc,0.716,box,box,too short,error de encuadre,
+C400,weddells_saddleBack_tamarin__LW/20240415_141109.wav,0.59,1.233,5066.1,10936.4,lw/trino,0.61,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C401,weddells_saddleBack_tamarin__LW/20240415_141109.wav,3.716,4.056,6243.0,9580.7,lw/sqc,0.156,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C402,weddells_saddleBack_tamarin__LW/20240415_141109.wav,6.81,7.383,6184.3,11089.4,lw/trino,0.671,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C403,weddells_saddleBack_tamarin__LW/20240415_141109.wav,9.618,10.045,5631.5,11436.6,lw/trino,0.554,label,correct,missing selection of vocalizations,anotación por corregir,
+C404,weddells_saddleBack_tamarin__LW/20240415_141109.wav,12.56,13.388,5005.0,15201.9,lw/sqc,0.749,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C405,weddells_saddleBack_tamarin__LW/20240415_141109.wav,22.97,23.146,7621.8,15709.8,lw/trino,0.175,none_baja,other,maybe VC-missing selection of vocalizations,evento no anotado,
+C406,weddells_saddleBack_tamarin__LW/20240415_141109.wav,25.709,26.313,6178.5,11283.6,lw/trino,0.583,none_alta,box,missing selection of vocalizations,evento no anotado,
+C407,howler_monkey__AS/20240602_080506.wav,1.916,2.41,3269.9,14098.6,sb/sc,0.598,none_alta,no,plants - missing selection of vocalizations AS,ruido,
+C408,peruvian_spider_monkey__AC/20240406_061631.wav,12.0,12.239,289.6,3817.1,ac/bc,0.278,box,box,missing selection of vocalizations,error de encuadre,
+C409,large_headed_capuchin__SM/20240430_164252.wav,7.5,7.564,302.1,2957.3,sm/cc,0.486,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C410,large_headed_capuchin__SM/20240430_164252.wav,15.427,15.497,814.3,4401.3,sm/cc,0.338,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C411,large_headed_capuchin__SM/20240430_164252.wav,18.648,18.718,430.7,3408.2,sm/cc,0.326,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C412,large_headed_capuchin__SM/20240430_164252.wav,40.031,40.085,376.0,1364.9,sm/cc,0.191,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C413,large_headed_capuchin__SM/20240430_164252.wav,40.058,40.137,309.8,4798.9,sm/cc,0.444,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C414,large_headed_capuchin__SM/20240430_164252.wav,52.453,52.496,446.8,1461.1,sm/cc,0.216,box,correct,missing selection of vocalizations,anotación por corregir,B
+C415,bolivian_squirrel_monkey__SB/20240521_080157.wav,14.527,14.902,850.4,21754.4,sb/spc,0.177,label,correct,missing selection of vocalizations,anotación por corregir,A
+C416,bolivian_squirrel_monkey__SB/20240521_080157.wav,15.082,15.21,506.7,14616.7,sb/spc,0.52,none_alta,other,PPC-missing selection of vocalizations,evento no anotado,A
+C417,weddells_saddleBack_tamarin__LW/20240520_071352.wav,16.213,16.499,1441.3,6749.4,lw/ta,0.722,box,box,missing selection of vocalizations,error de encuadre,A
+C418,weddells_saddleBack_tamarin__LW/20240520_071352.wav,23.312,23.625,5384.7,8145.3,lw/vc,0.177,none_baja,box,missing selection of vocalizations,evento no anotado,A
+C419,bolivian_squirrel_monkey__SB/20240202_165826.wav,3.114,3.972,6486.4,10890.4,sb/pcc,0.347,label,correct,missing selection of vocalizations,anotación por corregir,
+C420,bolivian_squirrel_monkey__SB/20240202_165826.wav,10.256,10.482,4327.6,14377.0,sb/ppc,0.159,label,box,missing selection of vocalizations,error de encuadre,
+C421,bolivian_squirrel_monkey__SB/20240202_165826.wav,11.03,11.281,4816.6,12642.8,sb/ppc,0.128,label,box,missing selection of vocalizations,error de encuadre,
+C422,bolivian_squirrel_monkey__SB/20240202_165826.wav,13.533,13.701,5493.9,12839.9,sb/ppc,0.541,none_alta,box,missing selection of vocalizations,evento no anotado,
+C423,bolivian_squirrel_monkey__SB/20240202_165826.wav,17.179,17.34,5846.3,15356.8,sb/ppc,0.308,label,box,missing selection of vocalizations,error de encuadre,
+C424,bolivian_squirrel_monkey__SB/20240202_165826.wav,22.5,22.626,4847.6,12234.3,sb/ppc,0.332,none_media,other,"missing selection of vocalizations, PCC",evento no anotado,
+C425,bolivian_squirrel_monkey__SB/20240202_165826.wav,22.974,23.977,6139.2,12361.5,sb/pcc,0.665,none_alta,box,missing selection of vocalizations,evento no anotado,
+C426,bolivian_squirrel_monkey__SB/20240202_165826.wav,23.394,23.614,6486.5,10812.9,sb/ppc,0.122,none_baja,other,"missing selection of vocalizations, PCC",evento no anotado,
+C427,bolivian_squirrel_monkey__SB/20240202_165826.wav,25.608,25.789,6102.1,11604.9,sb/ppc,0.349,none_media,other,"missing selection of vocalizations, PCC",evento no anotado,
+C428,bolivian_squirrel_monkey__SB/20240202_165826.wav,43.297,43.46,6480.3,9903.3,sb/ppc,0.49,none_media,other,"missing selection of vocalizations, PCC",evento no anotado,
+C429,bolivian_squirrel_monkey__SB/20240202_165826.wav,43.695,43.856,6352.3,9619.1,sb/ppc,0.374,none_media,other,"missing selection of vocalizations, PCC",evento no anotado,
+C430,bolivian_squirrel_monkey__SB/20240202_165826.wav,44.234,44.525,4678.8,16889.7,sb/sc,0.515,label,other,"missing selection of vocalizations, PPC",error de clase,
+C431,bolivian_squirrel_monkey__SB/20240202_165826.wav,46.659,46.918,6479.9,11202.3,sb/ppc,0.596,match,correct,missing selection of vocalizations,acierto confirmado,
+C432,bolivian_squirrel_monkey__SB/20240202_165826.wav,48.54,48.716,6151.1,7726.6,sb/ppc,0.463,none_media,no,missing selection of vocalizations,ruido,
+C433,bolivian_squirrel_monkey__SB/20240202_165826.wav,54.681,55.22,7444.6,12203.1,sb/ppc,0.534,box,other,"missing selection of vocalizations, PCC",error de clase,
+C434,bolivian_squirrel_monkey__SB/20240202_165826.wav,55.817,56.106,4880.2,11813.1,sb/sc,0.167,label,other,"missing selection of vocalizations, PPC",error de clase,
+C435,bolivian_squirrel_monkey__SB/20240202_165826.wav,58.501,58.698,4726.8,10829.0,sb/ppc,0.356,box,box,missing selection of vocalizations,error de encuadre,
+C436,weddells_saddleBack_tamarin__LW/20240404_065527.wav,7.195,7.5,6024.9,10624.3,lw/trino,0.31,none_media,box,missing selection of vocalizations,evento no anotado,
+C437,weddells_saddleBack_tamarin__LW/20240404_065527.wav,28.5,29.1,6143.7,10189.4,lw/trino,0.389,none_media,box,missing selection of vocalizations,evento no anotado,
+C438,weddells_saddleBack_tamarin__LW/20240404_065527.wav,45.835,46.294,26.8,184.3,as/bc,0.241,none_baja,no,missing selection of vocalizations,ruido,
+C439,weddells_saddleBack_tamarin__LW/20240404_065527.wav,66.324,67.103,7307.6,10767.4,lw/trino,0.312,none_media,box,missing selection of vocalizations,evento no anotado,
+C440,peruvian_spider_monkey__AC/20241031_090931.wav,2.47,4.485,66.3,2876.6,ac/chc,0.702,none_alta,box,one vocalization with more than one box,evento no anotado,
+C441,peruvian_spider_monkey__AC/20241031_090931.wav,3.0,6.0,164.8,1916.2,ac/gc,0.309,box,other,CHC,error de clase,
+C442,peruvian_spider_monkey__AC/20241031_090931.wav,4.5,6.138,158.0,2943.9,ac/chc,0.753,none_alta,box,one vocalization with more than one box,evento no anotado,
+C443,large_headed_capuchin__SM/20240529_091240.wav,0.928,1.04,284.2,5172.9,sm/cc,0.626,box,correct,missing selection of vocalizations,anotación por corregir,
+C444,peruvian_spider_monkey__AC/20241028_155028.wav,8.458,8.615,378.9,7842.6,ac/bc,0.642,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C445,weddells_saddleBack_tamarin__LW/20240210_120738.wav,1.878,2.301,6249.6,10110.0,lw/vc,0.158,label,other,"missing selection of vocalizations, es TT",error de clase,
+C446,howler_monkey__AS/20240516_052647.wav,10.961,11.278,135.2,640.3,as/bc,0.325,none_media,box,missing selection of vocalizations,evento no anotado,A
+C447,bolivian_squirrel_monkey__SB/20240522_071437.wav,28.688,29.538,1526.9,3389.6,sm/pc,0.313,none_media,no,bird-missing selection of vocalizations,ruido,A
+C448,howler_monkey__AS/20240820_101619.wav,3.809,4.229,107.1,741.5,as/bc,0.458,none_media,correct,missing selection of vocalizations,evento no anotado,
+C449,weddells_saddleBack_tamarin__LW/20240417_073338.wav,17.518,17.725,8379.2,9795.6,lw/cs,0.113,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C450,large_headed_capuchin__SM/20240201_162023.wav,3.552,3.653,541.1,3730.7,sm/cc,0.429,none_media,box,"missing selection of vocalizations,
+the selection ends after the vocalization",evento no anotado,
+C451,large_headed_capuchin__SM/20240201_162023.wav,16.873,16.95,705.8,3381.9,sm/cc,0.317,none_media,correct,missing selection of vocalizations,evento no anotado,
+C452,large_headed_capuchin__SM/20240201_162023.wav,18.725,18.818,416.1,4634.0,sm/cc,0.506,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C453,large_headed_capuchin__SM/20240201_162023.wav,21.264,21.503,4330.3,5734.5,sm/pc,0.111,box,box,missing selection of vocalizations,error de encuadre,
+C454,large_headed_capuchin__SM/20240201_162023.wav,22.266,22.374,408.8,3943.5,sm/cc,0.513,none_alta,box,missing selection of vocalizations,evento no anotado,
+C455,peruvian_spider_monkey__AC/20240205_105755.wav,4.5,4.544,458.0,3950.8,sm/cc,0.546,none_alta,box,missing selection of vocalizations,evento no anotado,
+C456,weddells_saddleBack_tamarin__LW/20240520_070637.wav,8.021,8.449,6042.2,8997.4,lw/vc,0.651,match,correct,missing selection of vocalizations,acierto confirmado,A
+C457,large_headed_capuchin__SM/20250117_113712.wav,7.534,8.152,2370.5,13133.8,sb/sc,0.117,label,box,too high- missing selection of vocalizations,error de encuadre,
+C458,large_headed_capuchin__SM/20250117_113712.wav,8.42,8.509,566.9,4848.2,sm/cc,0.249,none_baja,other,SB,evento no anotado,
+C459,large_headed_capuchin__SM/20250117_113712.wav,9.815,9.911,671.5,2825.3,sm/cc,0.454,label,other,SB,error de clase,
+C460,peruvian_spider_monkey__AC/20240429_104828.wav,0.083,0.484,503.0,2153.3,ac/bc,0.291,box,correct,missing selection of vocalizations,anotación por corregir,B
+C461,peruvian_spider_monkey__AC/20240429_104828.wav,2.028,2.377,584.2,2028.1,ac/bc,0.64,box,correct,missing selection of vocalizations,anotación por corregir,B
+C462,peruvian_spider_monkey__AC/20240429_104828.wav,3.38,3.679,1471.2,2386.5,ac/bc,0.451,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C463,peruvian_spider_monkey__AC/20240429_104828.wav,6.688,6.996,611.3,1906.5,ac/bc,0.22,box,correct,missing selection of vocalizations,anotación por corregir,B
+C464,peruvian_spider_monkey__AC/20240429_104828.wav,13.2,13.483,1398.6,2536.6,sm/fs,0.18,none_baja,no,bird,ruido,B
+C465,howler_monkey__AS/20240813_090740.wav,1.836,1.964,989.8,3262.2,sm/fs,0.312,none_media,correct,missing selection of vocalizations AS - SM,evento no anotado,
+C466,howler_monkey__AS/20240813_090740.wav,2.347,2.518,790.2,3095.1,sm/fs,0.111,none_baja,correct,missing selection of vocalizations AS - SM,evento no anotado,
+C467,howler_monkey__AS/20240813_090740.wav,22.557,22.707,668.7,2479.2,sm/cc,0.283,box,correct,,anotación por corregir,
+C468,bolivian_squirrel_monkey__SB/20240123_120555.wav,0.229,0.385,5306.4,11944.6,sb/ppc,0.116,box,box,refers to same vocalization as C469 but a part of it,error de encuadre,
+C469,bolivian_squirrel_monkey__SB/20240123_120555.wav,0.249,0.385,592.8,15462.0,sb/spc,0.391,box,box,box with a higher freq,error de encuadre,
+C470,bolivian_squirrel_monkey__SB/20240123_120555.wav,3.218,3.326,10562.1,12678.4,sb/ppc,0.572,none_alta,correct,,evento no anotado,
+C471,bolivian_squirrel_monkey__SB/20240123_120555.wav,8.608,8.764,6082.0,9453.9,sb/ppc,0.545,none_alta,box,it miss a tiny part of the max freq,evento no anotado,
+C472,large_headed_capuchin__SM/20240826_102240.wav,18.388,18.456,783.4,4603.6,sm/cc,0.308,none_media,correct,missing selection of vocalizations,evento no anotado,
+C473,weddells_saddleBack_tamarin__LW/20240129_122526.wav,3.736,4.059,1233.6,6472.2,lw/ta,0.251,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C474,weddells_saddleBack_tamarin__LW/20240129_122526.wav,19.169,19.456,2749.2,7104.7,lw/ta,0.767,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C475,howler_monkey__AS/20240516_053247.wav,9.071,9.524,81.1,648.3,as/bc,0.118,box,other,HC-missing selection of vocalizations,error de clase,A
+C476,peruvian_spider_monkey__AC/20240617_152449.wav,0.003,0.189,366.2,2392.1,ac/bc,0.191,none_baja,no,background noise,ruido,
+C477,peruvian_spider_monkey__AC/20240617_152449.wav,11.95,12.0,983.0,2979.3,ac/bc,0.118,box,box,too short - missing selection of vocalizations,error de encuadre,
+C478,peruvian_spider_monkey__AC/20240617_152449.wav,15.001,15.148,302.1,1962.1,ac/bc,0.336,none_media,no,background noise - missing selection of vocalizations,ruido,
+C479,peruvian_spider_monkey__AC/20240617_152449.wav,16.5,16.754,323.0,2946.6,ac/bc,0.31,box,no,background noise - missing selection of vocalizations,ruido,
+C480,peruvian_spider_monkey__AC/20240617_152449.wav,19.844,19.999,594.5,1691.9,ac/bc,0.216,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C481,howler_monkey__AS/20240525_162233.wav,2.049,2.266,90.4,720.8,as/bc,0.359,none_media,box,,evento no anotado,
+C482,weddells_saddleBack_tamarin__LW/20250113_093935.wav,0.33,0.695,7820.0,9243.0,lw/cs,0.512,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C483,weddells_saddleBack_tamarin__LW/20250113_093935.wav,0.8,1.143,7705.8,9496.9,lw/cs,0.52,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C484,weddells_saddleBack_tamarin__LW/20250113_093935.wav,4.24,4.504,8148.4,9625.7,lw/cs,0.63,box,box,too low and high - missing selection of vocalizations,error de encuadre,
+C485,large_headed_capuchin__SM/20240420_075455.wav,18.0,18.048,173.0,3665.0,sm/cc,0.291,none_baja,box,missing selection of vocalizations,evento no anotado,B
+C486,large_headed_capuchin__SM/20240420_075455.wav,26.196,26.247,341.4,1326.8,sm/cc,0.193,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C487,large_headed_capuchin__SM/20240618_070201.wav,0.0,0.076,190.1,2531.2,sm/cc,0.272,none_baja,box,too short - missing selection of vocalizations,evento no anotado,
+C488,large_headed_capuchin__SM/20240618_070201.wav,3.001,3.107,851.7,2763.4,sm/fs,0.175,box,box,too high - missing selection of vocalizations,error de encuadre,
+C489,large_headed_capuchin__SM/20240618_070201.wav,3.313,3.527,838.0,3271.7,sm/fs,0.477,box,correct,missing selection of vocalizations,anotación por corregir,
+C490,large_headed_capuchin__SM/20240618_070201.wav,3.58,3.798,839.2,3212.1,sm/fs,0.275,box,correct,missing selection of vocalizations,anotación por corregir,
+C491,large_headed_capuchin__SM/20240618_070201.wav,4.503,4.682,830.2,2260.5,sm/fs,0.156,box,box,too high - missing selection of vocalizations,error de encuadre,
+C492,large_headed_capuchin__SM/20240618_070201.wav,5.761,5.998,856.7,2260.9,sm/fs,0.317,match,box,too high -missing selection of vocalizations,desacuerdo con la referencia,
+C493,large_headed_capuchin__SM/20240618_070201.wav,24.0,24.206,341.7,2520.6,sm/cc,0.693,none_alta,no,bird,ruido,
+C494,large_headed_capuchin__SM/20240618_070201.wav,24.474,24.732,367.0,2320.8,sm/cc,0.788,none_alta,no,bird,ruido,
+C495,bolivian_squirrel_monkey__SB/20240522_071743.wav,27.697,28.742,1689.1,3529.1,sm/pc,0.483,box,no,bird,ruido,A
+C496,bolivian_squirrel_monkey__SB/20240522_071743.wav,40.998,41.903,1559.9,3880.9,sm/pc,0.638,none_alta,no,bird,ruido,A
+C497,howler_monkey__AS/20240609_054542.wav,28.5,30.52,96.1,775.2,ac/gc,0.366,none_media,other,AS HC,evento no anotado,
+C498,large_headed_capuchin__SM/20240206_170352.wav,6.711,6.818,459.7,4118.6,sm/cc,0.3,none_media,correct,missing selection of vocalizations,evento no anotado,
+C499,peruvian_spider_monkey__AC/20241016_075924.wav,1.885,2.158,739.6,2138.0,ac/bc,0.772,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C500,peruvian_spider_monkey__AC/20241016_075924.wav,4.139,4.391,514.6,2674.8,ac/bc,0.379,none_media,correct,missing selection of vocalizations,evento no anotado,
+C501,peruvian_spider_monkey__AC/20241016_075924.wav,12.287,12.489,546.8,2066.7,ac/bc,0.158,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C502,peruvian_spider_monkey__AC/20240816_161041.wav,3.001,3.806,214.0,825.7,ac/gc,0.163,label,correct,,anotación por corregir,
+C503,large_headed_capuchin__SM/20240916_102432.wav,1.714,1.931,1587.9,3588.3,sm/fs,0.262,none_baja,box,missing selection of vocalizations,evento no anotado,
+C504,large_headed_capuchin__SM/20240916_102432.wav,8.362,8.516,1532.2,3611.6,sm/fs,0.463,none_media,box,missing selection of vocalizations,evento no anotado,
+C505,large_headed_capuchin__SM/20240916_102432.wav,19.503,19.652,1417.3,3662.8,sm/fs,0.68,box,box,missing selection of vocalizations,error de encuadre,
+C506,large_headed_capuchin__SM/20240916_102432.wav,19.749,19.921,1505.5,3683.6,sm/fs,0.749,box,box,missing selection of vocalizations,error de encuadre,
+C507,large_headed_capuchin__SM/20240916_102432.wav,20.06,20.21,1530.9,3620.8,sm/fs,0.707,box,box,missing selection of vocalizations,error de encuadre,
+C508,bolivian_squirrel_monkey__SB/20240615_121321.wav,4.776,4.911,5452.1,9412.0,sb/ppc,0.595,match,correct,missing selection of vocalizations,acierto confirmado,
+C509,bolivian_squirrel_monkey__SB/20240615_121321.wav,5.019,5.147,5105.6,10522.1,sb/ppc,0.313,match,correct,missing selection of vocalizations,acierto confirmado,
+C510,bolivian_squirrel_monkey__SB/20240615_121321.wav,10.783,10.881,386.4,4036.0,sm/cc,0.465,none_media,correct,missing selection of vocalizations,evento no anotado,
+C511,bolivian_squirrel_monkey__SB/20240615_121321.wav,12.744,12.828,429.4,4904.8,sm/cc,0.501,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C512,bolivian_squirrel_monkey__SB/20240615_121321.wav,16.166,16.352,5452.5,9246.5,sb/ppc,0.4,none_media,correct,missing selection of vocalizations,evento no anotado,
+C513,bolivian_squirrel_monkey__SB/20240615_121321.wav,16.466,16.5,8090.7,10259.8,sb/ppc,0.181,box,box,too small - missing selection of vocalizations,error de encuadre,
+C514,bolivian_squirrel_monkey__SB/20240615_121321.wav,17.072,17.511,5225.8,17721.4,sb/sc,0.184,label,correct,missing selection of vocalizations,anotación por corregir,
+C515,bolivian_squirrel_monkey__SB/20240615_121321.wav,17.073,17.509,5272.4,17580.2,sb/ppc,0.325,label,correct,missing selection of vocalizations,anotación por corregir,
+C516,bolivian_squirrel_monkey__SB/20240615_121321.wav,17.532,17.698,139.6,21321.7,sb/spc,0.495,none_media,box,too high - missing selection of vocalizations,evento no anotado,
+C517,bolivian_squirrel_monkey__SB/20240615_121321.wav,17.755,17.995,5336.7,14857.8,sb/ppc,0.793,none_alta,box,too small - missing selection of vocalizations,evento no anotado,
+C518,bolivian_squirrel_monkey__SB/241204_0801.wav,5.891,6.049,8321.8,13024.8,sb/ppc,0.494,match,correct,,acierto confirmado,
+C519,bolivian_squirrel_monkey__SB/241204_0801.wav,6.001,6.07,8560.3,12866.4,sb/ppc,0.208,box,box,,error de encuadre,
+C520,bolivian_squirrel_monkey__SB/241204_0801.wav,21.221,21.91,8246.2,12422.8,sb/pcc,0.488,none_media,correct,,evento no anotado,
+C521,bolivian_squirrel_monkey__SB/241204_0801.wav,23.537,23.627,48.8,5336.1,sm/cc,0.27,label,correct,,anotación por corregir,
+C522,bolivian_squirrel_monkey__SB/241204_0801.wav,26.172,26.292,5074.7,8425.5,sb/ppc,0.375,none_media,correct,,evento no anotado,
+C523,weddells_saddleBack_tamarin__LW/20240406_065029.wav,5.155,5.417,7449.0,9055.5,lw/cs,0.539,box,correct,missing selection of vocalizations,anotación por corregir,
+C524,weddells_saddleBack_tamarin__LW/20240406_065029.wav,6.0,6.124,7434.5,9815.1,lw/cs,0.42,box,box,missing selection of vocalizations,error de encuadre,
+C525,weddells_saddleBack_tamarin__LW/20240406_065029.wav,10.352,10.694,7766.7,9412.0,lw/cs,0.671,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C526,weddells_saddleBack_tamarin__LW/20240406_065029.wav,11.31,11.701,7545.9,8977.0,lw/cs,0.538,none_alta,box,missing selection of vocalizations,evento no anotado,
+C527,weddells_saddleBack_tamarin__LW/20240406_065029.wav,14.627,14.828,6947.6,7921.2,lw/cs,0.371,none_media,other,TRINO-missing selection of vocalizations,evento no anotado,
+C528,weddells_saddleBack_tamarin__LW/20240406_065029.wav,15.0,15.253,7432.6,9094.0,lw/cs,0.222,none_baja,other,TRINO-missing selection of vocalizations,evento no anotado,
+C529,weddells_saddleBack_tamarin__LW/20240406_065029.wav,15.031,15.711,6851.5,9284.6,lw/trino,0.419,none_media,box,missing selection of vocalizations,evento no anotado,
+C530,weddells_saddleBack_tamarin__LW/20240406_065029.wav,18.074,18.465,6850.7,8482.3,lw/cs,0.712,none_alta,other,TRINO-missing selection of vocalizations,evento no anotado,
+C531,weddells_saddleBack_tamarin__LW/20240406_065029.wav,22.5,22.63,7185.4,9104.0,lw/cs,0.14,box,box,missing selection of vocalizations,error de encuadre,
+C532,howler_monkey__AS/20240506_074120.wav,34.5,34.723,5271.7,19829.8,sb/sc,0.537,none_alta,no,insect - missing selection in vocalizations AS,ruido,B
+C533,howler_monkey__AS/20240621_074005.wav,8.515,8.998,38.3,864.3,as/bc,0.12,none_baja,box,out of place - missing selection of vocalizations,evento no anotado,
+C534,bolivian_squirrel_monkey__SB/20240420_070332.wav,13.328,13.499,8013.9,11486.6,sb/ppc,0.363,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C535,bolivian_squirrel_monkey__SB/20240420_070332.wav,24.214,25.065,9946.1,12338.7,sb/ppc,0.524,none_alta,other,PC - missing selection of vocalizations,evento no anotado,B
+C536,bolivian_squirrel_monkey__SB/20240420_070332.wav,25.399,25.73,6239.9,12574.8,sb/ppc,0.751,none_alta,other,PC - missing selection of vocalizations,evento no anotado,B
+C537,bolivian_squirrel_monkey__SB/20240420_070332.wav,32.57,32.85,31.8,14833.0,sb/spc,0.573,none_alta,other,PPC - missing selection of vocalizations,evento no anotado,B
+C538,bolivian_squirrel_monkey__SB/20240420_070332.wav,37.084,37.251,239.4,17419.2,sb/spc,0.147,box,correct,missing selection of vocalizations,anotación por corregir,B
+C539,bolivian_squirrel_monkey__SB/20240420_070332.wav,37.199,37.376,128.9,14480.5,sb/spc,0.294,box,correct,missing selection of vocalizations,anotación por corregir,B
+C540,howler_monkey__AS/20240823_141927.wav,0.71,1.06,118.6,810.1,as/bc,0.824,match,correct,missing selection of vocalizations,acierto confirmado,
+C541,howler_monkey__AS/20240501_053149.wav,8.517,8.631,82.7,2064.1,aa/gc,0.19,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C542,howler_monkey__AS/20240501_053149.wav,22.519,22.628,60.7,1959.2,aa/gc,0.367,none_media,correct,missing selection in vocalizations,evento no anotado,B
+C543,howler_monkey__AS/20240501_053149.wav,23.245,23.338,78.8,1914.8,aa/gc,0.115,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C544,bolivian_squirrel_monkey__SB/20240516_082900.wav,2.012,2.205,478.5,16081.4,sb/spc,0.594,match,correct,missing selection of vocalizations,acierto confirmado,A
+C545,bolivian_squirrel_monkey__SB/20240516_082900.wav,2.058,2.169,518.3,3365.5,sm/cc,0.25,box,other,SPC-missing selection of vocalizations,error de clase,A
+C546,bolivian_squirrel_monkey__SB/20240516_082900.wav,10.071,10.15,730.3,3199.5,sm/cc,0.509,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C547,weddells_saddleBack_tamarin__LW/20240405_065156.wav,0.789,1.36,7605.3,10237.3,lw/cs,0.576,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C548,weddells_saddleBack_tamarin__LW/20240405_065156.wav,1.354,1.766,7690.8,9673.8,lw/cs,0.651,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C549,weddells_saddleBack_tamarin__LW/20240405_065156.wav,3.944,4.399,8442.5,10240.9,lw/cs,0.711,none_alta,box,missing selection of vocalizations,evento no anotado,
+C550,weddells_saddleBack_tamarin__LW/20240405_065156.wav,8.797,9.091,7524.9,8514.1,lw/cs,0.629,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C551,weddells_saddleBack_tamarin__LW/20240405_065156.wav,21.065,21.324,5926.5,10349.1,lw/trino,0.356,none_media,box,missing selection of vocalizations,evento no anotado,
+C552,weddells_saddleBack_tamarin__LW/20240405_065156.wav,24.271,24.905,6857.2,11681.7,lw/trino,0.754,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C553,weddells_saddleBack_tamarin__LW/20240405_065156.wav,28.392,28.681,8611.6,10361.1,lw/cs,0.659,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C554,weddells_saddleBack_tamarin__LW/20240405_065156.wav,29.185,29.515,8061.6,9887.0,lw/cs,0.643,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C555,bolivian_squirrel_monkey__SB/20240202_161447.wav,1.085,2.163,2424.8,4978.9,sm/pc,0.675,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C556,bolivian_squirrel_monkey__SB/20240202_161447.wav,6.116,6.267,577.2,14587.3,sb/spc,0.392,none_media,box,missing selection of vocalizations,evento no anotado,
+C557,weddells_saddleBack_tamarin__LW/20240207_064716.wav,2.606,2.994,8331.9,11011.1,lw/cs,0.762,match,correct,missing selection of vocalizations,acierto confirmado,
+C558,large_headed_capuchin__SM/20240826_095852.wav,13.988,14.1,758.9,2495.4,sm/cc,0.22,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C559,large_headed_capuchin__SM/20240901_095616.wav,32.742,32.846,65.6,3808.8,sm/cc,0.24,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C560,large_headed_capuchin__SM/20240901_095616.wav,36.156,36.263,196.1,3211.8,sm/cc,0.53,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C561,large_headed_capuchin__SM/20240901_095616.wav,36.785,36.882,39.9,3702.1,sm/cc,0.355,none_media,correct,missing selection of vocalizations,evento no anotado,
+C562,large_headed_capuchin__SM/20240410_060542.wav,7.5,7.566,387.5,5073.0,sm/hic,0.409,none_media,no,missing selection of vocalizations,ruido,
+C563,peruvian_spider_monkey__AC/20240418_070952.wav,12.702,13.468,3775.7,10919.3,ac/chc,0.363,label,other,LW -missing selection of vocalizations,error de clase,B
+C564,peruvian_spider_monkey__AC/20240418_070952.wav,28.5,30.03,106.5,3686.8,ac/chc,0.734,box,box,too short - missing selection of vocalizations,error de encuadre,B
+C565,large_headed_capuchin__SM/20240821_065523.wav,22.281,22.406,89.0,2648.5,sm/hic,0.366,none_media,correct,missing selection of vocalizations,evento no anotado,
+C566,bolivian_squirrel_monkey__SB/20240601_063339.wav,32.203,32.986,5904.5,12305.6,sb/pcc,0.353,label,correct,missing selection of vocalizations,anotación por corregir,
+C567,bolivian_squirrel_monkey__SB/20240601_063339.wav,32.703,32.917,6296.8,10407.9,sb/ppc,0.139,box,correct,missing selection of vocalizations,anotación por corregir,
+C568,peruvian_spider_monkey__AC/20250211_083443.wav,3.264,3.491,349.3,2684.2,ac/bc,0.409,none_media,correct,missing selection of vocalizations,evento no anotado,
+C569,peruvian_spider_monkey__AC/20250211_083443.wav,8.878,9.0,455.1,2202.5,ac/bc,0.469,box,box,too short - missing selection of vocalizations,error de encuadre,
+C570,peruvian_spider_monkey__AC/20241029_163144.wav,2.222,3.376,245.5,2870.0,ac/chc,0.704,none_alta,box,too high,evento no anotado,
+C571,peruvian_spider_monkey__AC/20241029_163144.wav,3.001,3.373,51.5,808.2,ac/gc,0.136,box,other,same CHC,error de clase,
+C572,peruvian_spider_monkey__AC/20240406_060415.wav,7.021,7.3,468.2,2627.6,ac/bc,0.532,match,correct,missing selection of vocalizations,acierto confirmado,
+C573,large_headed_capuchin__SM/20240411_104931.wav,17.015,18.444,4855.5,12125.9,sm/sc,0.861,box,correct,missing selection of vocalizations,anotación por corregir,
+C574,large_headed_capuchin__SM/20240411_104931.wav,17.82,17.892,691.3,4333.0,sm/cc,0.507,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C575,large_headed_capuchin__SM/20240411_104931.wav,24.005,24.115,462.9,5469.9,sm/hic,0.371,none_media,box,missing selection of vocalizations,evento no anotado,
+C576,weddells_saddleBack_tamarin__LW/20240210_114710.wav,5.784,5.997,9168.0,11681.4,lw/cs,0.522,none_alta,box,missing selection of vocalizations,evento no anotado,
+C577,weddells_saddleBack_tamarin__LW/20240210_114710.wav,7.041,7.311,7385.6,9692.9,lw/cs,0.518,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C578,weddells_saddleBack_tamarin__LW/20240210_114710.wav,10.343,10.5,6266.4,12575.1,lw/trino,0.388,none_media,correct,missing selection of vocalizations,evento no anotado,
+C579,weddells_saddleBack_tamarin__LW/20240214_101433.wav,3.001,3.225,8775.2,11171.2,lw/cs,0.439,box,box,missing selection of vocalizations,error de encuadre,
+C580,bolivian_squirrel_monkey__SB/20240818_062423.wav,21.08,21.38,5518.9,10111.6,sb/ppc,0.736,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C581,bolivian_squirrel_monkey__SB/20240818_062423.wav,21.754,21.845,6849.3,9360.3,sb/ppc,0.303,none_media,correct,missing selection of vocalizations,evento no anotado,
+C582,bolivian_squirrel_monkey__SB/20240615_121819.wav,7.25,7.416,375.9,3855.8,sm/cc,0.491,none_media,correct,missing selection of vocalizations,evento no anotado,
+C583,bolivian_squirrel_monkey__SB/20240219_103845.wav,2.418,2.953,6748.2,12331.0,sb/pcc,0.431,box,correct,missing selection of vocalizations,anotación por corregir,
+C584,bolivian_squirrel_monkey__SB/20240219_103845.wav,36.461,36.572,25.0,14847.1,sb/spc,0.228,none_baja,other,PPC-missing selection of vocalizations,evento no anotado,
+C585,howler_monkey__AS/20240523_120404.wav,17.25,17.562,108.9,700.2,as/bc,0.778,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C586,howler_monkey__AS/20240523_120404.wav,29.193,29.74,68.7,757.4,as/bc,0.593,box,correct,missing selection of vocalizations,anotación por corregir,
+C587,howler_monkey__AS/20240523_120404.wav,30.428,30.887,92.5,757.3,as/bc,0.265,box,correct,missing selection of vocalizations,anotación por corregir,
+C588,toppins_titi_monkey__PT/20240505_060435.wav,27.309,28.674,3874.6,10486.7,sm/sc,0.394,none_media,other,DC PT - missing selection of vocalizations,evento no anotado,B
+C589,large_headed_capuchin__SM/20241028_110324.wav,3.129,3.211,771.4,3464.0,sm/cc,0.51,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C590,bolivian_squirrel_monkey__SB/20240615_120341.wav,3.285,3.392,307.9,16976.0,sb/spc,0.465,box,box,too short - missing selection of vocalizations,error de encuadre,
+C591,bolivian_squirrel_monkey__SB/20240615_120341.wav,4.756,4.955,263.3,17201.4,sb/spc,0.111,box,correct,missing selection of vocalizations,anotación por corregir,
+C592,bolivian_squirrel_monkey__SB/20240615_120341.wav,6.999,7.127,321.0,16063.5,sb/spc,0.5,match,correct,missing selection of vocalizations,acierto confirmado,
+C593,bolivian_squirrel_monkey__SB/20240615_120341.wav,27.288,27.507,8198.9,10525.0,sb/ppc,0.171,match,box,too short - missing selection of vocalizations,desacuerdo con la referencia,
+C594,bolivian_squirrel_monkey__SB/20240615_120341.wav,27.317,27.584,209.6,19550.6,sb/spc,0.655,match,correct,missing selection of vocalizations,acierto confirmado,
+C595,large_headed_capuchin__SM/20240410_061533.wav,18.441,18.848,181.5,4428.3,sm/hic,0.565,none_alta,other,maybe PC-missing selection of vocalizations,evento no anotado,
+C596,bolivian_squirrel_monkey__SB/20240529_090405.wav,10.599,10.728,1275.0,1665.7,sm/fs,0.571,none_alta,no,bird,ruido,
+C597,bolivian_squirrel_monkey__SB/20240529_090405.wav,11.09,11.225,1251.3,1653.4,sm/fs,0.249,none_baja,no,bird,ruido,
+C598,bolivian_squirrel_monkey__SB/20240529_090405.wav,12.276,12.399,957.3,1691.1,sm/fs,0.595,none_alta,no,bird,ruido,
+C599,bolivian_squirrel_monkey__SB/20240529_090405.wav,12.755,12.871,951.2,1702.1,sm/fs,0.53,none_alta,no,bird,ruido,
+C600,bolivian_squirrel_monkey__SB/20240529_090405.wav,13.218,13.364,1153.9,1734.0,sm/fs,0.505,none_alta,no,bird,ruido,
+C601,bolivian_squirrel_monkey__SB/20240529_090405.wav,13.463,13.5,1195.5,1966.7,sm/fs,0.32,none_media,no,bird,ruido,
+C602,bolivian_squirrel_monkey__SB/20240529_090405.wav,13.691,13.858,1292.8,1720.1,sm/fs,0.548,none_alta,no,bird,ruido,
+C603,bolivian_squirrel_monkey__SB/20240529_090405.wav,13.928,14.073,1036.9,1765.2,sm/fs,0.448,none_media,no,bird,ruido,
+C604,bolivian_squirrel_monkey__SB/20240529_090405.wav,14.397,14.537,1060.8,1750.8,sm/fs,0.5,none_alta,no,bird,ruido,
+C605,bolivian_squirrel_monkey__SB/20240529_090405.wav,28.905,29.436,1249.8,16065.7,sb/sc,0.629,label,correct,missing selection of vocalizations,anotación por corregir,
+C606,bolivian_squirrel_monkey__SB/20240529_090405.wav,32.078,32.189,206.7,18994.3,sb/spc,0.41,none_media,correct,missing selection of vocalizations,evento no anotado,
+C607,bolivian_squirrel_monkey__SB/20240529_090405.wav,32.422,32.544,160.0,17847.9,sb/spc,0.375,none_media,correct,missing selection of vocalizations,evento no anotado,
+C608,bolivian_squirrel_monkey__SB/20240529_090405.wav,33.448,33.736,3158.0,16362.8,sb/sc,0.28,box,box,too short - missing selection of vocalizations,error de encuadre,
+C609,bolivian_squirrel_monkey__SB/20240529_090405.wav,34.497,34.593,951.0,1672.0,sm/fs,0.444,none_media,no,bird,ruido,
+C610,large_headed_capuchin__SM/20240410_061213.wav,11.084,11.445,195.6,4122.4,sm/hic,0.599,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C611,weddells_saddleBack_tamarin__LW/20240520_070335.wav,0.317,0.735,4947.2,7819.2,lw/vc,0.809,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C612,weddells_saddleBack_tamarin__LW/20240520_070335.wav,21.004,21.13,8138.6,11058.7,lw/cs,0.167,box,box,missing selection of vocalizations,error de encuadre,A
+C613,weddells_saddleBack_tamarin__LW/20240520_070335.wav,22.432,22.5,8441.0,10876.0,lw/cs,0.176,box,box,missing selection of vocalizations,error de encuadre,A
+C614,peruvian_spider_monkey__AC/20241128_054728.wav,6.0,6.149,82.8,5264.9,ac/bc,0.402,box,other,other call of AC,error de clase,
+C615,peruvian_spider_monkey__AC/20241128_054728.wav,9.0,9.342,25.0,4566.0,ac/bc,0.159,box,other,other call of AC,error de clase,
+C616,large_headed_capuchin__SM/20240531_071723.wav,2.054,2.138,529.6,1709.0,sm/cc,0.527,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C617,howler_monkey__AS/20240601_052744.wav,21.002,21.406,2357.4,3867.2,sm/pc,0.331,none_media,no,insect - missing selection of vocalizations AS,ruido,
+C618,weddells_saddleBack_tamarin__LW/20240210_121627.wav,3.641,3.915,1322.9,5869.7,lw/ta,0.626,match,correct,missing selection of vocalizations,acierto confirmado,
+C619,howler_monkey__AS/20240501_054806.wav,24.277,24.371,357.8,2218.0,sm/cc,0.162,none_baja,no,bird,ruido,B
+C620,weddells_saddleBack_tamarin__LW/20240520_071933.wav,4.436,4.886,5844.4,8632.1,lw/trino,0.641,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C621,weddells_saddleBack_tamarin__LW/20240520_071933.wav,7.512,8.168,6999.3,9213.4,lw/trino,0.634,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C622,weddells_saddleBack_tamarin__LW/20240520_071933.wav,10.319,10.86,6273.8,14123.0,lw/sqc,0.205,box,box,missing selection of vocalizations,error de encuadre,A
+C623,weddells_saddleBack_tamarin__LW/20240520_071933.wav,18.052,18.699,6801.3,8746.7,lw/trino,0.514,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C624,howler_monkey__AS/20240911_060916.wav,4.504,4.815,119.3,834.5,as/bc,0.225,box,other,HC,error de clase,
+C625,peruvian_spider_monkey__AC/20240909_090357.wav,12.316,12.556,140.3,8833.6,ac/bc,0.154,box,correct,missing selection of vocalizations,anotación por corregir,
+C626,large_headed_capuchin__SM/20240617_160707.wav,8.644,8.81,676.9,5119.8,sm/cc,0.552,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C627,weddells_saddleBack_tamarin__LW/20240504_121241.wav,0.0,0.159,6529.7,9093.8,lw/trino,0.145,none_baja,no,background noise - missing selection in vocalizations,ruido,B
+C628,large_headed_capuchin__SM/20240411_105401.wav,25.445,25.5,818.3,3488.6,sm/cc,0.399,none_media,no,missing selection of vocalizations,ruido,
+C629,weddells_saddleBack_tamarin__LW/20240125_162924.wav,3.907,4.143,1388.1,5947.3,lw/ta,0.561,none_alta,box,la seleccion empieza después que la vocalizacion empiece,evento no anotado,
+C630,large_headed_capuchin__SM/20240618_064600.wav,1.503,1.595,119.4,3177.7,aa/gc,0.171,none_baja,no,background noise,ruido,
+C631,large_headed_capuchin__SM/20240206_170138.wav,5.477,5.56,444.4,3873.6,sm/cc,0.499,none_media,box,missing selection of vocalizations,evento no anotado,
+C632,large_headed_capuchin__SM/20240206_170138.wav,7.81,7.899,574.7,3607.6,sm/cc,0.422,box,correct,missing selection of vocalizations,anotación por corregir,
+C633,large_headed_capuchin__SM/20241031_083147.wav,0.715,0.845,1189.6,1467.8,sm/fs,0.339,none_media,no,bird,ruido,
+C634,howler_monkey__AS/20240818_060913.wav,0.937,1.286,153.2,614.7,as/bc,0.409,none_media,correct,misssing selection of vocalizations,evento no anotado,
+C635,howler_monkey__AS/20240818_060913.wav,1.354,1.636,172.7,658.0,as/bc,0.435,none_media,correct,misssing selection of vocalizations,evento no anotado,
+C636,toppins_titi_monkey__PT/20240508_100451.wav,0.183,0.399,4353.3,5201.6,pt/sqc,0.538,none_alta,other,DC-misssing selection of vocalizations,evento no anotado,A
+C637,toppins_titi_monkey__PT/20240508_100451.wav,0.43,0.701,4176.2,5066.7,pt/sqc,0.451,none_media,other,DC-misssing selection of vocalizations,evento no anotado,A
+C638,toppins_titi_monkey__PT/20240508_100451.wav,0.753,0.972,4377.5,4996.2,pt/sqc,0.412,none_media,other,DC-misssing selection of vocalizations,evento no anotado,A
+C639,toppins_titi_monkey__PT/20240508_100451.wav,1.008,1.203,4384.3,4983.6,pt/sqc,0.393,none_media,other,DC-misssing selection of vocalizations,evento no anotado,A
+C640,toppins_titi_monkey__PT/20240508_100451.wav,10.461,10.5,4076.7,5622.0,pt/sqc,0.144,box,other,DC-misssing selection of vocalizations,error de clase,A
+C641,toppins_titi_monkey__PT/20240508_100451.wav,21.802,22.075,4224.4,5265.5,pt/sqc,0.658,match,other,DC-misssing selection of vocalizations,desacuerdo con la referencia,A
+C642,toppins_titi_monkey__PT/20240508_100451.wav,33.934,34.117,4198.7,5187.2,pt/sqc,0.457,none_media,other,DC-misssing selection of vocalizations,evento no anotado,A
+C643,toppins_titi_monkey__PT/20240508_100451.wav,42.628,42.841,4275.3,5269.2,pt/sqc,0.55,none_alta,other,DC-misssing selection of vocalizations,evento no anotado,A
+C644,large_headed_capuchin__SM/20241030_083031.wav,4.501,4.595,530.0,3692.3,sm/cc,0.306,none_media,correct,missing selection of vocalization FC,evento no anotado,
+C645,howler_monkey__AS/20240508_101650.wav,6.002,6.114,33.5,1559.9,as/bc,0.251,none_baja,box,missing selection of vocalization,evento no anotado,A
+C646,howler_monkey__AS/20240423_055714.wav,25.827,25.895,627.0,1984.6,sm/cc,0.129,none_baja,no,bird - missing selection of vocalizations AS,ruido,B
+C647,weddells_saddleBack_tamarin__LW/20240406_064711.wav,0.69,0.865,6166.3,6871.9,lw/cs,0.264,none_baja,correct,missing selection of vocalization FC,evento no anotado,
+C648,weddells_saddleBack_tamarin__LW/20240406_064711.wav,1.914,2.348,4864.9,6349.5,lw/trino,0.416,none_media,box,missing selection of vocalization FC,evento no anotado,
+C649,weddells_saddleBack_tamarin__LW/20240406_064711.wav,4.929,5.441,5010.5,7858.1,lw/trino,0.6,none_alta,correct,missing selection of vocalization FC,evento no anotado,
+C650,weddells_saddleBack_tamarin__LW/20240406_064711.wav,18.506,18.855,6540.4,7909.6,lw/cs,0.714,none_alta,box,missing selection of vocalization FC,evento no anotado,
+C651,howler_monkey__AS/20240621_074033.wav,6.945,7.496,41.9,930.3,as/bc,0.551,none_alta,box,too short - missing selection of vocalizations,evento no anotado,
+C652,peruvian_spider_monkey__AC/20241028_155623.wav,14.941,15.0,345.5,6403.0,ac/bc,0.394,box,box,too short in time - missing selection of vocalizations,error de encuadre,
+C653,large_headed_capuchin__SM/20240901_094557.wav,6.647,6.74,91.5,1508.7,sm/cc,0.305,none_media,no,human vocalizing like a SM,ruido,
+C654,large_headed_capuchin__SM/20240901_094557.wav,35.1,35.155,592.5,3373.2,sm/cc,0.428,none_media,correct,missing selection of vocalizations,evento no anotado,
+C655,large_headed_capuchin__SM/20240901_094557.wav,57.503,57.56,437.3,3497.9,sm/cc,0.358,none_media,correct,missing selection of vocalizations,evento no anotado,
+C656,weddells_saddleBack_tamarin__LW/20240214_101705.wav,0.888,1.224,8812.8,10644.3,lw/cs,0.488,none_media,correct,missing selection of vocalizations,evento no anotado,
+C657,weddells_saddleBack_tamarin__LW/20240621_152438.wav,16.511,16.725,9476.8,10351.6,lw/cs,0.139,none_baja,no,insect,ruido,
+C658,night_monkey__AA/20240915_191243.wav,1.54,1.637,175.4,3205.0,aa/gc,0.415,box,correct,missing selection of vocalizations,anotación por corregir,
+C659,night_monkey__AA/20240915_191243.wav,2.207,2.312,226.8,3113.8,aa/gc,0.655,box,correct,missing selection of vocalizations,anotación por corregir,
+C660,night_monkey__AA/20240915_191243.wav,2.739,2.854,169.5,3071.3,aa/gc,0.61,box,correct,missing selection of vocalizations,anotación por corregir,
+C661,night_monkey__AA/20240915_191243.wav,3.452,3.551,149.5,2984.1,aa/gc,0.595,box,correct,missing selection of vocalizations,anotación por corregir,
+C662,night_monkey__AA/20240915_191243.wav,4.086,4.18,157.5,2985.2,aa/gc,0.589,box,box,too short - missing selection of vocalizations,error de encuadre,
+C663,night_monkey__AA/20240915_191243.wav,6.027,6.119,291.9,3573.9,aa/gc,0.232,box,box,too short - missing selection of vocalizations,error de encuadre,
+C664,night_monkey__AA/20240915_191243.wav,6.08,6.171,255.0,3639.4,aa/gc,0.134,box,correct,missing selection of vocalizations,anotación por corregir,
+C665,night_monkey__AA/20240915_191243.wav,7.31,7.434,120.3,3028.1,aa/gc,0.491,box,correct,missing selection of vocalizations,anotación por corregir,
+C666,night_monkey__AA/20240915_191243.wav,8.006,8.102,245.6,2962.9,aa/gc,0.511,box,correct,missing selection of vocalizations,anotación por corregir,
+C667,night_monkey__AA/20240915_191243.wav,9.073,9.164,153.9,2939.5,aa/gc,0.496,box,correct,missing selection of vocalizations,anotación por corregir,
+C668,night_monkey__AA/20240915_191243.wav,12.519,12.628,155.6,2988.6,aa/gc,0.593,box,correct,missing selection of vocalizations,anotación por corregir,
+C669,night_monkey__AA/20240915_191243.wav,14.765,14.878,80.9,3030.1,aa/gc,0.591,box,correct,missing selection of vocalizations,anotación por corregir,
+C670,night_monkey__AA/20240915_191243.wav,15.388,15.486,142.0,2880.1,aa/gc,0.58,box,box,missing selection of vocalizations,error de encuadre,
+C671,night_monkey__AA/20240915_191243.wav,16.437,16.5,143.9,2882.4,aa/gc,0.642,box,box,missing selection of vocalizations,error de encuadre,
+C672,night_monkey__AA/20240915_191243.wav,18.026,18.14,106.8,2762.0,aa/gc,0.378,box,correct,missing selection of vocalizations,anotación por corregir,
+C673,large_headed_capuchin__SM/20241107_082910.wav,1.503,1.678,1043.3,2024.4,sm/fs,0.659,box,no,bird,ruido,
+C674,large_headed_capuchin__SM/20241107_082910.wav,1.863,2.199,952.0,1813.4,sm/fs,0.752,match,no,bird,desacuerdo con la referencia,
+C675,howler_monkey__AS/20240621_073823.wav,10.573,11.327,39.6,994.1,as/bc,0.332,box,box,too short - missing selection of vocalizations,error de encuadre,
+C676,toppins_titi_monkey__PT/20240508_095956.wav,1.247,1.419,4326.1,4836.6,pt/sqc,0.366,box,no,bird-missing selection of vocalizations,ruido,A
+C677,toppins_titi_monkey__PT/20240508_095956.wav,8.408,8.698,4187.1,4609.1,pt/sqc,0.512,match,no,bird-missing selection of vocalizations,desacuerdo con la referencia,A
+C678,howler_monkey__AS/20240430_165128.wav,35.327,35.994,25.0,947.5,as/bc,0.549,box,correct,missing selection of vocalizations,anotación por corregir,B
+C679,howler_monkey__AS/20240430_165128.wav,51.005,53.934,26.9,1042.1,as/bc,0.73,box,box,too big - missing selection of vocalizations,error de encuadre,B
+C680,toppins_titi_monkey__PT/20240415_114647.wav,21.805,21.874,497.8,1925.2,sm/cc,0.137,none_baja,other,PT-DC-missing selection of vocalizations,evento no anotado,
+C681,howler_monkey__AS/20240808_094034.wav,10.929,11.245,125.8,672.7,as/bc,0.124,box,box,too short - missing selection of vocalizations,error de encuadre,
+C682,howler_monkey__AS/20240808_094034.wav,12.688,12.926,132.9,676.1,as/bc,0.662,none_alta,box,too short - missing selection of vocalizations,evento no anotado,
+C683,howler_monkey__AS/20240808_094034.wav,26.721,26.939,122.5,730.5,as/bc,0.139,none_baja,box,too short - missing selection of vocalizations,evento no anotado,
+C684,howler_monkey__AS/20240808_094034.wav,28.371,28.604,126.0,702.5,as/bc,0.507,none_alta,box,too short - missing selection of vocalizations,evento no anotado,
+C685,howler_monkey__AS/20240808_094034.wav,42.0,42.117,112.4,717.3,as/bc,0.111,box,box,too short - missing selection of vocalizations,error de encuadre,
+C686,large_headed_capuchin__SM/20240414_112734.wav,7.082,7.176,1543.7,2162.1,sm/fs,0.114,none_baja,no,bird-missing selection of vocalizations,ruido,
+C687,large_headed_capuchin__SM/20240414_112734.wav,7.195,7.34,1438.0,1743.5,sm/fs,0.124,none_baja,no,bird-missing selection of vocalizations,ruido,
+C688,large_headed_capuchin__SM/20240414_112734.wav,7.625,7.782,1308.3,3195.5,sm/fs,0.81,none_alta,no,bird-missing selection of vocalizations,ruido,
+C689,large_headed_capuchin__SM/20240414_112734.wav,7.908,8.062,1299.2,3222.5,sm/fs,0.754,none_alta,no,bird-missing selection of vocalizations,ruido,
+C690,large_headed_capuchin__SM/20240414_112734.wav,8.247,8.372,1303.8,3217.5,sm/fs,0.663,none_alta,no,bird-missing selection of vocalizations,ruido,
+C691,large_headed_capuchin__SM/20240414_112734.wav,8.52,8.732,1329.9,3204.0,sm/fs,0.806,none_alta,no,bird-missing selection of vocalizations,ruido,
+C692,large_headed_capuchin__SM/20240414_112734.wav,8.864,9.082,1326.0,3274.7,sm/fs,0.78,none_alta,no,bird-missing selection of vocalizations,ruido,
+C693,weddells_saddleBack_tamarin__LW/20240129_121936.wav,8.846,9.278,1612.3,6475.8,lw/ta,0.594,none_alta,box,"no se selecciona el inicio y el final de la vocalizacion, missing selections of vocalizations",evento no anotado,
+C694,large_headed_capuchin__SM/20240615_092400.wav,30.208,30.32,1255.9,4269.5,sm/cc,0.422,label,correct,missing selection of vocalizations,anotación por corregir,
+C695,weddells_saddleBack_tamarin__LW/20240415_141156.wav,4.403,4.762,5830.3,11232.1,lw/vc,0.506,none_alta,other,TRINO-missing selection of vocalizations,evento no anotado,
+C696,weddells_saddleBack_tamarin__LW/20240415_141156.wav,12.261,12.551,7491.9,9431.4,lw/cs,0.125,none_baja,other,PHC-missing selection of vocalizations,evento no anotado,
+C697,weddells_saddleBack_tamarin__LW/20240415_141156.wav,19.023,19.592,7191.7,15153.5,lw/sqc,0.634,none_alta,other,TRINO-missing selection of vocalizations,evento no anotado,
+C698,weddells_saddleBack_tamarin__LW/20240415_141156.wav,19.879,20.439,5876.4,14364.2,lw/sqc,0.784,none_alta,other,TRINO-missing selection of vocalizations,evento no anotado,
+C699,weddells_saddleBack_tamarin__LW/20240415_141156.wav,22.5,22.854,6220.3,9906.5,lw/trino,0.303,none_media,box,missing selection of vocalizations,evento no anotado,
+C700,weddells_saddleBack_tamarin__LW/20240415_141156.wav,25.503,25.816,5786.6,12318.3,lw/sqc,0.688,box,box,missing selection of vocalizations,error de encuadre,
+C701,weddells_saddleBack_tamarin__LW/20240415_141156.wav,27.0,27.259,6406.3,11930.3,lw/sqc,0.473,none_media,other,TRINO-missing selection of vocalizations,evento no anotado,
+C702,large_headed_capuchin__SM/20240927_103928.wav,2.079,2.169,430.3,3165.1,sm/cc,0.491,match,correct,,acierto confirmado,
+C703,large_headed_capuchin__SM/20240927_103928.wav,3.0,3.062,127.4,3603.3,sm/cc,0.441,none_media,box,too short,evento no anotado,
+C704,bolivian_squirrel_monkey__SB/20240522_071357.wav,18.231,18.593,4838.8,15630.2,sb/sc,0.254,box,no,bird-missing selection of vocalizations,ruido,A
+C705,bolivian_squirrel_monkey__SB/20240522_071357.wav,30.329,30.56,7548.4,11360.7,sb/ppc,0.571,none_alta,no,bird-missing selection of vocalizations,ruido,A
+C706,bolivian_squirrel_monkey__SB/20240522_071357.wav,35.237,35.43,9348.0,12905.2,sb/ppc,0.598,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C707,bolivian_squirrel_monkey__SB/20240522_071357.wav,39.477,39.644,7366.3,10176.6,sb/ppc,0.633,none_alta,no,bird-missing selection of vocalizations,ruido,A
+C708,howler_monkey__AS/20241004_062132.wav,19.002,19.492,82.1,901.9,as/bc,0.53,none_alta,other,HC,evento no anotado,
+C709,large_headed_capuchin__SM/20240615_123828.wav,16.304,16.434,175.0,15813.3,sb/spc,0.639,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C710,large_headed_capuchin__SM/20240615_123828.wav,16.767,16.973,7870.5,11191.6,sb/ppc,0.634,none_alta,other,SM PC,evento no anotado,
+C711,large_headed_capuchin__SM/20240615_123828.wav,20.348,20.606,9817.4,12054.6,sb/ppc,0.605,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C712,bolivian_squirrel_monkey__SB/20240615_120621.wav,8.919,9.0,253.7,13564.3,sb/spc,0.111,none_baja,box,too short - missing selection of vocalizations,evento no anotado,
+C713,bolivian_squirrel_monkey__SB/20240615_120621.wav,9.0,9.075,233.7,18105.6,sb/spc,0.14,none_baja,box,too short - missing selection of vocalizations,evento no anotado,
+C714,bolivian_squirrel_monkey__SB/20240615_120621.wav,11.406,11.56,426.1,15568.1,sb/spc,0.585,match,correct,missing selection of vocalizations,acierto confirmado,
+C715,bolivian_squirrel_monkey__SB/20240615_120621.wav,24.671,24.82,893.2,3647.0,sm/cc,0.222,none_baja,no,bird,ruido,
+C716,bolivian_squirrel_monkey__SB/20240615_120621.wav,25.622,25.889,891.9,2710.6,sm/fs,0.78,none_alta,no,bird,ruido,
+C717,bolivian_squirrel_monkey__SB/20240615_120621.wav,26.053,26.298,868.4,3577.3,sm/fs,0.141,none_baja,no,bird,ruido,
+C718,bolivian_squirrel_monkey__SB/20240615_120621.wav,31.297,31.495,264.8,21294.3,sb/spc,0.457,none_media,correct,missing selection of vocalizations,evento no anotado,
+C719,weddells_saddleBack_tamarin__LW/20240921_163053.wav,4.506,4.712,1139.1,15388.3,aa/sc,0.223,label,other,LW TA - missing selection of vocalizations,error de clase,
+C720,weddells_saddleBack_tamarin__LW/20240921_163053.wav,5.589,5.873,2436.7,8705.7,lw/ta,0.55,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C721,toppins_titi_monkey__PT/20240828_063949.wav,19.363,19.477,593.6,2054.7,sm/cc,0.14,none_baja,other,PT DC - missing selection of vocalizations,evento no anotado,
+C722,night_monkey__AA/20240117_051239.wav,0.006,0.236,26.0,15731.5,aa/sc,0.604,none_alta,correct,,evento no anotado,
+C723,night_monkey__AA/20240117_051239.wav,2.303,2.87,38.6,13944.0,aa/sc,0.278,none_baja,correct,,evento no anotado,
+C724,night_monkey__AA/20240117_051239.wav,4.989,5.065,108.2,3410.3,aa/gc,0.187,none_baja,correct,,evento no anotado,
+C725,night_monkey__AA/20240117_051239.wav,14.906,14.988,169.1,3358.2,aa/gc,0.401,none_media,correct,,evento no anotado,
+C726,night_monkey__AA/20240117_051239.wav,17.838,17.931,135.6,3823.5,aa/gc,0.127,none_baja,no,,ruido,
+C727,night_monkey__AA/20240117_051239.wav,24.716,24.798,124.6,3265.6,aa/gc,0.269,none_baja,no,,ruido,
+C728,night_monkey__AA/20240117_051239.wav,67.009,67.088,136.0,2329.0,aa/gc,0.225,none_baja,correct,,evento no anotado,
+C729,night_monkey__AA/20240117_051239.wav,80.807,80.88,143.8,4177.3,aa/gc,0.328,none_media,box,la seleccion empieza después que la vocalizacion empiece,evento no anotado,
+C730,night_monkey__AA/20240117_051239.wav,82.106,82.175,143.6,3856.8,aa/gc,0.257,none_baja,box,la seleccion empieza después que la vocalizacion empiece,evento no anotado,
+C731,night_monkey__AA/20240117_051239.wav,82.419,82.497,156.2,4424.7,aa/gc,0.586,none_alta,correct,,evento no anotado,
+C732,night_monkey__AA/20240117_051239.wav,82.733,82.812,127.4,4070.0,aa/gc,0.511,none_alta,correct,,evento no anotado,
+C733,night_monkey__AA/20240117_051239.wav,83.081,83.146,135.3,1855.4,aa/gc,0.375,none_media,correct,,evento no anotado,
+C734,night_monkey__AA/20240117_051239.wav,97.523,97.763,123.9,22050.0,aa/sc,0.259,none_baja,no,,ruido,
+C735,night_monkey__AA/20240117_051239.wav,124.428,124.499,147.7,1981.8,aa/gc,0.171,none_baja,no,,ruido,
+C736,night_monkey__AA/20240117_051239.wav,125.357,125.445,105.4,4212.2,aa/gc,0.493,none_media,correct,,evento no anotado,
+C737,night_monkey__AA/20240117_051239.wav,154.539,154.628,123.2,2548.4,aa/gc,0.406,none_media,no,,ruido,
+C738,night_monkey__AA/20240117_051239.wav,164.061,164.128,147.0,2420.4,aa/gc,0.123,none_baja,no,,ruido,
+C739,night_monkey__AA/20240117_051239.wav,184.161,184.239,124.9,2592.8,aa/gc,0.352,none_media,no,,ruido,
+C740,night_monkey__AA/20240117_051239.wav,184.868,185.266,88.9,15910.3,aa/sc,0.763,none_alta,box,la seleccion se cortaba a 2kHz por debajo de la máxima frecuencia,evento no anotado,
+C741,night_monkey__AA/20240117_051239.wav,186.635,186.739,163.4,3640.9,aa/gc,0.506,box,box,la seleccion empieza después que la vocalizacion empiece,error de encuadre,
+C742,night_monkey__AA/20240117_051239.wav,188.36,188.445,99.2,2282.1,aa/gc,0.347,none_media,box,la seleccion empieza después que la vocalizacion empiece,evento no anotado,
+C743,night_monkey__AA/20240117_051239.wav,188.883,188.979,128.8,3259.1,aa/gc,0.494,match,box,la seleccion continua después que la vocalización terminó,desacuerdo con la referencia,
+C744,night_monkey__AA/20240117_051239.wav,192.965,193.059,118.4,3969.9,aa/gc,0.391,none_media,box,la seleccion continua después que la vocalización terminó,evento no anotado,
+C745,weddells_saddleBack_tamarin__LW/20240423_161444.wav,18.0,18.198,1575.6,8689.3,lw/ta,0.213,box,box,too big- missing selection of vocalizations,error de encuadre,B
+C746,large_headed_capuchin__SM/20240528_161134.wav,1.677,1.923,392.9,15879.8,sb/spc,0.442,label,other,PPC,error de clase,
+C747,large_headed_capuchin__SM/20240528_161134.wav,25.541,25.724,202.4,17011.7,sb/spc,0.715,label,other,PPC,error de clase,
+C748,large_headed_capuchin__SM/20240528_161134.wav,37.753,37.872,302.8,3582.0,sm/cc,0.171,none_baja,?,,incierto,
+C749,large_headed_capuchin__SM/20240528_161134.wav,41.429,41.671,439.7,12962.8,sb/spc,0.355,label,other,PPC,error de clase,
+C750,large_headed_capuchin__SM/20240528_161134.wav,49.263,49.486,368.9,14129.4,sb/spc,0.363,label,other,PPC,error de clase,
+C751,large_headed_capuchin__SM/20240528_161134.wav,57.37,57.516,1245.1,3635.5,sm/cc,0.161,none_baja,no,bird?,ruido,
+C752,bolivian_squirrel_monkey__SB/20240818_062300.wav,4.857,5.264,7503.1,10738.2,sb/ppc,0.197,box,other,PCC - misssing selection of vocalizations,error de clase,
+C753,bolivian_squirrel_monkey__SB/20240818_062300.wav,5.298,5.608,5933.6,10496.2,sb/ppc,0.328,box,other,PCC - misssing selection of vocalizations,error de clase,
+C754,bolivian_squirrel_monkey__SB/20240818_062300.wav,7.714,8.046,6764.7,10809.8,sb/ppc,0.484,none_media,other,PCC - misssing selection of vocalizations,evento no anotado,
+C755,bolivian_squirrel_monkey__SB/20240818_062300.wav,8.783,9.279,7072.2,11316.1,sb/ppc,0.663,none_alta,other,PCC - misssing selection of vocalizations,evento no anotado,
+C756,bolivian_squirrel_monkey__SB/20240818_062300.wav,20.459,20.991,2183.7,22050.0,sb/sc,0.441,box,box,too short - misssing selection of vocalizations,error de encuadre,
+C757,bolivian_squirrel_monkey__SB/20240818_062300.wav,24.529,24.641,377.2,15878.9,sb/spc,0.608,none_alta,box,too big -misssing selection of vocalizations,evento no anotado,
+C758,bolivian_squirrel_monkey__SB/20240818_062300.wav,39.125,39.719,7368.6,11906.9,sb/pcc,0.604,none_alta,other,PCC-misssing selection of vocalizations,evento no anotado,
+C759,bolivian_squirrel_monkey__SB/20240818_062300.wav,41.061,41.212,345.1,13849.8,sb/spc,0.594,none_alta,box,too big -misssing selection of vocalizations,evento no anotado,
+C760,peruvian_spider_monkey__AC/20240227_101638.wav,20.489,20.776,1444.5,3220.5,lw/ta,0.198,none_baja,no,missing selection of vocalizations,ruido,
+C761,bolivian_squirrel_monkey__SB/20240615_120225.wav,0.212,0.415,134.9,15769.0,sb/spc,0.373,label,correct,missing selection of vocalizations,anotación por corregir,
+C762,bolivian_squirrel_monkey__SB/20240615_120225.wav,12.117,12.255,190.9,17726.1,sb/spc,0.356,box,correct,missing selection of vocalizations,anotación por corregir,
+C763,bolivian_squirrel_monkey__SB/20240615_120225.wav,15.0,15.086,320.2,16989.3,sb/spc,0.128,box,box,too short - missing selection of vocalizations,error de encuadre,
+C764,bolivian_squirrel_monkey__SB/20240615_120225.wav,15.76,15.873,269.2,15615.1,sb/spc,0.382,box,correct,missing selection of vocalizations,anotación por corregir,
+C765,bolivian_squirrel_monkey__SB/20240615_120225.wav,25.5,25.565,318.6,6142.3,sm/hic,0.195,none_baja,no,background noise,ruido,
+C766,weddells_saddleBack_tamarin__LW/20240417_074650.wav,7.645,8.229,5461.1,9011.0,lw/trino,0.408,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C767,weddells_saddleBack_tamarin__LW/20240417_074650.wav,9.0,9.396,5654.3,16087.4,lw/sqc,0.475,none_media,box,too short - missing selection of vocalizations,evento no anotado,B
+C768,large_headed_capuchin__SM/20240410_061345.wav,13.578,14.023,209.1,4522.9,sm/hic,0.69,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C769,howler_monkey__AS/20240523_120506.wav,10.453,10.499,103.7,705.2,as/bc,0.118,none_baja,box,box too short - missing selection of vocalizations,evento no anotado,
+C770,howler_monkey__AS/20240523_120506.wav,10.855,11.237,78.0,814.5,as/bc,0.196,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C771,peruvian_spider_monkey__AC/20240423_155942.wav,13.354,13.5,691.6,3038.6,sm/cc,0.193,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C772,peruvian_spider_monkey__AC/20240423_155942.wav,15.07,15.255,725.3,2964.4,sm/cc,0.338,label,other,BC AC - missing selection of vocalizations,error de clase,B
+C773,peruvian_spider_monkey__AC/20240423_155942.wav,18.115,18.214,609.5,2925.4,sm/cc,0.15,none_baja,other,BC AC - missing selection of vocalizations,evento no anotado,B
+C774,weddells_saddleBack_tamarin__LW/20240217_090659.wav,8.42,8.696,7007.5,8776.8,lw/cs,0.444,match,correct,missing selection of vocalizations,acierto confirmado,
+C775,weddells_saddleBack_tamarin__LW/20240217_090659.wav,42.3,42.932,5517.6,11843.7,lw/sqc,0.69,none_alta,no,missing selection of vocalizations,ruido,
+C776,large_headed_capuchin__SM/20240414_111711.wav,29.955,30.0,390.5,3552.0,sm/cc,0.336,box,box,missing selection of vocalizations,error de encuadre,
+C777,weddells_saddleBack_tamarin__LW/20240520_071536.wav,18.888,19.395,5092.9,8116.5,lw/vc,0.79,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C778,weddells_saddleBack_tamarin__LW/20240520_071536.wav,19.653,20.105,6531.9,13543.4,lw/trino,0.712,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C779,weddells_saddleBack_tamarin__LW/20240520_071536.wav,20.956,21.284,5251.5,8391.0,lw/vc,0.634,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C780,large_headed_capuchin__SM/20240826_102338.wav,3.779,3.937,161.4,12549.6,sb/spc,0.12,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C781,large_headed_capuchin__SM/20240826_102338.wav,8.371,8.533,190.0,12093.0,sb/spc,0.115,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C782,large_headed_capuchin__SM/20240826_102338.wav,25.221,25.317,636.4,3700.4,sm/cc,0.452,none_media,correct,missing selection of vocalizations,evento no anotado,
+C783,large_headed_capuchin__SM/20240826_102338.wav,28.855,28.921,562.9,4053.1,sm/cc,0.455,none_media,correct,missing selection of vocalizations,evento no anotado,
+C784,weddells_saddleBack_tamarin__LW/20240527_093952.wav,1.804,2.173,5895.0,11479.3,lw/trino,0.483,none_media,correct,missing selection of vocalizations,evento no anotado,
+C785,weddells_saddleBack_tamarin__LW/20240527_093952.wav,5.815,6.0,5595.9,9097.3,lw/trino,0.405,box,correct,missing selection of vocalizations,anotación por corregir,
+C786,weddells_saddleBack_tamarin__LW/20240527_093952.wav,10.456,10.855,5806.0,8919.8,lw/trino,0.661,match,correct,missing selection of vocalizations,acierto confirmado,
+C787,weddells_saddleBack_tamarin__LW/20240527_093952.wav,25.686,26.406,5937.4,11397.7,lw/trino,0.666,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C788,peruvian_spider_monkey__AC/20240406_062308.wav,1.502,1.824,199.2,3594.7,ac/bc,0.449,box,box,missing selection of vocalizations,error de encuadre,
+C789,peruvian_spider_monkey__AC/20240406_062308.wav,4.51,4.917,246.4,4238.6,ac/bc,0.746,match,box,missing selection of vocalizations,desacuerdo con la referencia,
+C790,peruvian_spider_monkey__AC/20240406_062308.wav,19.5,19.667,273.7,4057.7,ac/bc,0.283,box,box,missing selection of vocalizations,error de encuadre,
+C791,howler_monkey__AS/20240813_091604.wav,45.249,45.47,4471.9,7109.9,sb/ppc,0.25,none_baja,no,"Nothing in the box, but AS HC",ruido,
+C792,howler_monkey__AS/20241004_052433.wav,6.636,6.919,63.0,673.3,as/bc,0.15,box,other,HC,error de clase,
+C793,howler_monkey__AS/20240516_052925.wav,30.87,31.2,143.4,679.9,as/bc,0.327,none_media,no,bird-missing selection of vocalizations,ruido,A
+C794,large_headed_capuchin__SM/20240826_100031.wav,16.285,16.399,154.8,12244.3,sb/spc,0.247,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C795,large_headed_capuchin__SM/20240826_100031.wav,21.073,21.217,122.2,13052.8,sb/spc,0.516,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C796,peruvian_spider_monkey__AC/20240227_090302.wav,18.029,18.747,4275.8,13164.4,ac/chc,0.138,label,other,SC-missing selection of vocalizations,error de clase,
+C797,large_headed_capuchin__SM/20240508_112431.wav,8.751,8.846,374.4,6971.1,sm/cc,0.613,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C798,large_headed_capuchin__SM/20240508_112431.wav,15.888,15.968,899.0,3667.6,sm/cc,0.423,none_media,box,missing selection of vocalizations,evento no anotado,A
+C799,large_headed_capuchin__SM/20240508_112431.wav,25.713,25.805,630.4,3722.7,sm/cc,0.478,none_media,box,missing selection of vocalizations,evento no anotado,A
+C800,large_headed_capuchin__SM/20240508_112431.wav,27.494,27.704,531.0,3834.9,sm/cc,0.319,box,box,missing selection of vocalizations,error de encuadre,A
+C801,weddells_saddleBack_tamarin__LW/20240429_104219.wav,3.162,3.376,6399.9,9507.7,lw/cs,0.447,box,correct,missing selection of vocalizations,anotación por corregir,B
+C802,weddells_saddleBack_tamarin__LW/20240429_104219.wav,9.979,10.38,4989.1,7595.5,lw/vc,0.739,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C803,weddells_saddleBack_tamarin__LW/20240429_104219.wav,15.582,15.837,650.7,3157.0,ac/bc,0.339,none_media,no,background noise,ruido,B
+C804,weddells_saddleBack_tamarin__LW/20240429_104219.wav,17.809,18.266,5085.5,7912.9,lw/vc,0.346,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C805,large_headed_capuchin__SM/20241028_105631.wav,34.653,34.76,495.1,4396.1,sm/cc,0.499,box,correct,missing selection of vocalizations,anotación por corregir,
+C806,howler_monkey__AS/20240530_110959.wav,10.945,11.189,95.3,661.9,as/bc,0.116,box,box,too short -missing selection of vocalizations,error de encuadre,
+C807,howler_monkey__AS/20240530_110959.wav,28.324,28.5,100.5,651.4,as/bc,0.39,none_media,box,too short -missing selection of vocalizations,evento no anotado,
+C808,howler_monkey__AS/20240530_110959.wav,28.501,28.653,94.3,609.9,as/bc,0.575,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C809,howler_monkey__AS/20240530_110959.wav,29.153,29.466,77.3,622.0,as/bc,0.702,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C810,howler_monkey__AS/20240530_110959.wav,30.208,30.407,94.6,620.7,as/bc,0.539,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C811,howler_monkey__AS/20241004_062010.wav,12.008,12.789,25.0,928.5,as/bc,0.396,none_media,other,HC,evento no anotado,
+C812,weddells_saddleBack_tamarin__LW/20240429_103810.wav,3.0,3.114,8227.5,10854.1,lw/cs,0.23,box,correct,missing selection of vocalizations,anotación por corregir,B
+C813,howler_monkey__AS/20240830_161027.wav,20.679,20.862,166.9,625.4,as/bc,0.582,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C814,large_headed_capuchin__SM/20240901_095345.wav,3.54,3.63,219.8,5633.2,sm/cc,0.48,match,correct,missing selection of vocalizations,acierto confirmado,
+C815,large_headed_capuchin__SM/20240901_095345.wav,14.133,14.225,31.9,2325.6,sm/cc,0.228,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C816,large_headed_capuchin__SM/20240901_095345.wav,18.356,18.479,154.8,4135.7,sm/cc,0.382,none_media,correct,missing selection of vocalizations,evento no anotado,
+C817,bolivian_squirrel_monkey__SB/20241113_094310.wav,0.913,1.589,7644.3,13138.8,sb/pcc,0.734,box,correct,missing selection of vocalizations,anotación por corregir,
+C818,bolivian_squirrel_monkey__SB/20241113_094310.wav,1.851,2.164,8024.3,12088.8,sb/ppc,0.291,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C819,large_headed_capuchin__SM/20240531_065935.wav,1.85,1.898,574.8,2596.9,sm/cc,0.429,match,correct,missing selection of vocalizations,acierto confirmado,
+C820,weddells_saddleBack_tamarin__LW/20240514_155329.wav,12.549,12.751,8668.5,12816.9,lw/vc,0.543,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C821,howler_monkey__AS/20240417_054224.wav,15.403,16.002,2317.9,15844.4,sb/sc,0.594,none_alta,no,insect - missing selection of vocalizations AS,ruido,B
+C822,night_monkey__AA/20240608_191827.wav,0.896,1.04,86.6,3494.8,aa/gc,0.636,none_alta,no,human noise,ruido,
+C823,night_monkey__AA/20240608_191827.wav,4.229,4.338,54.1,3853.7,aa/gc,0.211,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C824,night_monkey__AA/20240608_191827.wav,6.49,6.608,126.8,3608.7,aa/gc,0.526,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C825,night_monkey__AA/20240608_191827.wav,8.3,8.409,44.4,3165.4,aa/gc,0.518,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C826,night_monkey__AA/20240608_191827.wav,9.166,9.271,33.2,2585.2,aa/gc,0.457,none_media,correct,missing selection of vocalizations,evento no anotado,
+C827,night_monkey__AA/20240608_191827.wav,9.612,9.731,35.3,3339.7,aa/gc,0.676,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C828,night_monkey__AA/20240608_191827.wav,10.642,10.752,27.9,2641.8,aa/gc,0.62,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C829,night_monkey__AA/20240608_191827.wav,11.219,11.324,38.3,2673.5,aa/gc,0.614,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C830,night_monkey__AA/20240608_191827.wav,11.914,11.997,102.5,2585.0,aa/gc,0.651,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C831,night_monkey__AA/20240608_191827.wav,26.926,27.0,28.1,3681.6,aa/gc,0.324,box,box,too short - missing selection of vocalizations,error de encuadre,
+C832,weddells_saddleBack_tamarin__LW/20240210_121015.wav,1.502,1.586,8095.5,9928.6,lw/cs,0.193,box,box,missing selection of vocalizations,error de encuadre,
+C833,weddells_saddleBack_tamarin__LW/20240210_121015.wav,2.117,2.535,6829.8,9597.3,lw/cs,0.693,match,correct,missing selection of vocalizations,acierto confirmado,
+C834,weddells_saddleBack_tamarin__LW/20240210_121015.wav,6.212,6.506,8864.5,10481.9,lw/cs,0.635,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C835,weddells_saddleBack_tamarin__LW/20240210_121015.wav,6.655,6.942,8890.0,10423.7,lw/cs,0.603,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C836,weddells_saddleBack_tamarin__LW/20240905_080559.wav,0.059,0.94,4993.7,10805.3,lw/trino,0.342,none_media,box,too high and too low - missing selection of vocalizations,evento no anotado,
+C837,weddells_saddleBack_tamarin__LW/20240905_080559.wav,1.501,1.765,4802.7,12696.4,lw/trino,0.311,none_media,box,too short - missing selection of vocalizations,evento no anotado,
+C838,weddells_saddleBack_tamarin__LW/20240415_142101.wav,4.25,4.751,6642.8,8654.9,lw/trino,0.464,box,correct,missing selection of vocalizations,anotación por corregir,B
+C839,weddells_saddleBack_tamarin__LW/20240415_142101.wav,7.641,7.779,9631.8,11758.3,lw/cs,0.128,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C840,weddells_saddleBack_tamarin__LW/20240415_142101.wav,9.0,9.095,9794.9,11861.3,lw/cs,0.127,box,box,too short - missing selection of vocalizations,error de encuadre,B
+C841,weddells_saddleBack_tamarin__LW/20240415_142101.wav,10.802,11.45,6324.8,9574.1,lw/trino,0.421,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C842,weddells_saddleBack_tamarin__LW/20240415_142101.wav,14.752,15.029,6907.4,12271.3,lw/trino,0.661,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C843,weddells_saddleBack_tamarin__LW/20240415_142101.wav,15.69,16.71,6108.0,9623.1,lw/trino,0.672,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C844,weddells_saddleBack_tamarin__LW/20240415_142101.wav,21.002,21.106,8276.5,10544.5,lw/cs,0.209,box,box,too short - missing selection of vocalizations,error de encuadre,B
+C845,weddells_saddleBack_tamarin__LW/20240415_142101.wav,29.237,29.548,8830.3,10453.8,lw/cs,0.462,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C846,weddells_saddleBack_tamarin__LW/20240415_142101.wav,30.169,30.547,8594.4,10782.1,lw/cs,0.585,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C847,weddells_saddleBack_tamarin__LW/20240415_142101.wav,30.676,30.936,8514.5,10050.1,lw/cs,0.497,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C848,large_headed_capuchin__SM/20240916_102253.wav,7.57,7.741,1639.6,3752.0,sm/cc,0.112,none_baja,other,FS - missing selection of vocalizations,evento no anotado,
+C849,large_headed_capuchin__SM/20240916_102253.wav,13.142,13.31,1372.7,3413.6,sm/fs,0.71,match,box,missing selection of vocalizations,desacuerdo con la referencia,
+C850,toppins_titi_monkey__PT/20240508_095634.wav,0.201,0.489,4153.9,4596.0,pt/sqc,0.48,none_media,other,not the call for this sp,evento no anotado,B
+C851,toppins_titi_monkey__PT/20240508_095634.wav,1.97,2.229,4360.0,4973.9,pt/sqc,0.6,none_alta,other,not the call for this sp,evento no anotado,B
+C852,toppins_titi_monkey__PT/20240508_095634.wav,3.234,3.452,4441.4,5111.5,pt/sqc,0.584,none_alta,other,not the call for this sp,evento no anotado,B
+C853,toppins_titi_monkey__PT/20240508_095634.wav,3.49,3.78,4507.1,4997.1,pt/sqc,0.584,none_alta,other,not the call for this sp,evento no anotado,B
+C854,toppins_titi_monkey__PT/20240508_095634.wav,7.908,8.242,4665.3,5708.7,pt/sqc,0.172,none_baja,other,not the call for this sp,evento no anotado,B
+C855,toppins_titi_monkey__PT/20240508_095634.wav,10.379,10.499,4160.8,5025.6,pt/sqc,0.402,none_media,other,not the call for this sp,evento no anotado,B
+C856,toppins_titi_monkey__PT/20240508_095634.wav,17.893,18.121,4402.1,4774.4,pt/sqc,0.615,none_alta,other,not the call for this sp,evento no anotado,B
+C857,toppins_titi_monkey__PT/20240508_095634.wav,18.358,18.663,4565.2,5049.4,pt/sqc,0.521,none_alta,other,not the call for this sp,evento no anotado,B
+C858,toppins_titi_monkey__PT/20240508_095634.wav,20.076,20.371,4488.7,5083.6,pt/sqc,0.519,none_alta,other,not the call for this sp,evento no anotado,B
+C859,toppins_titi_monkey__PT/20240508_095634.wav,21.178,21.552,4484.3,5116.0,pt/sqc,0.525,none_alta,other,not the call for this sp,evento no anotado,B
+C860,toppins_titi_monkey__PT/20240508_095634.wav,22.571,22.798,4519.2,5097.1,pt/sqc,0.528,none_alta,other,not the call for this sp,evento no anotado,B
+C861,toppins_titi_monkey__PT/20240508_095634.wav,29.86,30.06,5052.2,5534.7,pt/sqc,0.597,none_alta,other,not the call for this sp,evento no anotado,B
+C862,howler_monkey__AS/20240629_125228.wav,22.209,22.496,108.8,653.2,as/bc,0.703,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C863,bolivian_squirrel_monkey__SB/20240902_103321.wav,5.525,5.645,6734.3,11471.6,sb/ppc,0.171,box,correct,missing selection of vocalizations,anotación por corregir,
+C864,bolivian_squirrel_monkey__SB/20240902_103321.wav,5.685,5.815,6812.4,11892.6,sb/ppc,0.266,box,correct,missing selection of vocalizations,anotación por corregir,
+C865,bolivian_squirrel_monkey__SB/20240902_103321.wav,5.854,5.996,5825.8,12277.6,sb/ppc,0.269,box,correct,missing selection of vocalizations,anotación por corregir,
+C866,bolivian_squirrel_monkey__SB/20240902_103321.wav,10.087,10.216,6189.6,11346.6,sb/ppc,0.479,match,correct,missing selection of vocalizations,acierto confirmado,
+C867,bolivian_squirrel_monkey__SB/20240902_103321.wav,12.471,12.608,6284.2,11737.4,sb/ppc,0.232,label,correct,missing selection of vocalizations,anotación por corregir,
+C868,bolivian_squirrel_monkey__SB/20240902_103321.wav,24.224,24.432,198.1,14929.5,sb/spc,0.503,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C869,large_headed_capuchin__SM/20240208_072031.wav,1.465,2.858,3461.5,4204.4,sm/pc,0.137,none_baja,no,missing selection of vocalizations,ruido,
+C870,large_headed_capuchin__SM/20240208_072031.wav,29.489,30.149,2555.3,6387.5,sm/pc,0.393,none_media,no,missing selection of vocalizations,ruido,
+C871,large_headed_capuchin__SM/20240208_072031.wav,33.971,34.293,245.8,14757.1,sb/spc,0.417,label,other,"missing selection of vocalizations, HIC",error de clase,
+C872,large_headed_capuchin__SM/20240208_072031.wav,66.605,66.752,2871.0,16990.8,sm/hic,0.547,none_alta,no,missing selection of vocalizations,ruido,
+C873,large_headed_capuchin__SM/20240208_072031.wav,68.941,69.399,4930.9,6259.9,sm/pc,0.664,none_alta,no,missing selection of vocalizations,ruido,
+C874,bolivian_squirrel_monkey__SB/20240430_165443.wav,10.079,10.679,3696.9,18493.7,sb/sc,0.355,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C875,bolivian_squirrel_monkey__SB/20240430_165443.wav,12.937,13.554,3146.1,17897.8,sb/sc,0.638,match,correct,missing selection of vocalizations,acierto confirmado,B
+C876,bolivian_squirrel_monkey__SB/20240430_165443.wav,16.928,16.987,637.7,1945.6,sm/cc,0.336,none_media,correct,missing selection of vocalizations,evento no anotado,B
+C877,bolivian_squirrel_monkey__SB/20240430_165443.wav,19.196,19.5,6419.6,12073.6,sb/pcc,0.233,none_baja,correct,missing selection of vocalizations,evento no anotado,B
+C878,howler_monkey__AS/20240526_115438.wav,25.5,25.816,106.1,670.2,as/bc,0.702,none_alta,box,too short - missing selection of vocalizations,evento no anotado,
+C879,howler_monkey__AS/20240524_052726.wav,10.741,10.952,116.0,644.0,as/bc,0.17,box,correct,missing selection of vocalizations,anotación por corregir,
+C880,howler_monkey__AS/20240524_052726.wav,12.482,12.761,111.0,654.8,as/bc,0.244,none_baja,box,too short - missing selection of vocalizations,evento no anotado,
+C881,large_headed_capuchin__SM/20241012_072925.wav,5.306,5.636,7283.3,11806.1,sb/ppc,0.516,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C882,weddells_saddleBack_tamarin__LW/20240905_080530.wav,16.513,17.129,8798.4,12180.7,lw/cs,0.613,box,box,too short - missing selection of vocalizations,error de encuadre,
+C883,weddells_saddleBack_tamarin__LW/20240905_080530.wav,24.518,25.163,5780.6,11055.7,lw/trino,0.6,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C884,weddells_saddleBack_tamarin__LW/20240905_080530.wav,28.51,29.096,6792.9,11868.2,lw/trino,0.418,label,correct,missing selection of vocalizations,anotación por corregir,
+C885,weddells_saddleBack_tamarin__LW/20240429_103953.wav,2.375,2.846,6385.5,10858.1,lw/vc,0.739,none_alta,correct,missing selection of vocalizations,evento no anotado,B
+C886,weddells_saddleBack_tamarin__LW/20240429_103953.wav,10.385,10.5,6830.9,9258.1,lw/cs,0.351,box,box,too big - missing selection of vocalizations,error de encuadre,B
+C887,howler_monkey__AS/20240621_074544.wav,19.506,20.256,25.0,929.2,as/bc,0.387,box,box,too short - missing selection of vocalizations,error de encuadre,
+C888,howler_monkey__AS/20240518_054318.wav,40.505,40.625,228.3,6305.1,sm/hic,0.112,none_baja,no,missing selection of vocalizations,ruido,A
+C889,bolivian_squirrel_monkey__SB/20240522_072004.wav,2.41,2.876,3044.8,14695.2,sb/sc,0.45,box,box,missing selection of vocalizations,error de encuadre,A
+C890,bolivian_squirrel_monkey__SB/20240522_072004.wav,25.18,25.289,391.4,3931.3,sm/cc,0.505,box,correct,missing selection of vocalizations,anotación por corregir,A
+C891,bolivian_squirrel_monkey__SB/20240522_072004.wav,26.47,26.607,534.7,4494.8,sm/cc,0.368,box,correct,missing selection of vocalizations,anotación por corregir,A
+C892,bolivian_squirrel_monkey__SB/20240522_072004.wav,29.848,30.16,7267.0,13263.4,sb/ppc,0.748,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C893,bolivian_squirrel_monkey__SB/20240522_072004.wav,30.632,30.8,8418.5,10781.9,sb/ppc,0.153,box,correct,missing selection of vocalizations,anotación por corregir,A
+C894,bolivian_squirrel_monkey__SB/20240522_072004.wav,32.337,32.583,9471.1,12169.8,sb/ppc,0.403,none_media,box,missing selection of vocalizations,evento no anotado,A
+C895,bolivian_squirrel_monkey__SB/20240522_072004.wav,32.702,32.994,3553.6,15348.0,sb/sc,0.757,none_alta,box,missing selection of vocalizations,evento no anotado,A
+C896,large_headed_capuchin__SM/20240916_102232.wav,14.874,15.0,1299.9,3669.1,sm/cc,0.111,label,other,FS - missing selection of vocalizations,error de clase,
+C897,large_headed_capuchin__SM/20240916_102232.wav,16.504,16.721,1244.6,4064.5,sm/cc,0.222,label,other,FS - missing selection of vocalizations,error de clase,
+C898,night_monkey__AA/20240527_175833.wav,25.794,25.898,191.6,3339.8,aa/gc,0.464,match,correct,missing selection of vocalizations,acierto confirmado,
+C899,night_monkey__AA/20240527_175833.wav,28.135,28.386,281.0,11437.8,aa/sc,0.418,none_media,correct,missing selection of vocalizations,evento no anotado,
+C900,night_monkey__AA/20240527_175833.wav,29.576,29.663,191.9,3341.9,aa/gc,0.333,none_media,correct,missing selection of vocalizations,evento no anotado,
+C901,howler_monkey__AS/20240611_070823.wav,18.019,18.58,8433.6,9557.9,lw/cs,0.61,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C902,bolivian_squirrel_monkey__SB/20240522_071313.wav,6.911,7.5,7279.4,14821.9,sb/ppc,0.448,none_media,box,missing selection of vocalizations,evento no anotado,A
+C903,bolivian_squirrel_monkey__SB/20240522_071313.wav,11.872,11.987,4347.7,6385.8,sb/ppc,0.175,none_baja,no,bird-missing selection of vocalizations,ruido,A
+C904,bolivian_squirrel_monkey__SB/20240522_071313.wav,15.925,16.066,388.1,3207.2,sm/cc,0.228,none_baja,no,bird-missing selection of vocalizations,ruido,A
+C905,bolivian_squirrel_monkey__SB/20240522_071313.wav,23.933,24.176,7373.1,10816.8,sb/ppc,0.516,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C906,bolivian_squirrel_monkey__SB/20240522_071313.wav,29.851,29.993,7438.4,10937.8,sb/ppc,0.421,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C907,bolivian_squirrel_monkey__SB/20240522_071313.wav,33.333,33.531,7448.5,11174.0,sb/ppc,0.542,box,other,PCC-missing selection of vocalizations,error de clase,A
+C908,bolivian_squirrel_monkey__SB/20240522_071313.wav,33.904,34.076,7404.5,10523.3,sb/ppc,0.41,box,other,PCC-missing selection of vocalizations,error de clase,A
+C909,bolivian_squirrel_monkey__SB/20240522_071313.wav,34.086,34.264,7419.2,10428.5,sb/ppc,0.332,box,other,PCC-missing selection of vocalizations,error de clase,A
+C910,bolivian_squirrel_monkey__SB/20240522_071313.wav,34.97,35.174,7539.3,11171.1,sb/ppc,0.301,none_media,other,PCC-missing selection of vocalizations,evento no anotado,A
+C911,bolivian_squirrel_monkey__SB/20240522_071313.wav,35.819,35.999,4785.4,12994.1,sb/ppc,0.165,box,box,missing selection of vocalizations,error de encuadre,A
+C912,bolivian_squirrel_monkey__SB/20240522_071313.wav,44.145,44.996,2396.9,3432.5,sm/pc,0.694,none_alta,no,bird-missing selection of vocalizations,ruido,A
+C913,weddells_saddleBack_tamarin__LW/20240214_102355.wav,7.398,7.499,8799.2,11402.4,lw/cs,0.262,box,box,missing selection of vocalizations,error de encuadre,
+C914,bolivian_squirrel_monkey__SB/20240529_090808.wav,9.957,10.062,491.6,2995.9,sm/cc,0.341,none_media,correct,missing selection of vocalizations,evento no anotado,
+C915,bolivian_squirrel_monkey__SB/20240529_090808.wav,14.803,14.972,385.8,14892.0,sb/spc,0.284,none_baja,other,PPC,evento no anotado,
+C916,bolivian_squirrel_monkey__SB/20240529_090808.wav,15.336,15.609,8798.0,11978.5,sb/ppc,0.701,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C917,bolivian_squirrel_monkey__SB/20240529_090808.wav,22.297,22.472,8505.5,11042.0,sb/ppc,0.452,none_media,correct,missing selection of vocalizations,evento no anotado,
+C918,bolivian_squirrel_monkey__SB/20240529_090808.wav,25.655,26.001,9315.7,13417.6,sb/ppc,0.695,match,correct,missing selection of vocalizations,acierto confirmado,
+C919,bolivian_squirrel_monkey__SB/20240529_090808.wav,26.877,27.218,4002.6,14834.5,sb/sc,0.646,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C920,howler_monkey__AS/20240526_115701.wav,15.0,15.073,169.2,594.3,as/bc,0.3,box,box,too short - missing selection of vocalizations,error de encuadre,
+C921,howler_monkey__AS/20240526_115701.wav,18.659,18.855,149.1,606.3,as/bc,0.551,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C922,large_headed_capuchin__SM/20231229_160720.wav,39.316,39.454,257.5,1721.3,sm/cc,0.515,none_alta,box,biger than the call,evento no anotado,
+C923,bolivian_squirrel_monkey__SB/20241113_094559.wav,0.006,0.141,946.4,3287.5,sm/cc,0.216,none_baja,no,humans-missing selection of vocalizations,ruido,
+C924,bolivian_squirrel_monkey__SB/20241113_094559.wav,3.924,4.5,3916.9,12900.4,sb/pcc,0.132,label,box,missing selection of vocalizations,error de encuadre,
+C925,bolivian_squirrel_monkey__SB/20241113_094559.wav,16.614,16.78,9627.9,14879.2,sb/ppc,0.427,none_media,box,missing selection of vocalizations,evento no anotado,
+C926,weddells_saddleBack_tamarin__LW/20240621_151822.wav,11.806,12.219,9364.9,10921.9,lw/cs,0.609,none_alta,no,CS was in another place of the audio,ruido,
+C927,weddells_saddleBack_tamarin__LW/20240621_151822.wav,23.165,23.692,8870.3,10465.1,lw/cs,0.572,none_alta,no,CS was in another place of the audio,ruido,
+C928,peruvian_spider_monkey__AC/20240909_090108.wav,3.001,3.133,477.4,2674.9,ac/bc,0.146,box,box,too short - missing selection of vocalizations,error de encuadre,
+C929,peruvian_spider_monkey__AC/20240909_090108.wav,4.5,4.776,549.4,2620.1,ac/bc,0.456,box,box,too short - missing selection of vocalizations,error de encuadre,
+C930,bolivian_squirrel_monkey__SB/20240902_102839.wav,3.133,3.473,1372.7,16931.2,sb/sc,0.154,none_baja,no,something falling,ruido,
+C931,bolivian_squirrel_monkey__SB/20240902_102839.wav,12.0,12.09,720.3,3779.9,sm/cc,0.533,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C932,bolivian_squirrel_monkey__SB/20240902_102839.wav,13.559,13.65,689.9,1893.2,sm/cc,0.365,none_media,correct,missing selection of vocalizations,evento no anotado,
+C933,howler_monkey__AS/20240621_074650.wav,27.002,27.29,25.4,757.5,as/bc,0.313,none_media,box,too short-missing selections vocalizations,evento no anotado,
+C934,weddells_saddleBack_tamarin__LW/20240505_061216.wav,0.169,0.479,7032.2,9458.8,sb/ppc,0.559,none_alta,other,LW - missing selection in vocalizations,evento no anotado,B
+C935,weddells_saddleBack_tamarin__LW/20240505_061216.wav,15.263,15.615,8318.9,11072.8,lw/vc,0.128,none_baja,correct,missing selection in vocalizations,evento no anotado,B
+C936,weddells_saddleBack_tamarin__LW/20240505_061216.wav,21.27,21.523,8570.7,9676.1,lw/cs,0.297,box,other,LW VC - missing selection in vocalizations,error de clase,B
+C937,howler_monkey__AS/20240622_064055.wav,30.0,31.765,83.4,775.8,ac/gc,0.217,label,other,AS BC - missing selection of vocalizations,error de clase,
+C938,peruvian_spider_monkey__AC/20241016_080205.wav,1.445,1.78,355.7,2367.1,ac/bc,0.76,match,no,bird,desacuerdo con la referencia,
+C939,peruvian_spider_monkey__AC/20241016_080205.wav,5.807,5.995,554.2,2236.0,ac/bc,0.561,none_alta,no,bird,ruido,
+C940,peruvian_spider_monkey__AC/20241016_080205.wav,10.502,10.751,343.8,2308.1,ac/bc,0.736,none_alta,no,bird,ruido,
+C941,weddells_saddleBack_tamarin__LW/20240207_102952.wav,15.94,16.5,1490.8,14932.1,sb/sc,0.348,none_media,no,missing selection of vocalizations,ruido,
+C942,weddells_saddleBack_tamarin__LW/20240217_083921.wav,3.059,3.877,5510.4,11186.0,lw/trino,0.653,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C943,weddells_saddleBack_tamarin__LW/20240217_083921.wav,6.001,6.331,5975.4,9633.5,lw/sqc,0.221,label,other,TT-missing selection of vocalizations,error de clase,
+C944,weddells_saddleBack_tamarin__LW/20240217_083921.wav,13.699,14.45,5902.6,12096.8,lw/trino,0.746,none_alta,box,missing selection of vocalizations,evento no anotado,
+C945,weddells_saddleBack_tamarin__LW/20240217_083921.wav,15.732,16.329,5192.1,12046.7,lw/trino,0.112,label,other,VC-missing selection of vocalizations,error de clase,
+C946,bolivian_squirrel_monkey__SB/20241113_094411.wav,5.741,6.069,93.3,601.3,as/bc,0.246,none_baja,no,missing selection of vocalizations,ruido,
+C947,bolivian_squirrel_monkey__SB/20241113_094411.wav,15.673,15.842,252.0,2978.8,sm/cc,0.403,label,other,SB - missing selection of vocalizations,error de clase,
+C948,bolivian_squirrel_monkey__SB/20241113_094411.wav,15.99,16.207,585.2,3113.5,sm/cc,0.147,label,other,SB - missing selection of vocalizations,error de clase,
+C949,bolivian_squirrel_monkey__SB/20241113_094411.wav,18.821,19.046,8151.1,11058.9,sb/ppc,0.189,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C950,bolivian_squirrel_monkey__SB/20241113_094411.wav,23.263,23.462,1084.9,3602.9,sm/fs,0.523,none_alta,other,SB - missing selection of vocalizations,evento no anotado,
+C951,bolivian_squirrel_monkey__SB/20241113_094411.wav,25.278,25.494,8380.2,13319.3,sb/ppc,0.376,none_media,box,too low - missing selection of vocalizations,evento no anotado,
+C952,bolivian_squirrel_monkey__SB/20241113_094411.wav,25.283,25.992,8333.1,13221.1,sb/pcc,0.542,none_alta,box,too low - missing selection of vocalizations,evento no anotado,
+C953,weddells_saddleBack_tamarin__LW/20240313_164932.wav,8.366,8.606,8863.3,14114.4,lw/trino,0.276,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C954,weddells_saddleBack_tamarin__LW/20240313_164932.wav,15.756,16.038,6466.4,10229.8,lw/trino,0.381,none_media,correct,missing selection of vocalizations,evento no anotado,
+C955,weddells_saddleBack_tamarin__LW/20240313_164932.wav,17.261,17.578,6871.7,12158.7,lw/trino,0.507,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C956,weddells_saddleBack_tamarin__LW/20240313_164932.wav,25.678,26.059,5822.4,10932.3,lw/trino,0.179,none_baja,correct,missing selection of vocalizations,evento no anotado,
+C957,weddells_saddleBack_tamarin__LW/20240313_164932.wav,33.0,33.549,6418.0,9581.6,lw/trino,0.395,none_media,box,missing selection of vocalizations,evento no anotado,
+C958,weddells_saddleBack_tamarin__LW/20240313_164932.wav,33.001,34.063,6247.0,11353.0,lw/ta,0.496,none_media,other,TRINO-missing selection of vocalizations,evento no anotado,
+C959,weddells_saddleBack_tamarin__LW/20240313_164932.wav,37.503,37.851,6687.2,11520.3,lw/trino,0.137,none_baja,box,missing selection of vocalizations,evento no anotado,
+C960,weddells_saddleBack_tamarin__LW/20240313_164932.wav,45.674,46.015,5319.4,8731.1,lw/trino,0.564,none_alta,box,missing selection of vocalizations,evento no anotado,
+C961,howler_monkey__AS/20240510_054445.wav,13.546,13.967,99.9,676.9,as/bc,0.401,none_media,correct,missing selection of vocalizations,evento no anotado,A
+C962,weddells_saddleBack_tamarin__LW/20240528_082014.wav,0.573,1.19,6097.7,8585.8,lw/trino,0.509,none_alta,other,CC - missing selection of vocalizations,evento no anotado,
+C963,large_headed_capuchin__SM/20240424_172115.wav,14.923,15.195,1499.1,1900.1,sm/fs,0.593,match,?,,incierto,B
+C964,large_headed_capuchin__SM/20240916_102703.wav,1.076,1.921,2768.4,5866.0,sm/pc,0.59,label,other,WHC - missing selection of vocalizations,error de clase,
+C965,large_headed_capuchin__SM/20240916_102703.wav,1.5,1.945,3144.4,5851.3,sm/sc,0.114,box,other,WHC - missing selection of vocalizations,error de clase,
+C966,large_headed_capuchin__SM/20240916_102703.wav,10.876,11.051,197.2,3508.5,sm/cc,0.546,none_alta,box,too big - missing selection of vocalizations,evento no anotado,
+C967,peruvian_spider_monkey__AC/20240617_152116.wav,2.102,2.553,619.1,2119.8,ac/bc,0.63,none_alta,correct,,evento no anotado,
+C968,peruvian_spider_monkey__AC/20240617_152116.wav,9.144,9.628,665.4,2203.2,ac/bc,0.801,none_alta,correct,,evento no anotado,
+C969,peruvian_spider_monkey__AC/20240617_152116.wav,10.5,10.881,970.8,2439.4,ac/bc,0.516,none_alta,no,background noise,ruido,
+C970,peruvian_spider_monkey__AC/20240617_152116.wav,12.881,13.307,677.1,1941.7,ac/bc,0.466,none_media,correct,missing selection of vocalization,evento no anotado,
+C971,peruvian_spider_monkey__AC/20240617_152116.wav,15.005,15.52,609.3,2501.8,ac/bc,0.784,box,correct,missing selection of vocalization,anotación por corregir,
+C972,peruvian_spider_monkey__AC/20240617_152116.wav,16.5,16.906,624.6,2200.0,ac/bc,0.524,none_alta,correct,missing selection of vocalization,evento no anotado,
+C973,peruvian_spider_monkey__AC/20240617_152116.wav,19.932,20.461,738.1,2475.0,ac/bc,0.732,none_alta,correct,missing selection of vocalization,evento no anotado,
+C974,peruvian_spider_monkey__AC/20240617_152116.wav,27.0,27.156,830.4,2323.9,ac/bc,0.134,none_baja,no,background noise,ruido,
+C975,peruvian_spider_monkey__AC/20240617_152116.wav,27.234,27.687,654.2,2106.7,ac/bc,0.362,none_media,correct,missing selection of vocalization,evento no anotado,
+C976,weddells_saddleBack_tamarin__LW/20240611_070122.wav,16.39,16.499,7364.1,9243.8,lw/cs,0.157,box,box,too short - missing selection of vocalizations,error de encuadre,
+C977,night_monkey__AA/20240410_052833.wav,2.343,2.478,34.2,492.7,aa/hm,0.213,match,correct,missing selection of vocalizations,acierto confirmado,
+C978,night_monkey__AA/20240410_052833.wav,19.5,19.575,25.0,3799.2,aa/gc,0.308,none_media,no,missing selection of vocalizations,ruido,
+C979,howler_monkey__AS/20240510_065739.wav,1.471,2.204,105.3,593.8,as/bc,0.227,box,other,HC,error de clase,A
+C980,howler_monkey__AS/20240510_065739.wav,2.571,2.936,114.9,596.1,as/bc,0.693,box,box,,error de encuadre,A
+C981,howler_monkey__AS/20240510_065739.wav,3.459,3.817,108.8,629.4,as/bc,0.83,match,box,,desacuerdo con la referencia,A
+C982,howler_monkey__AS/20240510_065739.wav,3.954,4.202,93.3,602.8,as/bc,0.624,match,box,,desacuerdo con la referencia,A
+C983,howler_monkey__AS/20240510_065739.wav,19.508,19.951,64.2,572.1,as/bc,0.649,none_alta,other,HC,evento no anotado,A
+C984,howler_monkey__AS/20240510_065739.wav,20.121,20.817,105.7,620.3,as/bc,0.417,label,other,HC,error de clase,A
+C985,howler_monkey__AS/20240621_074718.wav,7.505,7.857,101.2,843.5,as/bc,0.582,match,box,too short - missing selections vocalizations,desacuerdo con la referencia,
+C986,howler_monkey__AS/20240621_074718.wav,21.0,21.148,86.4,692.3,as/bc,0.175,none_baja,other,HC - missing selections vocalizations,evento no anotado,
+C987,night_monkey__AA/20240608_192142.wav,0.024,0.132,57.1,3392.2,aa/gc,0.338,none_media,correct,missing selection of vocalizations,evento no anotado,
+C988,night_monkey__AA/20240608_192142.wav,17.831,17.972,48.1,3385.4,aa/gc,0.598,none_alta,correct,missing selection of vocalizations,evento no anotado,
+C989,bolivian_squirrel_monkey__SB/20240219_103301.wav,1.86,2.384,9563.1,13891.2,sb/pcc,0.43,none_media,box,missing selection of vocalizations,evento no anotado,
+C990,howler_monkey__AS/20240520_062344.wav,22.501,22.737,132.9,681.8,as/bc,0.432,none_media,other,HC-missing selection of vocalizations,evento no anotado,A
+C991,large_headed_capuchin__SM/20240524_064035.wav,3.427,3.517,464.0,1736.1,sm/cc,0.207,none_baja,no,bird,ruido,
+C992,large_headed_capuchin__SM/20240524_064035.wav,34.556,34.793,604.6,2567.8,sm/cc,0.454,none_media,no,bird,ruido,
+C993,large_headed_capuchin__SM/20240524_064035.wav,35.037,35.216,644.6,2516.0,sm/cc,0.58,none_alta,no,bird,ruido,
+C994,large_headed_capuchin__SM/20240524_064035.wav,35.621,35.807,594.4,2482.3,sm/cc,0.694,none_alta,no,bird,ruido,
+C995,large_headed_capuchin__SM/20240524_064035.wav,36.579,36.852,589.4,2505.0,sm/cc,0.332,none_media,no,bird,ruido,
+C996,large_headed_capuchin__SM/20240524_064035.wav,37.083,37.334,592.5,2443.5,sm/cc,0.509,none_alta,no,bird,ruido,
+C997,large_headed_capuchin__SM/20240524_064035.wav,39.11,39.343,585.5,2364.8,sm/cc,0.479,none_media,no,bird,ruido,
+C998,large_headed_capuchin__SM/20240524_064035.wav,39.613,39.816,578.2,2417.2,sm/cc,0.595,none_alta,no,bird,ruido,
+C999,howler_monkey__AS/20240520_063354.wav,7.389,7.455,654.9,5318.7,sm/cc,0.502,none_alta,correct,missing selection of vocalizations,evento no anotado,A
+C1000,large_headed_capuchin__SM/20240812_104809.wav,22.636,22.788,457.4,1768.1,sm/cc,0.573,none_alta,correct,missing selection of vocalizations,evento no anotado,

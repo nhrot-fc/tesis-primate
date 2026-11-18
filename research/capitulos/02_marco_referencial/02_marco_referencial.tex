@@ -26,7 +26,10 @@ El problema se plantea en dos niveles. El nivel de la \emph{grabación} es el qu
 le interesa al analista y define el producto; el nivel de la \emph{ventana} es el
 que consume el modelo y define su entrada y su salida. Separarlos es necesario
 porque ninguna arquitectura actual procesa una hora de audio de una sola vez, y
-confundirlos oscurece qué predice realmente un detector.
+confundirlos oscurece qué predice realmente un detector. En esta tesis la
+comparación de detectores se hace al nivel de ventana
+(Capítulo~\ref{cap:deteccion}), y la herramienta, al de grabación
+(Capítulo~\ref{cap:revision}).
 
 \paragraph{Nivel de grabación}
 El sistema recibe un conjunto de grabaciones $G=\{g_1,g_2,\dots,g_M\}$. Cada
@@ -91,17 +94,22 @@ donde $Q$ es un número de consultas fijado por la arquitectura, independiente d
 contenido de la ventana y mayor que la cantidad de eventos que cabe esperar en
 ella. Cada consulta produce una caja $\hat{b}_q = (c_x, c_y, w, h)$ en
 coordenadas normalizadas al recuadro de la ventana (centro, ancho y alto, los
-cuatro en $[0, 1]$) y una distribución $\hat{\pi}_q$ sobre
+cuatro en $[0, 1]$). Produce también una distribución $\hat{\pi}_q$ sobre
 $Y \cup \{\varnothing\}$, en la que $\varnothing$ es la clase ``sin objeto'' que
 absorbe las consultas sobrantes. El número de eventos no se predice: resulta de
-cuántas consultas eligen una clase de $Y$ por encima del umbral de confianza.
+cuántas consultas eligen una clase de $Y$ por encima del umbral de confianza. Es la
+formulación del DETR original \citep{carion_detr_2020}. Variantes como Deformable
+DETR \citep{zhu_deformable_2021}, la que usa esta tesis, cambian $\hat{\pi}_q$ por
+$L$ sigmoides independientes, sin canal $\varnothing$. En ellas, una consulta
+sobrante es la que tiene confianza baja en todas las clases.
 
 Esta es la formulación de \emph{predicción de conjuntos}: la salida es un conjunto
-sin orden, y durante el
-entrenamiento cada anotación de la ventana se asigna a exactamente una consulta
-mediante un emparejamiento biyectivo, mientras que el resto se supervisa hacia
-$\varnothing$. De ahí que dentro de la ventana no haya anclas ni supresión de no
-máximos.
+sin orden. Durante el entrenamiento, cada anotación de la ventana se asigna a
+exactamente una consulta mediante un emparejamiento biyectivo, y el resto se
+supervisa hacia $\varnothing$ (o hacia cero en todas las clases). De ahí que la
+formulación no necesite anclas ni supresión de no máximos. Si en inferencia quedan
+cajas repetidas, se puede añadir una supresión ligera, como hace esta tesis
+(Capítulo~\ref{cap:deteccion}).
 
 \paragraph{Del marco normalizado al marco físico}
 El modelo emite fracciones de la ventana, y su conversión a segundos y a hercios
@@ -146,15 +154,16 @@ $X \in \mathbb{R}^{F\times T}$ cuyos parámetros, como el tamaño de ventana, el
 entre ventanas y el tipo de ventana, fijan el compromiso entre resolución
 temporal y resolución frecuencial.
 
-Una asimetría del espectrograma condiciona el diseño del detector. Tratarlo como una imagen es útil, pero sus dos ejes no son
-equivalentes: una traslación en tiempo preserva el significado del patrón,
-mientras que una traslación en frecuencia lo cambia: un mismo contorno
-desplazado media octava es otra vocalización, o ninguna. Los patrones
-espectro-temporales de los eventos sonoros dependen de la banda de frecuencia en
-que ocurren, de modo que la convolución bidimensional estándar, equivariante a
-traslación en ambos ejes, no es adecuada para el eje frecuencial
-\citep{nam_frequency_2022}. La consecuencia práctica es que el modelo debe
-conservar de forma explícita la posición en frecuencia en lugar de descartarla.
+Una asimetría del espectrograma condiciona el diseño del detector. Tratarlo como
+una imagen es útil, pero sus dos ejes no son equivalentes. Una traslación en
+tiempo preserva el significado del patrón, y una traslación en frecuencia lo
+cambia: un mismo contorno desplazado media octava es otra vocalización, o
+ninguna. Los patrones espectro-temporales de los eventos sonoros dependen de la
+banda de frecuencia en que ocurren. Por eso la convolución bidimensional
+estándar, equivariante a traslación en ambos ejes, no es adecuada para el eje
+frecuencial \citep{nam_frequency_2022}. La consecuencia práctica es que el modelo
+debe conservar de forma explícita la posición en frecuencia en lugar de
+descartarla.
 
 \subsection{Detección de objetos sobre audio}
 \label{sec:objetos}
@@ -194,10 +203,10 @@ tesis.
 \rotulo{Cajas frente a máscaras.} Una alternativa a la caja es la segmentación
 semántica, que asigna una etiqueta a cada celda tiempo--frecuencia y describe
 con más fidelidad los contornos de una vocalización \citep{jin_semantic_2022}.
-Esta tesis opta por la caja por dos razones: es la forma en que el analista
-anota en Raven, y por tanto la única para la que existe una referencia
-disponible; y es la que se exporta sin pérdida a una tabla de selección. Una
-máscara exigiría reanotar el corpus completo.
+Esta tesis opta por la caja por dos razones. Es la forma en que el analista anota
+en Raven, y por tanto la única para la que existe una referencia disponible. Y es
+la que se exporta sin pérdida a una tabla de selección. Una máscara exigiría
+reanotar el corpus completo.
 
 \section{Marco Conceptual}
 
@@ -240,18 +249,18 @@ como una cadena de seis eslabones.
         \end{tikzpicture}}
 \end{figure}
 
-Debajo de cada eslabón figura lo que se pierde en él: la propagación resta
-relación señal-ruido, sobre todo en los agudos; la grabadora descarta lo que
-supera 22,05\,kHz; la STFT obliga a elegir entre resolución temporal y frecuencial;
-la escala mel reparte la resolución de forma no uniforme, y la caja aproxima con
-un rectángulo un contorno que no lo es. Cada pérdida crea la necesidad del
-eslabón siguiente, y por eso las subsecciones siguen el orden en que aparecen los
-problemas.
+Debajo de cada eslabón figura lo que se pierde en él. La propagación resta
+relación señal-ruido, sobre todo en los agudos, y la grabadora descarta lo que
+supera 22,05\,kHz. La STFT obliga a elegir entre resolución temporal y
+frecuencial, la escala mel reparte la resolución de forma no uniforme y la caja
+aproxima con un rectángulo un contorno que no lo es. Cada pérdida crea la
+necesidad del eslabón siguiente, y por eso las subsecciones siguen el orden en que
+aparecen los problemas.
 
 \subsection{Paisaje sonoro}
 
-La bioacústica estudia el sonido en los seres vivos, y esta tesis la aplica a
-través del monitoreo acústico pasivo descrito en la sección~\ref{sec:problema}. La
+La bioacústica estudia el sonido en los seres vivos, y esta tesis la aplica al
+apoyo del monitoreo acústico pasivo descrito en la sección~\ref{sec:problema}. La
 grabadora registra la suma de todo lo que llega al micrófono, el paisaje sonoro del ecosistema \citep{blumstein_acoustic_2011}, y
 en un entorno como la Amazonía esa suma tiene tres componentes:
 
@@ -279,7 +288,7 @@ de esa mezcla, es decir, qué constituye exactamente un evento.
 \subsection{Eventos acústicos}
 
 La vocalización se produce por el flujo de aire desde los pulmones, que hace
-vibrar las cuerdas vocales en la laringe y actúa como fuente sonora primaria; el
+vibrar las cuerdas vocales en la laringe y actúa como fuente sonora primaria. El
 tracto vocal supralaríngeo, formado por la faringe y las cavidades oral y nasal,
 filtra esa fuente y fija sus características finales: frecuencia fundamental,
 distribución de armónicos, amplitud, duración y timbre. Es la teoría
@@ -292,17 +301,18 @@ cuerdas vocales, y las resonancias del tracto vocal concentran la energía en un
 conjunto acotado de bandas. Un evento es, por tanto, una región del plano
 tiempo--frecuencia con un límite inferior y un límite superior de frecuencia que
 dependen de la anatomía de quien vocaliza. Por eso la caja tiempo--frecuencia de la
-ecuación~\eqref{eq:tupla} es la representación adecuada del evento: los cuatro
-números que la definen tienen referente físico.
+ecuación~\eqref{eq:tupla} es la representación adecuada del evento: sus dos
+límites de frecuencia tienen referente físico. Los bordes temporales, y en parte
+también los de frecuencia, dependen además de la relación señal-ruido y del
+criterio del anotador, como se discute más abajo.
 
 La misma estructura explica dos hechos que reaparecen más adelante. El primero es
 que distintas especies tienden a separarse por banda, lo que hace de la
-frecuencia una característica discriminante. El segundo es
-que la estructura de las vocalizaciones de los primates no humanos está muy
-conservada dentro de cada especie, pero admite ajustes dentro de esos límites,
-como los rasgos propios de cada grupo \citep{fischer_towards_2020}; esa
-variabilidad amplía el rango de formas que el detector debe reconocer como la
-misma clase.
+frecuencia una característica discriminante. El segundo es que la estructura de
+las vocalizaciones de los primates no humanos está muy conservada dentro de cada
+especie, pero admite ajustes dentro de esos límites, como los rasgos propios de
+cada grupo \citep{fischer_towards_2020}. Esa variabilidad amplía el rango de
+formas que el detector debe reconocer como la misma clase.
 
 El evento existe, entonces, como región bidimensional. El problema es que la
 señal grabada es unidimensional: hay que recuperar esa estructura antes de poder
@@ -383,7 +393,7 @@ pinta la misma ventana sin comprimir y en log-mel.
     \includegraphics[width=\textwidth]{capitulos/02_marco_referencial/figures/frontends.png}
 \end{figure}
 
-La caja marca un trino del tamarino de Weddell (\texttt{LW/TRINO}). Sin
+La caja marca un trino del tamarino de Weddell (\code{lw/trino}). Sin
 compresión, el mel de potencia solo muestra los sonidos más intensos y el trino
 casi desaparece; el log-mel lo hace visible, pero también el coro de fondo, que
 ocupa bandas enteras durante toda la ventana. Queda así una imagen en la que el
@@ -395,17 +405,18 @@ La detección de eventos sonoros (SED) consiste en identificar la presencia de u
 evento y localizar sus límites sobre la representación tiempo--frecuencia. La
 distinción decisiva dentro de esta tarea es la \emph{forma de la salida}, con la
 que la sección~\ref{sec:soluciones} ordenó las soluciones existentes
-(Figura~\ref{fig:output-forms}). Expresada en los términos de la
-ecuación~\eqref{eq:tupla}, la gradación es la siguiente: la salida por segmento
+(Figura~\ref{fig:output-forms}). En los términos de la
+ecuación~\eqref{eq:tupla}, la gradación tiene tres pasos. La salida por segmento
 fijo cuantiza $t_{\text{ini}}$ y $t_{\text{fin}}$ al tamaño del segmento y no
-estima la banda de frecuencia; la salida temporal estima $t_{\text{ini}}$ y
+estima la banda de frecuencia. La salida temporal estima $t_{\text{ini}}$ y
 $t_{\text{fin}}$, pero descarta $f_{\min}$ y $f_{\max}$, que al tratar los eventos
-acústicos se establecieron como magnitudes físicas del aparato fonador, y solo la
+acústicos se establecieron como magnitudes físicas del aparato fonador. Solo la
 salida tiempo--frecuencia emite la tupla completa. Es la única que coincide con lo
 que el analista produce a mano en Raven y, por tanto, la única que puede sustituir
 su insumo en lugar de complementarlo. Esa propiedad explica por qué los
-detectores existentes, que no emiten la tupla completa, no alivian la búsqueda que
-describe la causa C2 del árbol de problemas.
+detectores existentes, que no emiten la tupla completa, alivian solo en parte la
+búsqueda que describe la causa C2 del árbol de problemas. Indican dónde mirar,
+pero el especialista sigue dibujando y etiquetando cada caja.
 
 El problema impone seis exigencias, y cada familia de la literatura responde a
 una de ellas. Presentarlas en orden cronológico no dice nada; presentarlas por la
@@ -445,8 +456,8 @@ refinamiento del reconocimiento local.
         Transformadores                                        &
         La autoatención relaciona en paralelo todas las posiciones del
         espectrograma; el \textit{Audio Spectrogram Transformer} lleva esa idea al
-        audio, pero produce representaciones de una sola escala
-        \citep{zhu_sound_2025}                                                                                                 \\
+        audio \citep{gong_ast_2021}, pero produce representaciones de una sola
+        escala \citep{zhu_sound_2025}                                                                                                 \\
         \addlinespace
         Preservar la posición en frecuencia                    &
         Ninguna de las anteriores por sí sola                  &
@@ -463,15 +474,14 @@ refinamiento del reconocimiento local.
 \end{table}
 
 El criterio de descarte es la forma de la salida, sea cual sea el desempeño
-reportado. Una
-arquitectura solo es candidata a arquitectura final si su cabeza puede emitir
-$f_{\min}$ y $f_{\max}$. Bajo esa regla, las cuatro primeras familias de la
-Tabla~\ref{tab:familias} quedan descartadas \emph{como sistema
-    completo}, porque su formulación habitual termina en una probabilidad por trama o
-por segmento; ninguna queda descartada \emph{como extractor de características},
-que es el papel en el que siguen siendo pertinentes. La cabeza que sí satisface
-la exigencia es la de los detectores de objetos descritos en la
-sección~\ref{sec:objetos}, y por eso la arquitectura de esta tesis combina un
+reportado. Una arquitectura solo es candidata a arquitectura final si su cabeza
+puede emitir $f_{\min}$ y $f_{\max}$. Bajo esa regla, las cuatro primeras familias
+de la Tabla~\ref{tab:familias} quedan descartadas \emph{como sistema completo},
+porque su formulación habitual termina en una probabilidad por trama o por
+segmento. Ninguna queda descartada \emph{como extractor de características}, que
+es el papel en el que siguen siendo pertinentes. La cabeza que sí satisface la
+exigencia es la de los detectores de objetos descritos en la
+sección~\ref{sec:objetos}. Por eso la arquitectura de esta tesis combina un
 extractor de audio con una cabeza de detección, en lugar de adoptar una de las
 cuatro familias tal como se emplean en la literatura de SED.
 
@@ -491,7 +501,7 @@ Tabla~\ref{tab:resumen-dataset}, identificadas por su código de dos letras.
 
 El segundo nivel de la etiqueta se define dentro de cada especie, sobre el
 vocabulario de la Tabla~\ref{tab:repertorio}, el que documenta la guía acústica
-del equipo de investigación (\cpGuia). Los repertorios están desbalanceados, de modo que los 41
+del equipo de investigación \citep{proyecto8_guia_2025}. Los repertorios están desbalanceados, de modo que los 41
 pares posibles no se reparten de forma pareja entre las ocho especies, y esa
 asimetría es la que condiciona la elección del esquema de clasificación.
 
@@ -514,7 +524,7 @@ asimetría es la que condiciona la elección del esquema de clasificación.
             \texttt{chc}: \textit{chitter};
             \texttt{gc}: \textit{growl};
             \texttt{cc}: \textit{contact};
-            \texttt{whc}: \textit{whinnie};
+            \texttt{whc}: \textit{whinny};
             \texttt{sc}: \textit{squeak};
             \texttt{bc}: \textit{bark}                     & 6                                                                           \\
             \addlinespace
@@ -535,15 +545,15 @@ asimetría es la que condiciona la elección del esquema de clasificación.
             \texttt{tr}: \textit{trino};
             \texttt{tf}: \textit{trino fast};
             \texttt{tt}: \textit{trino transition};
-            \texttt{tj}\tnote{$\dagger$}: sin denominación;
+            \texttt{tj}: sin denominación\tnote{$\dagger$};
             \texttt{vc}: \textit{visual contact}           & 11                                                                          \\
             \addlinespace
             PT \textit{Plecturocebus toppini}              &
             \texttt{dc}: \textit{duet};
             \texttt{ac}: \textit{alarm};
-            \texttt{bp}\tnote{$\dagger$}: \textit{bellow phrase};
-            \texttt{pp}\tnote{$\dagger$}: \textit{pant phrase};
-            \texttt{sqc}\tnote{$\dagger$}: \textit{squeal} & 5                                                                           \\
+            \texttt{bp}: \textit{bellow phrase}\tnote{$\dagger$};
+            \texttt{pp}: \textit{pant phrase}\tnote{$\dagger$};
+            \texttt{sqc}: \textit{squeal}\tnote{$\dagger$} & 5                                                                           \\
             \addlinespace
             SB \textit{Saimiri boliviensis}                &
             \texttt{pcc}: \textit{peep contact};
@@ -567,8 +577,9 @@ asimetría es la que condiciona la elección del esquema de clasificación.
         \end{tabular}
         \begin{tablenotes}[flushleft]
             \footnotesize
-            \item[$\dagger$] Categoría acuñada por el equipo de anotación, sin
-            nombre en la literatura.
+            \item[$\dagger$] Tipo que la lista de códigos del equipo marca como no
+            oficial: lo usa al anotar, pero no figura entre las llamadas de la
+            literatura que recoge la guía de campo \citep{proyecto8_guia_2025}.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -611,8 +622,8 @@ evento.
 \rotulo{Acuerdo entre anotadores y consigo mismo.} El acuerdo
 \emph{inter-anotador} mide cuánto coinciden dos analistas que anotan el mismo
 audio; el \emph{intra-anotador}, cuánto coincide un mismo analista consigo mismo
-al anotar dos veces el mismo segmento. Ambos son bajos en bioacústica, con las
-magnitudes que reunió el análisis de la causa C3 (sección~\ref{sec:causas}).
+al anotar dos veces el mismo segmento. En los dos estudios que reunió el análisis
+de la causa C3 (sección~\ref{sec:causas}), ambos resultaron bajos.
 
 \rotulo{Frontera borrosa del evento.} El desacuerdo anterior se concentra en los
 bordes. Una vocalización emerge del fondo y se desvanece en él, sin un instante
@@ -621,13 +632,13 @@ cajas tiempo--frecuencia se observan desplazamientos relativamente grandes entre
 la caja predicha y la anotada, de lo que se concluye que las fronteras de los
 eventos son borrosas y difíciles de determinar \citep{zhu_sound_2025}.
 
-Estos tres conceptos dan forma conceptual a la causa C3 del árbol de problemas:
-al desacuerdo de criterio entre anotadores y a la referencia incompleta que impide
-medir los errores sin un especialista. También fundamentan
-las dos decisiones de evaluación que fijó la sección~\ref{sec:metricas}: emparejar
-con un IoU bajo evita medir el acuerdo con un borde que el propio anotador no
-reproduce, y priorizar el \textit{recall} evita descartar como error lo que puede
-ser un evento válido ausente de una referencia incompleta.
+Estos tres conceptos dan forma conceptual a la causa C3 del árbol de problemas,
+es decir, al desacuerdo de criterio entre anotadores y a la referencia incompleta
+que impide medir los errores sin un especialista. También fundamentan las dos
+decisiones de evaluación que fijó la sección~\ref{sec:metricas}. Emparejar con un
+IoU bajo evita medir el acuerdo con un borde que el propio anotador no reproduce.
+Priorizar el \textit{recall} evita descartar como error lo que puede ser un evento
+válido ausente de una referencia incompleta.
 
 % ===================================================================
 % CAPÍTULO 3

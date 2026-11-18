@@ -1,0 +1,20 @@
+[2026-09-15 01:24:02] [INFO] [train] ===== frcnn_v3 =====
+[2026-09-15 01:24:16] [INFO] [training.trainer] faster_rcnn | 43.4M parámetros (43.2M entrenables) | 25 clases | {'min_size': 512, 'max_size': 1024, 'anchor_ratios': (0.05, 0.15, 0.5, 1.5, 5.0), 'trainable_layers': 3, 'pretrained': True, 'db_low': -54.27337650299072, 'db_high': 27.8653164958956}
+[2026-09-15 01:53:51] [INFO] [training.trainer] [1/12] loss=0.339 val_loss=0.141 recall=0.821 precision=0.535 mAP30=0.512
+[2026-09-15 01:53:52] [INFO] [training.trainer] nuevo mejor mAP30=0.512
+[2026-09-15 02:22:50] [INFO] [training.trainer] [2/12] loss=0.273 val_loss=0.145 recall=0.806 precision=0.578 mAP30=0.566
+[2026-09-15 02:22:51] [INFO] [training.trainer] nuevo mejor mAP30=0.566
+[2026-09-15 02:50:45] [INFO] [training.trainer] [3/12] loss=0.255 val_loss=0.142 recall=0.831 precision=0.567 mAP30=0.565
+[2026-09-15 03:18:57] [INFO] [training.trainer] [4/12] loss=0.246 val_loss=0.129 recall=0.816 precision=0.666 mAP30=0.592
+[2026-09-15 03:18:57] [INFO] [training.trainer] nuevo mejor mAP30=0.592
+[2026-09-15 03:46:48] [INFO] [training.trainer] [5/12] loss=0.236 val_loss=0.132 recall=0.844 precision=0.611 mAP30=0.569
+[2026-09-15 04:14:41] [INFO] [training.trainer] [6/12] loss=0.231 val_loss=0.139 recall=0.830 precision=0.627 mAP30=0.582
+[2026-09-15 04:42:31] [INFO] [training.trainer] [7/12] loss=0.221 val_loss=0.134 recall=0.845 precision=0.620 mAP30=0.596
+[2026-09-15 04:42:31] [INFO] [training.trainer] nuevo mejor mAP30=0.596
+[2026-09-15 05:10:20] [INFO] [training.trainer] [8/12] loss=0.214 val_loss=0.138 recall=0.836 precision=0.649 mAP30=0.594
+[2026-09-15 05:38:13] [INFO] [training.trainer] [9/12] loss=0.208 val_loss=0.141 recall=0.807 precision=0.678 mAP30=0.579
+[2026-09-15 06:05:57] [INFO] [training.trainer] [10/12] loss=0.205 val_loss=0.137 recall=0.823 precision=0.677 mAP30=0.595
+[2026-09-15 06:33:28] [INFO] [training.trainer] [11/12] loss=0.200 val_loss=0.140 recall=0.815 precision=0.684 mAP30=0.589
+[2026-09-15 07:00:49] [INFO] [training.trainer] [12/12] loss=0.199 val_loss=0.140 recall=0.815 precision=0.686 mAP30=0.589
+[2026-09-15 07:00:50] [INFO] [training.trainer] mejor mAP30=0.596 | /home/fcandia/tesis-primate/runs/frcnn_v3
+[2026-09-15 07:00:50] [INFO] [train] Guarda predicciones con: python src/dump_predictions.py --run frcnn_v3

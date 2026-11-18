@@ -1,0 +1,1071 @@
+{
+  "protocol": {
+    "iou": 0.3,
+    "strict_iou": 0.5,
+    "max_det": 100,
+    "score_floor": 0.001,
+    "min_precision": 0.7,
+    "seed": 42
+  },
+  "val": {
+    "windows": 9364,
+    "boxes": 10114,
+    "recordings": 690
+  },
+  "test": {
+    "windows": 7598,
+    "boxes": 7931,
+    "recordings": 601
+  },
+  "detection_classes": [
+    "aa/gc",
+    "aa/hm",
+    "aa/sc",
+    "ac/bc",
+    "ac/chc",
+    "ac/gc",
+    "ac/sc",
+    "as/bc",
+    "lw/cs",
+    "lw/sqc",
+    "lw/ta",
+    "lw/trino",
+    "lw/vc",
+    "pt/sqc",
+    "sb/pcc",
+    "sb/ppc",
+    "sb/sc",
+    "sb/spc",
+    "sm/cc",
+    "sm/fs",
+    "sm/hic",
+    "sm/pc",
+    "sm/sc"
+  ],
+  "window_classes": [
+    "as/hc",
+    "pt/dc"
+  ],
+  "models": [
+    {
+      "model": "detr_t10_logmel_birds_v3",
+      "threshold": 0.21,
+      "val": {
+        "threshold": 0.21,
+        "recall": 0.8270713861973502,
+        "precision": 0.7008210455764075,
+        "n_above": 11936,
+        "n_tp": 8365
+      },
+      "test": {
+        "threshold": 0.21,
+        "recall": 0.7972512923969235,
+        "precision": 0.6693130094209802,
+        "n_above": 9447,
+        "n_tp": 6323
+      },
+      "map_30": 0.5766073666189028,
+      "map_50": 0.45103937063528143,
+      "axes": {
+        "recall": 0.8112470054217628,
+        "precision": 0.6810627712501324,
+        "median_iou": 0.7658097743988037,
+        "recall_strict": 0.7289118648341949,
+        "class_correct": 0.9815045073049425,
+        "species_correct": 0.9944047248989742
+      },
+      "per_class": [
+        {
+          "name": "aa/gc",
+          "n_gt": 269,
+          "recall": 0.7695167286245354,
+          "precision": 0.5734072022160664,
+          "ap": 0.6538930535316467,
+          "ap_strict": 0.5868925452232361,
+          "window_class": false
+        },
+        {
+          "name": "aa/hm",
+          "n_gt": 44,
+          "recall": 0.8181818181818182,
+          "precision": 0.6666666666666666,
+          "ap": 0.804305374622345,
+          "ap_strict": 0.7367319464683533,
+          "window_class": false
+        },
+        {
+          "name": "aa/sc",
+          "n_gt": 53,
+          "recall": 0.6415094339622641,
+          "precision": 0.5573770491803278,
+          "ap": 0.5705024003982544,
+          "ap_strict": 0.499146968126297,
+          "window_class": false
+        },
+        {
+          "name": "ac/bc",
+          "n_gt": 828,
+          "recall": 0.8188405797101449,
+          "precision": 0.7865429234338747,
+          "ap": 0.8360875844955444,
+          "ap_strict": 0.7196005582809448,
+          "window_class": false
+        },
+        {
+          "name": "ac/chc",
+          "n_gt": 82,
+          "recall": 0.5853658536585366,
+          "precision": 0.6,
+          "ap": 0.6142990589141846,
+          "ap_strict": 0.5151523351669312,
+          "window_class": false
+        },
+        {
+          "name": "ac/gc",
+          "n_gt": 56,
+          "recall": 0.35714285714285715,
+          "precision": 0.625,
+          "ap": 0.4138786494731903,
+          "ap_strict": 0.16131849586963654,
+          "window_class": false
+        },
+        {
+          "name": "ac/sc",
+          "n_gt": 54,
+          "recall": 0.3333333333333333,
+          "precision": 0.32727272727272727,
+          "ap": 0.312862366437912,
+          "ap_strict": 0.277839720249176,
+          "window_class": false
+        },
+        {
+          "name": "as/bc",
+          "n_gt": 647,
+          "recall": 0.6723338485316847,
+          "precision": 0.5671447196870926,
+          "ap": 0.6683574318885803,
+          "ap_strict": 0.538205087184906,
+          "window_class": false
+        },
+        {
+          "name": "as/hc",
+          "n_gt": 2021,
+          "recall": 0.9717961405244928,
+          "precision": 0.8125775755068266,
+          "ap": 0.946151614189148,
+          "ap_strict": 0.9037091732025146,
+          "window_class": true
+        },
+        {
+          "name": "lw/cs",
+          "n_gt": 779,
+          "recall": 0.8767650834403081,
+          "precision": 0.6857429718875502,
+          "ap": 0.8332515954971313,
+          "ap_strict": 0.7808117866516113,
+          "window_class": false
+        },
+        {
+          "name": "lw/sqc",
+          "n_gt": 52,
+          "recall": 0.8653846153846154,
+          "precision": 0.5769230769230769,
+          "ap": 0.7570937871932983,
+          "ap_strict": 0.6460198163986206,
+          "window_class": false
+        },
+        {
+          "name": "lw/ta",
+          "n_gt": 91,
+          "recall": 0.7472527472527473,
+          "precision": 0.7157894736842105,
+          "ap": 0.7247845530509949,
+          "ap_strict": 0.4694185256958008,
+          "window_class": false
+        },
+        {
+          "name": "lw/trino",
+          "n_gt": 216,
+          "recall": 0.6898148148148148,
+          "precision": 0.38010204081632654,
+          "ap": 0.5354223847389221,
+          "ap_strict": 0.3821049928665161,
+          "window_class": false
+        },
+        {
+          "name": "lw/vc",
+          "n_gt": 40,
+          "recall": 0.575,
+          "precision": 0.27380952380952384,
+          "ap": 0.41651323437690735,
+          "ap_strict": 0.36275961995124817,
+          "window_class": false
+        },
+        {
+          "name": "pt/dc",
+          "n_gt": 567,
+          "recall": 0.9664902998236331,
+          "precision": 0.8740031897926634,
+          "ap": 0.94952392578125,
+          "ap_strict": 0.8649077415466309,
+          "window_class": true
+        },
+        {
+          "name": "pt/sqc",
+          "n_gt": 138,
+          "recall": 0.9347826086956522,
+          "precision": 0.45104895104895104,
+          "ap": 0.7739357948303223,
+          "ap_strict": 0.5457090139389038,
+          "window_class": false
+        },
+        {
+          "name": "sb/pcc",
+          "n_gt": 100,
+          "recall": 0.5,
+          "precision": 0.42735042735042733,
+          "ap": 0.3989326059818268,
+          "ap_strict": 0.284295916557312,
+          "window_class": false
+        },
+        {
+          "name": "sb/ppc",
+          "n_gt": 464,
+          "recall": 0.5517241379310345,
+          "precision": 0.47232472324723246,
+          "ap": 0.4591675102710724,
+          "ap_strict": 0.3434544801712036,
+          "window_class": false
+        },
+        {
+          "name": "sb/sc",
+          "n_gt": 37,
+          "recall": 0.6216216216216216,
+          "precision": 0.3150684931506849,
+          "ap": 0.4290662705898285,
+          "ap_strict": 0.34511104226112366,
+          "window_class": false
+        },
+        {
+          "name": "sb/spc",
+          "n_gt": 250,
+          "recall": 0.66,
+          "precision": 0.5205047318611987,
+          "ap": 0.5877202153205872,
+          "ap_strict": 0.3912436068058014,
+          "window_class": false
+        },
+        {
+          "name": "sm/cc",
+          "n_gt": 686,
+          "recall": 0.7580174927113703,
+          "precision": 0.7094133697135061,
+          "ap": 0.7818091511726379,
+          "ap_strict": 0.5500309467315674,
+          "window_class": false
+        },
+        {
+          "name": "sm/fs",
+          "n_gt": 232,
+          "recall": 0.5301724137931034,
+          "precision": 0.5256410256410257,
+          "ap": 0.48642200231552124,
+          "ap_strict": 0.3969108760356903,
+          "window_class": false
+        },
+        {
+          "name": "sm/hic",
+          "n_gt": 86,
+          "recall": 0.5,
+          "precision": 0.6142857142857143,
+          "ap": 0.5329015851020813,
+          "ap_strict": 0.4416940212249756,
+          "window_class": false
+        },
+        {
+          "name": "sm/pc",
+          "n_gt": 83,
+          "recall": 0.4457831325301205,
+          "precision": 0.6065573770491803,
+          "ap": 0.4471586346626282,
+          "ap_strict": 0.2688864767551422,
+          "window_class": false
+        },
+        {
+          "name": "sm/sc",
+          "n_gt": 56,
+          "recall": 0.375,
+          "precision": 0.39622641509433965,
+          "ap": 0.22360418736934662,
+          "ap_strict": 0.13056674599647522,
+          "window_class": false
+        }
+      ]
+    },
+    {
+      "model": "frcnn_v3",
+      "threshold": 0.69,
+      "val": {
+        "threshold": 0.69,
+        "recall": 0.8064069606486058,
+        "precision": 0.7019536965315432,
+        "n_above": 11619,
+        "n_tp": 8156
+      },
+      "test": {
+        "threshold": 0.69,
+        "recall": 0.7807338292775186,
+        "precision": 0.6799165477105523,
+        "n_above": 9107,
+        "n_tp": 6192
+      },
+      "map_30": 0.5735252842954968,
+      "map_50": 0.4569823063262131,
+      "axes": {
+        "recall": 0.7933425797503467,
+        "precision": 0.6908971121115626,
+        "median_iou": 0.7683858275413513,
+        "recall_strict": 0.7156726768377254,
+        "class_correct": 0.9833121424030515,
+        "species_correct": 0.9912587412587412
+      },
+      "per_class": [
+        {
+          "name": "aa/gc",
+          "n_gt": 269,
+          "recall": 0.7509293680297398,
+          "precision": 0.5642458100558659,
+          "ap": 0.6605380773544312,
+          "ap_strict": 0.6284288167953491,
+          "window_class": false
+        },
+        {
+          "name": "aa/hm",
+          "n_gt": 44,
+          "recall": 0.5909090909090909,
+          "precision": 0.7878787878787878,
+          "ap": 0.6678339242935181,
+          "ap_strict": 0.6678339242935181,
+          "window_class": false
+        },
+        {
+          "name": "aa/sc",
+          "n_gt": 53,
+          "recall": 0.7924528301886793,
+          "precision": 0.5316455696202531,
+          "ap": 0.7284319996833801,
+          "ap_strict": 0.6653346419334412,
+          "window_class": false
+        },
+        {
+          "name": "ac/bc",
+          "n_gt": 828,
+          "recall": 0.8055555555555556,
+          "precision": 0.7562358276643991,
+          "ap": 0.8267834782600403,
+          "ap_strict": 0.6363255977630615,
+          "window_class": false
+        },
+        {
+          "name": "ac/chc",
+          "n_gt": 82,
+          "recall": 0.7317073170731707,
+          "precision": 0.46511627906976744,
+          "ap": 0.6761884689331055,
+          "ap_strict": 0.5891618728637695,
+          "window_class": false
+        },
+        {
+          "name": "ac/gc",
+          "n_gt": 56,
+          "recall": 0.30357142857142855,
+          "precision": 0.4722222222222222,
+          "ap": 0.2411944568157196,
+          "ap_strict": 0.04704294726252556,
+          "window_class": false
+        },
+        {
+          "name": "ac/sc",
+          "n_gt": 54,
+          "recall": 0.3333333333333333,
+          "precision": 0.3829787234042553,
+          "ap": 0.24203988909721375,
+          "ap_strict": 0.1933802366256714,
+          "window_class": false
+        },
+        {
+          "name": "as/bc",
+          "n_gt": 647,
+          "recall": 0.5425038639876353,
+          "precision": 0.6647727272727273,
+          "ap": 0.6383175849914551,
+          "ap_strict": 0.49352866411209106,
+          "window_class": false
+        },
+        {
+          "name": "as/hc",
+          "n_gt": 2021,
+          "recall": 0.9802078179119248,
+          "precision": 0.8007275666936136,
+          "ap": 0.9353233575820923,
+          "ap_strict": 0.8932023048400879,
+          "window_class": true
+        },
+        {
+          "name": "lw/cs",
+          "n_gt": 779,
+          "recall": 0.8074454428754814,
+          "precision": 0.7305458768873403,
+          "ap": 0.8165804147720337,
+          "ap_strict": 0.7570449113845825,
+          "window_class": false
+        },
+        {
+          "name": "lw/sqc",
+          "n_gt": 52,
+          "recall": 0.8076923076923077,
+          "precision": 0.525,
+          "ap": 0.707602322101593,
+          "ap_strict": 0.4394632577896118,
+          "window_class": false
+        },
+        {
+          "name": "lw/ta",
+          "n_gt": 91,
+          "recall": 0.9010989010989011,
+          "precision": 0.5540540540540541,
+          "ap": 0.7297003269195557,
+          "ap_strict": 0.5840659737586975,
+          "window_class": false
+        },
+        {
+          "name": "lw/trino",
+          "n_gt": 216,
+          "recall": 0.5601851851851852,
+          "precision": 0.587378640776699,
+          "ap": 0.5828755497932434,
+          "ap_strict": 0.4314252734184265,
+          "window_class": false
+        },
+        {
+          "name": "lw/vc",
+          "n_gt": 40,
+          "recall": 0.9,
+          "precision": 0.34951456310679613,
+          "ap": 0.5821683406829834,
+          "ap_strict": 0.49242091178894043,
+          "window_class": false
+        },
+        {
+          "name": "pt/dc",
+          "n_gt": 567,
+          "recall": 0.9611992945326279,
+          "precision": 0.8790322580645161,
+          "ap": 0.9461585879325867,
+          "ap_strict": 0.8517783284187317,
+          "window_class": true
+        },
+        {
+          "name": "pt/sqc",
+          "n_gt": 138,
+          "recall": 0.9347826086956522,
+          "precision": 0.5443037974683544,
+          "ap": 0.6673679351806641,
+          "ap_strict": 0.4738655388355255,
+          "window_class": false
+        },
+        {
+          "name": "sb/pcc",
+          "n_gt": 100,
+          "recall": 0.63,
+          "precision": 0.6237623762376238,
+          "ap": 0.6599593162536621,
+          "ap_strict": 0.5061225295066833,
+          "window_class": false
+        },
+        {
+          "name": "sb/ppc",
+          "n_gt": 464,
+          "recall": 0.4331896551724138,
+          "precision": 0.49264705882352944,
+          "ap": 0.42106395959854126,
+          "ap_strict": 0.3591550886631012,
+          "window_class": false
+        },
+        {
+          "name": "sb/sc",
+          "n_gt": 37,
+          "recall": 0.4864864864864865,
+          "precision": 0.4864864864864865,
+          "ap": 0.4872957766056061,
+          "ap_strict": 0.29703962802886963,
+          "window_class": false
+        },
+        {
+          "name": "sb/spc",
+          "n_gt": 250,
+          "recall": 0.644,
+          "precision": 0.4653179190751445,
+          "ap": 0.5119372606277466,
+          "ap_strict": 0.37052634358406067,
+          "window_class": false
+        },
+        {
+          "name": "sm/cc",
+          "n_gt": 686,
+          "recall": 0.8454810495626822,
+          "precision": 0.6124604012671595,
+          "ap": 0.7492984533309937,
+          "ap_strict": 0.5662257075309753,
+          "window_class": false
+        },
+        {
+          "name": "sm/fs",
+          "n_gt": 232,
+          "recall": 0.5129310344827587,
+          "precision": 0.5833333333333334,
+          "ap": 0.4861232042312622,
+          "ap_strict": 0.41041967272758484,
+          "window_class": false
+        },
+        {
+          "name": "sm/hic",
+          "n_gt": 86,
+          "recall": 0.5,
+          "precision": 0.5443037974683544,
+          "ap": 0.5364700555801392,
+          "ap_strict": 0.48669084906578064,
+          "window_class": false
+        },
+        {
+          "name": "sm/pc",
+          "n_gt": 83,
+          "recall": 0.5783132530120482,
+          "precision": 0.42857142857142855,
+          "ap": 0.45531633496284485,
+          "ap_strict": 0.3189917206764221,
+          "window_class": false
+        },
+        {
+          "name": "sm/sc",
+          "n_gt": 56,
+          "recall": 0.19642857142857142,
+          "precision": 0.21153846153846154,
+          "ap": 0.1159944087266922,
+          "ap_strict": 0.09609893709421158,
+          "window_class": false
+        }
+      ]
+    },
+    {
+      "model": "yolo26s_v3",
+      "threshold": 0.11,
+      "val": {
+        "threshold": 0.11,
+        "recall": 0.836662052600356,
+        "precision": 0.7000330906684316,
+        "n_above": 12088,
+        "n_tp": 8462
+      },
+      "test": {
+        "threshold": 0.11,
+        "recall": 0.8107426554028496,
+        "precision": 0.6654936866073277,
+        "n_above": 9662,
+        "n_tp": 6430
+      },
+      "map_30": 0.6200790184995403,
+      "map_50": 0.5208118143288986,
+      "axes": {
+        "recall": 0.823477493380406,
+        "precision": 0.6759470089008487,
+        "median_iou": 0.7922903895378113,
+        "recall_strict": 0.7540032782751229,
+        "class_correct": 0.9814729750421068,
+        "species_correct": 0.9917317409278824
+      },
+      "per_class": [
+        {
+          "name": "aa/gc",
+          "n_gt": 269,
+          "recall": 0.8066914498141264,
+          "precision": 0.4854586129753915,
+          "ap": 0.6146170496940613,
+          "ap_strict": 0.5634012222290039,
+          "window_class": false
+        },
+        {
+          "name": "aa/hm",
+          "n_gt": 44,
+          "recall": 0.7954545454545454,
+          "precision": 0.7608695652173914,
+          "ap": 0.8092522621154785,
+          "ap_strict": 0.7786230444908142,
+          "window_class": false
+        },
+        {
+          "name": "aa/sc",
+          "n_gt": 53,
+          "recall": 0.7547169811320755,
+          "precision": 0.6896551724137931,
+          "ap": 0.6916912794113159,
+          "ap_strict": 0.5880153179168701,
+          "window_class": false
+        },
+        {
+          "name": "ac/bc",
+          "n_gt": 828,
+          "recall": 0.8200483091787439,
+          "precision": 0.7502762430939226,
+          "ap": 0.8400246500968933,
+          "ap_strict": 0.6983155608177185,
+          "window_class": false
+        },
+        {
+          "name": "ac/chc",
+          "n_gt": 82,
+          "recall": 0.7195121951219512,
+          "precision": 0.5673076923076923,
+          "ap": 0.6872285008430481,
+          "ap_strict": 0.6067482233047485,
+          "window_class": false
+        },
+        {
+          "name": "ac/gc",
+          "n_gt": 56,
+          "recall": 0.3392857142857143,
+          "precision": 0.59375,
+          "ap": 0.3970186114311218,
+          "ap_strict": 0.1544765681028366,
+          "window_class": false
+        },
+        {
+          "name": "ac/sc",
+          "n_gt": 54,
+          "recall": 0.3888888888888889,
+          "precision": 0.6774193548387096,
+          "ap": 0.4020146131515503,
+          "ap_strict": 0.3678511083126068,
+          "window_class": false
+        },
+        {
+          "name": "as/bc",
+          "n_gt": 647,
+          "recall": 0.616692426584235,
+          "precision": 0.6694630872483222,
+          "ap": 0.645679235458374,
+          "ap_strict": 0.486632764339447,
+          "window_class": false
+        },
+        {
+          "name": "as/hc",
+          "n_gt": 2021,
+          "recall": 0.9470559129143988,
+          "precision": 0.8307291666666666,
+          "ap": 0.9220771193504333,
+          "ap_strict": 0.8919862508773804,
+          "window_class": true
+        },
+        {
+          "name": "lw/cs",
+          "n_gt": 779,
+          "recall": 0.8125802310654685,
+          "precision": 0.7104377104377104,
+          "ap": 0.7892470955848694,
+          "ap_strict": 0.7375469207763672,
+          "window_class": false
+        },
+        {
+          "name": "lw/sqc",
+          "n_gt": 52,
+          "recall": 0.8653846153846154,
+          "precision": 0.6338028169014085,
+          "ap": 0.7908392548561096,
+          "ap_strict": 0.6797394156455994,
+          "window_class": false
+        },
+        {
+          "name": "lw/ta",
+          "n_gt": 91,
+          "recall": 0.8571428571428571,
+          "precision": 0.639344262295082,
+          "ap": 0.781180202960968,
+          "ap_strict": 0.6046962738037109,
+          "window_class": false
+        },
+        {
+          "name": "lw/trino",
+          "n_gt": 216,
+          "recall": 0.6481481481481481,
+          "precision": 0.4861111111111111,
+          "ap": 0.5733954310417175,
+          "ap_strict": 0.4829128682613373,
+          "window_class": false
+        },
+        {
+          "name": "lw/vc",
+          "n_gt": 40,
+          "recall": 0.8,
+          "precision": 0.4507042253521127,
+          "ap": 0.6429432034492493,
+          "ap_strict": 0.5894885063171387,
+          "window_class": false
+        },
+        {
+          "name": "pt/dc",
+          "n_gt": 567,
+          "recall": 0.9417989417989417,
+          "precision": 0.9050847457627119,
+          "ap": 0.9356223940849304,
+          "ap_strict": 0.8624906539916992,
+          "window_class": true
+        },
+        {
+          "name": "pt/sqc",
+          "n_gt": 138,
+          "recall": 0.9927536231884058,
+          "precision": 0.6715686274509803,
+          "ap": 0.8568193912506104,
+          "ap_strict": 0.6789630651473999,
+          "window_class": false
+        },
+        {
+          "name": "sb/pcc",
+          "n_gt": 100,
+          "recall": 0.71,
+          "precision": 0.5071428571428571,
+          "ap": 0.6203004717826843,
+          "ap_strict": 0.47857701778411865,
+          "window_class": false
+        },
+        {
+          "name": "sb/ppc",
+          "n_gt": 464,
+          "recall": 0.6918103448275862,
+          "precision": 0.41101152368758004,
+          "ap": 0.5254547595977783,
+          "ap_strict": 0.4647989869117737,
+          "window_class": false
+        },
+        {
+          "name": "sb/sc",
+          "n_gt": 37,
+          "recall": 0.6756756756756757,
+          "precision": 0.36764705882352944,
+          "ap": 0.44198116660118103,
+          "ap_strict": 0.43118295073509216,
+          "window_class": false
+        },
+        {
+          "name": "sb/spc",
+          "n_gt": 250,
+          "recall": 0.776,
+          "precision": 0.45539906103286387,
+          "ap": 0.6008576154708862,
+          "ap_strict": 0.5156480669975281,
+          "window_class": false
+        },
+        {
+          "name": "sm/cc",
+          "n_gt": 686,
+          "recall": 0.8469387755102041,
+          "precision": 0.5946775844421699,
+          "ap": 0.7231093645095825,
+          "ap_strict": 0.5633007287979126,
+          "window_class": false
+        },
+        {
+          "name": "sm/fs",
+          "n_gt": 232,
+          "recall": 0.625,
+          "precision": 0.5253623188405797,
+          "ap": 0.5284297466278076,
+          "ap_strict": 0.4957658648490906,
+          "window_class": false
+        },
+        {
+          "name": "sm/hic",
+          "n_gt": 86,
+          "recall": 0.5930232558139535,
+          "precision": 0.5483870967741935,
+          "ap": 0.5511987209320068,
+          "ap_strict": 0.5006594657897949,
+          "window_class": false
+        },
+        {
+          "name": "sm/pc",
+          "n_gt": 83,
+          "recall": 0.5180722891566265,
+          "precision": 0.41346153846153844,
+          "ap": 0.4662255346775055,
+          "ap_strict": 0.3636529743671417,
+          "window_class": false
+        },
+        {
+          "name": "sm/sc",
+          "n_gt": 56,
+          "recall": 0.30357142857142855,
+          "precision": 0.4594594594594595,
+          "ap": 0.28230926394462585,
+          "ap_strict": 0.1476748138666153,
+          "window_class": false
+        }
+      ]
+    },
+    {
+      "model": "rtdetr_l_v3",
+      "threshold": 0.39,
+      "val": {
+        "threshold": 0.39,
+        "recall": 0.8361676883527783,
+        "precision": 0.7027004570004155,
+        "n_above": 12035,
+        "n_tp": 8457
+      },
+      "test": {
+        "threshold": 0.39,
+        "recall": 0.8078426427940991,
+        "precision": 0.6727921873359236,
+        "n_above": 9523,
+        "n_tp": 6407
+      },
+      "map_30": 0.6012855917215347,
+      "map_50": 0.499064815433129,
+      "axes": {
+        "recall": 0.8172992056487202,
+        "precision": 0.6806678567678253,
+        "median_iou": 0.7967954874038696,
+        "recall_strict": 0.7473206405245241,
+        "class_correct": 0.9847269361308238,
+        "species_correct": 0.9962974390620178
+      },
+      "per_class": [
+        {
+          "name": "aa/gc",
+          "n_gt": 269,
+          "recall": 0.7434944237918215,
+          "precision": 0.5305039787798409,
+          "ap": 0.597058892250061,
+          "ap_strict": 0.5301340818405151,
+          "window_class": false
+        },
+        {
+          "name": "aa/hm",
+          "n_gt": 44,
+          "recall": 0.5681818181818182,
+          "precision": 0.8620689655172413,
+          "ap": 0.6738049983978271,
+          "ap_strict": 0.6728697419166565,
+          "window_class": false
+        },
+        {
+          "name": "aa/sc",
+          "n_gt": 53,
+          "recall": 0.7924528301886793,
+          "precision": 0.7368421052631579,
+          "ap": 0.792461097240448,
+          "ap_strict": 0.670177161693573,
+          "window_class": false
+        },
+        {
+          "name": "ac/bc",
+          "n_gt": 828,
+          "recall": 0.8478260869565217,
+          "precision": 0.7069486404833837,
+          "ap": 0.8201849460601807,
+          "ap_strict": 0.6958932280540466,
+          "window_class": false
+        },
+        {
+          "name": "ac/chc",
+          "n_gt": 82,
+          "recall": 0.7195121951219512,
+          "precision": 0.5784313725490197,
+          "ap": 0.6784951686859131,
+          "ap_strict": 0.5023683905601501,
+          "window_class": false
+        },
+        {
+          "name": "ac/gc",
+          "n_gt": 56,
+          "recall": 0.125,
+          "precision": 0.14893617021276595,
+          "ap": 0.16454213857650757,
+          "ap_strict": 0.07373163104057312,
+          "window_class": false
+        },
+        {
+          "name": "ac/sc",
+          "n_gt": 54,
+          "recall": 0.5,
+          "precision": 0.48214285714285715,
+          "ap": 0.44311773777008057,
+          "ap_strict": 0.34742385149002075,
+          "window_class": false
+        },
+        {
+          "name": "as/bc",
+          "n_gt": 647,
+          "recall": 0.5826893353941267,
+          "precision": 0.647766323024055,
+          "ap": 0.5959741473197937,
+          "ap_strict": 0.43762147426605225,
+          "window_class": false
+        },
+        {
+          "name": "as/hc",
+          "n_gt": 2021,
+          "recall": 0.9633844631370608,
+          "precision": 0.8032178217821783,
+          "ap": 0.9281930923461914,
+          "ap_strict": 0.8932380676269531,
+          "window_class": true
+        },
+        {
+          "name": "lw/cs",
+          "n_gt": 779,
+          "recall": 0.8664955070603337,
+          "precision": 0.7226980728051392,
+          "ap": 0.8367921710014343,
+          "ap_strict": 0.7869473695755005,
+          "window_class": false
+        },
+        {
+          "name": "lw/sqc",
+          "n_gt": 52,
+          "recall": 0.8269230769230769,
+          "precision": 0.6417910447761194,
+          "ap": 0.7461936473846436,
+          "ap_strict": 0.5837063193321228,
+          "window_class": false
+        },
+        {
+          "name": "lw/ta",
+          "n_gt": 91,
+          "recall": 0.9340659340659341,
+          "precision": 0.625,
+          "ap": 0.8366454839706421,
+          "ap_strict": 0.680665135383606,
+          "window_class": false
+        },
+        {
+          "name": "lw/trino",
+          "n_gt": 216,
+          "recall": 0.6712962962962963,
+          "precision": 0.5087719298245614,
+          "ap": 0.5912390351295471,
+          "ap_strict": 0.4122021794319153,
+          "window_class": false
+        },
+        {
+          "name": "lw/vc",
+          "n_gt": 40,
+          "recall": 0.7,
+          "precision": 0.32558139534883723,
+          "ap": 0.538256824016571,
+          "ap_strict": 0.45326873660087585,
+          "window_class": false
+        },
+        {
+          "name": "pt/dc",
+          "n_gt": 567,
+          "recall": 0.9382716049382716,
+          "precision": 0.9094017094017094,
+          "ap": 0.9427220225334167,
+          "ap_strict": 0.8564536571502686,
+          "window_class": true
+        },
+        {
+          "name": "pt/sqc",
+          "n_gt": 138,
+          "recall": 0.9420289855072463,
+          "precision": 0.6989247311827957,
+          "ap": 0.8335104584693909,
+          "ap_strict": 0.7384072542190552,
+          "window_class": false
+        },
+        {
+          "name": "sb/pcc",
+          "n_gt": 100,
+          "recall": 0.65,
+          "precision": 0.5752212389380531,
+          "ap": 0.5686023831367493,
+          "ap_strict": 0.47738516330718994,
+          "window_class": false
+        },
+        {
+          "name": "sb/ppc",
+          "n_gt": 464,
+          "recall": 0.603448275862069,
+          "precision": 0.45454545454545453,
+          "ap": 0.47473353147506714,
+          "ap_strict": 0.4270029067993164,
+          "window_class": false
+        },
+        {
+          "name": "sb/sc",
+          "n_gt": 37,
+          "recall": 0.5675675675675675,
+          "precision": 0.42857142857142855,
+          "ap": 0.44417864084243774,
+          "ap_strict": 0.41586172580718994,
+          "window_class": false
+        },
+        {
+          "name": "sb/spc",
+          "n_gt": 250,
+          "recall": 0.64,
+          "precision": 0.47619047619047616,
+          "ap": 0.5218529105186462,
+          "ap_strict": 0.3707845211029053,
+          "window_class": false
+        },
+        {
+          "name": "sm/cc",
+          "n_gt": 686,
+          "recall": 0.8498542274052479,
+          "precision": 0.6786961583236322,
+          "ap": 0.7871732115745544,
+          "ap_strict": 0.6010755896568298,
+          "window_class": false
+        },
+        {
+          "name": "sm/fs",
+          "n_gt": 232,
+          "recall": 0.6637931034482759,
+          "precision": 0.4265927977839335,
+          "ap": 0.5203814506530762,
+          "ap_strict": 0.4578901529312134,
+          "window_class": false
+        },
+        {
+          "name": "sm/hic",
+          "n_gt": 86,
+          "recall": 0.5813953488372093,
+          "precision": 0.5882352941176471,
+          "ap": 0.5458289384841919,
+          "ap_strict": 0.4585021734237671,
+          "window_class": false
+        },
+        {
+          "name": "sm/pc",
+          "n_gt": 83,
+          "recall": 0.6987951807228916,
+          "precision": 0.464,
+          "ap": 0.5756182074546814,
+          "ap_strict": 0.49399062991142273,
+          "window_class": false
+        },
+        {
+          "name": "sm/sc",
+          "n_gt": 56,
+          "recall": 0.21428571428571427,
+          "precision": 0.36363636363636365,
+          "ap": 0.2429225891828537,
+          "ap_strict": 0.1905813366174698,
+          "window_class": false
+        }
+      ]
+    }
+  ]
+}

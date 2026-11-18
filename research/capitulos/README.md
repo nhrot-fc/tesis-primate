@@ -110,10 +110,9 @@ la sección de limitaciones del capítulo, redactada.
    ningún capítulo de objetivo. Se mantiene **corto a propósito**, sin repetir
    las discusiones y sin cifras nuevas.
 
-El capítulo 7 está **bloqueado por el capítulo 6**: el veredicto sobre el
-objetivo general sale de RE3.2 (minutos por hora de audio, manual frente a
-asistido) y hasta tenerlo no se enuncia. Lo que falta está marcado con
-comentarios dentro del `.tex`, no con `\todo` visibles.
+El veredicto sobre el objetivo general sale de RE3.2 (minutos por hora de audio,
+manual frente a asistido). El 17-11-2026 el autor lo dejó en «Cumplido», con el
+corpus focal declarado como limitación.
 
 ## Figuras y tablas: cómo se colocan y cómo se titulan
 
@@ -145,8 +144,7 @@ Decisiones del 30-09-2026, sobre una lectura del PDF impreso:
 Desde la raíz del repositorio:
 
 ```bash
-make                # compila research/build/main.pdf y resume los avisos
-make BIB=apalike    # fuerza natbib + apalike aunque biber esté instalado
+make                # compila research/build/main.pdf y resume los avisos (necesita biber)
 make warnings       # vuelve a mostrar los avisos del último log
 ```
 
@@ -178,12 +176,12 @@ trabajar en un solo capítulo, descomenta el `\includeonly` de `main.tex`.
 
 > **06-10-2026.** Cambios en la compilación:
 >
-> - **APA 7.** Si `biber` está instalado, `make` usa biblatex-apa: APA 7 en
->   español, con «y» y los DOI como `https://doi.org/…`. Si no, natbib con
->   apalike, que no es APA 7. `main.tex` elige según `\usarbiber`, que define
->   el Makefile. Para activarlo: `sudo pacman -S biber`. La rama APA se probó
->   hasta la primera pasada (el preámbulo carga, también el español), pero
->   **no con biber**: la primera compilación con biber hay que revisarla.
+> - **APA 7** con biblatex-apa y biber: los DOI como `https://doi.org/…`. Desde el 17-11-2026,
+>   «&» entre los dos últimos autores en las citas entre paréntesis y en la lista (con la coma
+>   de APA), como el ejemplo de `Formato(2025).docx`; «y» en la cita narrativa del texto y «&»
+>   en la que va dentro de tablas y figuras (APA 8.17). Es lo que hace biblatex-apa por defecto.
+>   El 17-11-2026 se quitó la rama natbib + apalike, que no era APA 7: sin
+>   `biber` el documento no compila.
 > - **Auxiliares en `research/build/aux/`**, ignorada por git. El PDF se copia
 >   a `research/build/main.pdf` sólo si la compilación termina bien. Antes,
 >   pdflatex lo borraba al fallar, y las subcarpetas que exige `\include` con
@@ -191,28 +189,54 @@ trabajar en un solo capítulo, descomenta el `\includeonly` de `main.tex`.
 > - `make clean` ya no borra los PDF versionados.
 > - «Referencias» va antes de los anexos y entra en el índice (APA 7).
 
+> **17-11-2026. Redacción y limpieza.** Se partieron las oraciones encadenadas con «:» y
+> «;» (de 139 marcadas a 10, todas listas o ecuaciones). Las rutas, los *scripts* y las
+> funciones salieron de la prosa: solo quedan donde el IOV o el medio los nombra (RE1.2,
+> RE1.3, RE2.2, RE2.4, RE2.5) y en el protocolo de RE3.1. El resto del texto dice «el
+> programa de curación», «el de preparación», etc., y remite a `tab:donde` (cap. 5). Se
+> borraron la presentación al equipo, los cambios desde el E2, los reportes `RE_*`,
+> `unused.bib` y las notas que el PDF no usa; el Makefile ya no tiene `slides` ni
+> `cambios`, y sin biber el documento no compila.
+
+> **17-11-2026. Medios de verificación.** `research/medios_verificacion/generar.py` arma las once
+> carpetas del Anexo B, cada una con su `README.md` (medio e IOV copiados del cap. 1, sección del
+> documento, tabla elemento → archivo). Corre en local y en CPU; no necesita el servidor. Lee los
+> `valores.tex` y las `tablas/` de los caps. 4–6, los `.aux` (números de sección), las constantes de
+> curación, `runs/` (configuraciones, registros, volcados, puntos de operación, `best.pt`) y
+> `06_oe3_revision/team/`. RE1.2 sale de los volcados: sus 1 248/690/601 grabaciones y sus ventanas
+> coinciden con el cap. 4, y el registro de carga es el escaneo de Ultralytics (0 corruptas). El
+> `best.pt` local tiene el mismo SHA-256 que el de la versión v0.2.0. Sin nombres: la planilla de tiempos
+> pierde `notes` y `Observer`, y las personas van como A y B.
+
+> **17-11-2026. Cuadernos comprobados en local.** No hizo falta el servidor (que además no es
+> accesible desde aquí: el salto por `enterprise` pide contraseña). Los cuadernos de los caps. 1, 4,
+> 5 y 6 se corrieron hacia una carpeta aparte (`TESIS_SALIDAS`), con las cifras de servidor
+> conservadas, y todas las salidas (`valores.tex`, `tablas/`, `data/`, PNG) salen idénticas a las del
+> documento. Eso comprueba lo que se había corregido a mano: grabaciones únicas (cap. 1), destino de
+> los pares excluidos y par mayor elegible (cap. 4) y los controles (cap. 6). El desbalance en cajas
+> (cap. 4, celda de servidor) se comprobó con las cajas del volcado de entrenamiento: `as/hc` 6 933,
+> `sb/sc` 126, 55 veces, 11 clases bajo 300. El cap. 1 leía rutas del servidor en
+> `recording_durations.csv`; ahora las resuelve bajo el `data/raw/` local. `make medios` no cambió
+> nada.
+
 ## Qué está pendiente
 
-Cada `README.md` de capítulo termina con su propia lista. En grande:
+Esta es la **única lista de pendientes** del proyecto (17-11-2026). Los README de cada
+capítulo guardan la historia de lo resuelto, pero ya no llevan pendientes propios, y el
+`.tex` no lleva comentarios `PENDIENTE`. Lo que se resuelva se borra de aquí.
 
-- OE1 (cap. 4) está **redactado entero** (RE1.1–RE1.3 + discusión), con sus tres
-  reportes absorbidos.
-- OE2 (cap. 5) está **redactado entero** (RE2.1–RE2.5 + discusión), sobre la
-  comparación vigente `runs/comparacion/comparacion_modelos_v3`. Sus cinco
-  reportes están absorbidos.
-- OE3 (cap. 6) está **redactado entero** (15-11-2026) con las tareas 1 y 2 del equipo:
-  RE3.1–RE3.3 cumplidos. La sesión no muestra reducción del tiempo (asistida / manual =
-  1,04), y el capítulo lo explica con sus limitaciones (dos personas, sesión corta y densa).
-- Las conclusiones (cap. 7) están redactadas: OE1, OE2 y OE3 cumplidos; el objetivo
-  general, parcialmente cumplido.
-- **Falta `research/medios_verificacion/`**, que el Anexo B describe: ver
-  `09_anexo_medios/README.md`.
-- **Medios de verificación** (07-10-2026): `research/medios_verificacion/`
-  reúne, por capítulo y por RE, la evidencia de cada IOV que no cabe en el
-  documento, y el Anexo B la describe. `make medios` la regenera con su zip, que
-  se entrega con el PDF. Hay que volver a correrlo cada vez que se ejecuta el
-  cuaderno de los capítulos 4 o 5.
+### Datos que solo tiene el equipo
 
-`research/reportes/` ya solo conserva `RE_3-3` sin trasladar; los ocho de OE1 y
-OE2 están absorbidos y se pueden borrar. **Ojo:** `RE_2-1` y `RE_2-3` describen
-una comparación anterior y sus cifras ya no son válidas.
+- [ ] **Datos de campo y de esfuerzo del equipo** (opcional: el texto ya los declara como
+      faltantes). Son las horas grabadas y anotadas, los minutos de especialista por hora y
+      el tiempo disponible, que el problema central menciona y no cuantifica. También la
+      ganancia, la distancia al animal y el criterio con que se eligió lo que se anotó. El
+      equipo preguntó si se refieren a la Call Library o a la campaña reciente.
+
+### Antes de entregar el E3 (viernes 20-11)
+
+- [ ] **Hacer commit y push** de todo lo del 17-11 (lo hace el autor). Nada tiene commit todavía.
+      Incluir `05_oe2_detector/figures/tablas/pares.tex`, que lo necesita el PDF, la carpeta
+      `research/medios_verificacion/` (la URL del Anexo B existe solo después del push) y los
+      borrados (`research/presentacion/`, `research/reportes/`, `unused.bib`, `docs/informes/` y
+      las notas sueltas de los caps. 4 y 5).
