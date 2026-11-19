@@ -141,7 +141,9 @@ Se enuncia así:
 % (fig:proceso) antes del problema seleccionado.
 % 19-11-2026. C3 se enuncia por lo que no se ha medido (acierto y ahorro de
 % una herramienta) y no por un error supuesto de las anotaciones. Las cajas
-% de las causas ya no llevan viñetas: repetían el texto de cada causa.
+% de las causas ya no llevan viñetas: repetían el texto de cada causa. C1
+% vuelve al enunciado del E2 (inconsistente y con segunda pasada), que incluye
+% la inconsistencia de criterio.
 % ===================================================================
 
 El árbol de problemas ordena en relaciones de causa y efecto el problema
@@ -195,8 +197,8 @@ desarrolla cada elemento con la evidencia que lo sostiene.
                 tiempo de especialista del que está disponible};
             % --- causas ---
             \node[causa] (c1) at (-4.5, 3.65)
-            {\textbf{C1.} Lo anotado sale con errores de registro que hay que
-                corregir a mano};
+            {\textbf{C1.} La anotación manual es inconsistente y exige una
+                segunda pasada del especialista};
             \node[causa] (c2) at (0, 3.65)
             {\textbf{C2.} Encontrar las vocalizaciones exige recorrer a mano la
                 grabación entera};
@@ -408,7 +410,8 @@ Cada causa se presenta con la evidencia que la sostiene, el camino por el que
 eleva el tiempo de especialista y la magnitud con que puede medirse, que es
 también la que usa el objetivo que la atiende para medir su aporte.
 
-\paragraph{C1: Lo anotado sale con errores de registro que hay que corregir a mano}
+\paragraph{C1: La anotación manual es inconsistente y exige una segunda pasada
+    del especialista}
 Para estas especies no hay un estándar de anotación compartido, más allá del
 manual interno del equipo \citep{proyecto8_manual_2025}, ni anotaciones previas de las que partir.
 La Tabla~\ref{tab:xenocanto} muestra lo segundo para Xeno-canto, el repositorio abierto de sonidos de fauna más utilizado: se buscó
@@ -475,19 +478,19 @@ sin ancho de banda
 (sección~\ref{sec:defectos}). El Capítulo~\ref{cap:curacion} cuenta el resto:
 \nSpeciesMismatch{} filas cuya especie escrita contradice la carpeta,
 \nEmptyCall{} cajas sin tipo de llamada y pares que no existen en el repertorio
-de la especie. Son errores de registro: una regla puede
-decidirlos sin volver a escuchar el audio. La parte de la inconsistencia que es
-de criterio es propia de la tarea y ninguna regla la resuelve; es una de las
-razones por las que estas anotaciones no bastan para validar un detector (causa
-C3).
+de la especie. Esa parte de la inconsistencia es de registro, y una regla puede
+decidirla sin volver a escuchar el audio. Otra parte es de criterio, propia de la
+tarea, y ninguna regla la resuelve: dónde empieza una llamada o si una sílaba es
+una unidad varía con quien anota (causa C3).
 
-C1 eleva el tiempo de especialista por el retrabajo: lo anotado no se usa tal
-como sale de la primera pasada, la coordinación del proyecto lo verifica y corrige
+C1 eleva el tiempo de especialista por la segunda pasada: lo anotado no se usa tal
+como sale de la primera, la coordinación del proyecto lo verifica y corrige
 (\cpEquipo), y ese tiempo se suma al de la anotación original. Parte de esa
-corrección es mecánica: corregir una grafía o descartar una caja vacía
-no exige conocer el repertorio. C1 se mide, por tanto, por los defectos que una
-regla puede resolver en el material recibido y por las anotaciones que quedan
-utilizables después de resolverlos.
+corrección es mecánica: corregir una grafía o descartar una caja vacía no exige
+conocer el repertorio. C1 se mide, por tanto, por los defectos que una regla
+puede resolver en el material recibido, por las anotaciones que quedan
+utilizables después de resolverlos y por las que solo puede decidir un
+especialista.
 
 \paragraph{C2: Encontrar las vocalizaciones exige recorrer a mano la grabación
     entera}
@@ -558,7 +561,7 @@ desplaza las cajas aun cuando el evento es el mismo \citep{zhu_sound_2025}.
 Repartir la anotación entre más personas, la respuesta habitual a la falta de
 tiempo (sección~\ref{sec:magnitud}), multiplica esos criterios. En el material de
 esta tesis, después de aplicar todas las reglas, \nReview{} anotaciones quedan
-para ese juicio (sección~\ref{sec:protocolo}). Por eso
+marcadas para ese juicio (sección~\ref{sec:protocolo}). Por eso
 \citet{leroy_reliability_2018} proponen un enfoque estandarizado para las
 anotaciones humanas y las detecciones automáticas, que incluya una descripción
 cuantitativa de su desempeño, y \citet{romero-mujalli_utilizing_2021}, al validar
@@ -896,19 +899,19 @@ OE2 es el sistema cuyo efecto sobre el trabajo del especialista mide OE3.
 \end{description}
 
 Cada objetivo específico responde a una causa del árbol, y su aporte se mide con
-la misma magnitud con que se mide esa causa. OE1 aporta también a C3, porque deja
-para el especialista solo lo que ninguna regla decide. OE3, en particular, produce
+la misma magnitud con que se mide esa causa. OE1 aporta también a C3, porque
+construye la referencia contra la que se mide la herramienta. OE3, en particular, produce
 las dos medidas que la causa C3 echa en falta.
 
-\rotulo{OE1 frente a C1.} La causa C1 es que lo anotado sale con errores de
-registro que hay que corregir a mano, sin un estándar ni conjuntos públicos de
-los que partir. Un \emph{protocolo de curación y estandarización} es un conjunto
+\rotulo{OE1 frente a C1.} La causa C1 es que la anotación manual es
+inconsistente y exige una segunda pasada del especialista, sin un estándar ni
+conjuntos públicos de los que partir. Un \emph{protocolo de curación y estandarización} es un conjunto
 documentado de reglas que corrige lo corregible sin volver a anotar el audio.
 Unifica la escritura de las etiquetas sobre un vocabulario cerrado de pares de
 especie y tipo de llamada, descarta el ruido y las cajas inválidas y deja registro
 de cada decisión. Lo que no puede corregirse con una regla, como el desacuerdo de
-criterio entre anotadores (causa C3) o el desbalance entre especies, lo separa y
-lo deja documentado. Así, la segunda pasada del especialista se limita a lo que
+criterio entre anotadores o el desbalance entre especies, lo separa y lo deja
+documentado. Así, la segunda pasada del especialista se limita a lo que
 ninguna regla puede decidir. Aplicarlo produce el conjunto de datos sobre el que
 trabajan OE2 y OE3. Su aporte se mide por las anotaciones que conserva, las clases
 con nombre único que resultan y las anotaciones que deja para el especialista.
@@ -1279,7 +1282,7 @@ y~\ref{sec:resultados}; la resume para que pueda leerse de un vistazo.
         \toprule
         \textbf{Elemento del árbol} & \textbf{Objetivo} & \textbf{Resultados} & \textbf{Aporte} & \textbf{Se mide con} \\
         \midrule
-        C1: errores de registro corregidos a mano & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado & Anotaciones conservadas, clases con nombre único, filas en revisión \\
+        C1: anotación inconsistente que exige una segunda pasada & OE1 & RE1.1 a RE1.3 & Conjunto curado, particionado y documentado & Anotaciones conservadas, clases con nombre único, filas en revisión \\
         \addlinespace
         C2: encontrar las vocalizaciones exige recorrer la grabación & OE2 & RE2.1 a RE2.5 & Detector que propone cajas en el formato de Raven & Vocalizaciones encontradas y propuestas por hora de audio \\
         \addlinespace
