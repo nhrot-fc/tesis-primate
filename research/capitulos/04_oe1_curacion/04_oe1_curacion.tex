@@ -496,8 +496,9 @@ margen más claro de mejora para una versión futura del detector.
 
 \rotulo{Saneamiento geométrico.} Las coordenadas de la caja se validan con
 independencia de la etiqueta. La frecuencia superior se \emph{recorta a Nyquist}
-(22\,050\,Hz). Por encima de la mitad de la frecuencia de muestreo no hay energía
-observable en una señal a 44,1\,kHz, así que un valor mayor (\nNyquist{} filas) es
+(22\,050\,Hz), la mitad de 44,1\,kHz, la frecuencia a la que se remuestrean
+también las pocas grabaciones a 48\,kHz (Tabla~\ref{tab:preproc}). Por encima de la mitad de la
+frecuencia de muestreo no hay energía observable en una señal a 44,1\,kHz, así que un valor mayor (\nNyquist{} filas) es
 un error de anotación. Se \emph{descartan las cajas degeneradas}, de duración
 inferior a 10\,ms o de ancho de banda nulo o negativo (\nDegenerate{} filas). Una
 caja sin área no define una región y no puede emparejarse con ninguna predicción.
@@ -792,6 +793,13 @@ solapadas de la misma anotación podían quedar una en entrenamiento y otra en
 prueba. Sobre esa partición el clasificador alcanzaba un 99\,\% de exactitud, una
 cifra que medía memorización.
 
+\rotulo{Proporción.} La partición busca llevar el \splitRatios{} de las cajas de
+cada clase a entrenamiento, validación y prueba. La proporción responde al
+desbalance de clases. Frente a repartos habituales como 70 / 15 / 15 o
+70 / 20 / 10, cede diez puntos del entrenamiento para que las clases escasas
+tengan ejemplos suficientes en las tres particiones, en especial en validación,
+donde se eligen el umbral y el \textit{checkpoint} de cada modelo.
+
 \rotulo{Algoritmo.} La asignación es golosa y estratificada por clase. La
 Figura~\ref{fig:reparto} la esquematiza y los pasos que siguen la detallan.
 
@@ -1057,7 +1065,7 @@ de torchaudio, con estos valores, lo reproduce.
         \toprule
         \textbf{Parámetro} & \textbf{Valor} & \textbf{Justificación} \\
         \midrule
-        Frecuencia de muestreo & 44\,100\,Hz & La de casi todas las grabaciones; las pocas que llegan a 48\,kHz se remuestrean al leerlas. Su mitad, 22\,050\,Hz, es el techo de Nyquist que fija el límite superior del rango de frecuencia \\
+        Frecuencia de muestreo & 44\,100\,Hz, un canal & La de casi todas las grabaciones; las pocas que llegan a 48\,kHz se remuestrean al leerlas, y las estéreo se leen como el promedio de sus dos canales. Su mitad, 22\,050\,Hz, es el techo de Nyquist que fija el límite superior del rango de frecuencia \\
         \addlinespace
         Ventana / salto & \clipLen{},0\,s / \clipHop{}\,s & Contiene entera a casi todas las clases; el costo es la fragmentación de las dos largas (Tabla~\ref{tab:ventaneo}) \\
         \addlinespace

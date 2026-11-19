@@ -139,6 +139,9 @@ Se enuncia así:
 % (referencia de calidad conocida y experimento de tiempo), que OE3 produce; la
 % entrada de la problemática describe el proceso del problema general
 % (fig:proceso) antes del problema seleccionado.
+% 19-11-2026. C3 se enuncia por lo que no se ha medido (acierto y ahorro de
+% una herramienta) y no por un error supuesto de las anotaciones. Las cajas
+% de las causas ya no llevan viñetas: repetían el texto de cada causa.
 % ===================================================================
 
 El árbol de problemas ordena en relaciones de causa y efecto el problema
@@ -167,8 +170,8 @@ desarrolla cada elemento con la evidencia que lo sostiene.
                         minimum height=15mm, inner sep=4pt,
                         execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
                 efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8, minimum height=19mm},
-                causa/.style={nodo, draw=azul!70, fill=azul!8, align=flush left,
-                        minimum height=47mm, anchor=north},
+                causa/.style={nodo, draw=azul!70, fill=azul!8,
+                        minimum height=27mm, anchor=north},
                 central/.style={nodo, draw=azul!80!black, fill=azul, text=white,
                         text width=129mm, minimum height=17mm},
                 sube/.style={-{Stealth[length=2.2mm]}, thick, draw=ambar!80!black},
@@ -192,24 +195,15 @@ desarrolla cada elemento con la evidencia que lo sostiene.
                 tiempo de especialista del que está disponible};
             % --- causas ---
             \node[causa] (c1) at (-4.5, 3.65)
-            {\textbf{C1.} Lo anotado sale con errores de registro que hay que corregir a mano\\[3pt]
-                {\scriptsize\textbullet\ sin un estándar ni un conjunto público
-                    para estas especies\\
-                    \textbullet\ grafías distintas, ruido y cajas inválidas\\
-                    \textbullet\ especie o tipo de llamada mal registrados}};
+            {\textbf{C1.} Lo anotado sale con errores de registro que hay que
+                corregir a mano};
             \node[causa] (c2) at (0, 3.65)
             {\textbf{C2.} Encontrar las vocalizaciones exige recorrer a mano la
-                grabación entera\\[3pt]
-                {\scriptsize\textbullet\ llamadas escasas, breves o tenues\\
-                    \textbullet\ el costo crece con las horas grabadas\\
-                    \textbullet\ las herramientas dan presencia, sin caja ni tipo}};
+                grabación entera};
             \node[causa] (c3) at (4.5, 3.65)
-            {\textbf{C3.} No se sabe cuánto se equivocan las anotaciones ni las propuestas, y por eso todo se revisa\\[3pt]
-                {\scriptsize\textbullet\ las anotaciones omiten llamadas y varían
-                    entre anotadores\\
-                    \textbullet\ una propuesta sin anotación: ¿omisión o error?\\
-                    \textbullet\ ningún experimento mide el ahorro en la anotación
-                    completa}};
+            {\textbf{C3.} No se ha medido cuánto acierta ni cuánto ahorra una
+                herramienta en esta anotación, y por eso todo lo que propone se
+                revisa};
             % --- flechas ---
             \foreach \c in {c1, c2, c3} {\draw[nace] (\c.north) -- (\c.north |- pc.south);}
             \foreach \e in {e1, e2, e3} {\draw[sube] (\e.south |- pc.north) -- (\e.south);}
@@ -218,13 +212,14 @@ desarrolla cada elemento con la evidencia que lo sostiene.
             \node[franja, text=ambar!80!black] at (-7.9, 7.9) {EFECTOS};
             \draw[azul!80!black, line width=1pt] (-7.5, 4.2) -- (-7.5, 6.0);
             \node[franja, text=azul!80!black] at (-7.9, 5.1) {PROBLEMA};
-            \draw[azul!70, line width=1pt] (-7.5, -1.1) -- (-7.5, 3.65);
-            \node[franja, text=azul!70] at (-7.9, 1.3) {CAUSAS};
+            \draw[azul!70, line width=1pt] (-7.5, 0.95) -- (-7.5, 3.65);
+            \node[franja, text=azul!70] at (-7.9, 2.3) {CAUSAS};
         \end{tikzpicture}}
 \end{figure}
 
-La figura se lee de abajo hacia arriba. Las tres causas parten del mismo hecho,
-que la anotación es manual, y confluyen en el problema central. Cada una está en
+La figura se lee de abajo hacia arriba. Las tres causas explican por qué la
+anotación sigue siendo manual, aunque la automatización exista en otros dominios,
+y confluyen en el problema central. Cada una está en
 una etapa distinta del proceso de la Figura~\ref{fig:proceso}: C2 en la búsqueda,
 C1 en lo que sale de la delimitación y el etiquetado, y C3 en la revisión. Ninguna
 se resuelve resolviendo otra. Del problema salen tres efectos, también
@@ -319,7 +314,7 @@ En total son \gRecordings{} grabaciones y \gHours{} horas. De ellas,
 \gAnnotated{} grabaciones (\gAnnotatedHours{} horas) tienen anotaciones, y las
 vocalizaciones anotadas ocupan \gEventMinutes{} minutos, el \gEventShare{}\,\% de
 lo grabado. La tabla cuenta archivos, y una misma grabación puede estar copiada
-byte a byte en la carpeta de otra especie (sección~\ref{sec:copias}). Sin las
+en la carpeta de otra especie (sección~\ref{sec:copias}). Sin las
 copias quedan \gUniqueRecordings{} grabaciones (\gUniqueHours{} horas), de las
 cuales \gUniqueAnnotated{} están anotadas (\gUniqueAnnotatedHours{} horas).
 
@@ -440,7 +435,7 @@ grabaciones en que figura en primer plano, es decir, como sujeto principal.
             \textit{Aotus azarae}                 & 3                  & 02:18          \\
             \textit{Cebus cuscinus}               & 0                  & N/D            \\
             \textit{Leontocebus weddelli}         & 0                  & N/D            \\
-            \textit{Sapajus apella macrocephalus} & 0                  & N/D            \\
+            \textit{Sapajus apella macrocephalus}\tnote{a} & 0      & N/D            \\
             \midrule
             \textbf{Total}                        & \textbf{32}        & \textbf{69:02} \\
             \bottomrule
@@ -451,6 +446,9 @@ grabaciones en que figura en primer plano, es decir, como sujeto principal.
             \citep{Willem-Pier_Vellinga_2026}, por el nombre científico de cada
             especie en el buscador del sitio, contando las grabaciones en que es
             la especie principal. Duración en minutos y segundos.
+            \item[a] Nombre con que se buscó, que trata a la especie como
+            subespecie de \textit{Sapajus apella}. El resto del documento la llama
+            \textit{Sapajus macrocephalus}.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -519,59 +517,63 @@ la fracción de las vocalizaciones que una herramienta encuentra y por cuántas
 propuestas obliga a revisar por hora de audio, que es la carga que reemplaza a la
 búsqueda.
 
-\paragraph{C3: No se sabe cuánto se equivocan las anotaciones ni las propuestas, y por eso todo se revisa}
-La tercera causa está en la revisión. Una propuesta automática ahorra trabajo
-solo si se sabe cuánto confiar en ella, y saberlo exige \emph{datos de
-    validación}: una referencia de calidad conocida contra la cual medir el error
-del detector, y experimentos que midan cuánto tiempo ahorra en la tarea real. Para
-estas especies no existe ninguno de los dos. Sin ellos, la única forma segura de
-usar una propuesta es revisarla, y revisarlo todo cuesta lo mismo que hacerlo de
-nuevo.
+\paragraph{C3: No se ha medido cuánto acierta ni cuánto ahorra una herramienta en
+    esta anotación, y por eso todo lo que propone se revisa}
+La tercera causa está en la revisión. El equipo espera de un detector que deje,
+tras la revisión manual, un historial de detecciones sin falsos positivos
+(\cpEquipo): todo lo que una herramienta proponga pasará por un especialista.
+Cuánto de esa revisión puede omitirse depende del desempeño que se mida en cada
+especie. \citet{kalan_towards_2015} midieron hasta qué punto había que depurar a
+mano la salida de un detector de primates, y la respuesta dependió de la especie:
+en algunas, la salida sin depurar ya bastaba para estimar la ocupación. Para estas
+especies y para la anotación con caja, especie y tipo de llamada, ese desempeño no
+se ha medido. Sin esa medida, la única forma segura de usar una propuesta es
+revisarla, y el tiempo de esa revisión se descuenta de lo que la herramienta
+ahorra.
 
-Las anotaciones del equipo no bastan como referencia, por dos razones. La primera
-es que su error tiene un componente de criterio que ninguna regla resuelve. La
-anotación manual es subjetiva y genera errores específicos de cada anotador
-\citep{nguyen_assessing_2021}. Para primates ese desacuerdo no se ha medido, pero
-sí en tareas equivalentes, que también consisten en delimitar eventos sobre el
-espectrograma y etiquetarlos. Al anotar llamadas de ballena azul, dos analistas
-coincidieron en menos del 50\,\% de los casos y un mismo analista varió entre sus
-propias anotaciones \citep{leroy_reliability_2018}. Con veinte anotadores por
-clip, las etiquetas varían tanto en el tipo de evento como en sus tiempos de
-inicio y fin \citep{koga_lead_2024}. La propia unidad acústica carece de una
-definición estable. Las unidades pueden anidarse unas dentro de otras, sus
+Las anotaciones del equipo no permiten medirlo, por cómo se hicieron. Se
+reunieron para una biblioteca de llamadas, y en cada grabación se anotó solo el
+primate focal (sección~\ref{sec:dominio}). La evaluación de un detector suele
+apoyarse en comparar su salida con una referencia anotada a mano
+\citep{leroy_reliability_2018}. Contra esta, una propuesta que no coincide con
+ninguna anotación puede ser una llamada que nadie anotó o un error del detector,
+y distinguir ambos casos exige el juicio de un especialista. Mientras eso no se
+haga, la precisión que se mide contra la referencia no es la del detector, y el
+especialista no tiene con qué decidir qué propuestas aceptar y cuáles revisar:
+las revisa todas.
+
+Ese juicio, además, no es único. La anotación manual es subjetiva y varía con
+quien la hace \citep{nguyen_assessing_2021}. Para primates ese desacuerdo no se ha
+medido, pero sí en tareas equivalentes, que también consisten en delimitar
+eventos sobre el espectrograma y etiquetarlos. Al anotar llamadas de ballena azul,
+dos analistas coincidieron en menos del 50\,\% de los casos y un mismo analista
+varió entre sus propias anotaciones \citep{leroy_reliability_2018}. Con veinte
+anotadores por clip, las etiquetas varían tanto en el tipo de evento como en sus
+tiempos de inicio y fin \citep{koga_lead_2024}. La propia unidad acústica carece
+de una definición estable. Las unidades pueden anidarse unas dentro de otras, sus
 definiciones varían entre investigadores y sus rasgos cambian de forma graduada,
 mientras que los métodos analíticos asumen categorías discretas
 \citep{kershenbaum_acoustic_2016}. Y la borrosidad de las fronteras de los eventos
 desplaza las cajas aun cuando el evento es el mismo \citep{zhu_sound_2025}.
 Repartir la anotación entre más personas, la respuesta habitual a la falta de
-tiempo (sección~\ref{sec:magnitud}), multiplica esos criterios, y el tiempo que se
-gana en volumen se pierde en revisión. Es la parte de la segunda pasada que solo
-puede decidir quien conoce el repertorio. En el material de esta tesis, después de
-aplicar todas las reglas, \nReview{} anotaciones siguen en esa situación
-(sección~\ref{sec:protocolo}).
-
-La segunda razón es que la referencia es incompleta. La evaluación de un
-detector suele apoyarse en comparar su salida con una referencia anotada a mano
-\citep{leroy_reliability_2018}, y en ella una vocalización real puede quedar sin
-caja. Una propuesta que no coincide con ninguna anotación puede ser, entonces, un
-error del detector o una omisión de la referencia, y distinguir ambos casos exige
-el juicio de un especialista. Mientras eso no se haga, la precisión que se mide
-contra la referencia no es la del detector, y el especialista no tiene con qué
-decidir qué propuestas aceptar y cuáles revisar: las revisa todas. Por eso
+tiempo (sección~\ref{sec:magnitud}), multiplica esos criterios. En el material de
+esta tesis, después de aplicar todas las reglas, \nReview{} anotaciones quedan
+para ese juicio (sección~\ref{sec:protocolo}). Por eso
 \citet{leroy_reliability_2018} proponen un enfoque estandarizado para las
 anotaciones humanas y las detecciones automáticas, que incluya una descripción
 cuantitativa de su desempeño, y \citet{romero-mujalli_utilizing_2021}, al validar
 un detector sobre vocalizaciones de un primate, proponen un procedimiento para
 evaluar otras herramientas bioacústicas.
 
-Falta, además, el experimento. Los ahorros de tiempo de la
-sección~\ref{sec:magnitud} se midieron al detectar una o pocas especies, y aun en
-ellos depurar los falsos positivos sigue siendo trabajo humano. Ninguno de los
-trabajos revisados mide el ahorro en la anotación completa, con caja, especie y
-tipo de llamada: los que entregan cajas tiempo--frecuencia reportan solo métricas
-del modelo \citep{escobar-amado_computer_2024,airale_nbm_2025,zhu_sound_2025}. C3
-se mide, por tanto, con los dos datos que faltan: la parte de las discrepancias
-con la referencia que un especialista atribuye al detector y la que atribuye a la
+Tampoco se ha medido cuánto ahorra una herramienta en esta tarea. Los ahorros de
+tiempo de la sección~\ref{sec:magnitud} se midieron al detectar una o pocas
+especies, y aun en ellos depurar los falsos positivos sigue siendo trabajo
+humano. Ninguno de los trabajos revisados mide el ahorro en la anotación
+completa, con caja, especie y tipo de llamada: los que entregan cajas
+tiempo--frecuencia reportan solo métricas del modelo
+\citep{escobar-amado_computer_2024,airale_nbm_2025,zhu_sound_2025}. C3 se mide,
+por tanto, con las dos medidas que faltan: la parte de las discrepancias con la
+referencia que un especialista atribuye al detector y la que atribuye a la
 referencia, y los minutos de revisión por hora de audio con y sin las propuestas
 del detector.
 
@@ -627,8 +629,8 @@ eso la tesis selecciona la anotación, tal como la enuncia el problema central d
 monitoreo acústico pasivo exige más tiempo de especialista del que está
 disponible. La aborda por sus tres causas, que tienen también una lectura en
 términos de investigación. Para este dominio no hay un estándar ni anotaciones
-limpias (C1), faltan herramientas que entreguen la anotación completa (C2) y
-faltan datos para medir el error y el ahorro de esas herramientas (C3). Esta
+limpias (C1), faltan herramientas que entreguen la anotación completa (C2) y no
+se ha medido cuánto aciertan ni cuánto ahorran esas herramientas (C3). Esta
 subsección justifica la selección en cuatro pasos: por qué el problema importa,
 qué soluciones existen según la forma de su salida, dónde está el vacío y qué
 parte de ese vacío aborda esta tesis. El vacío está en el cruce de dos ejes, el
@@ -894,8 +896,9 @@ OE2 es el sistema cuyo efecto sobre el trabajo del especialista mide OE3.
 \end{description}
 
 Cada objetivo específico responde a una causa del árbol, y su aporte se mide con
-la misma magnitud con que se mide esa causa. OE3, en particular, genera los datos
-de validación que la causa C3 echa en falta.
+la misma magnitud con que se mide esa causa. OE1 aporta también a C3, porque deja
+para el especialista solo lo que ninguna regla decide. OE3, en particular, produce
+las dos medidas que la causa C3 echa en falta.
 
 \rotulo{OE1 frente a C1.} La causa C1 es que lo anotado sale con errores de
 registro que hay que corregir a mano, sin un estándar ni conjuntos públicos de
@@ -923,13 +926,12 @@ aporta algo frente a lo que ya existe. Su aporte se mide por la fracción de las
 vocalizaciones anotadas que encuentra y por la carga de propuestas que genera por
 hora de audio.
 
-\rotulo{OE3 frente a C3.} La causa C3 es que no se sabe cuánto se equivocan las
-anotaciones ni las propuestas, porque faltan los datos para medirlo, y OE3 los
-produce con sus dos mitades. La revisión
-experta de una muestra de predicciones da la referencia que falta: separa los
-errores del detector de las vocalizaciones que la referencia omitió, y así mide
-el error real del sistema y la calidad de las anotaciones. La medición del tiempo
-de revisión da el experimento que falta: cronometra la revisión del mismo tipo de
+\rotulo{OE3 frente a C3.} La causa C3 es que no se ha medido cuánto acierta ni
+cuánto ahorra una herramienta en esta anotación, y OE3 mide las dos cosas con sus
+dos mitades. La revisión experta de una muestra de predicciones mide el acierto:
+separa los errores del detector de las llamadas que la referencia no tiene, y así
+da el error real del sistema y lo que le falta a la referencia. La medición del
+tiempo de revisión mide el ahorro: cronometra la revisión del mismo tipo de
 material con y sin las propuestas del detector. Como esa cifra está en la
 magnitud del problema central, es la que dice si el sistema alcanza en la
 práctica el fin del objetivo general.
@@ -984,8 +986,9 @@ lugar de descartarse.
 El conjunto (RE1.2) se entrega \emph{particionado}, es decir, dividido en tres
 subconjuntos sin elementos comunes. Con el de entrenamiento el modelo ajusta sus
 parámetros, con el de validación se eligen sus configuraciones, y el de prueba se
-reserva para medir el desempeño final. Las proporciones 60/22,5/17,5 indican el
-porcentaje del material que va a cada uno. La división se hace por archivo de
+reserva para medir el desempeño final. Las proporciones 60/22,5/17,5 son la
+fracción de las cajas de cada clase que se busca llevar a cada uno, repartiendo
+grabaciones enteras (sección~\ref{sec:particion}). La división se hace por archivo de
 grabación porque el modelo no recibe grabaciones enteras sino \emph{ventanas},
 fragmentos de 3\,s tomados cada 1,5\,s y por tanto solapados. Dos ventanas vecinas
 de una misma grabación son casi iguales, y repartirlas entre entrenamiento y
@@ -1088,9 +1091,9 @@ el equipo siga usando el sistema cuando la tesis termine.
 
 \subsubsection{OE3: Tiempo de revisión y análisis de errores}
 
-OE3 responde a la causa C3 con los datos de validación que faltan. Uno de ellos,
-el tiempo del especialista, mide además el efecto del sistema sobre el problema
-central. OE3 se compromete con tres productos: la metodología de la medición,
+OE3 responde a la causa C3 con las dos medidas que faltan, el acierto y el
+ahorro. La segunda, el tiempo del especialista, mide además el efecto del sistema
+sobre el problema central. OE3 se compromete con tres productos: la metodología de la medición,
 fijada antes de medir (RE3.1), la medición del tiempo de revisión (RE3.2) y el
 análisis de los errores (RE3.3). La Tabla~\ref{tab:iov-oe3} los detalla.
 
@@ -1111,9 +1114,9 @@ de referencia omitió. El \emph{ruido} es una predicción sobre un sonido que no
 una vocalización de las especies estudiadas. Un \emph{error de encuadre} es una
 vocalización correctamente detectada cuya caja no se ajusta a la anotada.
 
-RE3.2 y RE3.3 son los dos datos de validación de la causa C3: RE3.3 dice de qué
-están hechos los errores que el especialista corrige, y RE3.2 cuánto tiempo ahorra
-la asistencia, que es además la cifra que mide el fin del objetivo general. RE3.1
+RE3.3 y RE3.2 son las dos medidas que echa en falta la causa C3: RE3.3 dice cuánto
+acierta el sistema y de qué están hechos los errores que el especialista corrige,
+y RE3.2 cuánto tiempo ahorra la asistencia, que es además la cifra que mide el fin del objetivo general. RE3.1
 impide ajustar cualquiera de las dos mediciones al resultado.
 
 \rotulo{Aporte de RE3.1.} La metodología, redactada y fechada antes de ejecutar la
@@ -1280,7 +1283,7 @@ y~\ref{sec:resultados}; la resume para que pueda leerse de un vistazo.
         \addlinespace
         C2: encontrar las vocalizaciones exige recorrer la grabación & OE2 & RE2.1 a RE2.5 & Detector que propone cajas en el formato de Raven & Vocalizaciones encontradas y propuestas por hora de audio \\
         \addlinespace
-        C3: error de anotaciones y propuestas sin medir & OE3 & RE3.1 a RE3.3 & Muestra revisada por un especialista y sesión cronometrada & Discrepancias del detector frente a omisiones de la referencia; minutos por hora con y sin el sistema \\
+        C3: acierto y ahorro de una herramienta sin medir & OE3 & RE3.1 a RE3.3 & Muestra revisada por un especialista y sesión cronometrada & Discrepancias del detector frente a omisiones de la referencia; minutos por hora con y sin el sistema \\
         \midrule
         Problema central & OG & RE3.2 & Sistema de pre-anotación asistida & Minutos de revisión por hora de audio, con y sin el sistema \\
         \bottomrule
@@ -1434,7 +1437,10 @@ valor de la métrica principal definida en la Fase~5 o, si esta no las separa, d
 la secundaria, y si tampoco esta las separa, la más barata en inferencia. La
 partición de \emph{validación} elige el umbral de cada configuración, y la de
 prueba se mide una sola vez, con ese umbral; el Capítulo~\ref{cap:deteccion}
-comprueba que la regla aplicada en validación elige el mismo modelo. La implementación
+comprueba que la regla aplicada en validación elige el mismo modelo. La
+comparación pone a prueba una hipótesis de diseño: que la arquitectura propuesta,
+con su extractor preentrenado en audio, supera a las líneas base preentrenadas en
+imágenes. Se confirma si la propuesta queda primera según esa misma regla. La implementación
 se realiza en PyTorch con código modular, separando la definición de la
 arquitectura, el bucle de entrenamiento y las utilidades.
 

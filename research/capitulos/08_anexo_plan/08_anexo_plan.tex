@@ -86,43 +86,11 @@ procesamiento de grabaciones nuevas.
 \subsection{Entregables y criterios de aceptación}
 
 Los entregables son los resultados esperados enumerados en la
-sección~\ref{sec:resultados}. La Tabla~\ref{tab:aceptacion} recoge el criterio
-de aceptación de cada uno: la condición verificable que permite declararlo
-terminado.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Criterios de aceptación}
-    \label{tab:aceptacion}
-    \small
-    \begin{tabular}{@{}L{1.5cm}L{12.9cm}@{}}
-        \toprule
-        \textbf{Entreg.} & \textbf{Criterio de aceptación}                                                                                                                                                                                  \\
-        \midrule
-        RE1.1            & El protocolo define reglas de sintaxis para las etiquetas de especie y tipo de llamada, y especifica el tratamiento de errores, duplicados e inconsistencias de las anotaciones originales.                      \\
-        \addlinespace
-        RE1.2            & Todas las anotaciones del conjunto final cumplen las reglas de RE1.1, y se entrega un manifiesto con la asignación de cada archivo de grabación a una partición.                                                 \\
-        \addlinespace
-        RE1.3            & La ficha describe la estructura de directorios, incluye un diccionario de datos por columna y declara transformaciones, sesgos y limitaciones conocidas.                                                         \\
-        \addlinespace
-        RE2.1            & El documento justifica la arquitectura propuesta y la línea base a partir del estado del arte, y fija la configuración e hiperparámetros iniciales de ambas.                                                     \\
-        \addlinespace
-        RE2.2            & El \textit{pipeline} ejecuta el ciclo completo de entrenamiento, evaluación e inferencia, e incluye instrucciones de instalación y ejecución.                                                                    \\
-        \addlinespace
-        RE2.3            & El informe presenta las métricas de los tres ejes para la propuesta y la línea base, discute los resultados y concluye con una recomendación justificada.                                                        \\
-        \addlinespace
-        RE2.4            & Los pesos del modelo se cargan sin error y un script de demostración produce predicciones en el formato de tabla de selección de Raven sobre un clip de prueba.                                                  \\
-        \addlinespace
-        RE2.5            & El repositorio público contiene el código del \textit{pipeline}, los pesos del modelo final y las instrucciones para reproducir la inferencia.                                                                   \\
-        \addlinespace
-        RE3.1            & La metodología, fechada antes de la evaluación, especifica el subconjunto de prueba, el punto de operación elegido en validación y el umbral de IoU que define un verdadero positivo, fijados antes de medir, las métricas, el emparejamiento y el procedimiento de revisión de discrepancias. \\
-        \addlinespace
-        RE3.2            & Se reportan los minutos por hora de audio en condición manual y asistida sobre material comparable, con el orden de revisión declarado, y el tiempo de procesamiento del modelo por hora de audio.                                                  \\
-        \addlinespace
-        RE3.3            & El informe clasifica la muestra de predicciones de alta confianza en evento no anotado, ruido y error de encuadre, e incluye ejemplos sobre el espectrograma de aciertos, de errores comunes y de detecciones correctas ausentes de la referencia.  \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+sección~\ref{sec:resultados}. El criterio de aceptación de cada uno es su
+indicador objetivamente verificable, el de las Tablas~\ref{tab:iov-oe1},
+\ref{tab:iov-oe2} y~\ref{tab:iov-oe3}. Así un resultado se da por terminado con
+la misma condición con que lo verifican los
+Capítulos~\ref{cap:curacion}, \ref{cap:deteccion} y~\ref{cap:revision}.
 
 Los criterios de OE1 y OE2 se comprueban sobre artefactos del proyecto: archivos,
 código y modelo. Los de RE3.2 y RE3.3 exigen además una sesión con el equipo de
@@ -188,11 +156,11 @@ la contingencia si se concreta.
         \toprule
         \textbf{Riesgo} & \textbf{Síntomas} & \thead{Prob.} & \thead{Impacto} & \thead{Severidad} \\
         \midrule
-        R1. Calidad de los datos: anotaciones inconsistentes y audios dañados & Grafías distintas para una misma clase, pares fuera del repertorio, audios que no se leen o vienen vacíos & Baja & Media & 2 \\
+        R1. Calidad de los datos: anotaciones inconsistentes y audios dañados & Grafías distintas para una misma clase, pares fuera del repertorio, audios que no se leen o vienen vacíos & Alta & Media & 6 \\
         \addlinespace
         R2. Recursos de cómputo insuficientes & Corridas que no caben en la memoria de la GPU o que exceden el tiempo de cómputo disponible & Baja & Media & 2 \\
         \addlinespace
-        R3. Baja disponibilidad de revisores expertos para la validación & La sesión con el equipo no se agenda o se pospone; las respuestas llegan incompletas & Media & Baja & 2 \\
+        R3. Baja disponibilidad de revisores expertos para la validación & La sesión con el equipo no se agenda o se pospone; las respuestas llegan incompletas & Media & Alta & 6 \\
         \addlinespace
         R4. Falla del equipo de desarrollo & Fallos de disco, del sistema operativo o del hardware de la estación de trabajo & Alta & Media & 6 \\
         \addlinespace
@@ -232,8 +200,9 @@ la contingencia si se concreta.
 \end{table}
 
 El riesgo mayor es R7, el único con probabilidad e impacto altos (severidad 9),
-y el cronograma lo mitiga con holgura. R3 es el que expone a OE3: de la
-disponibilidad de los revisores dependen RE3.2 y RE3.3.
+y el cronograma lo mitiga con holgura. Le siguen R1, R3 y R4, con severidad 6.
+R1 se concretó desde el inicio: es la causa C1, y la atiende OE1. R3 es el que
+expone a OE3: de la disponibilidad de los revisores dependen RE3.2 y RE3.3.
 
 % Las dos tablas de riesgos salen antes de la EDT, junto a su texto.
 \clearpage
@@ -348,52 +317,52 @@ documento del curso anterior con su avance (24/08/26, semana 2), E2 el entregabl
 parcial (07/10/26, semana 8) y E3 el entregable final (23/11/26, semana 15), al
 que sigue la exposición final en las semanas 16 y 17. La
 Tabla~\ref{tab:cronograma} agrupa las tareas según la entrega para la que deben
-estar terminadas, con el resultado esperado al que contribuyen, sus fechas
-previstas y su estado a la fecha de E3.
+estar terminadas, con el paquete de la EDT al que pertenecen, el resultado
+esperado al que contribuyen, sus fechas previstas y su estado a la fecha de E3.
 
 \begin{table}[htbp]
     \centering
     \caption{Cronograma por entrega}
     \label{tab:cronograma}
     \footnotesize
-    \begin{tabular}{@{}lL{7.3cm}llll@{}}
+    \begin{tabular}{@{}llL{6.4cm}llll@{}}
         \toprule
-        \textbf{ID} & \textbf{Tarea} & \textbf{Resultado} & \textbf{Inicio} & \textbf{Fin} & \textbf{Estado} \\
+        \textbf{ID} & \textbf{EDT} & \textbf{Tarea} & \textbf{Resultado} & \textbf{Inicio} & \textbf{Fin} & \textbf{Estado} \\
         \midrule
-        \multicolumn{6}{@{}l}{\textbf{E1, 24/08/26 (semana 2): documento del curso anterior con su avance}} \\
+        \multicolumn{7}{@{}l}{\textbf{E1, 24/08/26 (semana 2): documento del curso anterior con su avance}} \\
         \addlinespace
-        0.1 & Protocolo de curación y estandarización & RE1.1 & \multicolumn{2}{l}{Tesis 1} & Completado \\
-        0.2 & Conjunto curado de las ocho especies & RE1.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
-        0.3 & División por archivo de grabación, sin fuga entre particiones & RE1.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
-        0.4 & Documentación del conjunto y análisis exploratorio & RE1.3 & \multicolumn{2}{l}{Tesis 1} & Completado \\
-        0.5 & \textit{Pipeline} de entrenamiento, evaluación e inferencia & RE2.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
-        0.6 & Modelo 1 entrenado y evaluado: AST con Deformable DETR & RE2.3 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.1 & 4.1 & Protocolo de curación y estandarización & RE1.1 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.2 & 4.2 & Conjunto curado de las ocho especies & RE1.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.3 & 4.2 & División por archivo de grabación, sin fuga entre particiones & RE1.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.4 & 4.4 & Documentación del conjunto y análisis exploratorio & RE1.3 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.5 & 5.2 & \textit{Pipeline} de entrenamiento, evaluación e inferencia & RE2.2 & \multicolumn{2}{l}{Tesis 1} & Completado \\
+        0.6 & 6.1 & Modelo 1 entrenado y evaluado: AST con Deformable DETR & RE2.3 & \multicolumn{2}{l}{Tesis 1} & Completado \\
         \midrule
-        \multicolumn{6}{@{}l}{\textbf{E2, 07/10/26 (semana 8): entregable parcial}} \\
+        \multicolumn{7}{@{}l}{\textbf{E2, 07/10/26 (semana 8): entregable parcial}} \\
         \addlinespace
-        1.1 & Manejo de eventos largos: ventana dual y solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & En parte \\
-        1.2 & Aumento de datos: desplazamiento temporal, ganancia, perturbación de cajas y mezcla & RE1.2 & 26/08 & 02/09 & Completado \\
-        1.3 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & En parte \\
-        1.4 & Reentrenamiento del modelo 1 con 1.1 a 1.3 & RE2.3 & 05/09 & 12/09 & Completado \\
-        2.1 & Selección y justificación de las arquitecturas & RE2.1 & 12/09 & 16/09 & Completado \\
-        2.2 & Modelo 2: YOLO26 sobre espectrogramas, detector de una etapa & RE2.3 & 16/09 & 28/09 & Completado \\
+        1.1 & 4.3 & Manejo de eventos largos: ventana dual y solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & En parte \\
+        1.2 & 4.3 & Aumento de datos: desplazamiento temporal, ganancia, perturbación de cajas y mezcla & RE1.2 & 26/08 & 02/09 & Completado \\
+        1.3 & 6.1 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & En parte \\
+        1.4 & 6.1 & Reentrenamiento del modelo 1 con 1.1 a 1.3 & RE2.3 & 05/09 & 12/09 & Completado \\
+        2.1 & 5.1 & Selección y justificación de las arquitecturas & RE2.1 & 12/09 & 16/09 & Completado \\
+        2.2 & 6.1 & Modelo 2: YOLO26 sobre espectrogramas, detector de una etapa & RE2.3 & 16/09 & 28/09 & Completado \\
         \midrule
-        \multicolumn{6}{@{}l}{\textbf{E3, 23/11/26 (semana 15): entregable final}} \\
+        \multicolumn{7}{@{}l}{\textbf{E3, 23/11/26 (semana 15): entregable final}} \\
         \addlinespace
-        2.3 & Modelo 3: Faster R-CNN con ResNet, línea base clásica & RE2.3 & 28/09 & 10/10 & Completado \\
-        2.4 & Informe comparativo de las arquitecturas & RE2.3 & 10/10 & 15/10 & Completado \\
-        2.5 & Selección y ajuste del modelo final & RE2.4 & 15/10 & 20/10 & Completado \\
-        2.6 & Publicación del código, los pesos y el exportador a Raven & RE2.5 & 20/10 & 22/10 & Completado \\
-        3.1 & Metodología de validación & RE3.1 & 22/10 & 25/10 & Completado \\
-        3.2 & Medición del tiempo de revisión manual y asistida & RE3.2 & 02/11 & 09/11 & Completado \\
-        3.3 & Análisis de errores y revisión experta de la muestra & RE3.3 & 09/11 & 14/11 & Completado \\
-        4.1 & Redacción del informe final & Cierre & 14/11 & 20/11 & En curso \\
+        2.3 & 6.1 & Modelo 3: Faster R-CNN con ResNet, línea base clásica & RE2.3 & 28/09 & 10/10 & Completado \\
+        2.4 & 6.1 & Informe comparativo de las arquitecturas & RE2.3 & 10/10 & 15/10 & Completado \\
+        2.5 & 6.2 & Selección y ajuste del modelo final & RE2.4 & 15/10 & 20/10 & Completado \\
+        2.6 & 5.3 & Publicación del código, los pesos y el exportador a Raven & RE2.5 & 20/10 & 22/10 & Completado \\
+        3.1 & 6.3 & Metodología de validación & RE3.1 & 22/10 & 25/10 & Completado \\
+        3.2 & 6.4 & Medición del tiempo de revisión manual y asistida & RE3.2 & 02/11 & 09/11 & Completado \\
+        3.3 & 6.5, 6.6 & Análisis de errores y revisión experta de la muestra & RE3.3 & 09/11 & 14/11 & Completado \\
+        4.1 & 8 & Redacción del informe final & Cierre & 14/11 & 20/11 & En curso \\
         \midrule
-        \multicolumn{6}{@{}l}{\textbf{Exposición final, semanas 16 y 17}} \\
+        \multicolumn{7}{@{}l}{\textbf{Exposición final, semanas 16 y 17}} \\
         \addlinespace
-        4.2 & Preparación de la exposición & Cierre & 26/11 & 30/11 & Pendiente \\
-        4.3 & Exposición final & Cierre & 30/11 & 01/12 & Pendiente \\
-        4.4 & Levantamiento de observaciones y versión final del documento & Cierre & 01/12 & 08/12 & Pendiente \\
+        4.2 & 8 & Preparación de la exposición & Cierre & 26/11 & 30/11 & Pendiente \\
+        4.3 & 8 & Exposición final & Cierre & 30/11 & 01/12 & Pendiente \\
+        4.4 & 8 & Levantamiento de observaciones y versión final del documento & Cierre & 01/12 & 08/12 & Pendiente \\
         \bottomrule
     \end{tabular}
 \end{table}

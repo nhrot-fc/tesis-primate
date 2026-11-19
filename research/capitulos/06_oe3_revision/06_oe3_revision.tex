@@ -450,8 +450,10 @@ de audio en \uCpuMinPerHour{} minutos de CPU, medidos sobre toda la partición d
 prueba, y en \uGpuMinPerHour{} minutos de GPU (sección~\ref{sec:costo-inferencia}),
 frente a los más de mil minutos por hora de audio que costó cualquiera de las dos
 condiciones. Sobre toda la partición de prueba entrega \uProposalsPerHour{} filas
-por hora de audio (\uProposalsPerHourBox{} sin las clases de ventana), y el
-\uAudioWithoutProposals{} del tiempo de audio queda sin ninguna propuesta. La
+por hora de audio (\uProposalsPerHourBox{} sin las clases de ventana), cubre
+\uRecallRows{} de las anotaciones de la referencia, y el
+\uAudioWithoutProposals{} del tiempo de audio queda sin ninguna propuesta
+(Tabla~\ref{tab:estimaciones}). La
 condición asistida de la sesión recibió \uSessionProposalsPerHour{} propuestas por
 hora de audio.
 
@@ -559,14 +561,17 @@ ordena las propuestas, aunque no separa las reales del ruido. Para las
 \uUnannotated{} filas de la partición de prueba (de \uUnannotatedLow{} a
 \uUnannotatedHigh{}), \uUnannotatedPerHour{} por hora de audio, sobre
 vocalizaciones que nadie anotó, frente a las \uRefTest{} anotaciones de la
-referencia en las mismas clases, \uRefPerHour{} por hora. El ruido es el
+referencia en las mismas clases, \uRefPerHour{} por hora
+(Tabla~\ref{tab:estimaciones}). El ruido es el
 \uNoneNoise{} restante (de \uNoneNoiseLow{} a \uNoneNoiseHigh{}), unas
 \uNoisePerHour{} filas por hora de audio.
 
 \rotulo{Caja distinta y otra llamada.} Donde el modelo y la referencia marcan la
 misma clase sin coincidir en la caja, el revisor juzgó mal puesta la caja del
-modelo en \uBoxModelFraming{} de los casos y bien puesta en \uBoxModelOk{}; en
-estos últimos, la que hay que corregir es la anotación. Donde el modelo propone
+modelo en \uBoxModelFraming{} de los casos y bien puesta en \uBoxModelOk{}. El
+protocolo lee estos últimos como anotación por corregir. Como el revisor no veía
+la anotación, la lectura es más débil: la caja del modelo es aceptable, y la
+anotación puede ser otro encuadre aceptable de la misma llamada. Donde el modelo propone
 otra clase sobre una llamada anotada, el revisor dio la razón a la referencia en
 \uLabelModelWrong{} de los casos y al modelo en \uLabelModelOk{}. La confusión
 depende de entre qué clases ocurre: \uLabelSameSpecies{} de esas \uLabelRows{}
@@ -597,9 +602,71 @@ del protocolo. Combina sus proporciones por estrato con el tamaño de cada estra
 aplica a los \uMatchRows{} aciertos lo que el revisor respondió en los controles y
 deja fuera las \uNotReviewed{} filas que no se revisaron.
 
+La Tabla~\ref{tab:estimaciones} reúne las cifras de esta sección que se llevan a
+toda la partición de prueba. Las acompaña la salida de la herramienta sobre esa
+misma partición (sección~\ref{sec:re32}).
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption{Lo que la revisión estima sobre la partición de prueba}
+        \label{tab:estimaciones}
+        \begin{tabular}{@{}L{9.6cm}r@{}}
+            \toprule
+            \textbf{Medida} & \textbf{Valor} \\
+            \midrule
+            \multicolumn{2}{@{}l}{\textit{Salida de la herramienta (\uTestRecordings{} grabaciones, \uTestHours{} horas)}} \\
+            Filas por hora de audio                                     & \uProposalsPerHour{} \\
+            Filas por hora de audio, sin las clases de ventana          & \uProposalsPerHourBox{} \\
+            Tiempo de audio sin ninguna propuesta                       & \uAudioWithoutProposals{} \\
+            Fracción de la referencia que alguna fila acierta           & \uRecallRows{} \\
+            Anotaciones de la referencia por hora de audio              & \uRefPerHour{} \\
+            \addlinespace
+            \multicolumn{2}{@{}l}{\textit{Filas nada anotado (\uNoneRows{})}} \\
+            Llamadas reales                                             & \uNoneReal{} (\uNoneRealLow{}--\uNoneRealHigh{}) \\
+            Llamadas reales, con confianza mayor que 0,7                & \uRealLastBin{} \\
+            Llamadas reales, con confianza de 0,11 a 0,2                & \uRealFirstBin{} \\
+            Eventos no anotados en la partición                         & \uUnannotated{} (\uUnannotatedLow{}--\uUnannotatedHigh{}) \\
+            Eventos no anotados por hora de audio                       & \uUnannotatedPerHour{} \\
+            Ruido                                                       & \uNoneNoise{} (\uNoneNoiseLow{}--\uNoneNoiseHigh{}) \\
+            Filas de ruido por hora de audio                            & \uNoisePerHour{} \\
+            \addlinespace
+            \multicolumn{2}{@{}l}{\textit{Filas que no aciertan (\uApparent{}), según el revisor}} \\
+            El modelo tenía razón                                       & \uApparentCorrect{} \\
+            Llamada real, con la caja mal puesta                        & \uApparentBox{} \\
+            Llamada real de otra clase                                  & \uApparentOther{} \\
+            Ninguna llamada de primate                                  & \uApparentNoise{} \\
+            \addlinespace
+            \multicolumn{2}{@{}l}{\textit{Precisión por fila}} \\
+            Contra la referencia                                        & \uPrecisionRef{} \\
+            Con el revisor, si se exigen la clase y la caja             & \uPrecisionStrict{} \\
+            Con el revisor, si basta la llamada de esa clase en la caja & \uPrecisionLenient{} \\
+            Con el revisor, si basta cualquier llamada de primate       & \uPrecisionCall{} \\
+            \addlinespace
+            \multicolumn{2}{@{}l}{\textit{Fuente del ruido (\uNoAnswers{} respuestas \code{no} revisadas)}} \\
+            Ave                                                         & \uNoBird{} \\
+            Ruido de fondo                                              & \uNoBackground{} \\
+            Insectos                                                    & \uNoInsect{} \\
+            Voces o ruidos humanos                                      & \uNoHuman{} \\
+            Cajas de ruido de \uNoiseTopClass{}, la clase con más ruido & \uNoiseTopK{} de \uNoiseTopN{} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Nota.} Entre paréntesis, intervalo al 95\,\% del
+            estimador estratificado. Las filas nada anotado y las que no aciertan
+            se llevan a su población con el peso de cada estrato. Las precisiones
+            con el revisor quedan fuera del protocolo. Fuente del ruido: según el
+            comentario del revisor; las respuestas sin descripción no figuran.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
 \subsection{Errores comunes}
 
-\rotulo{El ruido.} De las \uNoAnswers{} respuestas \code{no}, el comentario
+\rotulo{El ruido.} De las \uNoAnswers{} respuestas \code{no}
+(Tabla~\ref{tab:estimaciones}), el comentario
 describe un ave en \uNoBird{}, ruido de fondo en \uNoBackground{}, insectos en
 \uNoInsect{} y voces o ruidos humanos en \uNoHuman{}; el resto no lo describe. El
 ruido se concentra en pocas clases: \uNoiseTopClass{} aporta \uNoiseTopK{} de sus
@@ -738,7 +805,8 @@ propone, en parte por diseño, porque en cada grabación solo se anotó el prima
 focal (\cpEquipo). Y algunas de las que tiene están mal encuadradas o mal
 etiquetadas. Eso tiene dos consecuencias para el equipo. La primera es que las
 métricas del Capítulo~\ref{cap:deteccion}, medidas contra esa misma referencia,
-subestiman al modelo. La segunda es que no hace falta revisarlo todo por igual.
+subestiman la precisión del modelo, en una medida que acotan las limitaciones de
+la revisión. La segunda es que no hace falta revisarlo todo por igual.
 Las propuestas de alta confianza sin anotación son llamadas reales en
 \uNoneRealTop{} de los casos, y el ruido viene sobre todo de aves y de unas pocas
 clases. El especialista puede así decidir qué aceptar, qué revisar primero y qué
@@ -801,6 +869,11 @@ la temporada, y las confusiones de clase, del repertorio de cada especie.
           variación entre carpetas mayor que la diferencia entre condiciones. El
           tiempo por hora de audio no se extrapola a una grabación continua de PAM ni
           a una temporada.
+    \item \textbf{El revisor veía la clase propuesta.} Juzgar si la caja tiene
+          la llamada propuesta exige mostrarla, y eso puede inclinar al revisor a
+          confirmarla. El efecto recae sobre todo en la división entre
+          \code{correct} y \code{other}. Pesa menos en la cifra de llamada real
+          frente a ruido, que depende menos de qué clase se propuso.
     \item \textbf{Filas que no son llamadas distintas.} Una llamada con dos filas
           cuenta dos veces, y el revisor, que veía solo las cajas de la muestra, no
           podía notar un duplicado. Los eventos no anotados por hora son filas, no

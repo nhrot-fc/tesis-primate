@@ -17,7 +17,9 @@
 %
 % El veredicto del objetivo general se da por sus dos verbos. Su fin, la
 % reducción del tiempo de revisión experta, lo mide RE3.2 sin un valor
-% comprometido (capítulo 1, 17-11-2026). Las cifras de OE3 son las macros \u...
+% comprometido (capítulo 1, 17-11-2026), y no se demostró. Por eso la
+% sección final dice que el problema central se resuelve de forma parcial,
+% como pide la rúbrica del E3 (19-11-2026). Las cifras de OE3 son las macros \u...
 % del capítulo 6.
 % ===================================================================
 
@@ -37,8 +39,10 @@ Esa es la implicación principal del Capítulo~\ref{cap:deteccion}: la
 clasificación de especie y tipo de llamada resulta casi resuelta sobre los pares
 emparejados, en las cuatro configuraciones comparadas. Lo difícil resultó ser encontrar y encuadrar el evento, más que distinguir
 \nClasses{} clases con más de un orden de magnitud de desbalance. Para el equipo
-de investigación la consecuencia es concreta: lo que hay que corregir en una
-propuesta es casi siempre la caja, rara vez la etiqueta.
+de investigación la consecuencia es concreta: cuando una propuesta encuentra la
+llamada, lo que más a menudo hay que corregir es la caja. La etiqueta falla menos,
+y cuando falla suele confundir dos tipos de llamada de la misma especie
+(Capítulo~\ref{cap:revision}).
 
 La segunda implicación es metodológica. La regla de decisión se declaró antes de
 entrenar, y por eso el experimento pudo cerrarse con un resultado que no favorece
@@ -49,10 +53,11 @@ problema está resuelta y cuál no. Una sola cifra agregada habría escondido am
 cosas.
 
 La tercera implicación es la del Capítulo~\ref{cap:revision}, y tiene dos caras.
-La primera es que la referencia con que se mide el modelo es incompleta: de lo
-que esa referencia cuenta como error del modelo, solo una de cada cinco filas es
+La primera es que la referencia con que se mide el modelo es incompleta, en
+parte porque en cada grabación solo se anotó el primate focal: de lo que esa
+referencia cuenta como error del modelo, solo una de cada cinco filas es
 ruido, y las predicciones sin anotación son, en su mayoría, llamadas que nadie
-anotó. El error del sistema puede entonces leerse, separarse y usarse para
+anotó (Tabla~\ref{tab:estimaciones}). El error del sistema puede entonces leerse, separarse y usarse para
 decidir qué revisar. La segunda es que tener buenas propuestas no basta para
 ahorrar tiempo: en la sesión cronometrada, las personas que revisaron borraron
 dos de cada tres propuestas, incluidas muchas correctas, y el tiempo asistido
@@ -127,12 +132,13 @@ estas condiciones, no la hubo.
 
 \subsection{Cumplimiento del objetivo general}
 
-\rotulo{Cumplido.} El objetivo general compromete dos verbos y declara un fin. Los
-dos verbos se cumplen: el sistema se desarrolló (OE1 y OE2) y se evaluó (OE3).
-El fin, reducir el tiempo de revisión experta, es lo que la evaluación debía
-medir, sin un valor fijado de antemano (Capítulo~\ref{cap:generalidades}), y la
-medición no lo muestra: en la sesión cronometrada, la revisión asistida costó
-\uMinAssisted{} minutos por hora de audio y la manual \uMinManual{}.
+\rotulo{Cumplido en sus dos verbos.} El objetivo general compromete dos verbos y
+declara un fin. Los dos verbos se cumplen: el sistema se desarrolló (OE1 y OE2) y
+se evaluó (OE3). Su fin no se demostró en esta sesión. Reducir el tiempo de
+revisión experta es lo que la evaluación debía medir, sin un valor fijado de
+antemano (Capítulo~\ref{cap:generalidades}), y la medición no lo muestra. En la
+sesión cronometrada, la revisión asistida costó \uMinAssisted{} minutos por hora
+de audio y la manual \uMinManual{}.
 
 Las condiciones de esa medición limitan lo que puede concluirse en los dos
 sentidos (sección~\ref{sec:discusion-oe3}). La hicieron dos personas, y la
@@ -172,51 +178,65 @@ Contra la búsqueda manual de las vocalizaciones en la grabación entera
 que el equipo ya anota, y el analista las acepta, corrige o borra en su propia
 herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura: su
 punto de operación es el de mayor \textit{recall} que conserva un piso de
-precisión (sección~\ref{sec:objetivos}).
+precisión (sección~\ref{sec:objetivos}). Sobre las grabaciones de prueba
+completas, la herramienta cubre \uRecallRows{} de la referencia y deja sin
+ninguna propuesta el \uAudioWithoutProposals{} del tiempo de audio. A cambio,
+entrega \uProposalsPerHour{} filas por hora de audio, más del doble de las
+\uRefPerHour{} anotaciones por hora de la referencia
+(Tabla~\ref{tab:estimaciones}). Esa es la carga que reemplaza a la búsqueda.
 
-Contra el error sin medir de anotaciones y propuestas (C3) actúa OE3, que
-produce los datos para medirlo: la revisión ciega y la sesión cronometrada. La
-revisión ciega separa lo que es error del detector de lo que es omisión de la
-referencia, y lo cuantifica. Faltan en la referencia unas \uUnannotatedPerHour{}
+Contra la falta de una medida de cuánto acierta y cuánto ahorra una herramienta
+(C3) actúa OE3, que produce las dos. La revisión ciega mide el acierto: separa lo
+que es error del detector de lo que le falta a la referencia, y lo cuantifica. Faltan en la referencia unas \uUnannotatedPerHour{}
 llamadas por hora de audio que el modelo sí propone. La precisión pasa de
 \uPrecisionRef{} contra la referencia a entre \uPrecisionStrict{} y
 \uPrecisionLenient{} según el especialista, y el ruido se concentra en pocas
-fuentes. Con eso el especialista ya no necesita tratar todas las propuestas por
+fuentes (Tabla~\ref{tab:estimaciones}). Con eso el especialista ya no necesita tratar todas las propuestas por
 igual. Puede aceptar primero las de alta confianza, filtrar las clases ruidosas y
-revisar el resto, que es la decisión que C3 impedía tomar.
+revisar el resto, que es la decisión que C3 impedía tomar. La sesión
+cronometrada mide el ahorro, y por protocolo se hizo antes que la revisión de
+cajas. Quienes revisaron veían la confianza de cada propuesta, pero no sabían
+cuánto acierta el modelo a cada nivel de confianza. El ahorro se midió, por
+tanto, sin la medida del acierto que C3 echaba en falta.
 
-La propuesta se enfoca, entonces, en el problema central: cada causa del árbol 
-tiene un objetivo que la ataca, y el tercero mide el
-efecto sobre la magnitud del problema. Cuánto lo reduce es otra pregunta, y la
-medición de RE3.2 no la responde a favor: en esta sesión, el tiempo de
-especialista por hora de audio fue el mismo con el sistema que sin él. Por eso
+La propuesta se enfoca, entonces, en el problema central: cada causa del árbol
+tiene un objetivo que la ataca, y el tercero mide el efecto sobre la magnitud del
+problema. La solución resuelve el problema central de forma parcial.
+Actúa sobre sus tres causas, pero no demuestra que reduzca el tiempo de
+especialista, que es la magnitud en que se enunció el problema. En esta sesión,
+ese tiempo por hora de audio fue el mismo con el sistema que sin él. Además, todo
+se midió sobre grabaciones focales, y el problema está enunciado para las de
+monitoreo acústico pasivo. Por eso
 este capítulo no afirma que el caudal de anotación haya aumentado. Afirma que el
 sistema entrega propuestas en la forma que ese aumento requiere, que la mayoría
-de ellas son llamadas reales y que el especialista ahora puede saber cuáles, y
+de ellas son llamadas reales y cuánto acierta en cada tramo de confianza, y
 deja la medición del ahorro en las condiciones que la sesión no tuvo como el
-primer trabajo futuro.
+primer trabajo futuro. Los efectos E1 a E3 del árbol dependen de ese ahorro, y
+la tesis no los mide.
 
 \section{Trabajos futuros}
 
-Los trabajos futuros responden a las limitaciones declaradas en las discusiones
-de los capítulos de objetivo, y van ordenados por cuánto comprometen lo
-que aquí se afirma.
+Son los cinco trabajos que más comprometen lo que aquí se afirma, en ese orden.
+Responden a las limitaciones declaradas en las discusiones de los capítulos de
+objetivo.
 
 \begin{itemize}
     \item \textbf{Volver a medir el tiempo de revisión.} Es lo que más
           compromete la conclusión sobre el objetivo general. Una sola persona con
           experiencia en las especies, sobre grabaciones continuas y más largas, y
           registrando cuánto tiempo va a buscar, a dibujar y a borrar, diría si el
-          sistema ahorra tiempo y en qué parte del trabajo. La revisión de cajas
-          sugiere probar además otra forma de usarlo: aceptar primero las
+          sistema ahorra tiempo y en qué parte del trabajo. Esa medición puede
+          usar ya lo que midió la revisión de cajas: aceptar primero las
           propuestas de alta confianza, en lugar de juzgarlas todas una a una.
           Para estimar ocupación, la salida sin depurar ya da un indicador
           fiable en algunas especies \citep{kalan_towards_2015}.
-    \item \textbf{Llevar el sistema a las grabaciones de PAM.} El sistema se
-          entrenó y se evaluó con la biblioteca de llamadas focales del equipo, y su
-          fin es apoyar el PAM con grabadoras AudioMoth (\cpEquipo). Anotar una
-          muestra de esas grabaciones diría cuánto cae el desempeño fuera de las
-          grabaciones focales y permitiría afinar el modelo con ellas.
+    \item \textbf{Medir y mejorar el desempeño sobre grabaciones de PAM.} El
+          modelo ya procesa cualquier grabación, pero solo se midió sobre
+          grabaciones focales. En el PAM las llamadas llegan más lejanas y
+          débiles, la mayor parte del audio no tiene primates y aparecen otras
+          fuentes de ruido. Anotar una muestra de grabaciones AudioMoth del
+          equipo (\cpEquipo) diría cuánto cae el desempeño y permitiría afinar el
+          modelo con ellas.
     \item \textbf{Repartir por seguimiento y volver a entrenar.} Casi todas las
           grabaciones de prueba son del mismo día y especie que alguna de
           entrenamiento, y en las que no, el \textit{recall} baja
@@ -238,31 +258,4 @@ que aquí se afirma.
           del anotador incluir los armónicos \citep{proyecto8_guia_2025}. Las dos
           cosas darían datos más completos para entrenar y métricas más justas
           para evaluar.
-    \item \textbf{Un ciclo de mejora continua.} El modelo propone cajas sobre
-          grabaciones nuevas, el especialista las corrige en Raven, las tablas
-          corregidas entran al entrenamiento y el modelo se reentrena. Cada ronda
-          se mide contra una misma referencia revisada, para saber si mejora.
-          Elegir qué propuestas revisar primero, con aprendizaje activo, reduce el
-          costo de anotar \citep{kath_leveraging_2024} y permite que el modelo
-          aprenda de las correcciones del especialista
-          \citep{stowell_computational_2022}.
-    \item \textbf{Separar el extractor de la cabeza.} Dos variantes de la
-          propuesta lo harían: con el extractor congelado, y el mismo
-          decodificador sobre el ResNet-50 de COCO con la misma receta. El
-          código ya las admite. Sin ellas, la comparación entre configuraciones
-          no puede atribuir la diferencia a un componente.
-    \item \textbf{Reentrenar la propuesta con la receta de sus trabajos de
-              origen.} Una tasa de aprendizaje menor para el extractor y el factor de
-          0,1 de Deformable DETR en los desplazamientos, y medir cuánto pierde el
-          AST por recibir otro rango de bandas (sección~\ref{sec:discusion-oe2}).
-    \item \textbf{Reconstruir el evento largo.} Las clases de duración mayor que
-          la ventana sobreviven fragmentadas, sin ningún mecanismo que las
-          reagrupe antes de puntuarlas.
-    \item \textbf{Cubrir el nivel de frase.} Las clases de frase quedan fuera por
-          anidamiento jerárquico, y con ellas el nivel superior de la jerarquía
-          vocal.
-    \item \textbf{Cerrar el vocabulario con el equipo.} Los pares fuera de
-          vocabulario mezclan error tipográfico y subdivisión legítima, no figuran
-          en el vocabulario que el equipo documenta \citep{proyecto8_guia_2025}, y solo el equipo puede decir
-          cuáles son tipos de llamada.
 \end{itemize}
