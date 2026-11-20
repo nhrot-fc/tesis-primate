@@ -72,4 +72,5 @@ curation/*.bak
 
 # Auxiliares de la compilación (el Makefile copia el PDF a research/build/main.pdf)
 research/build/aux/
+research/build/presentacion/
 research/build/medios_verificacion.zip

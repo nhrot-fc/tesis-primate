@@ -623,7 +623,7 @@ Cada configuración se entrena con la receta de su \textit{preset}
 \citep{loshchilov_adamw_2019} con un programa OneCycle
 \citep{smith_superconvergence_2019}, recorte del gradiente y las mismas
 aumentaciones sobre el audio. Esas aumentaciones son la ganancia aleatoria, la
-mezcla de una ventana vacía a un SNR dado, el corrimiento temporal y el pegado de
+mezcla de una ventana vacía a una relación señal-ruido (SNR) dada, el corrimiento temporal y el pegado de
 llamadas de otras ventanas, además de un \textit{jitter} de las cajas objetivo.
 Los dos modelos de Ultralytics se entrenan con su propia herramienta y sus
 aumentaciones de imagen, restringidas como se dijo. \textbf{Las recetas no están
@@ -1218,8 +1218,8 @@ con las grabaciones del equipo de investigación.
 % ===================================================================
 
 \rotulo{Resultado.} La comparación de las cuatro configuraciones sobre la misma
-partición de prueba, con el mismo protocolo, separada en los tres ejes (
-detección, encuadre y clasificación) y con la selección del modelo justificada
+partición de prueba, con el mismo protocolo, separada en los tres ejes
+(detección, encuadre y clasificación) y con la selección del modelo justificada
 por la regla declarada en la sección~\ref{sec:protocolo-oe2}.
 
 \rotulo{Cómo se alcanzó.} Aplicando la Fase~5 de CRISP-DM
@@ -2090,8 +2090,8 @@ confianza, y se lo comparó con tres líneas base bajo un protocolo declarado an
 de correr el experimento. Sobre las \nWindowsTest{} ventanas de prueba, el modelo
 seleccionado recupera \rRecallYol{} de las \nBoxesTest{} cajas anotadas
 \rRecallCiYol{} con precisión \rPrecisionYol{}, al umbral que la validación
-eligió; como la métrica primaria no separa a las cuatro configuraciones, lo
-eligió la secundaria (sección~\ref{sec:seleccion-modelo}). De los \rDemoDetections{} resultados que produce sobre una
+eligió. Ninguna de las dos métricas lo separa de RT-DETR-L, y lo eligió el
+desempate por costo (sección~\ref{sec:seleccion-modelo}). De los \rDemoDetections{} resultados que produce sobre una
 grabación de \rDemoSeconds{} segundos, el sistema entrega una tabla que el
 analista abre en su propia herramienta.
 
@@ -2179,7 +2179,7 @@ diez veces más datos anotados, o con un programa de entrenamiento más largo pa
 la propuesta, el orden podría ser otro. Tampoco se generalizan los umbrales
 elegidos, que son propiedades de cada \textit{checkpoint} y no de la arquitectura.
 
-\rotulo{Limitaciones.} Siete, ordenadas por cuánto comprometen las conclusiones.
+\rotulo{Limitaciones.} Ocho, ordenadas por cuánto comprometen las conclusiones.
 
 \begin{enumerate}
     \item \textbf{No hay techo de evaluación.} No se midió el acuerdo entre

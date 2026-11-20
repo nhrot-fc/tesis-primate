@@ -1,0 +1,688 @@
+% Exposición final de la tesis. Poco texto por diapositiva y una figura de apoyo en
+% cada una. Las cifras de resultados salen de los valores.tex de los capítulos (macros
+% \n…, \r…, \u…) y, para dibujarlas, de datos.py (\D{nombre}).
+% Sólo lo que se hizo; las líneas de continuación van al respaldo.
+% Compilar con `make presentacion` desde la raíz del repositorio.
+\documentclass[aspectratio=169,10pt,t]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[sfdefault,lining]{FiraSans}
+\usepackage[scale=0.88]{FiraMono}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fontawesome5}
+\usepackage{qrcode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\pgfkeys{/pgf/number format/.cd, use comma, 1000 sep={\,}}
+
+\input{../estilos}
+\input{../capitulos/01_generalidades/figures/valores}
+\input{../capitulos/04_oe1_curacion/figures/valores}
+\input{../capitulos/05_oe2_detector/figures/valores}
+\input{../capitulos/06_oe3_revision/figures/valores}
+\input{../build/presentacion/datos}
+\newcommand{\D}[1]{\csname D:#1\endcsname}
+\newcommand{\DATOS}{../build/presentacion}
+
+\graphicspath{{../capitulos/01_generalidades/figures/}{../capitulos/04_oe1_curacion/figures/}
+    {../capitulos/05_oe2_detector/figures/}{../capitulos/06_oe3_revision/figures/}
+    {../figures/}{../../docs/manual/fig/}}
+
+% Colores: los de la tesis y sus figuras (estilos.tex), sobre fondo blanco.
+\definecolor{tinta}{HTML}{111827}
+\definecolor{suave}{HTML}{6B7280}
+\definecolor{linea}{HTML}{E5E7EB}
+\colorlet{ok}{verde!70!black}
+\setbeamercolor{normal text}{fg=tinta}
+\setbeamercolor{frametitle}{fg=tinta}
+\setbeamercolor{structure}{fg=azul}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}{\color{azul}\small$\bullet$}
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+% El título deja libre la esquina de la etiqueta del resultado esperado.
+\setbeamertemplate{frametitle}{\vspace*{5mm}\parbox{\dimexpr\textwidth-18mm}{\raggedright\insertframetitle}\par}
+
+% Pie: las seis partes de la exposición, con la actual resaltada.
+\newcommand{\parte}[2]{\ifnum\value{section}=#1{\color{azul}\bfseries #2}\else{\color{suave!70}#2}\fi}
+\newif\ifpie\piefalse
+\setbeamertemplate{footline}{%
+  \ifpie
+    \hspace*{9mm}{\scriptsize\parte{1}{Problema}\hspace{4mm}\parte{2}{Objetivos}\hspace{4mm}%
+      \parte{3}{OE1 · Datos}\hspace{4mm}\parte{4}{OE2 · Detector}\hspace{4mm}%
+      \parte{5}{OE3 · Evaluación}\hspace{4mm}\parte{6}{Cierre}}%
+    \hfill{\scriptsize\color{suave}\insertframenumber}\hspace*{9mm}\par\vspace*{3.5mm}%
+  \fi}
+
+% El resultado esperado de la diapositiva, arriba a la derecha.
+\newcommand{\re}[1]{\begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north east, fill=azul, text=white, rounded corners=2pt, inner sep=3pt,
+      font=\footnotesize\bfseries] at ([xshift=-9mm,yshift=-5.5mm]current page.north east) {#1};
+  \end{tikzpicture}}
+% Lo que pide su indicador, en una franja fija sobre el pie.
+\newcommand{\iov}[1]{\begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=south west, text width=142mm, inner sep=0pt, font=\footnotesize, align=left]
+      at ([xshift=9mm,yshift=9mm]current page.south west)
+      {\textcolor{ok}{\faCheckCircle\enspace\textbf{IOV}}\enspace #1};
+  \end{tikzpicture}}
+% Una cifra grande con su rótulo.
+\newcommand{\metrica}[3][azul]{\begin{minipage}[t]{30mm}\centering
+    {\fontsize{19}{21}\selectfont\bfseries\color{#1}#2}\\[0.8mm]
+    {\scriptsize\color{suave}#3}\end{minipage}}
+\newcommand{\chip}[2][azul]{{\setlength{\fboxsep}{2pt}\colorbox{#1!12}{\scriptsize\color{#1!80!black}#2}}}
+
+\tikzset{
+  sincorte/.style={execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  bloque/.style={caja, font=\footnotesize, text width=#1, sincorte},
+  bloque/.default=24mm,
+  manual/.style={bloque=18mm, draw=azul!70, fill=azul!8, minimum height=17mm},
+  automatica/.style={bloque=18mm, draw=gris!70, fill=gris!8, minimum height=17mm},
+  paso/.style={-{Stealth[length=2mm]}, thick, draw=black!50},
+}
+\pgfplotsset{cuadro/.style={legend image code/.code={\fill[##1] (0cm,-0.1cm) rectangle (0.3cm,0.1cm);}}}
+% Eje del gráfico de intervalos: recall de 0,74 a 0,85 en 5 cm
+\newcommand{\ejx}[1]{((#1)-0.74)/0.11*5}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+% Una llamada de la galería del capítulo 4
+\newcommand{\gal}[2]{\begin{minipage}[t]{22mm}\centering
+    \includegraphics[width=\linewidth]{galeria_#1.png}\\[-0.5mm]{\tiny\ttfamily #2}\end{minipage}\hspace{0.6mm}}
+
+\title{Pre-anotación asistida de vocalizaciones de primates amazónicos mediante cajas
+  tiempo--frecuencia}
+\author{Fernando Nelson Candia Aroni}
+
+\begin{document}
+
+% ===================================================================
+\begin{frame}[c]
+  \centering
+  \includegraphics[height=13mm]{pucp-logo.png}\par\vspace{7mm}
+  {\Large\bfseries\color{tinta}\inserttitle\par}\vspace{6mm}
+  {\normalsize Fernando Nelson Candia Aroni\par}\vspace{1mm}
+  {\small\color{suave}Asesor: Edwin Rafael Villanueva Talavera\par}\vspace{6mm}
+  {\scriptsize\color{suave}Tesis para obtener el título profesional de Ingeniero Informático
+    \textperiodcentered{} Exposición final \textperiodcentered{} 2026\par}
+\end{frame}
+\pietrue
+
+% ===================================================================
+\section{Problema}
+
+\begin{frame}{Grabar ya es automático; anotar sigue siendo manual}
+  \vspace{7mm}
+  \centering
+  \begin{tikzpicture}[node distance=3mm]
+    \node[automatica] (i) {\textbf{1. Instalación}\\[1pt]{\scriptsize grabadoras en el bosque}};
+    \node[automatica, right=of i] (g) {\textbf{2. Grabación}\\[1pt]{\scriptsize semanas o meses, sin intervención}};
+    \node[manual, right=of g] (b) {\textbf{3. Búsqueda}\\[1pt]{\scriptsize recorrer cada espectrograma}};
+    \node[manual, right=of b] (d) {\textbf{4. Anotación}\\[1pt]{\scriptsize caja, especie y tipo de llamada}};
+    \node[manual, right=of d] (r) {\textbf{5. Revisión}\\[1pt]{\scriptsize la coordinación verifica}};
+    \node[automatica, right=of r] (u) {\textbf{6. Uso}\\[1pt]{\scriptsize bibliotecas, detección, monitoreo}};
+    \foreach \a/\b in {i/g, g/b, b/d, d/r, r/u} \draw[paso] (\a) -- (\b);
+    \draw[decorate, decoration={brace, mirror, amplitude=5pt}, thick, azul]
+      ([yshift=-2mm]b.south west) -- ([yshift=-2mm]r.south east)
+      node[midway, below=7pt, font=\small\bfseries, azul] {manual: crece con cada hora grabada};
+  \end{tikzpicture}\par\vspace{11mm}
+  \begin{minipage}{0.84\textwidth}\centering\small
+    Una red de diez grabadoras acumula \textbf{7\,200 horas al mes}. Cada hora hay que
+    recorrerla, anotarla y revisarla con el tiempo de un especialista.
+  \end{minipage}
+\end{frame}
+
+\begin{frame}{Anotar es dibujar una caja y nombrar la llamada}
+  \vspace{3mm}
+  \centering
+  \includegraphics[height=50mm]{annotation_example.png}\par\vspace{3mm}
+  \chip{caja tiempo--frecuencia}\quad\chip{especie}\quad\chip{tipo de llamada}\par\vspace{2mm}
+  {\small\color{suave}Ocho especies del río Tambopata, en Raven Pro, el programa del equipo.\par}
+\end{frame}
+
+\begin{frame}{Problema central y sus tres causas}
+  \vspace{3mm}
+  \centering
+  \begin{tikzpicture}[
+      nodo/.style={caja, font=\footnotesize, text width=40mm, minimum height=13mm, sincorte},
+      efecto/.style={nodo, draw=ambar!80!black, fill=ambar!8},
+      causa/.style={nodo, draw=azul!70, fill=azul!8, minimum height=17mm},
+      central/.style={nodo, fill=azul, draw=azul, text=white, text width=133mm, minimum height=11mm},
+      sube/.style={-{Stealth[length=2mm]}, thick, draw=ambar!80!black},
+      nace/.style={-{Stealth[length=2mm]}, thick, draw=azul!70}]
+    \node[efecto] (e1) at (-4.6, 3.1) {\textbf{E1.} Los estudios llegan tarde: el audio se acumula sin analizar};
+    \node[efecto] (e2) at (0, 3.1) {\textbf{E2.} Los estudios cubren pocas especies y sus llamadas más evidentes};
+    \node[efecto] (e3) at (4.6, 3.1) {\textbf{E3.} El especialista anota en vez de interpretar};
+    \node[central] (pc) at (0, 1.25) {\textbf{Anotar las vocalizaciones de primates neotropicales en grabaciones de
+        monitoreo acústico pasivo exige más tiempo de especialista del que está disponible}};
+    \node[causa] (c1) at (-4.6, -0.75) {\textbf{C1.} La anotación manual es inconsistente y exige una
+        segunda pasada del especialista};
+    \node[causa] (c2) at (0, -0.75) {\textbf{C2.} Encontrar las vocalizaciones exige recorrer a mano la
+        grabación entera};
+    \node[causa] (c3) at (4.6, -0.75) {\textbf{C3.} No se ha medido cuánto acierta ni cuánto ahorra una
+        herramienta, y por eso todo se revisa};
+    \foreach \c in {c1, c2, c3} \draw[nace] (\c.north) -- (\c.north |- pc.south);
+    \foreach \e in {e1, e2, e3} \draw[sube] (\e.south |- pc.north) -- (\e.south);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Solo una caja reemplaza la anotación}
+  \vspace{1mm}
+  \centering
+  \includegraphics[height=60mm]{output_forms.png}
+\end{frame}
+
+\begin{frame}{El vacío: cajas para primates neotropicales}
+  \vspace{6mm}
+  \centering
+  \begin{tikzpicture}[
+      celda/.style={caja, font=\footnotesize, text width=45mm, minimum height=11mm},
+      fila/.style={font=\footnotesize\bfseries, text width=33mm, align=right}]
+    \node[font=\footnotesize\bfseries, text width=45mm, align=center] at (0, 2.0) {Presencia por segmento\\o intervalo temporal};
+    \node[font=\footnotesize\bfseries, text width=45mm, align=center] at (5.0, 2.0) {Caja tiempo--frecuencia\\con su etiqueta};
+    \node[fila] at (-4.9, 0.9) {Aves y otros taxones};
+    \node[celda] at (0, 0.9) {BirdNET \textperiodcentered{} lobos \textperiodcentered{} SEBB \textperiodcentered{} YOHO};
+    \node[celda] at (5.0, 0.9) {Aves migratorias \textperiodcentered{} foca barbuda};
+    \node[fila] at (-4.9, -0.45) {Primates fuera del Neotrópico};
+    \node[celda] at (0, -0.45) {Taï, Costa de Marfil \textperiodcentered{} langur};
+    \node[celda] at (5.0, -0.45) {Lémur ratón, en cautiverio};
+    \node[fila] at (-4.9, -1.8) {Primates neotropicales};
+    \node[celda] at (0, -1.8) {Monos aulladores};
+    \node[celda, fill=azul, draw=azul, text=white, font=\small\bfseries] at (5.0, -1.8) {Esta tesis};
+  \end{tikzpicture}\par\vspace{6mm}
+  {\small\color{suave}No hay un conjunto público con anotaciones tiempo--frecuencia para estas especies.\par}
+\end{frame}
+
+% ===================================================================
+\section{Objetivos}
+
+\begin{frame}{Un objetivo específico por causa}
+  \vspace{3mm}
+  \centering
+  \begin{tikzpicture}[
+      og/.style={caja, font=\footnotesize, text width=134mm, fill=azul, draw=azul, text=white, inner sep=5pt, sincorte},
+      oe/.style={caja, font=\footnotesize, text width=40mm, minimum height=17mm, draw=azul!70, fill=azul!8, sincorte},
+      cau/.style={caja, font=\scriptsize, text width=40mm, draw=gris!60, fill=gris!6, sincorte},
+      res/.style={font=\scriptsize\bfseries, text=azul!80!black},
+      sube/.style={-{Stealth[length=2mm]}, thick, draw=azul!60}]
+    \node[og] (og) at (0, 2.6) {\textbf{OG.} Desarrollar y evaluar un sistema de pre-anotación asistida que proponga
+      cajas tiempo--frecuencia con especie y tipo de llamada sobre grabaciones de PAM de primates
+      amazónicos, con el fin de reducir el tiempo de revisión experta.};
+    \node[oe] (o1) at (-4.75, 0.55) {\textbf{OE1.} Protocolo de curación y conjunto de datos consistente};
+    \node[oe] (o2) at (0, 0.55) {\textbf{OE2.} Detector de cajas con especie, tipo y confianza, frente a líneas base};
+    \node[oe] (o3) at (4.75, 0.55) {\textbf{OE3.} Tiempo de revisión y errores, con revisión experta};
+    \node[cau] at (-4.75, -1.15) {ataca \textbf{C1}: anotación inconsistente};
+    \node[cau] at (0, -1.15) {ataca \textbf{C2}: recorrer la grabación entera};
+    \node[cau] at (4.75, -1.15) {ataca \textbf{C3}: acierto y ahorro sin medir};
+    \node[res] at (-4.75, -1.95) {RE1.1 \textperiodcentered{} RE1.2 \textperiodcentered{} RE1.3};
+    \node[res] at (0, -1.95) {RE2.1 \textperiodcentered{} RE2.2 \textperiodcentered{} RE2.3 \textperiodcentered{} RE2.4 \textperiodcentered{} RE2.5};
+    \node[res] at (4.75, -1.95) {RE3.1 \textperiodcentered{} RE3.2 \textperiodcentered{} RE3.3};
+    \foreach \o in {o1, o2, o3} \draw[sube] (\o.north) -- (\o.north |- og.south);
+    \draw[paso, azul!60] (o1.east) -- (o2.west);
+    \draw[paso, azul!60] (o2.east) -- (o3.west);
+  \end{tikzpicture}\par\vspace{4mm}
+  {\small\color{suave}Once resultados esperados, cada uno con su medio de verificación y su indicador (IOV).\par}
+\end{frame}
+
+\begin{frame}{Método: CRISP-DM, con cada resultado en su fase}
+  \vspace{8mm}
+  \centering
+  \begin{tikzpicture}[
+      fase/.style={caja, font=\footnotesize, text width=20mm, minimum height=16mm, draw=azul!70, fill=azul!6, sincorte},
+      res/.style={font=\scriptsize\bfseries, text=azul!80!black, align=center, text width=20mm}]
+    \foreach \i/\t/\r [count=\k] in {
+        1/Comprensión de la investigación/Cap. 1,
+        2/Comprensión de los datos/RE1.3,
+        3/Preparación de datos/{RE1.1\\RE1.2},
+        4/Modelado/{RE2.1\\RE2.2},
+        5/Evaluación/{RE2.3\\RE3.1--RE3.3},
+        6/Despliegue/{RE2.4\\RE2.5}} {
+      \node[fase] (f\k) at (\k*2.35, 0) {\textbf{\i.}\\\t};
+      \node[res, below=2mm of f\k] {\r};
+    }
+    \foreach \a/\b in {1/2, 2/3, 3/4, 4/5, 5/6} \draw[paso] (f\a) -- (f\b);
+    \draw[paso, gris] (f6.north) -- ++(0, 5mm) -| (f1.north);
+  \end{tikzpicture}\par\vspace{9mm}
+  \chip[gris]{Python \textperiodcentered{} PyTorch}\quad\chip[gris]{Raven Pro}\quad
+  \chip[gris]{repositorio público con versiones}\quad\chip[gris]{cifras regeneradas por código}
+\end{frame}
+
+% ===================================================================
+\section{OE1}
+
+\begin{frame}{El material: la biblioteca de llamadas del equipo}
+  \vspace{4mm}
+  \centering
+  \metrica{\gRecordings}{grabaciones WAV}\hfill
+  \metrica{\gHours}{horas de audio}\hfill
+  \metrica{\nSpecies}{especies}\hfill
+  \metrica{\nRawRows}{filas anotadas a mano}\par\vspace{6mm}
+  \includegraphics[height=30mm]{tabla_raven_cruda.png}\par\vspace{3mm}
+  {\small\color{suave}Tablas de Raven tal como llegaron: \nRawSpeciesValues{} grafías de especie y
+    \nRawCallValues{} de tipo de llamada.\par}
+\end{frame}
+
+\begin{frame}{Un protocolo de siete reglas ordena el material}
+  \re{RE1.1}
+  \vspace{4mm}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{tikzpicture}[
+          antes/.style={caja, font=\small, text width=28mm, fill=rosa!10, draw=rosa!60!black, sincorte},
+          despues/.style={caja, font=\small, text width=28mm, fill=verde!12, draw=verde!60!black, sincorte},
+          etq/.style={font=\scriptsize, text=suave, anchor=south west}]
+        \foreach \y/\a/\b/\t in {
+            0/\nRawSpeciesValues{} grafías/\nSpecies{} especies/Especie,
+            -1.15/\nRawCallValues{} grafías/\nVocabCallValues{} códigos/Tipo de llamada,
+            -2.3/\nRawRows{} filas/\nAnnotationsCleaned{} anotaciones/Anotaciones} {
+          \node[antes] (a) at (0, \y) {\a};
+          \node[despues] (b) at (4.3, \y) {\b};
+          \draw[paso] (a) -- (b);
+          \node[etq] at ([yshift=0.5mm]a.north west) {\t};
+        }
+      \end{tikzpicture}\par\vspace{4mm}
+      {\small Se conserva el \textbf{\pctKept} de las filas. \nReview{} anotaciones quedan
+        \textbf{marcadas} para el especialista, no borradas.\par}
+    \end{column}
+    \begin{column}{0.41\textwidth}
+      \begin{tikzpicture}[regla/.style={caja, font=\scriptsize, text width=47mm, align=left,
+          draw=azul!50, fill=azul!5, minimum height=5mm, inner sep=2.5pt, sincorte}]
+        \foreach \t [count=\k] in {Normalización de columnas y etiquetas, Mapa de sinónimos,
+            Descarte de ruido, Descarte de cajas degeneradas, Corrección de pares imposibles,
+            Recorte al límite de Nyquist, Marca de registros fuera de vocabulario}
+          \node[regla] at (0, -\k*0.6) {\textcolor{ok}{\faCheck}\enspace\t};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+  \iov{El protocolo define las siete reglas que nombra el indicador.}
+\end{frame}
+
+\begin{frame}{Un conjunto particionado por grabación}
+  \re{RE1.2}
+  \vspace{3mm}
+  \centering
+  \metrica{\nClasses}{clases de especie y tipo}\hfill\metrica{\nWindows}{ventanas de \clipLen\,s}\hfill
+  \metrica{\nBoxes}{cajas anotadas}\hfill\metrica[ok]{0}{grabaciones compartidas entre particiones}\par\vspace{3mm}
+  \begin{tikzpicture}[seg/.style={minimum height=6mm, font=\scriptsize\bfseries, text=white, inner sep=0pt}]
+    \pgfmathsetmacro{\wa}{\D{splitRatiosA}*1.3}\pgfmathsetmacro{\wb}{\D{splitRatiosB}*1.3}\pgfmathsetmacro{\wc}{\D{splitRatiosC}*1.3}
+    \node[seg, fill=azul, minimum width=\wa mm, anchor=west] (a) at (0,0) {entrenamiento};
+    \node[seg, fill=celeste, minimum width=\wb mm, anchor=west] (b) at (a.east) {validación};
+    \node[seg, fill=ambar, minimum width=\wc mm, anchor=west] (c) at (b.east) {prueba};
+    \node[font=\scriptsize, text=suave, below=1mm] at (b.south) {\splitRatios{} de las cajas de cada clase, con grabaciones enteras};
+  \end{tikzpicture}\par\vspace{2mm}
+  \includegraphics[height=19mm]{ventana_densa.png}
+  \iov{Los archivos cargan sin error, \texttt{meta.json} registra semilla y exclusiones, y la partición es por grabación.}
+\end{frame}
+
+\begin{frame}{La ficha documenta cada clase del conjunto}
+  \re{RE1.3}
+  \vspace{4mm}
+  \centering
+  \gal{as_hc}{as/hc}\gal{ac_bc}{ac/bc}\gal{lw_cs}{lw/cs}\gal{sm_cc}{sm/cc}\gal{sb_ppc}{sb/ppc}\gal{pt_dc}{pt/dc}\par\vspace{2mm}
+  \includegraphics[width=0.42\textwidth]{galeria_leyenda.png}\par\vspace{5mm}
+  {\small Ocho especies, \nClasses{} clases, desbalance, diccionario de campos, ventaneo,
+    normalización y limitaciones conocidas, en una sola ficha.\par}
+  \iov{La ficha cubre los nueve elementos del indicador.}
+\end{frame}
+
+% ===================================================================
+\section{OE2}
+
+\begin{frame}{Arquitectura propuesta y tres líneas base}
+  \re{RE2.1}
+  \vspace{5mm}
+  \centering
+  \begin{tikzpicture}[node distance=4mm,
+      eta/.style={caja, font=\footnotesize, text width=21mm, minimum height=15mm, draw=azul!70, fill=azul!8, sincorte},
+      dat/.style={caja, font=\footnotesize, text width=21mm, minimum height=15mm, draw=gris!70, fill=gris!8, sincorte}]
+    \node[dat] (a) {Espectrograma log-mel\\{\scriptsize ventana de \clipLen\,s}};
+    \node[eta, right=of a] (b) {\textbf{AST}\\{\scriptsize \mAstLayers{} capas, preentrenado en audio}};
+    \node[eta, right=of b] (c) {Pirámide\\{\scriptsize \mLevels{} niveles}};
+    \node[eta, right=of c] (dd) {\textbf{Deformable DETR}\\{\scriptsize \mQueries{} consultas}};
+    \node[dat, right=of dd] (f) {Cajas\\{\scriptsize especie, tipo y confianza}};
+    \foreach \x/\y in {a/b, b/c, c/dd, dd/f} \draw[paso] (\x) -- (\y);
+  \end{tikzpicture}\par\vspace{7mm}
+  {\small\begin{tabular}{@{}lcccc@{}}
+    \toprule
+    & \textbf{Propuesta} & \multicolumn{3}{c}{\textbf{Líneas base}} \\
+    \cmidrule(lr){2-2}\cmidrule(l){3-5}
+    & AST-Def-DETR & Faster R-CNN & YOLO26s & RT-DETR-L \\
+    \midrule
+    Preentrenado en & audio y aves & imágenes (COCO) & imágenes (COCO) & imágenes (COCO) \\
+    Parámetros (M) & \cParamsDet & \cParamsFrc & \cParamsYol & \cParamsRtd \\
+    \bottomrule
+  \end{tabular}}\par\vspace{3mm}
+  {\small\color{suave}Mismos datos, partición, métricas y regla de decisión, fijados antes de entrenar.\par}
+  \iov{Arquitectura con todos sus hiperparámetros y comparación definida de antemano.}
+\end{frame}
+
+\begin{frame}{Un pipeline reproducible, de Raven a Raven}
+  \re{RE2.2}
+  \vspace{9mm}
+  \centering
+  \begin{tikzpicture}[node distance=3.5mm,
+      etp/.style={caja, font=\footnotesize, text width=17mm, minimum height=14mm, draw=azul!70, fill=azul!8, sincorte},
+      ext/.style={caja, font=\footnotesize, text width=17mm, minimum height=14mm, draw=gris!70, fill=gris!8, sincorte}]
+    \node[ext] (r) {Tablas de Raven\\{\scriptsize y audio}};
+    \node[etp, right=of r] (c) {Curar\\{\scriptsize RE1.1}};
+    \node[etp, right=of c] (pr) {Preparar\\{\scriptsize caché, RE1.2}};
+    \node[etp, right=of pr] (t) {Entrenar};
+    \node[etp, right=of t] (ev) {Evaluar\\{\scriptsize RE2.3}};
+    \node[ext, right=of ev] (o) {Detectar\\{\scriptsize tabla de Raven}};
+    \foreach \x/\y in {r/c, c/pr, pr/t, t/ev, ev/o} \draw[paso] (\x) -- (\y);
+  \end{tikzpicture}\par\vspace{9mm}
+  \metrica{9}{puntos de entrada}\hspace{12mm}\metrica{\cHoursTotal}{horas de GPU, las cuatro corridas}\hspace{12mm}\metrica[ok]{\faCheck}{entorno fijado en \texttt{uv.lock}}
+  \iov{Genera las particiones, entrena desde una configuración, evalúa un checkpoint e infiere sobre un WAV.}
+\end{frame}
+
+\begin{frame}{Cuatro configuraciones, el mismo protocolo de prueba}
+  \re{RE2.3}
+  \vspace{3mm}
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \foreach \v in {0.75, 0.80, 0.85} {
+      \draw[linea] ({\ejx{\v}}, 0.3) -- ({\ejx{\v}}, -3.1);
+      \node[font=\scriptsize, text=suave] at ({\ejx{\v}}, 0.55) {\pgfmathprintnumber[use comma, fixed, fixed zerofill, precision=2]{\v}};
+    }
+    \node[font=\scriptsize\bfseries, anchor=west] at (0, 1.05) {\textit{Recall} en prueba, con IC 95\,\%};
+    \node[font=\scriptsize\bfseries] at (6.7, 1.05) {mAP@0,3};
+    \node[font=\scriptsize\bfseries] at (8.5, 1.05) {Parám. (M)};
+    \node[font=\scriptsize\bfseries] at (10.3, 1.05) {GPU (min/h)};
+    \foreach \k/\nom/\c [count=\i] in {Yol/YOLO26s/azul, Rtd/RT-DETR-L/gris, Det/AST-Def-DETR/gris, Frc/Faster R-CNN/gris} {
+      \pgfmathsetmacro{\y}{-\i*0.75+0.1}
+      \node[anchor=east, font=\small\bfseries, text=\c] at (-0.2, \y) {\nom};
+      \draw[\c, line width=2.2pt] ({\ejx{\D{rRecallCi\k Lo}}}, \y) -- ({\ejx{\D{rRecallCi\k Hi}}}, \y);
+      \fill[\c!70!black] ({\ejx{\D{rRecall\k}}}, \y) circle (1.2mm);
+      \node[font=\small] at (6.7, \y) {\csname rMap\k\endcsname};
+      \node[font=\small] at (8.5, \y) {\csname cParams\k\endcsname};
+      \node[font=\small] at (10.3, \y) {\csname rGpuMin\k\endcsname};
+    }
+  \end{tikzpicture}\par\vspace{3mm}
+  {\small Seleccionado: \textbf{\rWinner}. Empata con RT-DETR-L en las dos métricas y es el más barato.\par}
+  \iov{\textit{Recall}, precisión, F1, IoU, AP a 0,25 y 0,5, por clase y matriz de confusión; selección justificada.}
+\end{frame}
+
+\begin{frame}{Lo difícil es encontrar y encuadrar, no nombrar}
+  \re{RE2.3}
+  \vspace{3mm}
+  \begin{columns}[T]
+    \begin{column}{0.44\textwidth}
+      \vspace{5mm}
+      \begin{tikzpicture}[eje/.style={font=\small\bfseries, anchor=west},
+          val/.style={font=\fontsize{20}{22}\selectfont\bfseries, anchor=east}]
+        \foreach \y/\t/\s/\v/\c in {
+            0/Detección/\textit{recall} en prueba/\rRecallYol/azul,
+            -1.5/Encuadre/IoU mediano de los aciertos/\rIouYol/azul,
+            -3.0/Clasificación/etiqueta correcta si se detectó/\rClassOkYol/ok} {
+          \node[eje] at (0, \y) {\t};
+          \node[font=\scriptsize, text=suave, anchor=west] at (0, \y-0.42) {\s};
+          \node[val, text=\c] at (5.6, \y-0.2) {\v};
+        }
+      \end{tikzpicture}\par\vspace{4mm}
+      {\small\color{suave}\rWinner. La especie se acierta en \rSpeciesOkYol{} de los pares.\par}
+    \end{column}
+    \begin{column}{0.52\textwidth}
+      \centering\includegraphics[height=56mm]{matriz_confusion.png}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Detecciones sobre ventanas de prueba}
+  \re{RE2.3}
+  \vspace{1mm}
+  \centering
+  \includegraphics[height=61mm]{detecciones_cualitativas.png}
+\end{frame}
+
+\begin{frame}{De un WAV a propuestas de anotación}
+  \re{RE2.4}
+  \vspace{3mm}
+  \centering
+  \includegraphics[width=0.96\textwidth]{demo_grabacion.png}\par\vspace{1mm}
+  {\small\textbf{\rDemoDetections{} detecciones} en una grabación de \rDemoSeconds\,s, con caja, especie,
+    tipo de llamada y confianza.\par}
+\end{frame}
+
+\begin{frame}{La tabla generada se abre en Raven}
+  \re{RE2.4}
+  \vspace{2mm}
+  \centering
+  \includegraphics[height=52mm]{raven_compatibility.png}
+  \iov{El checkpoint carga sin claves incompatibles y la inferencia produce la tabla de Raven.}
+\end{frame}
+
+\begin{frame}{Código, modelo y programa, públicos}
+  \re{RE2.5}
+  \vspace{5mm}
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      \centering\includegraphics[width=0.9\linewidth]{spectrogram.png}\par\vspace{1mm}
+      {\scriptsize\color{suave}El programa para Windows: abrir, detectar, revisar y guardar la tabla.\par}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \centering
+      \qrcode[height=22mm]{https://github.com/nhrot-fc/tesis-primate}\par\vspace{2mm}
+      {\scriptsize\ttfamily github.com/nhrot-fc/tesis-primate\par}\vspace{3mm}
+      \chip{v0.2.0 \textperiodcentered{} modelo final y su SHA-256}\par\vspace{1.5mm}
+      \chip{v0.3.0 \textperiodcentered{} programa portátil}
+    \end{column}
+  \end{columns}
+  \iov{La URL localiza el código, las instrucciones de ejecución y el modelo final.}
+\end{frame}
+
+% ===================================================================
+\section{OE3}
+
+\begin{frame}{La evaluación se fijó antes de medir}
+  \re{RE3.1}
+  \vspace{9mm}
+  \centering
+  \begin{tikzpicture}[
+      hito/.style={circle, fill=azul, minimum size=3mm, inner sep=0pt},
+      tarea/.style={caja, font=\footnotesize, text width=46mm, minimum height=17mm, draw=azul!70, fill=azul!6, sincorte}]
+    \draw[linea, line width=1.5pt] (0.4,0) -- (12.6,0);
+    \foreach \x/\f/\t in {1.5/10-10/Protocolo fijado en el repositorio, 6.5/11 a 13-11/Sesión cronometrada, 11.5/15-11/Revisión ciega devuelta} {
+      \node[hito] at (\x, 0) {};
+      \node[font=\small\bfseries, above=2mm] at (\x, 0) {\f};
+      \node[font=\scriptsize, text=suave, below=2mm, text width=30mm, align=center] at (\x, 0) {\t};
+    }
+    \node[tarea] at (3.3, -2.5) {\textbf{Tarea 1 \textperiodcentered{} RE3.2}\\[2pt]{\scriptsize \uSessionRecordings{} grabaciones de prueba en cuatro carpetas, manual y asistida}};
+    \node[tarea] at (9.7, -2.5) {\textbf{Tarea 2 \textperiodcentered{} RE3.3}\\[2pt]{\scriptsize \uItems{} cajas del modelo en seis estratos, juzgadas sin ver la referencia}};
+  \end{tikzpicture}
+  \iov{Subconjunto de prueba, punto de operación, IoU 0,3, métricas y protocolo de revisión, fijados antes de medir.}
+\end{frame}
+
+\begin{frame}{3 de cada 4 cajas sin anotación son llamadas reales}
+  \re{RE3.3}
+  \vspace{1mm}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[xbar stacked, width=104mm, height=47mm, bar width=3.6mm,
+        xmin=0, xmax=100, y dir=reverse, ytick={0,...,6},
+        yticklabels={{Sin anotación, confianza > 0,5}, {Sin anotación, 0,3--0,5},
+          {Sin anotación, 0,11--0,3}, {\textbf{Sin anotación, total}},
+          {Caja distinta}, {Otra llamada}, {Aciertos (control)}},
+        yticklabel style={font=\scriptsize}, xticklabel style={font=\scriptsize},
+        xlabel={\scriptsize \% de las cajas revisadas}, xlabel style={yshift=1mm},
+        axis line style={draw=none}, tick style={draw=none}, xmajorgrids, grid style={linea},
+        legend style={font=\scriptsize, draw=none, legend columns=4, at={(0.5,1.02)}, anchor=south}, cuadro]
+      \addplot[fill=verde!75!black, draw=white] table[x=correct, y=fila] {\DATOS/estratos.dat};
+      \addplot[fill=ambar, draw=white] table[x=box, y=fila] {\DATOS/estratos.dat};
+      \addplot[fill=celeste, draw=white] table[x=other, y=fila] {\DATOS/estratos.dat};
+      \addplot[fill=rosa, draw=white] table[x=no, y=fila] {\DATOS/estratos.dat};
+      \legend{la llamada propuesta, llamada con la caja mal puesta, otra llamada de primate, ninguna llamada}
+    \end{axis}
+  \end{tikzpicture}\par
+  {\small \uItems{} cajas revisadas. La referencia no tiene unas \textbf{\uUnannotatedPerHour{} llamadas por hora}
+    que el modelo sí propone.\par}
+  \iov{Clasifica la muestra en evento no anotado, ruido y error de encuadre, con ejemplos visuales.}
+\end{frame}
+
+\begin{frame}{Con el especialista, la precisión sube}
+  \re{RE3.3}
+  \vspace{4mm}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \begin{axis}[ybar, bar shift=0pt, width=82mm, height=56mm, bar width=11mm, ymin=0, ymax=1.12,
+            symbolic x coords={a,b,c,d}, xtick={a,b,c,d},
+            xticklabels={contra la\\referencia, clase\\y caja, llamada de\\esa clase, cualquier\\primate},
+            xticklabel style={font=\scriptsize, align=center}, yticklabel style={font=\scriptsize},
+            ytick={0,0.25,0.5,0.75,1}, ylabel={\scriptsize precisión por fila},
+            axis line style={draw=none}, tick style={draw=none},
+            ymajorgrids, grid style={linea}, enlarge x limits=0.18,
+            /pgf/number format/.cd, use comma,
+            /pgfplots/.cd, nodes near coords={\pgfmathprintnumber[fixed, fixed zerofill, precision=2]{\pgfplotspointmeta}},
+            every node near coord/.append style={font=\small\bfseries}]
+          \addplot[fill=gris!60, draw=none] coordinates {(a,\D{uPrecisionRef})};
+          \addplot[fill=azul!55, draw=none] coordinates {(b,\D{uPrecisionStrict})};
+          \addplot[fill=azul!75, draw=none] coordinates {(c,\D{uPrecisionLenient})};
+          \addplot[fill=azul, draw=none] coordinates {(d,\D{uPrecisionCall})};
+          \draw[decorate, decoration={brace, amplitude=4pt}, thick, azul]
+            ([xshift=-6mm]axis cs:b,0.98) -- ([xshift=6mm]axis cs:d,0.98)
+            node[midway, above=4pt, font=\scriptsize\bfseries, azul] {según el especialista};
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      {\small De lo que la referencia cuenta como error del modelo:\par}\vspace{3mm}
+      \begin{tikzpicture}[fx/.style={font=\small, anchor=west}, vx/.style={font=\small\bfseries, anchor=east}]
+        \foreach \y/\t/\v/\c in {0/el modelo tenía razón/\uApparentCorrect/ok, -0.6/{llamada, caja mal puesta}/\uApparentBox/ambar!90!black,
+            -1.2/llamada de otra clase/\uApparentOther/celeste!80!black, -1.8/ninguna llamada/\uApparentNoise/rosa!80!black} {
+          \node[fx] at (0, \y) {\t}; \node[vx, text=\c] at (4.9, \y) {\v};
+        }
+      \end{tikzpicture}\par\vspace{3mm}
+      {\small\color{suave}El ruido se concentra en pocas fuentes: aves y la clase \uNoiseTopClass.\par}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Seis categorías, sobre el espectrograma}
+  \re{RE3.3}
+  \vspace{1mm}
+  \centering
+  \includegraphics[height=61mm]{revision_ejemplos.png}
+\end{frame}
+
+\begin{frame}{El tiempo de revisión, medido con y sin el sistema}
+  \re{RE3.2}
+  \vspace{2mm}
+  \begin{columns}[c]
+    \begin{column}{0.58\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \begin{axis}[ybar, width=82mm, height=50mm, bar width=9mm, ymin=0,
+            xtick={1,2,3,4}, xticklabels={carpeta 1, carpeta 2, carpeta 3, carpeta 4},
+            xticklabel style={font=\scriptsize}, yticklabel style={font=\scriptsize},
+            ylabel={\scriptsize minutos por hora de audio}, axis line style={draw=none}, tick style={draw=none},
+            ymajorgrids, grid style={linea}, bar shift=0pt, unbounded coords=jump,
+            legend style={font=\scriptsize, draw=none, legend columns=2, at={(0.5,1.03)}, anchor=south}, cuadro,
+            nodes near coords, every node near coord/.append style={font=\scriptsize},
+            enlarge y limits={upper, value=0.15}, /pgf/number format/1000 sep={\,}]
+          \addplot[fill=azul!70, draw=none] table[x=carpeta, y=manual] {\DATOS/sesion.dat};
+          \addplot[fill=ambar, draw=none] table[x=carpeta, y=asistida] {\DATOS/sesion.dat};
+          \legend{manual, asistida}
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \centering
+      \metrica{\uMinManual}{min/h, manual}\hfill\metrica[ambar!90!black]{\uMinAssisted}{min/h, asistida}\par\vspace{3mm}
+      \metrica[gris]{\uCpuMinPerHour}{min de CPU del modelo por hora de audio}\par\vspace{2mm}
+      {\small\raggedright Con el mismo tiempo, las tablas asistidas cubrieron \uRecallAssisted{} de la
+        referencia, y las manuales \uRecallManual.\par}
+    \end{column}
+  \end{columns}
+  \iov{Minutos por hora de audio en las dos condiciones, orden declarado y costo del modelo por hora.}
+\end{frame}
+
+% ===================================================================
+\section{Cierre}
+
+\begin{frame}{Los once resultados esperados, verificados}
+  \vspace{6mm}
+  \centering
+  \begin{tikzpicture}[
+      hecho/.style={caja, font=\footnotesize, text width=40mm, minimum height=8.5mm, align=left,
+        draw=verde!60!black, fill=verde!8, sincorte},
+      grupo/.style={font=\small\bfseries, text=azul}]
+    \node[grupo] at (0, 0.85) {OE1 \textperiodcentered{} Datos};
+    \node[grupo] at (4.8, 0.85) {OE2 \textperiodcentered{} Detector};
+    \node[grupo] at (9.6, 0.85) {OE3 \textperiodcentered{} Evaluación};
+    \foreach \x/\y/\n/\t in {
+        0/0/RE1.1/Protocolo de curación, 0/-1/RE1.2/Conjunto particionado, 0/-2/RE1.3/Ficha del conjunto,
+        4.8/0/RE2.1/Diseño y líneas base, 4.8/-1/RE2.2/Pipeline reproducible, 4.8/-2/RE2.3/Informe comparativo,
+        4.8/-3/RE2.4/Modelo y tabla de Raven, 4.8/-4/RE2.5/Repositorio público,
+        9.6/0/RE3.1/Metodología fijada, 9.6/-1/RE3.2/Tiempo de revisión, 9.6/-2/RE3.3/Análisis de errores}
+      \node[hecho] at (\x, \y) {\textcolor{ok}{\faCheckCircle}\enspace\textbf{\n}\enspace\t};
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Conclusiones}
+  \vspace{6mm}
+  \begin{tikzpicture}[
+      icono/.style={circle, fill=azul, text=white, minimum size=11mm, font=\large},
+      texto/.style={text width=118mm, font=\small, anchor=west, sincorte}]
+    \foreach \y/\i/\t/\s in {
+        0/\faDatabase/Un conjunto acústico utilizable para ocho especies/{\nAnnotations{} anotaciones curadas, \nClasses{} clases, particionado y documentado.},
+        -1.6/\faVectorSquare/La detección de cajas tiempo--frecuencia es viable en este dominio/{\rWinner: \textit{recall} \rRecallYol; la etiqueta es correcta en \rClassOkYol{} de lo detectado.},
+        -3.2/\faSearch/La revisión experta separa el error del modelo del de la referencia/{Precisión por fila de \uPrecisionRef{} contra la referencia y de \uPrecisionStrict{} a \uPrecisionLenient{} según el especialista.}} {
+      \node[icono] (n) at (0, \y) {\i};
+      \node[texto] at ([xshift=5mm]n.east) {\textbf{\t}\\[1pt]{\color{suave}\s}};
+    }
+  \end{tikzpicture}\par\vspace{4mm}
+  {\small\textbf{Objetivo general:} el sistema se desarrolló (OE1, OE2) y se evaluó (OE3). Cada causa del
+    problema central tiene un objetivo que la ataca.\par}
+\end{frame}
+
+\begin{frame}[c]
+  \centering
+  {\fontsize{26}{30}\selectfont\bfseries Gracias\par}\vspace{8mm}
+  \qrcode[height=24mm]{https://github.com/nhrot-fc/tesis-primate}\par\vspace{3mm}
+  {\small\ttfamily github.com/nhrot-fc/tesis-primate\par}
+\end{frame}
+
+% ===================================================================
+\piefalse
+\section*{Respaldo}
+
+\begin{frame}{Respaldo: diferencias pareadas entre configuraciones}
+  \vspace{8mm}
+  \centering\scriptsize\setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{Prueba}} & \multicolumn{2}{c}{\textbf{Validación}} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+    \textbf{Pareja} & $\Delta$ \textit{recall} & $\Delta$ mAP@\pMatchIou & $\Delta$ \textit{recall} & $\Delta$ mAP@\pMatchIou \\
+    \midrule
+    \input{../capitulos/05_oe2_detector/figures/tablas/pares} \\
+    \bottomrule
+  \end{tabular}\par\vspace{5mm}
+  {\small\color{suave}Intervalo al 95\,\% con \pBootstrap{} remuestreos de grabaciones. En negrita, los que no contienen el cero.\par}
+\end{frame}
+
+\begin{frame}{Respaldo: configuraciones comparadas}
+  \vspace{8mm}
+  \centering\footnotesize
+  \begin{tabular}{@{}P{28mm}P{30mm}rP{20mm}P{32mm}@{}}
+    \toprule
+    \textbf{Configuración} & \textbf{Extractor} & \textbf{Parám. (M)} & \textbf{Preentrenado} & \textbf{Qué controla} \\
+    \midrule
+    \input{../capitulos/05_oe2_detector/figures/tablas/configuraciones} \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Respaldo: líneas de continuación}
+  \vspace{8mm}
+  \begin{itemize}\setlength{\itemsep}{4mm}
+    \item Medir el tiempo de revisión con una persona experta, sobre grabaciones continuas, aceptando primero las propuestas de alta confianza.
+    \item Medir y mejorar el desempeño sobre grabaciones AudioMoth del equipo.
+    \item Repartir por seguimiento de campo y volver a entrenar.
+    \item Medir el acuerdo entre anotadores.
+    \item Revisar en todo el corpus las propuestas de alta confianza sin anotación.
+  \end{itemize}
+\end{frame}
+
+\end{document}
