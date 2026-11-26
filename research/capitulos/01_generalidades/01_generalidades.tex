@@ -241,8 +241,8 @@ sigue con el problema central, sus causas y sus efectos.
 El material de esta tesis es la biblioteca de llamadas del equipo. El equipo
 graba a cada especie durante los seguimientos de los grupos
 \citep{wiredamazon_8primates}. Usa un micrófono montado en un plato parabólico,
-que amplifica las llamadas del primate al que se apunta y atenúa el fondo
-(\cpEquipo), o el teléfono, y guarda las grabaciones en archivos WAV, casi todos a
+que amplifica las llamadas del primate al que se apunta y atenúa el fondo, o el
+teléfono (\cpEquipo), y guarda las grabaciones en archivos WAV, casi todos a
 44,1\,kHz (sección~\ref{sec:recoleccion}). Son grabaciones focales, hechas para
 reunir llamadas claras de cada especie, y por eso distintas de las del PAM. El
 equipo las anotó con dos fines: reunir su biblioteca de llamadas de las ocho
@@ -358,9 +358,7 @@ análisis bioacústico de vocalizaciones se realiza sobre todo mediante la
 inspección manual de las grabaciones, un proceso muy subjetivo y que consume
 mucho tiempo \citep{romero-mujalli_utilizing_2021}, y más de la mitad de los
 estudios de PAM terrestre revisados por \citet{sugai_terrestrial_2019} analizó el
-audio a mano. \citet{romero-mujalli_utilizing_2021} lo resumen al señalar que hoy
-el factor que limita la investigación con vocalizaciones animales es el análisis
-de las grabaciones, y no la técnica para obtenerlas.
+audio a mano.
 
 El costo de esa revisión se hace visible cuando se mide lo que ahorra asistirla.
 Con detección automática, el análisis de un año de grabaciones del mono aullador
@@ -460,7 +458,7 @@ En total hay 32 grabaciones y poco más de una hora de audio; tres de las especi
 no tienen ninguna, y ninguna de las grabaciones disponibles incluye anotaciones
 tiempo--frecuencia. Una búsqueda posterior en Zenodo y en Dryad, el 16 de
 noviembre de 2026, con el nombre científico de cada especie entre comillas como
-consulta (por ejemplo, \code{"Alouatta sara"}), devuelve 75 y 3 registros,
+consulta (por ejemplo, \code{\textquotedbl{}Alouatta sara\textquotedbl{}}), devuelve 75 y 3 registros,
 ninguno con audio: son artículos, imágenes y
 datos de otros temas. Toda anotación de estas especies se hace, por tanto, a mano y
 desde cero, y el material del equipo de investigación es el único conjunto
@@ -475,7 +473,7 @@ de la coordinación anterior (\cpEquipo). No todas las cajas son ejemplos válid
 hay filas que seleccionan a propósito el fondo junto a cada llamada, con su misma
 banda, para estimar su relación señal-ruido \citep{proyecto8_manual_2025}, y cajas sin duración o
 sin ancho de banda
-(sección~\ref{sec:defectos}). El Capítulo~\ref{cap:curacion} cuenta el resto:
+(sección~\ref{sec:saneamiento}). El Capítulo~\ref{cap:curacion} cuenta el resto:
 \nSpeciesMismatch{} filas cuya especie escrita contradice la carpeta,
 \nEmptyCall{} cajas sin tipo de llamada y pares que no existen en el repertorio
 de la especie. Esa parte de la inconsistencia es de registro, y una regla puede
@@ -735,7 +733,7 @@ llamada \citep{romero-mujalli_utilizing_2021}.
 \subsubsection{Vacío}
 \label{sec:vacio}
 
-El vacío tiene dos ejes, el taxón y la forma de la salida, y esta tesis se ubica
+El vacío tiene dos ejes, el taxón y la tarea, y esta tesis se ubica
 en su cruce (Tabla~\ref{tab:vacio}).
 
 \begin{table}[htbp]
@@ -1104,8 +1102,8 @@ El \emph{punto de operación} (RE3.1) es la configuración con que se usa el
 detector. Tiene dos partes. La primera es el umbral de confianza por debajo del
 cual una propuesta no se muestra al revisor, que se elige en validación con la
 regla de la sección~\ref{sec:metodos}. La segunda es la supresión de no máximos
-(NMS): cuando varias propuestas se superponen por encima de un IoU de 0,3, conserva
-solo la de mayor confianza. Las dos \emph{condiciones} de RE3.2 son la manual, en
+(NMS): cuando varias propuestas de la misma clase se superponen por encima de un
+IoU de 0,3, conserva solo la de mayor confianza. Las dos \emph{condiciones} de RE3.2 son la manual, en
 la que el especialista anota desde cero, y la asistida, en la que revisa las
 propuestas del detector. El tiempo de cada una se expresa en minutos por hora de
 audio, para que materiales de distinta duración sean comparables. El \emph{orden
@@ -1382,7 +1380,7 @@ objetivos específicos y los capítulos de este documento.
             {\scriptsize\color{azul!80!black} OE2 \sep Cap.~5}};
         \node[dato, align=center, text width=28mm] (datos) at (0, 0)
         {\textbf{DATOS}\\[1pt]{\scriptsize \nRecordingsRaw{} grabaciones\\
-                \nKept{} anotaciones}};
+                \nAnnotationsCleaned{} anotaciones}};
         \foreach \a/\b in {f1/f2, f2/f3, f3/f4, f4/f5, f5/f6, f6/f1}
         \draw[ciclo] (\a) -- (\b);
     \end{tikzpicture}
@@ -1500,6 +1498,13 @@ presentar los resultados esperados de OE2 (sección~\ref{sec:resultados}).
         encuadre.                                                        &
         Encuadre                                                                                              \\
         \addlinespace
+        Contención (IoMin)                                               &
+        Intersección dividida por el área de la caja menor: vale 1 cuando una
+        caja contiene a la otra. Se reporta el \textit{recall} que acepta
+        también la contención (IoMin $\geq 0{,}8$) y la fracción de los pares
+        bajo IoU 0,5 que están contenidos.                               &
+        Diagnóstico del encuadre                                                                              \\
+        \addlinespace
         Acierto sobre pares emparejados                                  &
         Exactitud de la etiqueta de especie y tipo de llamada, condicionada a
         que la detección sea correcta.                                   &
@@ -1562,7 +1567,9 @@ umbrales aunque la caja predicha no coincida con la anotada. El tercero, una
 sílaba predicha dentro de una frase anotada, queda muy por debajo de ambos aunque
 la predicción esté íntegramente contenida en la anotación (IoMin 1,00). Es el
 anidamiento de unidades descrito en la causa C3. Ningún umbral de IoU lo resuelve,
-y por eso se trata en la construcción del conjunto de datos.
+y por eso se trata en la construcción del conjunto de datos. El \textit{recall} con
+contención de la Tabla~\ref{tab:metricas-sed} comprueba después que no queden
+casos así entre las anotaciones perdidas.
 
 El punto de operación con que OE3 cronometra la revisión asistida sale de esta
 misma regla: es el umbral que la validación elige para el modelo seleccionado, y
@@ -1705,8 +1712,9 @@ directorio derivado distinto. Esa separación es la que permite reconstruir el
 conjunto de trabajo desde cero cada vez que el protocolo de curación cambia, y la
 que impide que una corrección puntual quede sin registro.
 
-\rotulo{Registro de experimentos.} Cada corrida queda asociada a un identificador
-de configuración y a un \textit{commit} del repositorio. El bucle de
+\rotulo{Registro de experimentos.} Cada corrida guarda su configuración
+completa junto a sus pesos, de modo que un modelo se identifica por ella y no por
+una anotación externa. El bucle de
 entrenamiento registra los hiperparámetros, guarda \textit{checkpoints} de forma
 periódica y evalúa sobre validación a intervalos fijos. Los scripts de evaluación
 son independientes de los de entrenamiento: cargan un \textit{checkpoint}
@@ -1720,7 +1728,7 @@ ejecución en una máquina distinta no supongan rehacer trabajo. La gestión de 
 bibliografía se centraliza en Zotero a lo largo de todo el proceso.
 
 La planificación que ordena todo lo anterior en el tiempo, mediante la estructura de
-desglose del trabajo, el cronograma, el presupuesto y la gestión de riesgos, se recoge
+descomposición del trabajo, el cronograma, el presupuesto y la gestión de riesgos, se recoge
 en el Anexo~\ref{anx:plan}.
 
 % ===================================================================

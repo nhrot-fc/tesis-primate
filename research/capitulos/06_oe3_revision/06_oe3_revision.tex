@@ -71,7 +71,7 @@ El sistema se evalúa tal como lo usaría el equipo de investigación: el modelo
 \rWinner{} del Capítulo~\ref{cap:deteccion}, con el umbral de confianza de
 \rThresholdYol{} elegido en validación, a través de la herramienta de inferencia
 de RE2.4 (sección~\ref{sec:formato-salida}). La herramienta recorre cada
-grabación en ventanas de 3~s con un salto de 1,5~s, funde las detecciones
+grabación en ventanas de 3~s con un salto de 1,5~s, suprime las detecciones
 repetidas entre ventanas solapadas y escribe una tabla de selección de Raven. La
 unidad de análisis es una fila de esa tabla, es decir, una propuesta tal como la
 ve el especialista, y no una detección por ventana como en el
@@ -81,9 +81,9 @@ una a una con las de aquel.
 Los datos son las \uTestRecordings{} grabaciones de la partición de prueba
 (\uTestHours{} horas de audio), que el modelo no vio ni al entrenar ni al elegir
 el umbral. La referencia son las anotaciones del equipo limpiadas con el protocolo
-de RE1.1, de las \nClasses{} clases del modelo y sin las filas que quedaron en
-revisión. Las detecciones de las dos clases de ventana (\code{as/hc} y
-\code{pt/dc}), cuya caja ocupa la ventana entera, quedan fuera. Sobre ese
+de RE1.1, de las clases del modelo y sin las filas que quedaron en revisión. Las
+dos clases de ventana (\code{as/hc} y \code{pt/dc}), cuya caja ocupa la ventana
+entera, quedan fuera, tanto en la referencia como en las detecciones. Sobre ese
 material, la herramienta produce \uRows{} filas.
 
 \subsection{Emparejamiento y categorías}
@@ -621,7 +621,7 @@ misma partición (sección~\ref{sec:re32}).
             Filas por hora de audio, sin las clases de ventana          & \uProposalsPerHourBox{} \\
             Tiempo de audio sin ninguna propuesta                       & \uAudioWithoutProposals{} \\
             Fracción de la referencia que alguna fila acierta           & \uRecallRows{} \\
-            Anotaciones de la referencia por hora de audio              & \uRefPerHour{} \\
+            Anotaciones de la referencia por hora, sin las clases de ventana & \uRefPerHour{} \\
             \addlinespace
             \multicolumn{2}{@{}l}{\textit{Filas nada anotado (\uNoneRows{})}} \\
             Llamadas reales                                             & \uNoneReal{} (\uNoneRealLow{}--\uNoneRealHigh{}) \\
@@ -644,7 +644,7 @@ misma partición (sección~\ref{sec:re32}).
             Con el revisor, si basta la llamada de esa clase en la caja & \uPrecisionLenient{} \\
             Con el revisor, si basta cualquier llamada de primate       & \uPrecisionCall{} \\
             \addlinespace
-            \multicolumn{2}{@{}l}{\textit{Fuente del ruido (\uNoAnswers{} respuestas \code{no} revisadas)}} \\
+            \multicolumn{2}{@{}l}{\textit{Fuente del ruido (las \uNoAnswers{} respuestas \code{no})}} \\
             Ave                                                         & \uNoBird{} \\
             Ruido de fondo                                              & \uNoBackground{} \\
             Insectos                                                    & \uNoInsect{} \\
@@ -774,7 +774,7 @@ categoría. El indicador se cumple.
 \label{sec:discusion-oe3}
 % ===================================================================
 
-\rotulo{Resumen.} Las reglas de la evaluación quedaron fijadas un mes antes de
+\rotulo{Qué se obtuvo.} Las reglas de la evaluación quedaron fijadas un mes antes de
 medir (sección~\ref{sec:re31}). En la sesión cronometrada, revisar con las
 propuestas del modelo tomó lo mismo que anotar desde cero, y las tablas
 asistidas salieron con más cobertura y más precisión, aunque sin intervalo y con
@@ -812,7 +812,7 @@ Las propuestas de alta confianza sin anotación son llamadas reales en
 clases. El especialista puede así decidir qué aceptar, qué revisar primero y qué
 filtrar, que es lo que la causa C3 echaba en falta (sección~\ref{sec:causas}).
 
-\rotulo{Frente a la literatura.} Los ahorros revisados en la
+\rotulo{Consistencia con la literatura.} Los ahorros revisados en la
 sección~\ref{sec:magnitud} corresponden a detectar una o pocas especies. Depurar
 los falsos positivos de un sistema semiautomático para primates costó entre el 3 y
 el 5\,\% del tiempo del procesamiento humano \citep{heinicke_2015}. HOWLish redujo

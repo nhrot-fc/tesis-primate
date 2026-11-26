@@ -101,6 +101,11 @@
 \DeclareDelimFormat{andothersdelim}{\ifnum\value{listcount}>1 \addcomma\fi\addspace}
 \DeclareDelimFormat[parencite]{finalnamedelim}{%
     \ifnum\value{liststop}>2 \addcomma\fi\addspace\&\space}
+% Lo mismo en la lista de referencias, donde la falta se nota en los editores
+% («B. Schiele, \& T. Tuytelaars»); los autores invertidos ya traen su coma.
+\DeclareDelimFormat[bib,biblist]{finalnamedelim}{%
+    \ifthenelse{\value{listcount}>\maxprtauth}{}{%
+        \ifthenelse{\value{liststop}>2}{\addcomma\addspace\&\space}{\addspace\&\space}}}
 % Rangos de páginas con raya corta (758–767), como en APA; la localización
 % española de biblatex usa guion.
 \DefineBibliographyExtras{spanish}{%
@@ -272,6 +277,11 @@
     {\large\bfseries ASESOR:\par}
     \vspace{0.2cm}
     {\large Edwin Rafael Villanueva Talavera\par}
+    \vspace{0.9cm}
+
+    {\large\bfseries COASESOR:\par}
+    \vspace{0.2cm}
+    {\large Victor Andrés Ayma Quirita\par}
 
     \vfill
     {\large Lima, noviembre de 2026\par}
@@ -324,7 +334,8 @@
 % ===================================================================
 % REFERENCIAS (en APA 7 van antes de los anexos)
 % ===================================================================
-\printbibliography[heading=bibintoc, title={Referencias}]
+{\raggedright % APA 7 no justifica, y así los DOI no se estiran
+\printbibliography[heading=bibintoc, title={Referencias}]}
 
 % ===================================================================
 % ANEXOS

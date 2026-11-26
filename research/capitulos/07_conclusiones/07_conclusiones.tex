@@ -86,8 +86,8 @@ contra su indicador.
         RE2.1 & Diseño, arquitectura y líneas base       & Sección~\ref{sec:verificacion-re21} & Cumplido \\
         RE2.2 & \textit{Pipeline} reproducible           & Sección~\ref{sec:verificacion-re22} & Cumplido \\
         RE2.3 & Informe comparativo desagregado          & Sección~\ref{sec:verificacion-re23} & Cumplido \\
-        RE2.4 & Modelo final y salida a tabla de Raven   & Sección~\ref{sec:demo-oe2} & Cumplido \\
-        RE2.5 & Repositorio con código y modelo          & Sección~\ref{sec:re25} & Cumplido \\
+        RE2.4 & Modelo final y salida a tabla de Raven   & Sección~\ref{sec:verificacion-re24} & Cumplido \\
+        RE2.5 & Repositorio con código y modelo          & Sección~\ref{sec:verificacion-re25} & Cumplido \\
         \addlinespace
         RE3.1 & Metodología de validación comparativa    & Sección~\ref{sec:verificacion-re31} & Cumplido \\
         RE3.2 & Medición comparativa del tiempo de revisión & Sección~\ref{sec:verificacion-re32} & Cumplido \\
@@ -99,8 +99,9 @@ contra su indicador.
 Los once resultados se entregan y se verifican contra su indicador. En OE2, los
 nombres de archivo que citan los indicadores de RE2.2 y RE2.4, heredados del
 prototipo, corresponden en la implementación final a otros con la misma función.
-En OE3, la ejecución se apartó del protocolo en cuatro puntos que no cambian
-ninguna regla (sección~\ref{sec:desviaciones-oe3}); el que más pesa es que las
+En OE3, la ejecución se apartó del protocolo en cuatro puntos
+(sección~\ref{sec:desviaciones-oe3}). Ninguno cambió una regla de medición,
+aunque uno rompió el ciego de la revisión de cajas, y el que más pesa es que las
 dos tareas las hicieron dos personas y no una. RE3.2 se cumple aunque la medición
 no muestre una reducción del tiempo, porque su indicador compromete medirla y
 reportarla, no un valor para ella.
@@ -181,11 +182,12 @@ Contra la búsqueda manual de las vocalizaciones en la grabación entera
 que el equipo ya anota, y el analista las acepta, corrige o borra en su propia
 herramienta. Es pre-anotación asistida, y por eso privilegia la cobertura: su
 punto de operación es el de mayor \textit{recall} que conserva un piso de
-precisión (sección~\ref{sec:objetivos}). Sobre las grabaciones de prueba
+precisión (sección~\ref{sec:metricas}). Sobre las grabaciones de prueba
 completas, la herramienta cubre \uRecallRows{} de la referencia y deja sin
 ninguna propuesta el \uAudioWithoutProposals{} del tiempo de audio. A cambio,
-entrega \uProposalsPerHour{} filas por hora de audio, más del doble de las
-\uRefPerHour{} anotaciones por hora de la referencia
+entrega \uProposalsPerHourBox{} filas por hora de audio sin contar las dos clases
+de ventana, casi el doble de las \uRefPerHour{} anotaciones por hora que tiene la
+referencia en esas mismas clases
 (Tabla~\ref{tab:estimaciones}). Esa es la carga que reemplaza a la búsqueda.
 
 Contra la falta de una medida de cuánto acierta y cuánto ahorra una herramienta

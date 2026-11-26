@@ -84,7 +84,7 @@ con una de las \nClasses{} clases y una confianza.
 La formulación separa tres preguntas, y el protocolo de la
 sección~\ref{sec:protocolo-oe2} las puntúa por separado: si la llamada se
 \emph{encontró} (detección), si la caja quedó bien \emph{encuadrada}
-(localización) y si la etiqueta es \emph{correcta} (clasificación). Mantenerlas
+(encuadre) y si la etiqueta es \emph{correcta} (clasificación). Mantenerlas
 separadas permite decir, al final del capítulo, dónde está el error.
 
 \subsection{Arquitectura propuesta: AST-Deformable-DETR}
@@ -283,7 +283,7 @@ y solo \mClassesOverWindow{} clases (las dos de ventana) la superan.
 
 El decodificador tiene \mDecoderLayers{} capas idénticas
 (Figura~\ref{fig:decoder}), de dimensión \mDim{}, con \mHeads{} cabezas de
-atención, FFN de \mFfn{} y \textit{dropout} \mDropout{}. Cada una de las
+atención, red de propagación directa (FFN) de \mFfn{} y \textit{dropout} \mDropout{}. Cada una de las
 \mQueries{} consultas lleva dos vectores aprendidos, contenido y posición, y de
 la posición se deriva un punto de referencia inicial $(c_x, c_y)$ que, con un
 tamaño inicial de 0,1, forma la caja de referencia de la primera capa. En cada
@@ -590,7 +590,8 @@ protocolo con la propuesta.
 Las tres líneas base comparten la entrada, el mel del caché pintado como imagen de
 distinto tamaño, y la forma de la salida; difieren en el detector. La
 Tabla~\ref{tab:configuraciones} reúne las cuatro configuraciones de la
-comparación, la propuesta y las tres líneas base.
+comparación: la propuesta, que las tablas abrevian AST-Def-DETR, y las tres líneas
+base.
 
 \begin{table}[htbp]
     \centering
@@ -745,8 +746,8 @@ sección~\ref{sec:metricas}.
         \toprule
         \textbf{Eje} & \textbf{Pregunta} & \textbf{Magnitud} \\
         \midrule
-        Detección & ¿Se encontró la llamada? & \textit{Recall} y precisión emparejando sin mirar la clase, a IoU \pMatchIou{}, al punto de operación \\
-        Encuadre & ¿La caja está donde el anotador la dibujó? & IoU mediano de esos pares; \textit{recall} con clase a IoU \pStrictIou{}; AP a IoU \pLooseIou{} y \pStrictIou{} \\
+        Detección & ¿Se encontró la llamada? & \textit{Recall} y precisión emparejando sin mirar la clase, a IoU \pMatchIou{}, al punto de operación; \textit{recall} que acepta también la contención (IoMin) \\
+        Encuadre & ¿La caja está donde el anotador la dibujó? & IoU mediano de esos pares; \textit{recall} con clase a IoU \pStrictIou{}; AP a IoU \pLooseIou{} y \pStrictIou{}; IoMin de los pares bajo IoU \pStrictIou{} \\
         Clasificación & ¿Se etiquetó bien lo que se encontró? & Fracción de pares con la clase y con la especie correctas; \textit{recall} y AP por clase; matriz de confusión \\
         Operación & ¿Cuánto cuesta revisar? & Umbral elegido, F\textsubscript{1}, FP/TP, propuestas por hora de audio, minutos de GPU por hora de audio \\
         \bottomrule
@@ -974,7 +975,7 @@ añade el preentrenamiento con aves y \file{evaluation.sh}, que encadena el volc
 y la comparación.
 
 \begin{lstlisting}[language=bash, caption={Interfaz del pipeline, una línea por etapa}, label={lst:pipeline}]
-# 1. datos (capitulo 4)
+# 1. datos (capítulo 4)
 prepare_annotations.py [--force]     raw/ -> cleaned/
 prepare_data.py        [--force]     cleaned/ -> processed/
 export_yolo.py                       processed/ -> yolo/ (solo Ultralytics)
@@ -999,9 +1000,9 @@ detect.py <audio o carpeta> --model runs/<corrida>/best.pt
 Una corrida se identifica por su \textit{preset} (la arquitectura del registro
 \code{models.\allowbreak registry.\allowbreak ARCHITECTURES} con sus
 hiperparámetros y su \code{TrainConfig}) y por lo que se le pisa encima.
-Cualquier valor que se cambie respecto del \textit{preset} queda escrito en el
-nombre de la corrida, en su \file{config.json} y dentro del propio
-\textit{checkpoint}: es lo que permite, meses después, saber con qué se entrenó
+Cualquier valor que se cambie respecto del \textit{preset} queda escrito en su
+\file{config.json} y dentro del propio \textit{checkpoint}, y también en el
+nombre de la corrida cuando no se le da uno: es lo que permite, meses después, saber con qué se entrenó
 un archivo de pesos sin depender de ninguna anotación externa.
 
 El ciclo de entrenamiento (Figura~\ref{fig:trainer}) es común a las
@@ -1267,8 +1268,9 @@ precisión y las propuestas por hora de este capítulo sirven para comparar las
 cuatro configuraciones en igualdad de condiciones, pero no son las de una
 grabación completa. Las del producto las mide el Capítulo~\ref{cap:revision}
 sobre las \uTestHours{} horas de las grabaciones de prueba completas, para el
-modelo seleccionado: \uProposalsPerHour{} filas por hora de audio y una
-precisión por fila de \uPrecisionRef{} frente a la referencia.
+modelo seleccionado: \uProposalsPerHour{} filas por hora de audio
+(\uProposalsPerHourBox{} sin las clases de ventana) y, sin ellas, una precisión
+por fila de \uPrecisionRef{} frente a la referencia.
 
 \subsection{Desempeño al punto de operación}
 
@@ -1470,6 +1472,60 @@ y a ese grupo pertenece la confusión más frecuente, \rTopConfusion{}, con
 \rTopConfusionN{} pares, el \rTopConfusionShare{} de todos los errores de
 etiqueta: la geometría separa las especies en buena medida, pero no del todo.
 
+\rotulo{El IoMin confirma el umbral y explica el encuadre flojo.} El IoMin divide
+la intersección por el área de la caja menor y vale 1 cuando una caja contiene a
+la otra (sección~\ref{sec:metricas}). La Tabla~\ref{tab:contencion} lo usa de dos
+formas. La primera es como segundo criterio de acierto. Una anotación sin par a
+IoU \pMatchIou{} cuenta como encontrada si una propuesta libre de su clase la
+contiene, o cae dentro de ella, con IoMin de al menos \pContainedIomin{}. Es el
+mismo umbral con que la inferencia descarta las cajas anidadas
+(sección~\ref{sec:formato-salida}). El \textit{recall} sube entre
+\rContainedGainMin{} y \rContainedGainMax{} puntos, y las dos configuraciones de
+Ultralytics siguen delante, ahora igualadas en \rContainedRecallYol{}. Casi todas
+las anotaciones que el IoU \pMatchIou{} da por perdidas lo están de verdad:
+ninguna propuesta de su clase las contiene ni queda dentro de ellas. El umbral no
+castiga, por tanto, a las propuestas anidadas, y el anidamiento que la exclusión de
+las frases quitó del conjunto (sección~\ref{sec:anidamiento}) no reaparece en la
+evaluación.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{threeparttable}
+        \caption{Contención entre la caja propuesta y la anotada}
+        \label{tab:contencion}
+        \setlength{\tabcolsep}{4.5pt}
+        \begin{tabular}{@{}L{3.1cm}ccccccc@{}}
+            \toprule
+                                   & \multicolumn{3}{c}{\textbf{Acierto}} & \multicolumn{4}{c}{\textbf{Pares bajo IoU \pStrictIou{}}} \\
+            \cmidrule(lr){2-4}\cmidrule(lr){5-8}
+            \textbf{Configuración} & \thead{Recall\\IoU} & \thead{Recall\\con IoMin} & \thead{Ganadas} & \thead{Pares} & \thead{Contenidos} & \thead{Propuesta\\mayor} & \thead{Más en la\\duración} \\
+            \midrule
+            \input{\figDET/tablas/contencion} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}[flushleft]
+            \footnotesize
+            \item \textit{Nota.} Recall IoU: el de la Tabla~\ref{tab:resultados-op}.
+            Recall con IoMin: suma las anotaciones ganadas, las que solo encuentra la
+            contención (IoMin $\geq$ \pContainedIomin{}, misma clase). Pares: los de
+            la Tabla~\ref{tab:ejes} que no llegan a IoU \pStrictIou{}. Contenidos:
+            fracción de ellos con IoMin $\geq$ \pContainedIomin{}. Las dos últimas
+            columnas son fracciones de los contenidos.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+La segunda forma es sobre los pares ya emparejados. Entre
+\rLooseContainedMin{} y \rLooseContainedMax{} de los que no llegan a IoU
+\pStrictIou{} tienen IoMin de al menos \pContainedIomin{}: la caja floja está
+sobre la llamada y difiere en tamaño, no en posición. En el modelo seleccionado,
+la propuesta es la caja mayor en el \rContainedLargerYol{} de esos pares, y en el
+\rContainedLongerYol{} la diferencia mayor está en la duración y no en la banda
+de frecuencia. El encuadre que el IoU castiga es, sobre todo, otro inicio u otro
+fin de la misma llamada, la frontera borrosa que justifica el umbral bajo
+(sección~\ref{sec:metricas}).
+
 \subsection{Cobertura frente a carga de revisión}
 \label{sec:carga-igual}
 
@@ -1541,7 +1597,7 @@ La línea punteada marca la carga de los cuatro puntos de operación.
 (aproximadamente la carga de los cuatro puntos de operación, que promedian
 \rMeanLoad{}) la cobertura va de \rCovkFrc{} a \rCovkYol{}. Cuatro
 arquitecturas con \cParamsYol{}, \cParamsRtd{}, \cParamsFrc{} y \cParamsDet{}
-millones de parámetros, con extractores preentrenados en tres corpus distintos y
+millones de parámetros, con extractores preentrenados en audio o en imágenes y
 con recetas de entrenamiento que no están igualadas, convergen a la misma
 cobertura cuando se les da el mismo presupuesto de revisión. \emph{La elección de
     arquitectura pesa menos, en esta tarea y con este material, que la elección del
@@ -1552,8 +1608,8 @@ cobertura (lo que el modelo recupera con todo lo que puede proponer) va de
 \rCeilingYol{} (YOLO26s) a \rCeilingFrc{} (Faster R-CNN), a precios muy
 distintos: Faster R-CNN necesita \rCeilingLoadFrc{} propuestas por hora para
 alcanzarlo y YOLO26s, \rCeilingLoadYol{}, un orden de magnitud menos. Los otros
-tres modelos solo superan a YOLO26s a cargas varias veces mayores que las de los
-puntos de operación.
+tres solo pasan de ese techo con cargas de al menos el triple de la de los puntos
+de operación.
 
 \rotulo{El umbral de 0,5 de fábrica habría invertido el orden.} A 0,5, YOLO26s
 (umbral elegido \rThresholdYol{}) habría quedado en la parte conservadora de su
@@ -1757,9 +1813,9 @@ tiempo--frecuencia, especie, tipo de llamada y puntuación.
 \rotulo{Cómo se alcanzó.} Es la Fase~6 de CRISP-DM (sección~\ref{sec:fase6}). El
 programa de inferencia corta cada grabación en las mismas ventanas de
 \clipLen{}\,s con salto de \clipHop{}\,s del caché y ejecuta el modelo por lotes.
-Después aplica el posprocesamiento de la evaluación, funde entre ventanas
-solapadas las cajas anidadas de la misma clase y escribe la tabla junto a cada
-audio.
+Después aplica el posprocesamiento de la evaluación, suprime entre ventanas
+solapadas las cajas repetidas o anidadas de la misma clase y escribe la tabla
+junto a cada audio.
 
 \rotulo{Cómo reproducirlo.} Basta el \textit{checkpoint} publicado en la versión
 v0.2.0 y el código del repositorio: \file{src/detect.py} acepta un WAV o una
@@ -1943,6 +1999,7 @@ que no correspondan, corrige las que estén mal encuadradas y guarda la tabla ya
 revisada. Ese es el circuito cuyo tiempo mide OE3.
 
 \subsection{Verificación de RE2.4}
+\label{sec:verificacion-re24}
 
 El indicador exige dos cosas, y las dos quedan demostradas arriba:
 
@@ -2005,16 +2062,16 @@ está publicado.
     \begin{minipage}{0.92\textwidth}
 \begin{lstlisting}
 tesis-primate/
-  README.md         que es el proyecto y como se ejecuta
+  README.md         qué es el proyecto y cómo se ejecuta
   pyproject.toml    dependencias, extras y grupos; uv.lock las fija
-  evaluation.sh     volcado + comparacion de todas las corridas
+  evaluation.sh     volcado + comparación de todas las corridas
   Makefile          compila la tesis
   src/              el pipeline entero (figura 5.9)
-  notebooks/        auditoria, curacion asistida, preentrenamiento con aves
+  notebooks/        auditoría, curación asistida, preentrenamiento con aves
   research/         la tesis: main.tex, capitulos/<nn>/{tex, figures, notebook}
   docs/             requisitos del sistema y notas técnicas
   data/   (no versionado)  raw/, cleaned/, processed/, yolo/
-  runs/   (no versionado)  corridas: checkpoints, volcados, comparacion
+  runs/   (no versionado)  corridas: checkpoints, volcados, comparación
 \end{lstlisting}
     \end{minipage}
 \end{figure}
@@ -2071,8 +2128,9 @@ tal como lo enuncia su indicador, es que la URL permita localizar el código y l
 artefactos del modelo final, y eso es lo que la Tabla~\ref{tab:donde} verifica.
 
 \subsection{Verificación de RE2.5}
+\label{sec:verificacion-re25}
 
-El indicador pide que la URL permita localizar cuatro cosas, y las cuatro quedan
+El indicador pide que la URL permita localizar tres cosas, y las tres quedan
 localizadas en la Tabla~\ref{tab:donde}. La primera es el código de curación, el
 de entrenamiento, el de evaluación y el de inferencia, cada uno con el resultado
 esperado que lo documenta. La segunda son las instrucciones de ejecución, en el
@@ -2132,7 +2190,8 @@ parciales (seis clases, entre ellas las dos que se emiten en secuencia), pero
 elegirlas después de ver los resultados equivaldría a cambiar esa regla.
 
 \rotulo{Consistencia con la literatura.} Los resultados concuerdan con la
-línea del Capítulo~\ref{cap:estado} en tres puntos y discrepan en uno.
+literatura de los Capítulos~\ref{cap:generalidades} a~\ref{cap:estado} en tres
+puntos y discrepan en uno.
 
 Concuerdan en que \textbf{la detección bidimensional sobre el espectrograma es
     una formulación viable en bioacústica}. \citet{escobar-amado_computer_2024}

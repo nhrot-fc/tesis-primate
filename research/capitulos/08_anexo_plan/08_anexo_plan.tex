@@ -28,12 +28,14 @@ jerárquico de especie y tipo de llamada sobre eventos detectados.
     \item Poner en uso el audio ya grabado que hoy permanece sin anotar.
     \item Acortar la latencia entre la recolección y la obtención de resultados
           ecológicos.
-    \item Disminuir el costo y el error humano asociados al análisis manual. Es
-          un beneficio esperado: la tesis mide el tiempo de revisión, pero no lo
-          muestra reducido (Capítulo~\ref{cap:conclusiones}).
+    \item Disminuir el costo y el error humano asociados al análisis manual.
     \item Entregar una herramienta reutilizable, con código y pesos públicos,
           integrable al flujo de trabajo existente en Raven.
 \end{itemize}
+
+Los cuatro primeros son beneficios esperados: la tesis mide el tiempo de revisión,
+pero no lo muestra reducido (Capítulo~\ref{cap:conclusiones}). El quinto se
+cumple con RE2.4 y RE2.5.
 
 \section{Viabilidad}
 
@@ -166,7 +168,7 @@ la contingencia si se concreta.
         \addlinespace
         R5. Incompatibilidad del entorno de ejecución & Errores de instalación, o resultados distintos entre máquinas con versiones distintas de las bibliotecas & Media & Media & 4 \\
         \addlinespace
-        R6. Aumento del costo de cómputo en la nube & El gasto en instancias con GPU crece más rápido que lo presupuestado & Baja & Baja & 1 \\
+        R6. Aumento del costo de cómputo en la nube & El servidor de la universidad deja de estar disponible y hay que pagar instancias con GPU que el presupuesto no incluye & Baja & Baja & 1 \\
         \addlinespace
         R7. Retrasos por disponibilidad limitada del tesista & Tareas del cronograma que vencen sin completarse & Alta & Alta & 9 \\
         \bottomrule
@@ -209,7 +211,7 @@ expone a OE3: de la disponibilidad de los revisores dependen RE3.2 y RE3.3.
 \section{Estructura de descomposición del trabajo (EDT)}
 \label{sec:edt}
 
-La estructura de desglose del trabajo (EDT) se organiza según las fases de CRISP-DM y los
+La EDT se organiza según las fases de CRISP-DM y los
 objetivos específicos. La Tabla~\ref{tab:edt} resume los paquetes de trabajo y
 el entregable asociado a cada uno, y la Figura~\ref{fig:wbs-tree} los dibuja en
 jerarquía: solo se abren los tres paquetes que producen resultados esperados.
@@ -314,8 +316,7 @@ entregan, y el despliegue aplica el modelo final a grabaciones nuevas.
 
 El cronograma se ajusta al calendario del curso, que fija tres entregas. E1 es el
 documento del curso anterior con su avance (24/08/26, semana 2), E2 el entregable
-parcial (07/10/26, semana 8) y E3 el entregable final (23/11/26, semana 15), al
-que sigue la exposición final en las semanas 16 y 17. La
+parcial (07/10/26, semana 8) y E3 el entregable final (23/11/26, semana 15). La
 Tabla~\ref{tab:cronograma} agrupa las tareas según la entrega para la que deben
 estar terminadas, con el paquete de la EDT al que pertenecen, el resultado
 esperado al que contribuyen, sus fechas previstas y su estado a la fecha de E3.
@@ -340,9 +341,9 @@ esperado al que contribuyen, sus fechas previstas y su estado a la fecha de E3.
         \midrule
         \multicolumn{7}{@{}l}{\textbf{E2, 07/10/26 (semana 8): entregable parcial}} \\
         \addlinespace
-        1.1 & 4.3 & Manejo de eventos largos: ventana dual y solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & En parte \\
+        1.1 & 4.3 & Manejo de eventos largos: solapamiento mínimo relajado & RE1.2 & 18/08 & 26/08 & Completado \\
         1.2 & 4.3 & Aumento de datos: desplazamiento temporal, ganancia, perturbación de cajas y mezcla & RE1.2 & 26/08 & 02/09 & Completado \\
-        1.3 & 6.1 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & En parte \\
+        1.3 & 6.1 & IoMin junto a IoU en la evaluación & RE2.3 & 02/09 & 05/09 & Completado \\
         1.4 & 6.1 & Reentrenamiento del modelo 1 con 1.1 a 1.3 & RE2.3 & 05/09 & 12/09 & Completado \\
         2.1 & 5.1 & Selección y justificación de las arquitecturas & RE2.1 & 12/09 & 16/09 & Completado \\
         2.2 & 6.1 & Modelo 2: YOLO26 sobre espectrogramas, detector de una etapa & RE2.3 & 16/09 & 28/09 & Completado \\
@@ -357,12 +358,6 @@ esperado al que contribuyen, sus fechas previstas y su estado a la fecha de E3.
         3.2 & 6.4 & Medición del tiempo de revisión manual y asistida & RE3.2 & 02/11 & 09/11 & Completado \\
         3.3 & 6.5, 6.6 & Análisis de errores y revisión experta de la muestra & RE3.3 & 09/11 & 14/11 & Completado \\
         4.1 & 8 & Redacción del informe final & Cierre & 14/11 & 20/11 & Completado \\
-        \midrule
-        \multicolumn{7}{@{}l}{\textbf{Exposición final, semanas 16 y 17}} \\
-        \addlinespace
-        4.2 & 8 & Preparación de la exposición & Cierre & 26/11 & 30/11 & Pendiente \\
-        4.3 & 8 & Exposición final & Cierre & 30/11 & 01/12 & Pendiente \\
-        4.4 & 8 & Levantamiento de observaciones y versión final del documento & Cierre & 01/12 & 08/12 & Pendiente \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -372,19 +367,16 @@ Para E1 debían estar completos los tres resultados de OE1, el \textit{pipeline}
 cierre del preprocesamiento, la justificación de las arquitecturas (RE2.1) y el
 segundo modelo, y E3, el resto de OE2 y todo OE3. Las cuatro tareas de OE2
 previstas para E3 se terminaron antes de E2 (Capítulo~\ref{cap:deteccion}), y la
-comparación incorporó una línea base que el plan no preveía, RT-DETR-L. Dos tareas
-de E2 se cumplieron en parte. De 1.1 se implementó el solapamiento mínimo
-relajado, pero no la ventana dual (sección~\ref{sec:ventaneo}). El IoMin de 1.3 se
-usa para fusionar cajas anidadas en la inferencia, no como métrica de la
-evaluación, que reporta el IoU. Las de OE3 se apartaron de sus fechas en los dos
-sentidos. La metodología (3.1) quedó fijada en el repositorio el 10/10, antes de
+comparación incorporó una línea base que el plan no preveía, RT-DETR-L. El IoMin
+de 1.3 se usa en la inferencia para descartar cajas anidadas, y entró a la
+evaluación junto al IoU al cerrar el informe (sección~\ref{sec:ejes}), después de
+lo previsto. Las de OE3 se apartaron de sus fechas en los dos sentidos. La metodología (3.1) quedó fijada en el repositorio el 10/10, antes de
 lo previsto. La sesión cronometrada (3.2) se hizo entre el 11 y el 13/11 y la
 revisión de cajas (3.3) terminó el 15/11, después de lo previsto, porque
 dependían de la disponibilidad del equipo de investigación. Es el riesgo R3 de la
 Tabla~\ref{tab:riesgos}, que se materializó en parte. A la fecha de E3 están
-completas 18 de las 23 tareas, entre ellas la redacción del informe final (4.1),
-y 2 más en parte, junto con los 11 resultados esperados. Quedan las tareas de la
-exposición final.
+completos los 11 resultados esperados y las 20 tareas, entre ellas la redacción
+del informe final (4.1).
 
 Las tareas respetan las dependencias entre paquetes. La preparación de datos
 precede al modelado, y el modelado precede a la evaluación. La fijación del punto

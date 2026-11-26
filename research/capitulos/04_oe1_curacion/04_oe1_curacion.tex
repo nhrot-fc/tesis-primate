@@ -285,7 +285,7 @@ largas en sílabas \citep{proyecto8_manual_2025}; no consta si regía cuando se 
 \rotulo{Resultado.} Un protocolo documentado que convierte las anotaciones
 entregadas en el conjunto consistente que persigue OE1. Define siete elementos,
 los que exige su indicador (Tabla~\ref{tab:iov-oe1}): la normalización de columnas
-y etiquetas, el mapa de sinónimos, el descarte de ruido y de cajas degeneradas, la
+y etiquetas, el mapa de sinónimos, el descarte de ruido, el de cajas degeneradas, la
 corrección de pares imposibles, el recorte al límite de Nyquist y el tratamiento
 de los registros fuera de vocabulario.
 
@@ -337,7 +337,7 @@ reglas se aplican en el orden mostrado y cada una tiene su apartado más abajo.
         \node[etapa, below=of vocab] (geom) {Saneamiento geométrico: recorte a Nyquist, descarte de cajas degeneradas};
         \node[descarte, right=of geom] (geomdrop) {\nDegenerate{} filas};
         \node[dato, below=of geom] (cleaned) {data/cleaned/<especie>\_\_<COD>/<grabación>.txt};
-        \node[etapa, below=of cleaned] (unify) {Unión de copias byte-idénticas (al cargar)};
+        \node[etapa, below=of cleaned] (unify) {Unión de copias de una grabación (al cargar)};
         \node[dato, below=of unify] (df) {tabla única: \nAnnotationsCleaned{} anotaciones, \nUniqueRecordings{} grabaciones};
 
         \foreach \a/\b in {raw/pair, pair/cols, cols/labels, labels/species, species/noise,
@@ -494,7 +494,9 @@ la columna de tipo de llamada, y así lo declara la
 sección~\ref{sec:limitaciones}. Es una limitación del conjunto y, a la vez, el
 margen más claro de mejora para una versión futura del detector.
 
-\rotulo{Saneamiento geométrico.} Las coordenadas de la caja se validan con
+\rotulo{Saneamiento geométrico.}
+\label{sec:saneamiento}
+Las coordenadas de la caja se validan con
 independencia de la etiqueta. La frecuencia superior se \emph{recorta a Nyquist}
 (22\,050\,Hz), la mitad de 44,1\,kHz, la frecuencia a la que se remuestrean
 también las pocas grabaciones a 48\,kHz (Tabla~\ref{tab:preproc}). Por encima de la mitad de la
@@ -502,15 +504,16 @@ frecuencia de muestreo no hay energía observable en una señal a 44,1\,kHz, as�
 un error de anotación. Se \emph{descartan las cajas degeneradas}, de duración
 inferior a 10\,ms o de ancho de banda nulo o negativo (\nDegenerate{} filas). Una
 caja sin área no define una región y no puede emparejarse con ninguna predicción.
-Y 10\,ms es poco más que una trama del espectrograma (400 muestras a 44,1\,kHz,
-9\,ms), de modo que una caja más corta no ocupa ni una columna. Por último, se
+Y 10\,ms es poco más que el salto entre dos columnas del espectrograma (400
+muestras a 44,1\,kHz, 9\,ms), de modo que una caja más corta no ocupa ni una
+columna. Por último, se
 calculan la \emph{duración} y el \emph{ancho de banda} de cada caja, sobre los que
 se construye el análisis de geometría de la sección~\ref{sec:geometria}.
 
 \rotulo{Unión de copias de una misma grabación.}
 \label{sec:copias}
-Al cargar \file{cleaned/} se detecta que una misma grabación está copiada, byte a
-byte, en dos o tres carpetas de especie, y que cada copia lleva solo las
+Al cargar \file{cleaned/} se detecta que una misma grabación está copiada en dos
+o tres carpetas de especie, y que cada copia lleva solo las
 anotaciones de la especie de su carpeta. Tratarlas como grabaciones distintas
 deja la llamada de la otra especie sin anotar en cada copia, da supervisión
 contradictoria sobre el mismo audio y permite que caiga en dos particiones
@@ -525,7 +528,9 @@ anotadas a \nUniqueRecordings{}.
 \label{sec:verificacion-re11}
 
 La Tabla~\ref{tab:reglas} es la medición que verifica este resultado: cuenta, para
-cada regla del indicador, cuántas filas toca sobre las \nRawRows{} crudas.
+cada regla del indicador, cuántas filas toca sobre las \nRawRows{} crudas. La
+normalización de columnas no figura en ella porque no toca filas: renombra los
+encabezados de todas las tablas legibles.
 
 \begin{table}[htbp]
     \centering
@@ -694,8 +699,8 @@ otro sigue cuatro reglas declaradas en el código y registradas en
           enseñan ni como caja ni como fondo.
 
     \item \textbf{Exclusión por anidamiento.} Se retiran las clases de
-          \emph{frase}, por la razón que desarrolla la
-          sección~\ref{sec:anidamiento}.
+          \emph{frase}, por la razón que desarrolla más abajo el apartado
+          «Sílabas y frases».
 
     \item \textbf{Fusión de variantes.} Los tipos de trino de LW se reúnen en
           \code{lw/trino}, y el pío largo \code{sb/lpc} se une al pío de juego
@@ -986,7 +991,7 @@ conjunto.
     \end{threeparttable}
 \end{table}
 
-Esto se consigna aquí, y no entre las limitaciones, porque determina la lectura
+Esto se consigna aquí, y no solo entre las limitaciones, porque determina la lectura
 de cualquier resultado por clase en dos direcciones opuestas. Por un lado, las dos clases largas se vuelven las \emph{más fáciles}
 del conjunto: una caja que ocupa la ventana completa se acierta con casi
 cualquier predicción grande. Por otro, al aportar el \pctLongBoxes{} de las
@@ -1170,7 +1175,7 @@ estable que atraviesan el espectrograma de lado a lado.
 Las tres ventanas resumen la variedad que el caché entrega al modelo: eventos que
 se superponen, eventos más largos que la entrada y fondo sin ningún evento.
 
-\subsection{Entregables y verificación}
+\subsection{Verificación de RE1.2}
 \label{sec:verificacion-re12}
 
 \file{data/processed/} contiene los archivos de la Tabla~\ref{tab:archivos}, en
@@ -1213,13 +1218,19 @@ caché que está en disco:
           del Anexo~\ref{anx:medios}.
     \item \textbf{\file{meta.json} registra la semilla, el criterio de selección,
               las exclusiones, la etiqueta usada y la normalización.} El
-          Listado~\ref{lst:meta} lo reproduce íntegro. Cada corrida de entrenamiento lo
-          copia en su \file{config.json} y en el propio \textit{checkpoint}, de modo
-          que un modelo lleva consigo la descripción del conjunto con el que se
-          entrenó.
-    \item \textbf{El código divide por archivo de grabación y no por ventanas
-              aisladas.} Los \file{*\_sources.json} de las tres particiones no comparten
-          ni una sola grabación: las tres intersecciones son vacías. La partición
+          Listado~\ref{lst:meta} lo reproduce íntegro: la semilla es \code{seed}, el
+          criterio de selección \code{min\_pair\_count}, las exclusiones
+          \code{excluded\_labels} y \code{joined\_labels}, y la normalización
+          \code{db\_range} y el bloque \code{params}. La etiqueta usada es el par
+          \code{especie/llamada}, el formato de esas claves y de \file{labels.json}.
+          Cada corrida de entrenamiento copia \file{meta.json} en su
+          \file{config.json} y en el propio \textit{checkpoint}, de modo que un
+          modelo lleva consigo la descripción del conjunto con el que se entrenó.
+    \item \textbf{El código divide por archivo de grabación, con proporciones
+              \splitRatios{}, y no por ventanas aisladas.} Las proporciones son la
+          clave \code{split\_ratios} del Listado~\ref{lst:meta}. Los
+          \file{*\_sources.json} de las tres particiones no comparten ni una sola
+          grabación: las tres intersecciones son vacías. La partición
           se decide sobre la grabación entera, de modo que ninguna ventana de una
           grabación puede caer en un lado y su vecina solapada en otro.
 \end{enumerate}
@@ -1355,7 +1366,7 @@ Tabla~\ref{tab:composicion} lo desglosa por especie.
 \rotulo{Desbalance.} La distribución es de cola larga en dos niveles. Entre
 especies, \mostSpecies{} aporta \mostSpeciesPairs{} tipos de llamada y
 \textit{Cebus cuscinus} uno solo, con tan pocas anotaciones que no llega a ser
-clase. Dentro de una especie la distribución es tan sesgada como entre especies:
+clase. Entre pares, la distribución es igual de sesgada:
 los diez pares mayores concentran el \topTenShare{} de las anotaciones en
 vocabulario y la cola llega hasta pares con una sola
 (Figura~\ref{fig:anotaciones-par}). Entre \largestPair{}, con \largestPairN{}
@@ -1664,9 +1675,9 @@ clases de frase excluidas o sobre las especies sin clase.
 
 La versión del conjunto derivado queda identificada por \file{meta.json} (que
 registra la semilla, el criterio de selección, las exclusiones, la etiqueta usada
-y la normalización) y por la huella SHA-256 de la lista de grabaciones de cada
-partición. Dos capas derivadas con el mismo \file{meta.json} y las mismas huellas
-son el mismo conjunto. Cuando el equipo entrega anotaciones nuevas o corrige las
+y la normalización) y por la lista de grabaciones de cada partición, que está en
+la carpeta RE1.2 del Anexo~\ref{anx:medios}. Dos capas derivadas con el mismo
+\file{meta.json} y las mismas listas son el mismo conjunto. Cuando el equipo entrega anotaciones nuevas o corrige las
 existentes, el conjunto se vuelve a construir desde \file{data/raw/} y la versión
 cambia.
 
@@ -1709,8 +1720,8 @@ aquí descrito termina en la capa derivada que alimenta a OE2 y OE3.
           ningún mecanismo que las reagrupe en el evento original
           (Tabla~\ref{tab:ventaneo}). Corregirlo exigiría una segunda longitud de
           ventana para esas clases, o una agregación que reconstruya el evento
-          completo a partir de sus fragmentos antes de puntuarlo. Ninguna de las
-          dos se implementó.
+          completo a partir de sus fragmentos antes de puntuarlo. Las dos quedan
+          fuera del alcance de esta tesis.
     \item \textbf{Frases excluidas.} Las clases de frase quedan fuera por
           anidamiento y dejan sin cubrir el nivel superior de la jerarquía vocal.
     \item \textbf{Cobertura parcial del repertorio.} Los tipos de llamada bajo el
