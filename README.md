@@ -13,7 +13,8 @@ From [Releases](https://github.com/nhrot-fc/tesis-primate/releases):
 | Zip | What it is | Size |
 |---|---|---|
 | `detector-<version>-win64-cpu.zip` | the program, for any 64-bit PC | ~0.5 GB |
-| `detector-<version>-win64-cuda.zip` | the program with NVIDIA GPU support (uses the CPU if there is no GPU) | ~3 GB |
+| `detector-<version>-win64-cuda.zip` | the program with NVIDIA GPU support, GTX 900 to RTX 40 series (uses the CPU if there is no GPU or it is not supported) | ~3 GB |
+| `detector-<version>-win64-cuda13.zip` | the same for the RTX 50 series (works from the GTX 16xx up) | ~3 GB |
 | `detector-<version>-model-<name>.zip` | a model; you need at least one | 25 MB – 0.7 GB |
 
 1. Unzip **one** `win64` zip into a short path, for example `C:\detector\`.
@@ -53,7 +54,7 @@ The `Score` column lets you filter inside Raven.
 |---|---|---|
 | Windows | 10 or 11, 64-bit | same |
 | RAM | 8 GB | 16 GB |
-| Graphics card | not needed | NVIDIA with 4 GB+, driver 570 or newer |
+| Graphics card | not needed | NVIDIA with 4 GB+: GTX 900 to RTX 40 with `cuda` (driver 560+), RTX 50 with `cuda13` (driver 580+) |
 | Free disk | 3 GB | 7 GB |
 
 No admin rights and no internet connection. Processing speed per model:

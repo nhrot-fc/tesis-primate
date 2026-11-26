@@ -4,13 +4,12 @@ from pathlib import Path
 
 import torch
 
-from core.config import RUNS_DIR
-from core.runtime import resolve_device, setup_logging
+from core.config import BATCH_SIZE, RUNS_DIR
+from core.runtime import setup_logging
 from data import cache
 from data.cache import TEST, VAL
 from data.datasets import SpectrogramDataset, make_loader
 from evaluation.evaluator import RawPredictions, collect_detections, path_for
-from inference.predictor import BATCH_SIZE
 from models.registry import load_checkpoint
 from training.checkpoint import BEST
 
@@ -34,9 +33,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     setup_logging()
-    device = resolve_device(args.device)
     path = args.checkpoint or RUNS_DIR / args.run / BEST
-    loaded = load_checkpoint(path, device)
+    loaded = load_checkpoint(path, args.device)
+    device = loaded.device
     name = args.name or args.run or path.stem
 
     for split in args.splits:

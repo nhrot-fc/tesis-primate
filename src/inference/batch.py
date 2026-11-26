@@ -4,16 +4,13 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-import torch
-
 from inference.catalog import output_for
-from inference.predictor import BATCH_SIZE, predict
+from inference.predictor import predict
 from models.registry import LoadedModel
 
 logger = logging.getLogger(__name__)
 
 DONE, SKIPPED, FAILED, STOPPED = "done", "skipped", "failed", "stopped"
-CPU_BATCH_SIZE = 4
 
 
 @dataclass(frozen=True)
@@ -30,21 +27,15 @@ class StopError(Exception):
     pass
 
 
-def batch_size_for(device: str | torch.device) -> int:
-    return BATCH_SIZE if str(device).startswith("cuda") else CPU_BATCH_SIZE
-
-
 def run_batch(
     loaded: LoadedModel,
     files: list[Path],
-    device: str | torch.device,
     threshold: float,
     overwrite: bool = False,
     on_progress: Callable[[int, int, int], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> Iterator[Outcome]:
     # on_progress(índice de archivo, ventanas hechas, ventanas totales)
-    batch_size = batch_size_for(device)
     for index, path in enumerate(files):
         if should_stop is not None and should_stop():
             yield Outcome(index, path, STOPPED)
@@ -62,14 +53,7 @@ def run_batch(
 
         started = time.perf_counter()
         try:
-            table = predict(
-                loaded,
-                path,
-                device,
-                score_threshold=threshold,
-                batch_size=batch_size,
-                on_progress=report,
-            )
+            table = predict(loaded, path, threshold, on_progress=report)
             table.to_csv(output, sep="\t", index=False)
         except StopError:
             yield Outcome(index, path, STOPPED)

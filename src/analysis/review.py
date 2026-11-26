@@ -47,7 +47,7 @@ def tool_tables(loaded: LoadedModel, recordings: list[str], threshold: float) ->
     from inference.predictor import predict
 
     tables = [
-        predict(loaded, RAW_DIR / recording, "cpu", threshold).assign(recording=recording)
+        predict(loaded, RAW_DIR / recording, threshold).assign(recording=recording)
         for recording in recordings
     ]
     table = pd.concat(tables, ignore_index=True)

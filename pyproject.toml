@@ -5,8 +5,8 @@ description = "Detección de vocalizaciones de primates en espectrogramas"
 readme = "README.md"
 requires-python = ">=3.12"
 # Lo que corre el visor con inferencia (`python src/main.py`): abre checkpoints de Faster R-CNN.
-#   despliegue:      uv sync --no-dev [--extra detr] [--extra yolo]
-#   investigación:   uv sync --all-extras --all-groups
+#   investigación:   uv sync   (todos los grupos; `train` trae los extras detr y yolo)
+#   sólo el visor:   uv sync --no-default-groups [--extra detr] [--extra yolo]
 dependencies = [
     "numpy>=2.4.1",
     "pandas>=3.0.0",
@@ -50,6 +50,10 @@ dev = [
     "ty>=0.0.29",
 ]
 
+[tool.uv]
+# `uv sync` es exacto: sin esto, uno a secas (o el de VS Code) borraba los extras y los grupos
+default-groups = "all"
+
 [tool.ruff]
 line-length = 100
 src = ["src"]
@@ -67,12 +71,11 @@ quote-style = "double"
 
 [tool.pyright]
 pythonVersion = "3.12"
-# deploy/ y docs/manual/ importan desde src/ metiéndolo en sys.path al arrancar
-executionEnvironments = [
-    { root = "src" },
-    { root = "deploy", extraPaths = ["src"] },
-    { root = "docs/manual", extraPaths = ["src"] },
-]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "off"  # los tipos los revisa ty; Pylance queda para navegar
+# deploy/, docs/, notebooks/ y research/ meten src/ en sys.path al arrancar
+extraPaths = ["src"]
 
 [tool.ty.environment]
 python-version = "3.12"

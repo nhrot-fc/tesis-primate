@@ -1,3 +1,4 @@
+import functools
 import logging
 import random
 import sys
@@ -6,7 +7,15 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from core.config import BATCH_SIZE
+from core.errors import DeviceError
+
 LOG_BACKUPS = 2
+CPU_BATCH_SIZE = 4
+# (GiB de VRAM mínimos, ventanas por lote): Faster R-CNN usa ~0.24 GiB por ventana
+GPU_BATCH_SIZES = ((5.5, BATCH_SIZE), (3.5, 8))
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from tqdm.auto import tqdm
@@ -59,13 +68,67 @@ def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
 
 
-def resolve_device(requested: str | None = None) -> str:
+@functools.cache
+def cuda_problem(index: int = 0) -> str | None:
+    # None si la GPU sirve. Sin kernels para la tarjeta (GTX 1050 con cu128) torch la ve
+    # igual: sólo una operación lo revela.
     import torch
 
-    device = requested or ("cuda" if torch.cuda.is_available() else "cpu")
-    if device.startswith("cuda"):
-        torch.cuda.set_device(torch.device(device).index or 0)
-    return device
+    if torch.version.cuda is None:  # builds de CPU y de ROCm
+        return "this torch has no CUDA support"
+    if not torch.cuda.is_available():
+        return "no NVIDIA GPU or driver was found"
+    if index >= torch.cuda.device_count():
+        return f"there is no GPU number {index}"
+    device = torch.device("cuda", index)
+    try:
+        x = torch.ones(1, 1, 8, 8, device=device)  # conv2d: kernels de torch y cuDNN
+        torch.nn.functional.conv2d(x, torch.ones(1, 1, 3, 3, device=device)).sum().item()
+    except Exception as exc:
+        major, minor = torch.cuda.get_device_capability(index)
+        return (
+            f"{torch.cuda.get_device_name(index)} (compute capability {major}.{minor}) failed "
+            f"with this CUDA {torch.version.cuda} build of torch, made for "
+            f"{' '.join(torch.cuda.get_arch_list())}: {type(exc).__name__}: {exc}"
+        )
+    return None
+
+
+def resolve_device(requested: str | None = None) -> str:
+    # None: la GPU si sirve, si no la CPU. Lo pedido con --device tiene que servir.
+    import torch
+
+    if requested is None:
+        problem = cuda_problem()
+        if problem is not None:
+            # avisa sólo si hay una GPU que no corre
+            log = logger.warning if torch.cuda.is_available() else logger.info
+            log("Using the CPU: %s", problem)
+            return "cpu"
+        requested = "cuda"
+    try:
+        device = torch.device(requested)
+    except RuntimeError as exc:
+        raise DeviceError(f"Unknown device '{requested}': use cpu or cuda.") from exc
+    if device.type == "cpu":
+        return requested
+    if device.type != "cuda":
+        raise DeviceError(f"Device '{requested}' is not supported: use cpu or cuda.")
+    index = device.index or 0
+    if (problem := cuda_problem(index)) is not None:
+        raise DeviceError(f"Cannot use '{requested}': {problem}.")
+    torch.cuda.set_device(index)
+    logger.info("Using the GPU: %s", torch.cuda.get_device_name(index))
+    return requested
+
+
+def batch_size_for(device: str) -> int:
+    if not device.startswith("cuda"):
+        return CPU_BATCH_SIZE
+    import torch
+
+    vram_gib = torch.cuda.get_device_properties(torch.device(device)).total_memory / 2**30
+    return next((size for least, size in GPU_BATCH_SIZES if vram_gib >= least), CPU_BATCH_SIZE)
 
 
 def progress(loader: Iterable[Any], desc: str) -> "tqdm":

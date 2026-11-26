@@ -56,6 +56,16 @@ mpl.rcParams.update(
     }
 )
 
+# Coma decimal en las marcas de los ejes, como en el texto (no hay locale es instalado)
+_marca = mpl.ticker.ScalarFormatter.__call__
+
+
+def _coma(self, x, pos=None):
+    return _marca(self, x, pos).replace(".", ",")
+
+
+mpl.ticker.ScalarFormatter.__call__ = _coma
+
 
 def number(value: float, decimals: int = 0) -> str:
     if decimals == 0:

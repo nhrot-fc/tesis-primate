@@ -23,8 +23,9 @@ APP = "detector"
 PYTHON_VERSION = "3.12.10"
 EMBED_URL = "https://www.python.org/ftp/python/{v}/python-{v}-embed-amd64.zip"
 PLATFORM = "x86_64-pc-windows-msvc"
-# Índice de torch por variante: cu128 corre con drivers NVIDIA desde la serie 527
-TORCH_BACKENDS = {"cpu": "cpu", "cuda": "cu128"}
+# Índice de torch por variante: cu126 va de sm_50 a sm_90 (GTX 900 a RTX 40, drivers 560+);
+# cu130 de sm_75 a sm_120 (GTX 16xx a RTX 50, drivers 580+)
+TORCH_BACKENDS = {"cpu": "cpu", "cuda": "cu126", "cuda13": "cu130"}
 UV = os.environ.get("UV", "uv")
 # Compilador cruzado para los .exe: el paquete `ziglang` de PyPI trae zig entero
 ZIG_VERSION = "0.16.0"
@@ -40,13 +41,15 @@ MAX_PART_MB = 1900
 PRUNE = ["torch/include", "torch/lib/*.lib", "torch/bin", "torch/share", "pandas/tests"]
 
 sys.path.insert(0, str(PROJECT_DIR / "src"))
+from core.errors import CheckpointError  # noqa: E402
 from models.backbone import local_ast_dir  # noqa: E402
 from models.coco_deformable_detr import local_detr_dir  # noqa: E402
+from models.registry import read_checkpoint  # noqa: E402
 
 # Qué copia de `hf/` reconstruye cada arquitectura al cargar su checkpoint
 HF_BY_ARCHITECTURE = {
     "ast_deformable_detr": [local_ast_dir()],
-    "coco_deformable_detr": [local_ast_dir(), local_detr_dir()],
+    "resnet_deformable_detr": [local_detr_dir()],
 }
 
 logger = logging.getLogger("build")
@@ -102,13 +105,10 @@ def checkpoint_of(path: Path) -> Path:
 
 
 def architecture_of(checkpoint: Path) -> str:
-    import torch
-
-    # mmap: sólo se leen los metadatos, no los pesos
-    stored = torch.load(checkpoint, map_location="cpu", weights_only=False, mmap=True)
-    if not isinstance(stored, dict) or "architecture" not in stored:
-        raise SystemExit(f"{checkpoint} no es un checkpoint del proyecto")
-    return stored["architecture"]
+    try:
+        return read_checkpoint(checkpoint)["architecture"]
+    except CheckpointError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def stage_model(source: Path, version: str) -> Path:
@@ -160,16 +160,24 @@ def install_python(stage: Path) -> Path:
 def install_packages(python_dir: Path, variant: str) -> None:
     site = python_dir / "Lib" / "site-packages"
     requirements = python_dir / "requirements.txt"
+    locked = BUILD_DIR / "locked.txt"
     common = [
         f"--python-platform={PLATFORM}",
         f"--python-version={'.'.join(PYTHON_VERSION.split('.')[:2])}",
         f"--torch-backend={TORCH_BACKENDS[variant]}",
     ]
+    # Las versiones de uv.lock: sin esto cada variante resolvía lo último de su índice
+    BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    run(
+        UV, "export", "--quiet", "--frozen", "--no-hashes", "--no-header", "--no-dev",
+        "--no-emit-project", "--extra", "detr", "--extra", "yolo",
+        "--project", PROJECT_DIR, "-o", locked,
+    )  # fmt: skip
     # Se deja resuelto en el paquete: dice qué versiones lleva exactamente.
     run(
         UV, "pip", "compile", "--quiet", "--no-header",
         PROJECT_DIR / "pyproject.toml", TEMPLATES / "extra-requirements.in",
-        "--extra", "detr", "--extra", "yolo", *common, "-o", requirements,
+        "--extra", "detr", "--extra", "yolo", "-c", locked, *common, "-o", requirements,
     )  # fmt: skip
     run(
         UV, "pip", "install", "--quiet", "--target", site, "--compile-bytecode",

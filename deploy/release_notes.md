@@ -33,7 +33,8 @@ Primate vocalization detector for Windows. Portable: unzip and run, nothing to i
 Unzip **one** `win64` zip into a short path (`C:\detector\`), unzip a model zip into that
 same folder, run `viewer.exe`. The first time Windows warns: *More info → Run anyway*.
 
-Windows 10/11 64-bit, 8 GB of RAM. `cuda` needs an NVIDIA card (4 GB+, driver 570+) and
-falls back to the CPU without one. No internet needed.
+Windows 10/11 64-bit, 8 GB of RAM. `cuda` needs an NVIDIA card with 4 GB+ from the GTX 900
+to the RTX 40 series (driver 560+); `cuda13` is for the RTX 50 series (driver 580+). Both fall
+back to the CPU without a supported card. No internet needed.
 
 ### Files

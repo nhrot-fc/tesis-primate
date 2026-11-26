@@ -19,7 +19,7 @@ LATEX_RUN    := cd $(RESEARCH_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=
 MANUAL_DIR   := docs/manual
 MANUAL_PDF   := $(MANUAL_DIR)/build/manual.pdf
 
-.PHONY: all warnings figuras medios manual screenshots demo clean help
+.PHONY: all warnings figuras medios presentacion manual screenshots demo clean help
 
 all: $(PDF)
 
@@ -60,6 +60,16 @@ medios:
 	@rm -f $(BUILD_DIR)/medios_verificacion.zip
 	cd $(RESEARCH_DIR) && zip -qr $(abspath $(BUILD_DIR))/medios_verificacion.zip medios_verificacion -x '*/__pycache__/*'
 
+# La exposición final: toma las cifras de los capítulos, así que va después de `make`.
+PRES_DIR     := $(RESEARCH_DIR)/presentacion
+PRES_AUX     := $(abspath $(BUILD_DIR)/presentacion)
+presentacion:
+	uv run python $(PRES_DIR)/datos.py
+	cd $(PRES_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=$(PRES_AUX) presentacion.tex
+	cd $(PRES_DIR) && pdflatex $(LATEX_FLAGS) -output-directory=$(PRES_AUX) presentacion.tex
+	@cp $(PRES_AUX)/presentacion.pdf $(BUILD_DIR)/presentacion.pdf
+	@grep -a -c 'Overfull' $(PRES_AUX)/presentacion.log | xargs -I{} echo 'Cajas desbordadas: {}'
+
 # La guía de usuario del paquete de Windows; el visor la abre desde Help.
 manual: $(MANUAL_PDF)
 
@@ -84,6 +94,7 @@ help:
 	  'make warnings     Vuelve a mostrar los avisos del último log' \
 	  'make figuras      Ejecuta los cuadernos de figuras (CAP="04 05" elige capítulos)' \
 	  'make medios       Regenera los medios de verificación y su zip' \
+	  'make presentacion Compila la exposición final (research/build/presentacion.pdf)' \
 	  'make manual       Compila la guía de usuario (docs/manual/build/manual.pdf)' \
 	  'make screenshots  Regenera las capturas de la guía desde el visor' \
 	  'make demo         Graba el vídeo de demostración (resources/demo.mp4)' \

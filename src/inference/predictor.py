@@ -6,13 +6,12 @@ import soundfile as sf
 import torch
 
 from core.config import MAX_DETECTIONS, NMS_IOU, SCORE_THRESHOLD, P
+from core.runtime import batch_size_for
 from data.raven import raven_table
 from data.species import split_label
 from models.registry import LoadedModel
 from utils.audio import load_clips, mel_spectrogram, window_starts, y_to_hz
 from utils.boxes import postprocess, suppress_nested
-
-BATCH_SIZE = 16
 
 
 def species_and_call(name: str) -> tuple[str, str]:
@@ -24,12 +23,11 @@ def species_and_call(name: str) -> tuple[str, str]:
 def predict(
     loaded: LoadedModel,
     audio_path: str | Path,
-    device: str | torch.device = "cpu",
     score_threshold: float = SCORE_THRESHOLD,
-    batch_size: int = BATCH_SIZE,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> pd.DataFrame:
-    model, labels = loaded.model, loaded.labels
+    model, labels, device = loaded.model, loaded.labels, loaded.device
+    batch_size = batch_size_for(device)
     model.eval()
     duration_s = sf.info(str(audio_path)).duration
     starts = window_starts(duration_s, P)

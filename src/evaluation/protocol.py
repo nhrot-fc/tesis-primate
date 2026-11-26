@@ -14,18 +14,22 @@ from evaluation.metrics import (
     Boxes,
     assignments,
     average_precision_per_class,
+    box_iomin,
     hits,
+    iomin,
     mean_average_precision,
     overlaps,
     window_classes,
 )
 from inference.catalog import OPERATING_POINT
+from utils.boxes import IOMIN_THRESHOLD
 
 THRESHOLD_GRID = score_grid(SCORE_STEP, 1.0 - SCORE_STEP)
 MIN_PRECISIONS = (0.70, 0.50)
 STRICT_IOU = 0.5
 N_BOOTSTRAP = 1000
 CONFIDENCE = 0.95
+CONTAINED_IOMIN = IOMIN_THRESHOLD  # la contención con que la inferencia descarta anidadas
 
 
 class Point(NamedTuple):
@@ -70,6 +74,15 @@ class Axes(NamedTuple):
     recall_strict: float | None  # con clase, a STRICT_IOU
     class_correct: float | None  # de los pares sin clase, misma clase
     species_correct: float | None
+
+
+class Containment(NamedTuple):
+    recall: float | None  # con clase, a IoU MATCH_IOU o, si no, a IoMin CONTAINED_IOMIN
+    gained: int  # anotaciones que sólo encuentra la contención
+    loose: int  # pares sin clase por debajo de STRICT_IOU
+    loose_contained: float | None  # de esos, con IoMin >= CONTAINED_IOMIN
+    larger: float | None  # de los contenidos, la propuesta es la caja mayor
+    longer: float | None  # de los contenidos, difieren más en la duración que en la frecuencia
 
 
 class ModelComparison(NamedTuple):
@@ -258,6 +271,39 @@ def measure_axes(predictions: Boxes, truth: Boxes, names: list[str], threshold: 
         recall_strict=float(strict.sum()) / n_gt,
         class_correct=sum(same_class) / len(pairs),
         species_correct=sum(same_species) / len(pairs),
+    )
+
+
+def containment(predictions: Boxes, truth: Boxes, threshold: float) -> Containment:
+    above = predictions.select(torch.arange(int((predictions.scores >= threshold).sum())))
+    by_iou = assignments(overlaps(above, truth, class_aware=True), MATCH_IOU)
+    # Segunda pasada sobre lo que el IoU dejó libre: una caja dentro de la otra, misma clase
+    free = [
+        torch.tensor(sorted(set(range(n)) - {pair[side] for pair in by_iou}), dtype=torch.int64)
+        for side, n in ((0, len(above.boxes)), (1, len(truth.boxes)))
+    ]
+    by_iomin = assignments(
+        overlaps(above.select(free[0]), truth.select(free[1]), True, box_iomin), CONTAINED_IOMIN
+    )
+
+    pairs = assignments(overlaps(above, truth, class_aware=False), MATCH_IOU)
+    p_rows = torch.tensor([p for p, _ in pairs])
+    t_rows = torch.tensor([t for _, t in pairs])
+    predicted, annotated = above.boxes[p_rows], truth.boxes[t_rows]
+    a, b = box_convert(predicted, "cxcywh", "xyxy"), box_convert(annotated, "cxcywh", "xyxy")
+    loose = box_iou(a, b).diagonal() < STRICT_IOU
+    contained = loose & (iomin(a, b) >= CONTAINED_IOMIN)
+    ratio = (predicted[:, 2:] / annotated[:, 2:]).log().abs()  # duración, frecuencia
+    larger = predicted[:, 2:].prod(-1) > annotated[:, 2:].prod(-1)
+    longer = ratio[:, 0] > ratio[:, 1]
+    n_loose, n_contained = int(loose.sum()), int(contained.sum())
+    return Containment(
+        recall=(len(by_iou) + len(by_iomin)) / len(truth.boxes) if len(truth.boxes) else None,
+        gained=len(by_iomin),
+        loose=n_loose,
+        loose_contained=n_contained / n_loose if n_loose else None,
+        larger=float(larger[contained].float().mean()) if n_contained else None,
+        longer=float(longer[contained].float().mean()) if n_contained else None,
     )
 
 

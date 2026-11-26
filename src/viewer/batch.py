@@ -356,7 +356,7 @@ class BatchWorker(QThread):
         from viewer.inference import load
 
         try:
-            loaded, device = load(self.checkpoint)
+            loaded = load(self.checkpoint)
         except Exception as exc:
             logger.exception("Could not load the model %s", self.checkpoint)
             self.failed.emit(describe(exc))
@@ -373,7 +373,6 @@ class BatchWorker(QThread):
         for outcome in run_batch(
             loaded,
             self.files,
-            device,
             self.threshold,
             self.overwrite,
             on_progress=report,

@@ -1,12 +1,9 @@
 import importlib
-import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pandas as pd
-
-from viewer.tasks import UnreadableError
 
 if TYPE_CHECKING:
     from models.registry import LoadedModel
@@ -22,42 +19,20 @@ def preload() -> None:
         importlib.import_module(module)
 
 
-def not_a_model(path: Path) -> UnreadableError:
-    return UnreadableError(
-        f"'{path.name}' in {path.parent} is not a model of this program, or the file is "
-        "damaged. Unzip the model again (detector-*-model-*.zip)."
-    )
-
-
-def check(checkpoint_path: Path) -> None:
-    if not checkpoint_path.is_file():
-        raise UnreadableError(f"'{checkpoint_path}' is not there any more.")
-    if not zipfile.is_zipfile(checkpoint_path):
-        raise not_a_model(checkpoint_path)
-
-
-def load(checkpoint_path: Path) -> "tuple[LoadedModel, str]":
-    from core.runtime import resolve_device
+def load(checkpoint_path: Path) -> "LoadedModel":
     from models.registry import load_checkpoint
 
-    device = resolve_device()
     if checkpoint_path not in LOADED:
-        check(checkpoint_path)
-        LOADED.clear()
-        LOADED[checkpoint_path] = load_checkpoint(checkpoint_path, device)
-    return LOADED[checkpoint_path], device
+        LOADED.clear()  # uno a la vez: el anterior se suelta antes de cargar el siguiente
+        LOADED[checkpoint_path] = load_checkpoint(checkpoint_path)
+    return LOADED[checkpoint_path]
 
 
 def classes(checkpoint_path: Path) -> list[str]:
-    if checkpoint_path in LOADED:
-        return list(LOADED[checkpoint_path].labels.names)
-    import torch
+    from data.species import LabelSet
+    from models.registry import read_checkpoint
 
-    check(checkpoint_path)
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False, mmap=True)
-    if not isinstance(checkpoint, dict) or "labels" not in checkpoint:
-        raise not_a_model(checkpoint_path)
-    return sorted(str(name) for name in checkpoint["labels"])
+    return LabelSet(read_checkpoint(checkpoint_path)["labels"]).names
 
 
 def detect(
@@ -65,17 +40,10 @@ def detect(
     checkpoint_path: Path,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> pd.DataFrame:
-    from inference.batch import batch_size_for
     from inference.predictor import predict
 
-    loaded, device = load(checkpoint_path)
-    table = predict(
-        loaded,
-        audio_path,
-        device,
-        score_threshold=DETECT_THRESHOLD,
-        batch_size=batch_size_for(device),
-        on_progress=on_progress,
-    )
+    loaded = load(checkpoint_path)
+    table = predict(loaded, audio_path, DETECT_THRESHOLD, on_progress)
     table.attrs["operating_point"] = loaded.operating_point
+    table.attrs["device"] = loaded.device
     return table

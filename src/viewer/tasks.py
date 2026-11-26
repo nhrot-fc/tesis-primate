@@ -5,6 +5,8 @@ from typing import override
 
 from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
 
+from core.errors import ModelError
+
 logger = logging.getLogger("viewer")
 
 
@@ -16,8 +18,12 @@ class UnreadableError(Exception):
     pass
 
 
+# Errores esperados: su mensaje ya es para el usuario
+EXPECTED = (UnreadableError, ModelError)
+
+
 def describe(exc: BaseException) -> str:
-    return str(exc) if isinstance(exc, UnreadableError) else f"{type(exc).__name__}: {exc}"
+    return str(exc) if isinstance(exc, EXPECTED) else f"{type(exc).__name__}: {exc}"
 
 
 class Worker(QThread):
@@ -49,7 +55,7 @@ class Worker(QThread):
             result = self.task(self.report) if self.reports else self.task()
         except StopError:
             self.done = True
-        except UnreadableError as exc:
+        except EXPECTED as exc:
             cause = f" ({exc.__cause__})" if exc.__cause__ is not None else ""
             logger.warning("%s: %s%s", self.what, exc, cause)
             self.done = True

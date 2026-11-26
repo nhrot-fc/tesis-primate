@@ -20,6 +20,7 @@ SCORE_FLOOR = 0.001
 SCORE_STEP = 0.01
 NMS_IOU = 0.3
 MAX_DETECTIONS = 100  # por ventana
+BATCH_SIZE = 16  # ventanas por lote en una GPU con VRAM de sobra
 
 
 def score_grid(start: float, stop: float) -> list[float]:

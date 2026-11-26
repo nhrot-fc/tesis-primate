@@ -43,7 +43,8 @@ sed "s/{version}/$VERSION/g" deploy/release_notes.md > "$notes"
         size=$(( ($(stat -c %s "$f") + 2**19) / 2**20 )); ((size == 0)) && size="<1"
         case $name in
             *-win64-cpu.zip*)  what="runtime, any 64-bit PC" ;;
-            *-win64-cuda.zip*) what="runtime with NVIDIA support" ;;
+            *-win64-cuda.zip*) what="runtime with NVIDIA support, GTX 900 to RTX 40" ;;
+            *-win64-cuda13.zip*) what="runtime with NVIDIA support, GTX 16xx to RTX 50" ;;
             *-model-*.zip*)    m=${name#*-model-}; what="model \`${m%%.zip*}\`" ;;
             *.join.bat)        what="joins the parts of a split zip" ;;
             SHA256SUMS.txt)    what="checksums" ;;

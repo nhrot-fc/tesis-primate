@@ -12,9 +12,10 @@
     "notebook.source.fixAll": "never",
     "notebook.source.organizeImports": "explicit"
   },
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
   "python.terminal.activateEnvironment": false,
   "python.languageServer": "Pylance",
-  "python.analysis.typeCheckingMode": "off",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.diagnosticMode": "openFilesOnly",
   "python.analysis.inlayHints.variableTypes": true,
@@ -25,5 +26,5 @@
   
   "ty.disableLanguageServices": true,
   "ty.diagnosticMode": "workspace",
-  "ty.importStrategy": "fromEnvironment",
+  "ty.importStrategy": "fromEnvironment"
 }

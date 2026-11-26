@@ -4,14 +4,14 @@ import sys
 from pathlib import Path
 
 from core.config import SCORE_THRESHOLD
-from core.runtime import resolve_device, setup_logging
+from core.errors import ModelError
+from core.runtime import setup_logging
 from inference.catalog import (
     DETECTIONS_SUFFIX,
     MODELS_DIR,
     available_models,
     checkpoint_in,
     collect_audio,
-    is_checkpoint,
 )
 
 logger = logging.getLogger("detect")
@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
 def choose_model(requested: Path | None) -> Path:
     if requested is not None:
         chosen = checkpoint_in(requested) if requested.is_dir() else requested
-        if chosen is None or not is_checkpoint(chosen):
+        if chosen is None:
             raise SystemExit(f"No checkpoint found in {requested}")
         return chosen
 
@@ -65,26 +65,24 @@ def main() -> None:
     from inference.batch import DONE, FAILED, SKIPPED, STOPPED, run_batch
     from models.registry import load_checkpoint
 
-    device = resolve_device(args.device)
     try:
-        loaded = load_checkpoint(checkpoint, device)
-    except Exception as exc:
-        logger.exception("Could not load %s", checkpoint)
-        raise SystemExit(f"Could not load the model {checkpoint}: {exc}") from exc
+        loaded = load_checkpoint(checkpoint, args.device)
+    except ModelError as exc:  # el mensaje ya dice qué hacer: sin traceback
+        raise SystemExit(str(exc)) from exc
     threshold = args.score
     if threshold is None:
         threshold = SCORE_THRESHOLD if loaded.operating_point is None else loaded.operating_point
     logger.info(
         "%s on %s | score >= %.2f | %d recordings",
         checkpoint.parent.name,
-        device,
+        loaded.device,
         threshold,
         len(audio),
     )
 
     failed = 0
     total = len(audio)
-    for outcome in run_batch(loaded, audio, device, threshold, overwrite=args.overwrite):
+    for outcome in run_batch(loaded, audio, threshold, overwrite=args.overwrite):
         where = f"[{outcome.index + 1}/{total}] {outcome.path.name}"
         if outcome.status == SKIPPED:
             logger.info("%s already has a table; --overwrite redoes it", where)

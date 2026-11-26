@@ -882,8 +882,9 @@ class Viewer(QMainWindow):
         if operating is not None:
             self.score.set_value(operating)
         self.session.set_table(DETECTIONS, table)
+        where = "the GPU" if str(table.attrs.get("device")).startswith("cuda") else "the CPU"
         self.say(
-            f"{len(table)} detections from the model."
+            f"{len(table)} detections from the model, on {where}."
             + ("" if operating is None else f"   Operating point: {operating:.2f}")
         )
 

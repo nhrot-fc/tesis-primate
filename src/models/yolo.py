@@ -60,13 +60,19 @@ class SpectrogramYOLO(Detector):
 
     @torch.no_grad()
     def detect(self, mel: Tensor, score_threshold: float = SCORE_THRESHOLD) -> list[Detections]:
-        results = self.ultralytics_predictor.predict(
-            self.to_images(mel),
-            imgsz=self.imgsz,
-            conf=max(score_threshold, SCORE_FLOOR),  # Ultralytics no acepta 0
-            device=mel.device,
-            verbose=False,
-        )
+        try:
+            results = self.ultralytics_predictor.predict(
+                self.to_images(mel),
+                imgsz=self.imgsz,
+                conf=max(score_threshold, SCORE_FLOOR),  # Ultralytics no acepta 0
+                device=mel.device,
+                verbose=False,
+            )
+        except Exception:
+            # Ultralytics <= 8.4.175 guarda el predictor a medio armar: sin esto, las llamadas
+            # siguientes fallan con `yolo26s.yaml` y tapan el error real
+            self.ultralytics_predictor.predictor = None
+            raise
 
         detections = []
         for result in results:

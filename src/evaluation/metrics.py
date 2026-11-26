@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Callable
 from typing import NamedTuple
 
 import torch
@@ -67,7 +68,25 @@ def rows_by_image(image_ids: Tensor) -> dict[int, list[int]]:
     return rows
 
 
-def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool) -> Overlaps:
+def iomin(a: Tensor, b: Tensor) -> Tensor:
+    # Intersección sobre el área de la caja menor (xyxy, con broadcasting): 1 si una contiene a la otra
+    top_left = torch.max(a[..., :2], b[..., :2])
+    bottom_right = torch.min(a[..., 2:], b[..., 2:])
+    intersection = (bottom_right - top_left).clamp(min=0).prod(-1)
+    smaller = torch.min((a[..., 2:] - a[..., :2]).prod(-1), (b[..., 2:] - b[..., :2]).prod(-1))
+    return intersection / smaller.clamp(min=1e-6)
+
+
+def box_iomin(a: Tensor, b: Tensor) -> Tensor:
+    return iomin(a[:, None], b[None])
+
+
+def overlaps(
+    predictions: Boxes,
+    truth: Boxes,
+    class_aware: bool,
+    measure: Callable[[Tensor, Tensor], Tensor] = box_iou,
+) -> Overlaps:
     if not len(predictions.boxes) or not len(truth.boxes):
         return []
     predicted_xyxy = box_convert(predictions.boxes, "cxcywh", "xyxy")
@@ -79,7 +98,7 @@ def overlaps(predictions: Boxes, truth: Boxes, class_aware: bool) -> Overlaps:
         columns = truth_rows.get(image_id)
         if columns is None:
             continue
-        iou = box_iou(predicted_xyxy[rows], truth_xyxy[columns])
+        iou = measure(predicted_xyxy[rows], truth_xyxy[columns])
         if class_aware:
             same_class = predictions.labels[rows][:, None] == truth.labels[columns][None, :]
             iou = iou.masked_fill(~same_class, -1.0)

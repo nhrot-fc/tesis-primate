@@ -9,7 +9,7 @@ self-contained folder: nothing else to install.
 |---|---|---|
 | Processor | 4 cores, x86-64 | 6+ cores, x86-64 |
 | RAM | 8 GB (6 GB free while processing) | 16 GB |
-| Graphics card | not needed | NVIDIA with **4 GB+ of VRAM** (GTX 1650 / RTX 3050 or better) and an up-to-date driver¹ |
+| Graphics card | not needed | NVIDIA with **4 GB+ of VRAM**: GTX 900 to RTX 40 with the `cuda` package (driver 560+), RTX 50 with `cuda13` (driver 580+)¹ |
 | Free disk | 3 GB (CPU package) | 7 GB (GPU package) |
 
 ¹ Only the NVIDIA driver: the package brings its own CUDA libraries.
